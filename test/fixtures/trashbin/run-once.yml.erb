@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: speaker-pod-<%= deployment_id %>
+  labels:
+    name: speaker-pod-<%= deployment_id %>
+    app: trashbin
+spec:
+  activeDeadlineSeconds: 300
+  restartPolicy: Never
+  containers:
+    - name: speaker
+      image: gcr.io/shopify-codelab-and-demos/knverey-run-once:v1
+      env:
+      - name: CONFIG
+        valueFrom:
+          configMapKeyRef:
+            name: some-data
+            key: datapoint2

@@ -1,0 +1,58 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: web
+  labels:
+    name: web
+    app: trashbin
+spec:
+  rules:
+  - host: trashbin.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: web
+          servicePort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  labels:
+    name: web
+    app: trashbin
+spec:
+  ports:
+  - port: 80
+    name: http
+    targetPort: http
+  selector:
+    name: web
+    app: trashbin
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: web
+        app: trashbin
+    spec:
+      containers:
+      - name: app
+        image: gcr.io/shopify-codelab-and-demos/knverey-hello-node:v1
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: GITHUB_REV
+          value: <%= current_sha %>
+        - name: CONFIG
+          valueFrom:
+            configMapKeyRef:
+              name: some-data
+              key: datapoint1

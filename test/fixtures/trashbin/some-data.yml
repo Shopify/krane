@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: some-data
+data:
+  datapoint1: value1
+  datapoint2: value2
