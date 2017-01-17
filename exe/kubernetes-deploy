@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+require 'kubernetes-deploy'
+
+options = {
+  namespace: ARGV[0],
+  context: ARGV[1],
+  environment: ENV['ENVIRONMENT'],
+  current_sha: ENV['REVISION'],
+  kubeconfig_path: ENV["KUBECONFIG"],
+}
+
+options[:template_dir] = ENV['K8S_TEMPLATE_FOLDER'] || File.expand_path("./config/deploy/#{options.fetch(:environment)}")
+
+KubernetesDeploy.with_friendly_errors do
+  KubernetesDeploy::Runner.new(options).run
+end
