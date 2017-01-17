@@ -1,15 +1,3 @@
-#!/usr/bin/env ruby
-
-# Usage: kubernetes-deploy <app's namespace> <kube context>
-
-# Prerequisites:
-#  - kubectl 1.5.1+ binary must be available in the shipit machine's path
-#  - ENV['KUBECONFIG'] must point to a valid kubeconfig file that includes all the contexts you want to deploy to
-#  - ENV['GOOGLE_APPLICATION_CREDENTIALS'] must point to the credentials for an authenticated service account if your user's auth provider is gcp
-
-# Optionally, the following variables can be used to override script defaults:
-#  - ENV['K8S_TEMPLATE_FOLDER']: Location of Kubernetes files to deploy. Default is config/deploy/#{environment}.
-
 require 'open3'
 require 'securerandom'
 require 'erb'
@@ -23,7 +11,34 @@ require 'active_support/descendants_tracker'
 require 'active_support/core_ext/hash/slice'
 require 'active_support/core_ext/numeric/time'
 
-class KubernetesDeploy
+module KubernetesDeploy
+  def self.logger=(value)
+    @logger = value
+  end
+
+  def self.logger
+    @logger ||= begin
+      l = Logger.new(STDOUT)
+      l.level = ENV["DEBUG"] ? Logger::DEBUG : Logger::INFO
+      l.formatter = proc do |severity, _datetime, _progname, msg|
+        case severity
+        when "FATAL", "ERROR" then "\033[0;31m[#{severity}]\t#{msg}\x1b[0m\n" # red
+        when "WARN" then "\033[0;33m[#{severity}]\t#{msg}\x1b[0m\n" # yellow
+        when "INFO" then "\033[0;36m#{msg}\x1b[0m\n" # blue
+        else "[#{severity}]\t#{msg}\n"
+        end
+      end
+      l
+    end
+  end
+
+  def self.with_friendly_errors
+    yield
+  rescue FatalDeploymentError => error
+    KubernetesDeploy.logger.fatal(error.message)
+    exit 1
+  end
+
   class FatalDeploymentError < StandardError; end
 
   # Things removed from default prune whitelist:
@@ -52,11 +67,13 @@ class KubernetesDeploy
     Pod
   )
 
-  def initialize(namespace:, environment:, current_sha:, template_folder: nil, context:)
+  class Runner
+  def initialize(namespace:, environment:, current_sha:, template_dir: nil, context:, kubeconfig_path:)
     @namespace = namespace
     @context = context
     @current_sha = current_sha
-    @template_path = File.expand_path('./' + (template_folder || "config/deploy/#{environment}"))
+    @kubeconfig_path = kubeconfig_path
+    @template_dir = template_dir
     # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
     @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
   end
@@ -84,9 +101,6 @@ class KubernetesDeploy
     wait_for_completion(resources)
 
     report_final_status(resources)
-  rescue FatalDeploymentError => error
-    KubernetesDeploy.logger.fatal(error.message)
-    exit 1
   end
 
   def template_variables
@@ -113,7 +127,7 @@ class KubernetesDeploy
 
   def discover_resources
     resources = []
-    Dir.foreach(@template_path) do |filename|
+    Dir.foreach(@template_dir) do |filename|
       next unless filename.end_with?(".yml.erb", ".yml")
 
       split_templates(filename) do |tempfile|
@@ -133,7 +147,7 @@ class KubernetesDeploy
   end
 
   def split_templates(filename)
-    file_content = File.read(File.join(@template_path, filename))
+    file_content = File.read(File.join(@template_dir, filename))
     rendered_content = render_template(filename, file_content)
     YAML.load_stream(rendered_content) do |doc|
       f = Tempfile.new(filename)
@@ -187,18 +201,18 @@ class KubernetesDeploy
 
   def validate_configuration
     errors = []
-    if ENV["KUBECONFIG"].blank? || !File.file?(ENV["KUBECONFIG"])
-      errors << "Kube config not found at #{ENV["KUBECONFIG"]}"
+    if @kubeconfig_path.blank? || !File.file?(@kubeconfig_path)
+      errors << "Kube config not found at #{@kubeconfig_path}"
     end
 
     if @current_sha.blank?
       errors << "Current SHA must be specified"
     end
 
-    if !File.directory?(@template_path)
-      errors << "Template path #{@template_path} doesn't exist"
-    elsif Dir.entries(@template_path).none? { |file| file =~ /\.yml(\.erb)?$/ }
-      errors << "#{@template_path} doesn't contain valid templates (postfix .yml or .yml.erb)"
+    if !File.directory?(@template_dir)
+      errors << "Template path #{@template_dir} doesn't exist"
+    elsif Dir.entries(@template_dir).none? { |file| file =~ /\.yml(\.erb)?$/ }
+      errors << "#{@template_dir} doesn't contain valid templates (postfix .yml or .yml.erb)"
     end
 
     if @namespace.blank?
@@ -275,21 +289,6 @@ class KubernetesDeploy
   def log_green(msg)
     STDOUT.puts "\033[0;32m#{msg}\x1b[0m\n" # green
   end
-
-  def self.logger
-    @logger ||= begin
-      l = Logger.new(STDOUT)
-      l.level = ENV["DEBUG"] ? Logger::DEBUG : Logger::INFO
-      l.formatter = proc do |severity, _datetime, _progname, msg|
-        case severity
-        when "FATAL", "ERROR" then "\033[0;31m[#{severity}]\t#{msg}\x1b[0m\n" # red
-        when "WARN" then "\033[0;33m[#{severity}]\t#{msg}\x1b[0m\n" # yellow
-        when "INFO" then "\033[0;36m#{msg}\x1b[0m\n" # blue
-        else "[#{severity}]\t#{msg}\n"
-        end
-      end
-      l
-    end
   end
 
   class KubernetesResource
@@ -651,12 +650,3 @@ class KubernetesDeploy
     end
   end
 end
-
-deployment = KubernetesDeploy.new(
-  namespace: ARGV[0],
-  context: ARGV[1],
-  environment: ENV['ENVIRONMENT'],
-  current_sha: ENV['REVISION'],
-  template_folder: ENV['K8S_TEMPLATE_FOLDER']
-)
-deployment.run
