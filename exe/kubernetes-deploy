@@ -10,6 +10,7 @@
 # Optionally, the following variables can be used to override script defaults:
 #  - ENV['K8S_TEMPLATE_FOLDER']: Location of Kubernetes files to deploy. Default is config/deploy/#{environment}.
 
+require 'bundler/setup'
 require 'open3'
 require 'securerandom'
 require 'erb'
