@@ -6,12 +6,12 @@ require 'kubernetes-deploy/version'
 Gem::Specification.new do |spec|
   spec.name          = "kubernetes-deploy"
   spec.version       = KubernetesDeploy::VERSION
-  spec.authors       = ["Kir Shatrov"]
-  spec.email         = ["shatrov@me.com"]
+  spec.authors       = ["Kir Shatrov", "Jean Boussier", "Katrina Verey"]
+  spec.email         = ["ops-accounts+shipit@shopify.com"]
 
   spec.summary       = %q{Kubernetes deploy scripts}
   spec.description   = spec.summary
-  spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.homepage      = "https://github.com/Shopify/kubernetes-deploy"
   spec.license       = "MIT"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
