@@ -10,7 +10,6 @@
 # Optionally, the following variables can be used to override script defaults:
 #  - ENV['K8S_TEMPLATE_FOLDER']: Location of Kubernetes files to deploy. Default is config/deploy/#{environment}.
 
-require 'bundler/setup'
 require 'open3'
 require 'securerandom'
 require 'erb'
@@ -19,10 +18,6 @@ require 'yaml'
 require 'shellwords'
 require 'tempfile'
 require 'logger'
-require 'active_support/core_ext/object/blank'
-require 'active_support/descendants_tracker'
-require 'active_support/core_ext/hash/slice'
-require 'active_support/core_ext/numeric/time'
 
 class KubernetesDeploy
   class FatalDeploymentError < StandardError; end
@@ -159,7 +154,7 @@ class KubernetesDeploy
 
   def wait_for_completion(watched_resources)
     delay_sync_until = Time.now.utc
-    while watched_resources.present?
+    while !watched_resources.empty?
       if Time.now.utc < delay_sync_until
         sleep (delay_sync_until - Time.now.utc)
       end
@@ -188,11 +183,11 @@ class KubernetesDeploy
 
   def validate_configuration
     errors = []
-    if ENV["KUBECONFIG"].blank? || !File.file?(ENV["KUBECONFIG"])
+    if ENV["KUBECONFIG"].nil? || !File.file?(ENV["KUBECONFIG"])
       errors << "Kube config not found at #{ENV["KUBECONFIG"]}"
     end
 
-    if @current_sha.blank?
+    if @current_sha.nil?  || @current_sha.empty?
       errors << "Current SHA must be specified"
     end
 
@@ -202,11 +197,11 @@ class KubernetesDeploy
       errors << "#{@template_path} doesn't contain valid templates (postfix .yml or .yml.erb)"
     end
 
-    if @namespace.blank?
+    if @namespace.nil? || @namespace.empty?
       errors << "Namespace must be specified"
     end
 
-    if @context.blank?
+    if @context.nil? || @context.empty?
       errors << "Context must be specified"
     end
 
@@ -293,23 +288,48 @@ class KubernetesDeploy
     end
   end
 
+  module DescendantsTracker
+    @@direct_descendants = {}
+
+    class << self
+      def direct_descendants(klass)
+        @@direct_descendants[klass] || []
+      end
+
+      def store_inherited(klass, descendant)
+        (@@direct_descendants[klass] ||= []) << descendant
+      end
+    end
+  end
+
   class KubernetesResource
-    extend ActiveSupport::DescendantsTracker
+    extend DescendantsTracker
 
     attr_reader :name, :namespace, :file
     attr_writer :type, :deploy_started
 
-    TIMEOUT = 5.minutes
+    TIMEOUT = 5 * 60
 
-    def self.handled_type
-      name.split('::').last
-    end
+    class << self
+      def direct_descendants
+        DescendantsTracker.direct_descendants(self)
+      end
 
-    def self.for_type(type, name, namespace, file)
-      if subclass = descendants.find { |subclass| subclass.handled_type.downcase == type }
-        subclass.new(name, namespace, file)
-      else
-        self.new(name, namespace, file).tap { |r| r.type = type }
+      def inherited(base)
+        DescendantsTracker.store_inherited(self, base)
+        super
+      end
+
+      def handled_type
+        name.split('::').last
+      end
+
+      def for_type(type, name, namespace, file)
+        if subclass = direct_descendants.find { |subclass| subclass.handled_type.downcase == type }
+          subclass.new(name, namespace, file)
+        else
+          new(name, namespace, file).tap { |r| r.type = type }
+        end
       end
     end
 
@@ -377,7 +397,7 @@ class KubernetesDeploy
     end
 
     def run_kubectl(*args)
-      raise FatalDeploymentError, "Namespace missing for namespaced command" if namespace.blank?
+      raise FatalDeploymentError, "Namespace missing for namespaced command" if namespace.nil? || namespace.empty?
       args = args.unshift("kubectl").push("--namespace=#{namespace}")
       KubernetesDeploy.logger.debug Shellwords.join(args)
       out, err, st = Open3.capture3(*args)
@@ -389,10 +409,14 @@ class KubernetesDeploy
     def log_status
       STDOUT.puts "[KUBESTATUS] #{JSON.dump(status_data)}"
     end
+
+    def slice_hash(original_hash, keys)
+      keys.each_with_object({}) { |k, new_hash| new_hash[k] = original_hash[k] if original_hash.key?(k) }
+    end
   end
 
   class ConfigMap < KubernetesResource
-    TIMEOUT = 30.seconds
+    TIMEOUT = 30
 
     def initialize(name, namespace, file)
       @name, @namespace, @file = name, namespace, file
@@ -419,7 +443,7 @@ class KubernetesDeploy
   end
 
   class PersistentVolumeClaim < KubernetesResource
-    TIMEOUT = 5.minutes
+    TIMEOUT = 5 * 60
 
     def initialize(name, namespace, file)
       @name, @namespace, @file = name, namespace, file
@@ -445,7 +469,7 @@ class KubernetesDeploy
   end
 
   class Ingress < KubernetesResource
-    TIMEOUT = 30.seconds
+    TIMEOUT = 30
 
     def initialize(name, namespace, file)
       @name, @namespace, @file = name, namespace, file
@@ -476,7 +500,7 @@ class KubernetesDeploy
   end
 
   class Service < KubernetesResource
-    TIMEOUT = 15.minutes
+    TIMEOUT = 15 * 60
 
     def initialize(name, namespace, file)
       @name, @namespace, @file = name, namespace, file
@@ -509,7 +533,7 @@ class KubernetesDeploy
   end
 
   class Pod < KubernetesResource
-    TIMEOUT = 15.minutes
+    TIMEOUT = 15 * 60
     SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError).freeze
 
     def initialize(name, namespace, file, parent: nil)
@@ -550,7 +574,7 @@ class KubernetesDeploy
         @status = @phase
       else
         ready_condition = pod_data["status"]["conditions"].find { |condition| condition["type"] == "Ready" }
-        @ready = ready_condition.present? && (ready_condition["status"] == "True")
+        @ready = ready_condition && (ready_condition["status"] == "True")
         @status = "#{@phase} (Ready: #{@ready})"
       end
     end
@@ -578,11 +602,11 @@ class KubernetesDeploy
     private
 
     def display_logs
-      return {} unless exists? && @containers.present? && !@already_displayed
+      return {} unless exists? && @containers && !@already_displayed
 
       @containers.each do |container_name|
         out, st = run_kubectl("logs", @name, "--timestamps=true", "--since-time=#{@deploy_started.to_datetime.rfc3339}")
-        next unless st.success? && out.present?
+        next unless st.success? && !out.empty?
 
         KubernetesDeploy.logger.info "Logs from #{id} container #{container_name}:"
         STDOUT.puts "#{out}"
@@ -592,7 +616,7 @@ class KubernetesDeploy
   end
 
   class Deployment < KubernetesResource
-    TIMEOUT = 15.minutes
+    TIMEOUT = 15 * 60
 
     def initialize(name, namespace, file)
       @name, @namespace, @file = name, namespace, file
@@ -606,7 +630,9 @@ class KubernetesDeploy
       @pods = []
 
       if @found
-        @rollout_data = JSON.parse(json_data)["status"].slice("updatedReplicas", "replicas", "availableReplicas", "unavailableReplicas")
+        if status_hash = JSON.parse(json_data)["status"]
+          @rollout_data = slice_hash(status_hash, %w(updatedReplicas replicas availableReplicas unavailableReplicas))
+        end
         @status, _ = run_kubectl("rollout", "status", type, @name, "--watch=false") if @deploy_started
 
         pod_list, st = run_kubectl("get", "pods", "-a", "-l", "name=#{name}", "--output=json")
@@ -635,12 +661,12 @@ class KubernetesDeploy
 
     def deploy_failed?
       # TODO: this should look at the current replica set's pods only or it'll never be true for rolling updates
-      @pods.present? && @pods.all?(&:deploy_failed?)
+      @pods && !@pods.empty? && @pods.all?(&:deploy_failed?)
     end
 
     def deploy_timed_out?
       # TODO: this should look at the current replica set's pods only or it'll never be true for rolling updates
-      super || @pods.present? && @pods.all?(&:deploy_timed_out?)
+      super || @pods && !@pods.empty? && @pods.all?(&:deploy_timed_out?)
     end
 
     def exists?
