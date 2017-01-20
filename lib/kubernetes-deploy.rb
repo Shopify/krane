@@ -34,10 +34,14 @@ module KubernetesDeploy
     Pod
   )
 
+  def self.logger=(value)
+    @logger = value
+  end
+
   def self.logger
     @logger ||= begin
-      l = Logger.new(STDOUT)
-      l.level = ENV["DEBUG"] ? Logger::DEBUG : Logger::INFO
+      l = Logger.new($stderr)
+      l.level = level_from_env
       l.formatter = proc do |severity, _datetime, _progname, msg|
         case severity
         when "FATAL", "ERROR" then "\033[0;31m[#{severity}]\t#{msg}\x1b[0m\n" # red
@@ -47,6 +51,18 @@ module KubernetesDeploy
         end
       end
       l
+    end
+  end
+
+  private
+
+  def self.level_from_env
+    return Logger::DEBUG if ENV["DEBUG"]
+
+    if ENV["LEVEL"]
+      Logger.const_get(ENV["LEVEL"].upcase)
+    else
+      Logger::INFO
     end
   end
 end
