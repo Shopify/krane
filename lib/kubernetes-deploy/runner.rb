@@ -19,11 +19,11 @@ MSG
       exit 1
     end
 
-    def initialize(namespace:, environment:, current_sha:, template_folder: nil, context:)
+    def initialize(namespace:, environment:, current_sha:, context:, template_dir: nil)
       @namespace = namespace
       @context = context
       @current_sha = current_sha
-      @template_path = File.expand_path('./' + (template_folder || "config/deploy/#{environment}"))
+      @template_dir = template_dir || File.expand_path("./config/deploy/#{environment}")
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
     end
@@ -77,7 +77,7 @@ MSG
 
     def discover_resources
       resources = []
-      Dir.foreach(@template_path) do |filename|
+      Dir.foreach(@template_dir) do |filename|
         next unless filename.end_with?(".yml.erb", ".yml")
 
         split_templates(filename) do |tempfile|
@@ -97,7 +97,7 @@ MSG
     end
 
     def split_templates(filename)
-      file_content = File.read(File.join(@template_path, filename))
+      file_content = File.read(File.join(@template_dir, filename))
       rendered_content = render_template(filename, file_content)
       YAML.load_stream(rendered_content) do |doc|
         f = Tempfile.new(filename)
@@ -159,10 +159,10 @@ MSG
         errors << "Current SHA must be specified"
       end
 
-      if !File.directory?(@template_path)
-        errors << "Template path #{@template_path} doesn't exist"
-      elsif Dir.entries(@template_path).none? { |file| file =~ /\.yml(\.erb)?$/ }
-        errors << "#{@template_path} doesn't contain valid templates (postfix .yml or .yml.erb)"
+      if !File.directory?(@template_dir)
+        errors << "Template path #{@template_dir} doesn't exist"
+      elsif Dir.entries(@template_dir).none? { |file| file =~ /\.yml(\.erb)?$/ }
+        errors << "#{@template_dir} doesn't contain valid templates (postfix .yml or .yml.erb)"
       end
 
       if @namespace.blank?
