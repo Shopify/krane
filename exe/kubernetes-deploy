@@ -12,11 +12,13 @@
 
 require 'kubernetes-deploy'
 
-runner = KubernetesDeploy::Runner.new(
-  namespace: ARGV[0],
-  context: ARGV[1],
-  environment: ENV['ENVIRONMENT'],
-  current_sha: ENV['REVISION'],
-  template_folder: ENV['K8S_TEMPLATE_FOLDER']
-)
-runner.run
+KubernetesDeploy::Runner.with_friendly_errors do
+  runner = KubernetesDeploy::Runner.new(
+    namespace: ARGV[0],
+    context: ARGV[1],
+    environment: ENV['ENVIRONMENT'],
+    current_sha: ENV['REVISION'],
+    template_folder: ENV['K8S_TEMPLATE_FOLDER']
+  )
+  runner.run
+end

@@ -9,6 +9,16 @@ require 'kubernetes-deploy/kubernetes_resource'
 
 module KubernetesDeploy
   class Runner
+    def self.with_friendly_errors
+      yield
+    rescue FatalDeploymentError => error
+      KubernetesDeploy.logger.fatal <<-MSG
+#{error.class}: #{error.message}
+  #{error.backtrace && error.backtrace.join("\n  ")}
+MSG
+      exit 1
+    end
+
     def initialize(namespace:, environment:, current_sha:, template_folder: nil, context:)
       @namespace = namespace
       @context = context
@@ -41,9 +51,6 @@ module KubernetesDeploy
       wait_for_completion(resources)
 
       report_final_status(resources)
-    rescue FatalDeploymentError => error
-      KubernetesDeploy.logger.fatal(error.message)
-      exit 1
     end
 
     def template_variables
