@@ -8,32 +8,6 @@ require 'kubernetes-deploy/runner'
 module KubernetesDeploy
   class FatalDeploymentError < StandardError; end
 
-  # Things removed from default prune whitelist:
-  # core/v1/Namespace -- not namespaced
-  # core/v1/PersistentVolume -- not namespaced
-  # core/v1/Endpoints -- managed by services
-  # core/v1/PersistentVolumeClaim -- would delete data
-  # core/v1/ReplicationController -- superseded by deployments/replicasets
-  # extensions/v1beta1/ReplicaSet -- managed by deployments
-  # core/v1/Secret -- should not committed / managed by shipit
-  PRUNE_WHITELIST = %w(
-    core/v1/ConfigMap
-    core/v1/Pod
-    core/v1/Service
-    batch/v1/Job
-    extensions/v1beta1/DaemonSet
-    extensions/v1beta1/Deployment
-    extensions/v1beta1/HorizontalPodAutoscaler
-    extensions/v1beta1/Ingress
-    apps/v1beta1/StatefulSet
-  ).freeze
-
-  PREDEPLOY_SEQUENCE = %w(
-    ConfigMap
-    PersistentVolumeClaim
-    Pod
-  )
-
   def self.logger=(value)
     @logger = value
   end
