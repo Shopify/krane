@@ -6,6 +6,16 @@ require 'shellwords'
 require 'tempfile'
 
 require 'kubernetes-deploy/kubernetes_resource'
+%w(
+  config_map
+  deployment
+  ingress
+  persistent_volume_claim
+  pod
+  service
+).each do |subresource|
+  require "kubernetes-deploy/kubernetes_resource/#{subresource}"
+end
 
 module KubernetesDeploy
   class Runner
