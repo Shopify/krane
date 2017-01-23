@@ -1,26 +1,24 @@
-require 'active_support/descendants_tracker'
 require 'json'
 require 'open3'
 require 'shellwords'
 
 module KubernetesDeploy
   class KubernetesResource
-    extend ActiveSupport::DescendantsTracker
 
     attr_reader :name, :namespace, :file
     attr_writer :type, :deploy_started
 
     TIMEOUT = 5.minutes
 
-    def self.handled_type
-      name.split('::').last
-    end
-
     def self.for_type(type, name, namespace, file)
-      if subclass = descendants.find { |subclass| subclass.handled_type.downcase == type }
-        subclass.new(name, namespace, file)
-      else
-        self.new(name, namespace, file).tap { |r| r.type = type }
+      case type
+      when 'configmap' then ConfigMap.new(name, namespace, file)
+      when 'deployment' then Deployment.new(name, namespace, file)
+      when 'pod' then Pod.new(name, namespace, file)
+      when 'ingress' then Ingress.new(name, namespace, file)
+      when 'persistentvolumeclaim' then PersistentVolumeClaim.new(name, namespace, file)
+      when 'service' then Service.new(name, namespace, file)
+      else self.new(name, namespace, file).tap { |r| r.type = type }
       end
     end
 
@@ -59,7 +57,7 @@ module KubernetesDeploy
     end
 
     def type
-      @type || self.class.handled_type
+      @type || self.class.name.split('::').last
     end
 
     def deploy_finished?
@@ -101,15 +99,4 @@ module KubernetesDeploy
       STDOUT.puts "[KUBESTATUS] #{JSON.dump(status_data)}"
     end
   end
-end
-
-%w(
-  configmap
-  deployment
-  ingress
-  persistent_volume_claim
-  pod
-  service
-).each do |subresource|
-  require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
