@@ -7,6 +7,7 @@ require 'tempfile'
 
 require 'kubernetes-deploy/kubernetes_resource'
 %w(
+  cloudsql
   config_map
   deployment
   ingress
@@ -20,6 +21,7 @@ end
 module KubernetesDeploy
   class Runner
     PREDEPLOY_SEQUENCE = %w(
+      Cloudsql
       ConfigMap
       PersistentVolumeClaim
       Pod

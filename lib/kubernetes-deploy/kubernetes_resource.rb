@@ -12,6 +12,7 @@ module KubernetesDeploy
 
     def self.for_type(type, name, namespace, file)
       case type
+      when 'cloudsql' then Cloudsql.new(name, namespace, file)
       when 'configmap' then ConfigMap.new(name, namespace, file)
       when 'deployment' then Deployment.new(name, namespace, file)
       when 'pod' then Pod.new(name, namespace, file)
