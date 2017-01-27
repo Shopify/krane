@@ -15,18 +15,28 @@ require 'kubernetes-deploy'
 require 'optparse'
 
 skip_wait = false
+template_dir = nil
 ARGV.options do |opts|
-  opts.on("-w", "--skip-wait") { skip_wait = true }
+  opts.on("--skip-wait") { skip_wait = true }
+  opts.on("--template-dir=DIR") { |v| template_dir = v }
   opts.parse!
+end
+
+if !template_dir && ENV.key?("ENVIRONMENT")
+  template_dir = "config/deploy/#{ENV["ENVIRONMENT"]}"
+end
+
+if !template_dir || template_dir.empty?
+  puts "Template directory is unknown. Either specify --template-dir argument or set $ENVIRONMENT to use config/deploy/$ENVIRONMENT as a default path."
+  exit 1
 end
 
 KubernetesDeploy::Runner.with_friendly_errors do
   runner = KubernetesDeploy::Runner.new(
     namespace: ARGV[0],
     context: ARGV[1],
-    environment: ENV['ENVIRONMENT'],
     current_sha: ENV['REVISION'],
-    template_folder: ENV['K8S_TEMPLATE_FOLDER'],
+    template_dir: template_dir,
     wait_for_completion: !skip_wait,
   )
   runner.run
