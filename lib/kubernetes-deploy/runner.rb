@@ -55,13 +55,18 @@ MSG
       exit 1
     end
 
-    def initialize(namespace:, environment:, current_sha:, template_folder: nil, context:)
+    def initialize(namespace:, environment:, current_sha:, context:, wait_for_completion:, template_folder: nil)
       @namespace = namespace
       @context = context
       @current_sha = current_sha
       @template_path = File.expand_path('./' + (template_folder || "config/deploy/#{environment}"))
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
+      @wait_for_completion = wait_for_completion
+    end
+
+    def wait_for_completion?
+      @wait_for_completion
     end
 
     def run
@@ -84,8 +89,9 @@ MSG
 
       phase_heading("Deploying all resources")
       deploy_resources(resources, prune: true)
-      wait_for_completion(resources)
 
+      return unless wait_for_completion?
+      wait_for_completion(resources)
       report_final_status(resources)
     end
 

@@ -12,13 +12,22 @@
 
 require 'kubernetes-deploy'
 
+require 'optparse'
+
+skip_wait = false
+ARGV.options do |opts|
+  opts.on("-w", "--skip-wait") { skip_wait = true }
+  opts.parse!
+end
+
 KubernetesDeploy::Runner.with_friendly_errors do
   runner = KubernetesDeploy::Runner.new(
     namespace: ARGV[0],
     context: ARGV[1],
     environment: ENV['ENVIRONMENT'],
     current_sha: ENV['REVISION'],
-    template_folder: ENV['K8S_TEMPLATE_FOLDER']
+    template_folder: ENV['K8S_TEMPLATE_FOLDER'],
+    wait_for_completion: !skip_wait,
   )
   runner.run
 end
