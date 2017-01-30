@@ -71,7 +71,7 @@ module KubernetesDeploy
     end
 
     def tpr?
-      type == "Cloudsql"
+      false
     end
 
     def status_data
