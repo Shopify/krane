@@ -218,7 +218,7 @@ MSG
       KubernetesDeploy.logger.info("All required parameters and files are present")
     end
 
-    def deploy_tprs(resources)
+    def update_tprs(resources)
       command = ["update", "--namespace=#{@namespace}"]
       KubernetesDeploy.logger.info("Updating TPRs:")
 
