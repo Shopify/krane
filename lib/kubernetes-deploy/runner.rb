@@ -215,16 +215,21 @@ MSG
       KubernetesDeploy.logger.info("All required parameters and files are present")
     end
 
+    def update_tprs(resources)
+      resources.each do |r|
+        KubernetesDeploy.logger.info("- #{r.id}")
+        r.deploy_started = Time.now.utc
+        run_kubectl("update", "--namespace=#{@namespace}", "-f", r.file.path)
+      end
+    end
+
     def deploy_resources(resources, prune: false)
-      command = ["--namespace=#{@namespace}"]
+      command = ["apply", "--namespace=#{@namespace}"]
       KubernetesDeploy.logger.info("Deploying resources:")
 
       # TPRs must use update for now: https://github.com/kubernetes/kubernetes/issues/39906
-      if resources.any? { |r| r.tpr? }
-        command << "update"
-      else
-        command << "apply"
-      end
+      tprs, resources = resource.partition(&:tpr?)
+      update_tprs(tprs)
 
       resources.each do |r|
         KubernetesDeploy.logger.info("- #{r.id}")
