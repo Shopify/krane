@@ -70,6 +70,10 @@ module KubernetesDeploy
       !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started > self.class::TIMEOUT)
     end
 
+    def tpr?
+      type == "Cloudsql"
+    end
+
     def status_data
       {
         group: group_name,
