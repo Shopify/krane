@@ -216,8 +216,15 @@ MSG
     end
 
     def deploy_resources(resources, prune: false)
-      command = ["apply", "--namespace=#{@namespace}"]
+      command = ["--namespace=#{@namespace}"]
       KubernetesDeploy.logger.info("Deploying resources:")
+
+      # TPRs must use update for now: https://github.com/kubernetes/kubernetes/issues/39906
+      if resources.any? { |r| r.tpr? }
+        command << "update"
+      else
+        command << "apply"
+      end
 
       resources.each do |r|
         KubernetesDeploy.logger.info("- #{r.id}")
