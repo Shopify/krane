@@ -132,7 +132,7 @@ MSG
     end
 
     def discover_resource_via_dry_run(tempfile)
-      resource_id, err, st = run_kubectl("apply", "-f", tempfile.path, "--dry-run", "--output=name")
+      resource_id, err, st = run_kubectl("create", "-f", tempfile.path, "--dry-run", "--output=name")
       raise FatalDeploymentError, "Dry run failed for template #{File.basename(tempfile.path)}." unless st.success?
       resource_id
     end
