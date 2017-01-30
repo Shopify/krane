@@ -78,11 +78,14 @@ MSG
       phase_heading("Parsing deploy content")
       resources = discover_resources
 
+      tprs = resources.reject! { |r| r.tpr? }
+
       phase_heading("Checking initial resource statuses")
       resources.each(&:sync)
 
       phase_heading("Predeploying priority resources")
       predeploy_priority_resources(resources)
+      update_tprs(tprs)
 
       phase_heading("Deploying all resources")
       deploy_resources(resources, prune: true)
@@ -213,6 +216,19 @@ MSG
 
       raise FatalDeploymentError, "Configuration invalid: #{errors.join(", ")}" unless errors.empty?
       KubernetesDeploy.logger.info("All required parameters and files are present")
+    end
+
+    def deploy_tprs(resources)
+      command = ["update", "--namespace=#{@namespace}"]
+      KubernetesDeploy.logger.info("Updating TPRs:")
+
+      resources.each do |r|
+        KubernetesDeploy.logger.info("- #{r.id}")
+        command.push("-f", r.file.path)
+        r.deploy_started = Time.now.utc
+      end
+
+      run_kubectl(*command)
     end
 
     def deploy_resources(resources, prune: false)
