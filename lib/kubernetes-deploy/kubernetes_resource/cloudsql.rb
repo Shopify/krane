@@ -9,9 +9,11 @@ module KubernetesDeploy
     def sync
       _, st = run_kubectl("get", type, @name)
       @found = st.success?
-      @status = true
-
-
+      @status = if cloudsql_proxy_deployment_exists? && mysql_service_exists?
+        "Provisioned"
+      else
+        "Unknown"
+      end
 
       log_status
     end
