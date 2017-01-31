@@ -219,12 +219,12 @@ MSG
       resources.each do |r|
         KubernetesDeploy.logger.info("- #{r.id}")
         r.deploy_started = Time.now.utc
-        run_kubectl("update", "--namespace=#{@namespace}", "-f", r.file.path)
+        run_kubectl("update", "-f", r.file.path)
       end
     end
 
     def deploy_resources(resources, prune: false)
-      command = ["apply", "--namespace=#{@namespace}"]
+      command = ["apply"]
       KubernetesDeploy.logger.info("Deploying resources:")
 
       # TPRs must use update for now: https://github.com/kubernetes/kubernetes/issues/39906
