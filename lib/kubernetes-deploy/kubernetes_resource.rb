@@ -87,7 +87,7 @@ module KubernetesDeploy
     end
 
     def group_name
-      type + "s"
+      type.downcase.pluralize
     end
 
     def run_kubectl(*args)
