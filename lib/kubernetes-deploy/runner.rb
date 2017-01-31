@@ -61,7 +61,7 @@ MSG
       @namespace = namespace
       @context = context
       @current_sha = current_sha
-      @template_path = File.expand_path('./' + (template_folder || "config/deploy/#{environment}"))
+      @template_path = File.expand_path(template_folder || "config/deploy/#{environment}")
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
     end
