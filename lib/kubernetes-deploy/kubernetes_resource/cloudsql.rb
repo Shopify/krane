@@ -21,7 +21,7 @@ module KubernetesDeploy
     end
 
     def deploy_failed?
-      !cloudsql_proxy_deployment_exists? || !mysql_service_exists?
+      false
     end
 
     def tpr?
