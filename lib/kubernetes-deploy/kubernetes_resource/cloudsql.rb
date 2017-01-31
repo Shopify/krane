@@ -37,10 +37,11 @@ module KubernetesDeploy
     private
     def cloudsql_proxy_deployment_exists?
       deployment, st = run_kubectl("get", "deployments", "cloudsql-proxy", "-o=json")
+
       if st.success?
         parsed = JSON.parse(deployment)
 
-        if parsed.fetch("status", {}).fetch("availableReplicas", -1) == parsed["replicas"]
+        if parsed.fetch("status", {}).fetch("availableReplicas", -1) == parsed.fetch("status", {}).fetch("replicas", 0)
           # all cloudsql-proxy pods are running
           return true
         end
@@ -51,6 +52,7 @@ module KubernetesDeploy
 
     def mysql_service_exists?
       service, st = run_kubectl("get", "services", "mysql", "-o=json")
+
       if st.success?
         parsed = JSON.parse(service)
 
