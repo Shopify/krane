@@ -165,6 +165,9 @@ MSG
 
     def wait_for_completion(watched_resources)
       delay_sync_until = Time.now.utc
+      started_at = delay_sync_until
+      human_resources = watched_resources.map(&:id).join(", ")
+      KubernetesDeploy.logger.info("Waiting for #{human_resources}")
       while watched_resources.present?
         if Time.now.utc < delay_sync_until
           sleep (delay_sync_until - Time.now.utc)
@@ -179,6 +182,9 @@ MSG
           KubernetesDeploy.logger.error(resource.status_data)
         end
       end
+
+      watch_time = Time.now.utc - started_at
+      KubernetesDeploy.logger.info("Spent #{watch_time.round(2)}s waiting for #{human_resources}")
     end
 
     def render_template(filename, raw_template)
