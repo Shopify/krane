@@ -219,7 +219,12 @@ MSG
       resources.each do |r|
         KubernetesDeploy.logger.info("- #{r.id}")
         r.deploy_started = Time.now.utc
-        run_kubectl("update", "-f", r.file.path)
+        _, _, st = run_kubectl("replace", "-f", r.file.path)
+
+        unless st.success?
+          # it doesn't exist so we can't replace it
+          run_kubectl("create", "-f", r.file.path)
+        end
       end
     end
 
