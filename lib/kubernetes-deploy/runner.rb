@@ -233,7 +233,7 @@ MSG
       KubernetesDeploy.logger.info("Deploying resources:")
 
       # TPRs must use update for now: https://github.com/kubernetes/kubernetes/issues/39906
-      tprs, resources = resource.partition(&:tpr?)
+      tprs, resources = resources.partition(&:tpr?)
       update_tprs(tprs)
 
       resources.each do |r|
