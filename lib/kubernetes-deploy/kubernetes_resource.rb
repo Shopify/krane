@@ -12,6 +12,7 @@ module KubernetesDeploy
 
     def self.for_type(type, name, namespace, file)
       case type
+      when 'cloudsql' then Cloudsql.new(name, namespace, file)
       when 'configmap' then ConfigMap.new(name, namespace, file)
       when 'deployment' then Deployment.new(name, namespace, file)
       when 'pod' then Pod.new(name, namespace, file)
@@ -69,6 +70,10 @@ module KubernetesDeploy
       !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started > self.class::TIMEOUT)
     end
 
+    def tpr?
+      false
+    end
+
     def status_data
       {
         group: group_name,
@@ -82,7 +87,7 @@ module KubernetesDeploy
     end
 
     def group_name
-      type + "s"
+      type.downcase.pluralize
     end
 
     def run_kubectl(*args)

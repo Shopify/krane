@@ -7,6 +7,7 @@ require 'tempfile'
 
 require 'kubernetes-deploy/kubernetes_resource'
 %w(
+  cloudsql
   config_map
   deployment
   ingress
@@ -20,6 +21,7 @@ end
 module KubernetesDeploy
   class Runner
     PREDEPLOY_SEQUENCE = %w(
+      Cloudsql
       ConfigMap
       PersistentVolumeClaim
       Pod
@@ -59,7 +61,6 @@ MSG
       @namespace = namespace
       @context = context
       @current_sha = current_sha
-
       @template_dir = File.expand_path(template_dir)
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
@@ -134,7 +135,7 @@ MSG
     end
 
     def discover_resource_via_dry_run(tempfile)
-      resource_id, err, st = run_kubectl("apply", "-f", tempfile.path, "--dry-run", "--output=name")
+      resource_id, err, st = run_kubectl("create", "-f", tempfile.path, "--dry-run", "--output=name")
       raise FatalDeploymentError, "Dry run failed for template #{File.basename(tempfile.path)}." unless st.success?
       resource_id
     end
@@ -226,9 +227,26 @@ MSG
       KubernetesDeploy.logger.info("All required parameters and files are present")
     end
 
+    def update_tprs(resources)
+      resources.each do |r|
+        KubernetesDeploy.logger.info("- #{r.id}")
+        r.deploy_started = Time.now.utc
+        _, _, st = run_kubectl("replace", "-f", r.file.path)
+
+        unless st.success?
+          # it doesn't exist so we can't replace it
+          run_kubectl("create", "-f", r.file.path)
+        end
+      end
+    end
+
     def deploy_resources(resources, prune: false)
-      command = ["apply", "--namespace=#{@namespace}"]
+      command = ["apply"]
       KubernetesDeploy.logger.info("Deploying resources:")
+
+      # TPRs must use update for now: https://github.com/kubernetes/kubernetes/issues/39906
+      tprs, resources = resources.partition(&:tpr?)
+      update_tprs(tprs)
 
       resources.each do |r|
         KubernetesDeploy.logger.info("- #{r.id}")
