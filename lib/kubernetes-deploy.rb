@@ -1,6 +1,7 @@
 require 'active_support/core_ext/object/blank'
 require 'active_support/core_ext/hash/slice'
 require 'active_support/core_ext/numeric/time'
+require 'active_support/core_ext/string/inflections'
 
 require 'logger'
 require 'kubernetes-deploy/runner'
