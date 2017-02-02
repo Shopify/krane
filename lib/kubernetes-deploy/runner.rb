@@ -26,6 +26,10 @@ module KubernetesDeploy
       PersistentVolumeClaim
       Pod
     )
+    PROTECTED_NAMESPACES = %w(
+      default
+      kube-system
+    )
 
     # Things removed from default prune whitelist:
     # core/v1/Namespace -- not namespaced
@@ -217,6 +221,8 @@ MSG
 
       if @namespace.blank?
         errors << "Namespace must be specified"
+      elsif PROTECTED_NAMESPACES.include?(@namespace)
+        errors << "Refusing to deploy to protected namespace #{@namespace}"
       end
 
       if @context.blank?
