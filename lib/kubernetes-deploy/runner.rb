@@ -241,13 +241,14 @@ MSG
     end
 
     def deploy_resources(resources, prune: false)
-      command = ["apply"]
       KubernetesDeploy.logger.info("Deploying resources:")
 
       # TPRs must use update for now: https://github.com/kubernetes/kubernetes/issues/39906
       tprs, resources = resources.partition(&:tpr?)
       update_tprs(tprs)
+      return unless resources.present?
 
+      command = ["apply"]
       resources.each do |r|
         KubernetesDeploy.logger.info("- #{r.id}")
         command.push("-f", r.file.path)
@@ -291,7 +292,10 @@ MSG
       KubernetesDeploy.logger.debug Shellwords.join(args)
       out, err, st = Open3.capture3(*args)
       KubernetesDeploy.logger.debug(out.shellescape)
-      KubernetesDeploy.logger.warn(err) unless st.success?
+      unless st.success?
+        KubernetesDeploy.logger.warn("The following command failed: #{Shellwords.join(args)}")
+        KubernetesDeploy.logger.warn(err)
+      end
       [out.chomp, err.chomp, st]
     end
 
