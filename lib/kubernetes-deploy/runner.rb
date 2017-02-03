@@ -76,9 +76,9 @@ MSG
       phase_heading("Validating configuration")
       validate_configuration
 
-      phase_heading("Configuring kubectl")
-      validate_context
-      validate_namespace
+      phase_heading("Identifying deployment target")
+      confirm_context_exists
+      confirm_namespace_exists
 
       phase_heading("Parsing deploy content")
       resources = discover_resources
@@ -263,7 +263,7 @@ MSG
       run_kubectl(*command)
     end
 
-    def validate_context
+    def confirm_context_exists
       out, err, st = run_kubectl("config", "get-contexts", "-o", "name", namespaced: false, with_context: false)
       available_contexts = out.split("\n")
       if !st.success?
@@ -271,13 +271,13 @@ MSG
       elsif !available_contexts.include?(@context)
         raise FatalDeploymentError, "Context #{@context} is not available. Valid contexts: #{available_contexts}"
       end
-      KubernetesDeploy.logger.info("Context #{@context} validated")
+      KubernetesDeploy.logger.info("Context #{@context} found")
     end
 
-    def validate_namespace
+    def confirm_namespace_exists
       _, _, st = run_kubectl("get", "namespace", @namespace, namespaced: false)
-      raise FatalDeploymentError, "Failed to validate namespace #{@namespace}" unless st.success?
-      KubernetesDeploy.logger.info("Namespace #{@namespace} validated")
+      raise FatalDeploymentError, "Namespace #{@namespace} not found" unless st.success?
+      KubernetesDeploy.logger.info("Namespace #{@namespace} found")
     end
 
     def run_kubectl(*args, namespaced: true, with_context: true)
