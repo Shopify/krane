@@ -264,17 +264,13 @@ MSG
     end
 
     def set_kubectl_context
-      out, err, st = run_kubectl("config", "get-contexts", "-o", "name", namespaced: false)
+      out, err, st = run_kubectl("config", "get-contexts", "-o", "name", namespaced: false, with_context: false)
       available_contexts = out.split("\n")
       if !st.success?
         raise FatalDeploymentError, err
       elsif !available_contexts.include?(@context)
         raise FatalDeploymentError, "Context #{@context} is not available. Valid contexts: #{available_contexts}"
       end
-
-      _, err, st = run_kubectl("config", "use-context", @context, namespaced: false)
-      raise FatalDeploymentError, "Kubectl config is not valid: #{err}" unless st.success?
-      KubernetesDeploy.logger.info("Kubectl configured to use context #{@context}")
     end
 
     def validate_namespace
@@ -283,11 +279,14 @@ MSG
       KubernetesDeploy.logger.info("Namespace #{@namespace} validated")
     end
 
-    def run_kubectl(*args, namespaced: true)
+    def run_kubectl(*args, namespaced: true, with_context: true)
       args = args.unshift("kubectl")
       if namespaced
-        raise FatalDeploymentError, "Namespace missing for namespaced command" unless @namespace
         args.push("--namespace=#{@namespace}")
+      end
+
+      if with_context
+        args.push("--context=#{@context}")
       end
       KubernetesDeploy.logger.debug Shellwords.join(args)
       out, err, st = Open3.capture3(*args)
