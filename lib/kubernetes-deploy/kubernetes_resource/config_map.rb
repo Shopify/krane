@@ -2,8 +2,8 @@ module KubernetesDeploy
   class ConfigMap < KubernetesResource
     TIMEOUT = 30.seconds
 
-    def initialize(name, namespace, file)
-      @name, @namespace, @file = name, namespace, file
+    def initialize(name, namespace, context, file)
+      @name, @namespace, @context, @file = name, namespace, context, file
     end
 
     def sync

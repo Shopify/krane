@@ -3,8 +3,8 @@ module KubernetesDeploy
     TIMEOUT = 15.minutes
     SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError).freeze
 
-    def initialize(name, namespace, file, parent: nil)
-      @name, @namespace, @file, @parent = name, namespace, file, parent
+    def initialize(name, namespace, context, file, parent: nil)
+      @name, @namespace, @context, @file, @parent = name, namespace, context, file, parent
       @bare = !@parent
     end
 

@@ -77,7 +77,7 @@ MSG
       validate_configuration
 
       phase_heading("Configuring kubectl")
-      set_kubectl_context
+      validate_context
       validate_namespace
 
       phase_heading("Parsing deploy content")
@@ -127,7 +127,7 @@ MSG
         split_templates(filename) do |tempfile|
           resource_id = discover_resource_via_dry_run(tempfile)
           type, name = resource_id.split("/", 2) # e.g. "pod/web-198612918-dzvfb"
-          resources << KubernetesResource.for_type(type, name, @namespace, tempfile)
+          resources << KubernetesResource.for_type(type, name, @namespace, @context, tempfile)
           KubernetesDeploy.logger.info "Discovered template for #{resource_id}"
         end
       end
@@ -263,7 +263,7 @@ MSG
       run_kubectl(*command)
     end
 
-    def set_kubectl_context
+    def validate_context
       out, err, st = run_kubectl("config", "get-contexts", "-o", "name", namespaced: false, with_context: false)
       available_contexts = out.split("\n")
       if !st.success?
@@ -271,6 +271,7 @@ MSG
       elsif !available_contexts.include?(@context)
         raise FatalDeploymentError, "Context #{@context} is not available. Valid contexts: #{available_contexts}"
       end
+      KubernetesDeploy.logger.info("Context #{@context} validated")
     end
 
     def validate_namespace
@@ -282,10 +283,12 @@ MSG
     def run_kubectl(*args, namespaced: true, with_context: true)
       args = args.unshift("kubectl")
       if namespaced
+        raise FatalDeploymentError, "Namespace missing for namespaced command" if @namespace.blank?
         args.push("--namespace=#{@namespace}")
       end
 
       if with_context
+        raise FatalDeploymentError, "Explicit context is required to run this command" if @context.blank?
         args.push("--context=#{@context}")
       end
       KubernetesDeploy.logger.debug Shellwords.join(args)

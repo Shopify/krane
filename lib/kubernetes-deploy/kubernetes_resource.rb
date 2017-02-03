@@ -5,27 +5,27 @@ require 'shellwords'
 module KubernetesDeploy
   class KubernetesResource
 
-    attr_reader :name, :namespace, :file
+    attr_reader :name, :namespace, :file, :context
     attr_writer :type, :deploy_started
 
     TIMEOUT = 5.minutes
 
-    def self.for_type(type, name, namespace, file)
+    def self.for_type(type, name, namespace, context, file)
       case type
-      when 'cloudsql' then Cloudsql.new(name, namespace, file)
-      when 'configmap' then ConfigMap.new(name, namespace, file)
-      when 'deployment' then Deployment.new(name, namespace, file)
-      when 'pod' then Pod.new(name, namespace, file)
-      when 'ingress' then Ingress.new(name, namespace, file)
-      when 'persistentvolumeclaim' then PersistentVolumeClaim.new(name, namespace, file)
-      when 'service' then Service.new(name, namespace, file)
-      else self.new(name, namespace, file).tap { |r| r.type = type }
+      when 'cloudsql' then Cloudsql.new(name, namespace, context, file)
+      when 'configmap' then ConfigMap.new(name, namespace, context, file)
+      when 'deployment' then Deployment.new(name, namespace, context, file)
+      when 'pod' then Pod.new(name, namespace, context, file)
+      when 'ingress' then Ingress.new(name, namespace, context, file)
+      when 'persistentvolumeclaim' then PersistentVolumeClaim.new(name, namespace, context, file)
+      when 'service' then Service.new(name, namespace, context, file)
+      else self.new(name, namespace, context, file).tap { |r| r.type = type }
       end
     end
 
-    def initialize(name, namespace, file)
+    def initialize(name, namespace, context, file)
       # subclasses must also set these
-      @name, @namespace, @file = name, namespace, file
+      @name, @namespace, @context, @file = name, namespace, context, file
     end
 
     def id
@@ -92,7 +92,9 @@ module KubernetesDeploy
 
     def run_kubectl(*args)
       raise FatalDeploymentError, "Namespace missing for namespaced command" if namespace.blank?
-      args = args.unshift("kubectl").push("--namespace=#{namespace}")
+      raise FatalDeploymentError, "Explicit context is required to run this command" if context.blank?
+      args = args.unshift("kubectl").push("--namespace=#{namespace}").push("--context=#{context}")
+
       KubernetesDeploy.logger.debug Shellwords.join(args)
       out, err, st = Open3.capture3(*args)
       KubernetesDeploy.logger.debug(out.shellescape)
