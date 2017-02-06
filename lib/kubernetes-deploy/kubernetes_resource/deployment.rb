@@ -2,8 +2,8 @@ module KubernetesDeploy
   class Deployment < KubernetesResource
     TIMEOUT = 15.minutes
 
-    def initialize(name, namespace, file)
-      @name, @namespace, @file = name, namespace, file
+    def initialize(name, namespace, context, file)
+      @name, @namespace, @context, @file = name, namespace, context, file
     end
 
     def sync
@@ -22,7 +22,7 @@ module KubernetesDeploy
           pods_json = JSON.parse(pod_list)["items"]
           pods_json.each do |pod_json|
             pod_name = pod_json["metadata"]["name"]
-            pod = Pod.new(pod_name, namespace, nil, parent: "#{@name.capitalize} deployment")
+            pod = Pod.new(pod_name, namespace, context, nil, parent: "#{@name.capitalize} deployment")
             pod.deploy_started = @deploy_started
             pod.interpret_json_data(pod_json)
             pod.log_status
