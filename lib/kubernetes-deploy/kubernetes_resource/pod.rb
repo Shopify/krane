@@ -40,7 +40,7 @@ module KubernetesDeploy
       elsif @phase == "Terminating"
         @status = @phase
       else
-        ready_condition = pod_data["status"]["conditions"].find { |condition| condition["type"] == "Ready" }
+        ready_condition = pod_data["status"].fetch("conditions", []).find { |condition| condition["type"] == "Ready" }
         @ready = ready_condition.present? && (ready_condition["status"] == "True")
         @status = "#{@phase} (Ready: #{@ready})"
       end
