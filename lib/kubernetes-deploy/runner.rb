@@ -13,6 +13,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   ingress
   persistent_volume_claim
   pod
+  redis
   service
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
@@ -22,6 +23,7 @@ module KubernetesDeploy
   class Runner
     PREDEPLOY_SEQUENCE = %w(
       Cloudsql
+      Redis
       ConfigMap
       PersistentVolumeClaim
       Pod
