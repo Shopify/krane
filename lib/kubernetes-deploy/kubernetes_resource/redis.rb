@@ -37,14 +37,12 @@ module KubernetesDeploy
 
     private
     def redis_deployment_exists?
-      deployments, st = run_kubectl("get", "deployments", "-o=json")
+      deployment, st = run_kubectl("get", "deployments", "#{@name}-#{redis_resource_uuid}", "-o=json")
 
       if st.success?
-        deployment_list = JSON.parse(deployments)
-        matching_deployment = detect_resource_by_uuid(deployment_list)
+        parsed = JSON.parse(deployment)
 
-        if matching_deployment \
-          && matching_deployment.fetch("status", {}).fetch("availableReplicas", -1) == matching_deployment.fetch("status", {}).fetch("replicas", 0)
+        if parsed.fetch("status", {}).fetch("availableReplicas", -1) == parsed.fetch("status", {}).fetch("replicas", 0)
           # all redis pods are running
           return true
         end
@@ -54,13 +52,12 @@ module KubernetesDeploy
     end
 
     def redis_service_exists?
-      services, st = run_kubectl("get", "services", "-o=json")
+      service, st = run_kubectl("get", "services", "#{@name}-#{redis_resource_uuid}", "-o=json")
 
       if st.success?
-        service_list = JSON.parse(services)
-        matching_service = detect_resource_by_uuid(service_list)
+        parsed = JSON.parse(service)
 
-        if matching_service && matching_service.fetch("spec", {}).fetch("clusterIP", "") != ""
+        if parsed.fetch("spec", {}).fetch("clusterIP", "") != ""
           return true
         end
       end
@@ -76,12 +73,6 @@ module KubernetesDeploy
         parsed = JSON.parse(redis)
 
         @redis_resource_uuid = parsed.fetch("metadata", {}).fetch("uid", nil)
-      end
-    end
-
-    def detect_resource_by_uuid(resource_list)
-      resource_list["items"].detect do |item|
-        item.fetch("metadata", {}).fetch("annotations", {}).fetch(UUID_ANNOTATION, nil) == redis_resource_uuid
       end
     end
 
