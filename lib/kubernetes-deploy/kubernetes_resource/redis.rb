@@ -37,7 +37,7 @@ module KubernetesDeploy
 
     private
     def redis_deployment_exists?
-      deployment, st = run_kubectl("get", "deployments", "#{@name}-#{redis_resource_uuid}", "-o=json")
+      deployment, st = run_kubectl("get", "deployments", "redis-#{redis_resource_uuid}", "-o=json")
 
       if st.success?
         parsed = JSON.parse(deployment)
@@ -52,7 +52,7 @@ module KubernetesDeploy
     end
 
     def redis_service_exists?
-      service, st = run_kubectl("get", "services", "#{@name}-#{redis_resource_uuid}", "-o=json")
+      service, st = run_kubectl("get", "services", "redis-#{redis_resource_uuid}", "-o=json")
 
       if st.success?
         parsed = JSON.parse(service)
