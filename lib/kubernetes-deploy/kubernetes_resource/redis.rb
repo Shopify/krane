@@ -75,9 +75,7 @@ module KubernetesDeploy
       if st.success?
         parsed = JSON.parse(redis)
 
-        if uuid = parsed.fetch("metadata", {}).fetch("annotations", {}).fetch(UUID_ANNOTATION, nil)
-          @redis_resource_uuid = uuid
-        end
+        @redis_resource_uuid = parsed.fetch("metadata", {}).fetch("uid", nil)
       end
     end
 
