@@ -4,10 +4,10 @@ metadata:
   name: web
   labels:
     name: web
-    app: trashbin
+    app: basic
 spec:
   rules:
-  - host: trashbin.example.com
+  - host: basic.example.com
     http:
       paths:
       - backend:
@@ -20,7 +20,7 @@ metadata:
   name: web
   labels:
     name: web
-    app: trashbin
+    app: basic
 spec:
   ports:
   - port: 80
@@ -28,7 +28,7 @@ spec:
     targetPort: http
   selector:
     name: web
-    app: trashbin
+    app: basic
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -40,11 +40,11 @@ spec:
     metadata:
       labels:
         name: web
-        app: trashbin
+        app: basic
     spec:
       containers:
       - name: app
-        image: shopify/kubernetes-fixtures-hello-node:v1
+        image: nginx:alpine
         ports:
         - containerPort: 80
           name: http
@@ -54,5 +54,5 @@ spec:
         - name: CONFIG
           valueFrom:
             configMapKeyRef:
-              name: some-data
+              name: configmap-data
               key: datapoint1

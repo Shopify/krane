@@ -4,7 +4,7 @@ metadata:
   name: redis
   labels:
     name: redis
-    app: trashbin
+    app: basic
 spec:
   ports:
   - port: 6379
@@ -15,7 +15,7 @@ spec:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: trashbin-redis
+  name: basic-redis
 spec:
   accessModes:
     - ReadWriteOnce
@@ -33,7 +33,7 @@ spec:
     metadata:
       labels:
         name: redis
-        app: trashbin
+        app: basic
     spec:
       containers:
       - name: master
@@ -47,4 +47,4 @@ spec:
       volumes:
       - name: redis-data
         persistentVolumeClaim:
-          claimName: trashbin-redis
+          claimName: basic-redis
