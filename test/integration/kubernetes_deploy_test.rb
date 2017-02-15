@@ -1,18 +1,6 @@
 require 'test_helper'
 
-class KubernetesDeployTest < Minitest::Test
-  def setup
-    @logger_stream = StringIO.new
-    @logger = Logger.new(@logger_stream)
-    KubernetesDeploy.logger = @logger
-    @namespace = TestProvisioner.claim_namespace
-  end
-
-  def teardown
-    @logger_stream.close
-    TestProvisioner.delete_namespace(@namespace)
-  end
-
+class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_basic
     runner = KubernetesDeploy::Runner.new(
       namespace: @namespace,
