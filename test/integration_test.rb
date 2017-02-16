@@ -8,7 +8,7 @@ module KubernetesDeploy
       @logger_stream = StringIO.new
       @logger = Logger.new(@logger_stream)
       KubernetesDeploy.logger = @logger
-      @namespace = TestProvisioner.claim_namespace
+      @namespace = TestProvisioner.claim_namespace(test_name: self.name)
       super
     ensure
       @logger_stream.close
@@ -19,12 +19,14 @@ module KubernetesDeploy
   module TestProvisioner
     extend KubeclientHelper
 
-    def self.claim_namespace
-      ns = SecureRandom.hex(8)
+    def self.claim_namespace(test_name:)
+      test_name = test_name.gsub(/[^-a-z0-9]/, '-').slice(0,36) # namespace name length must be <= 63 chars
+      ns = "k8sdeploy-#{test_name}-#{SecureRandom.hex(8)}"
       create_namespace(ns)
       ns
     rescue KubeException => e
       retry if e.to_s.include?("already exists")
+      raise
     end
 
     def self.create_namespace(namespace)
