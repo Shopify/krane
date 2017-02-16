@@ -3,7 +3,7 @@ module KubeclientHelper
     @kubeclient ||= begin
       config = Kubeclient::Config.read(ENV["KUBECONFIG"])
       unless config.contexts.include?("minikube")
-        raise "`minikube` context must be configured in your KUBECONFIG (#{ENV["KUBECONFIG"]})"
+        raise "`minikube` context must be configured in your KUBECONFIG (#{ENV["KUBECONFIG"]}). Please see the README."
       end
 
       client = Kubeclient::Client.new(

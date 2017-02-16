@@ -1,15 +1,5 @@
 #!/usr/bin/env ruby
 
-# Usage: kubernetes-deploy <app's namespace> <kube context>
-
-# Prerequisites:
-#  - kubectl 1.5.1+ binary must be available in the shipit machine's path
-#  - ENV['KUBECONFIG'] must point to a valid kubeconfig file that includes all the contexts you want to deploy to
-#  - ENV['GOOGLE_APPLICATION_CREDENTIALS'] must point to the credentials for an authenticated service account if your user's auth provider is gcp
-
-# Optionally, the following variables can be used to override script defaults:
-#  - ENV['K8S_TEMPLATE_FOLDER']: Location of Kubernetes files to deploy. Default is config/deploy/#{environment}.
-
 require 'kubernetes-deploy'
 
 require 'optparse'
