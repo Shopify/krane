@@ -1,16 +1,6 @@
 require 'test_helper'
 
-class RunnerTest < Minitest::Test
-  def setup
-    @logger_stream = StringIO.new
-    @logger = Logger.new(@logger_stream)
-    KubernetesDeploy.logger = @logger
-  end
-
-  def teardown
-    @logger_stream.close
-  end
-
+class RunnerTest < KubernetesDeploy::TestCase
   def test_that_it_has_a_version_number
     refute_nil ::KubernetesDeploy::VERSION
   end
