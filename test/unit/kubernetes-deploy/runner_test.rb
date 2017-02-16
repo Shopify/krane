@@ -28,6 +28,7 @@ class RunnerTest < KubernetesDeploy::TestCase
     assert_includes error_msg, "Context must be specified"
     assert_match /Template directory (\S+) doesn't exist/, error_msg
 
+  ensure
     ENV["KUBECONFIG"] = original_env
   end
 end

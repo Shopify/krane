@@ -24,7 +24,7 @@ module KubernetesDeploy
     include KubeclientHelper
 
     def run
-      @namespace = TestProvisioner.claim_namespace(test_name: self.name)
+      @namespace = TestProvisioner.claim_namespace(self.name)
       super
     ensure
       TestProvisioner.delete_namespace(@namespace)
@@ -34,7 +34,7 @@ module KubernetesDeploy
   module TestProvisioner
     extend KubeclientHelper
 
-    def self.claim_namespace(test_name:)
+    def self.claim_namespace(test_name)
       test_name = test_name.gsub(/[^-a-z0-9]/, '-').slice(0,36) # namespace name length must be <= 63 chars
       ns = "k8sdeploy-#{test_name}-#{SecureRandom.hex(8)}"
       create_namespace(ns)
