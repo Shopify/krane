@@ -36,7 +36,7 @@ module KubernetesDeploy
     end
 
     def self.delete_namespace(namespace)
-      kubeclient.delete_namespace(namespace)
+      kubeclient.delete_namespace(namespace) if namespace && !namespace.empty?
     rescue KubeException => e
       raise unless e.to_s.include?("not found")
     end
