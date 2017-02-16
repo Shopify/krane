@@ -5,7 +5,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     runner = KubernetesDeploy::Runner.new(
       namespace: @namespace,
       current_sha: "abcabcabc",
-      context: "minikube",
+      context: MINIKUBE_CONTEXT,
       template_dir: File.expand_path("./test/fixtures/basic"),
       wait_for_completion: true,
     )
