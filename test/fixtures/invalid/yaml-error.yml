@@ -6,5 +6,5 @@ metadata:
     name: basic-configmap-data
     app: basic
 data:
-  datapoint1: value1
+  datapoint1: value1:
   datapoint2: value2

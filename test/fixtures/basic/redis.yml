@@ -16,6 +16,9 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: basic-redis
+  labels:
+    name: redis
+    app: basic
 spec:
   accessModes:
     - ReadWriteOnce
