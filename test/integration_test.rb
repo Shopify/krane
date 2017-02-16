@@ -42,20 +42,21 @@ module KubernetesDeploy
     end
 
     def self.prepare_pv(name)
-      begin
-        kubeclient.get_persistent_volume(name)
-      rescue KubeException => e
-        raise unless e.to_s.include?("not found")
-        pv = Kubeclient::PersistentVolume.new
-        pv.metadata = { name: name }
-        pv.spec = {
-          accessModes: ["ReadWriteOnce"],
-          capacity: { storage: "1Gi" },
-          hostPath: { path: "/data/#{name}" },
-          persistentVolumeReclaimPolicy: "Recycle"
-        }
-        kubeclient.create_persistent_volume(pv)
-      end
+      existing_pvs = kubeclient.get_persistent_volumes(label_selector: "name=#{name}")
+      return if existing_pvs.present?
+
+      pv = Kubeclient::PersistentVolume.new
+      pv.metadata = {
+        name: name,
+        labels: { name: name }
+      }
+      pv.spec = {
+        accessModes: ["ReadWriteOnce"],
+        capacity: { storage: "150Mi" },
+        hostPath: { path: "/data/#{name}" },
+        persistentVolumeReclaimPolicy: "Recycle"
+      }
+      kubeclient.create_persistent_volume(pv)
     end
   end
 
