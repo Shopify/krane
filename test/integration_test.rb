@@ -4,14 +4,13 @@ module KubernetesDeploy
   class IntegrationTest < ::Minitest::Test
     include KubeclientHelper
 
-    def setup
+    def run
       @logger_stream = StringIO.new
       @logger = Logger.new(@logger_stream)
       KubernetesDeploy.logger = @logger
       @namespace = TestProvisioner.claim_namespace
-    end
-
-    def teardown
+      super
+    ensure
       @logger_stream.close
       TestProvisioner.delete_namespace(@namespace)
     end
