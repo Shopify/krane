@@ -1,5 +1,7 @@
 # Kubernetes::Deploy
 
+[![Build status](https://badge.buildkite.com/0f2d4956d49fbc795f9c17b0a741a6aa9ea532738e5f872ac8.svg)](https://buildkite.com/shopify/kubernetes-deploy-gem)
+
 Deploy script used to manage a Kubernetes application's namespace with [Shipit](https://github.com/Shopify/shipit-engine).
 
 ## Installation
@@ -44,6 +46,14 @@ To run the tests:
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
+## CI
+
+Buildkite will build branches as you're working on them, but as soon as you create a PR it will stop building new commits from that branch because we disabled PR builds for security reasons.
+As a Shopify employee, you can manually trigger the PR build from the Buildkite UI (just specify the branch, SHA is not required):
+
+<img width="464" alt="screen shot 2017-02-21 at 10 55 33" src="https://cloud.githubusercontent.com/assets/522155/23172610/52771a3a-f824-11e6-8c8e-3d59c45e7ff8.png">
+
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/kubernetes-deploy.
@@ -52,4 +62,3 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/[USERN
 ## License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-
