@@ -319,7 +319,7 @@ MSG
     end
 
     def log_green(msg)
-      STDOUT.puts "\033[0;32m#{msg}\x1b[0m\n" # green
+      KubernetesDeploy.logger.info("\033[0;32m#{msg}\x1b[0m")
     end
   end
 end

@@ -4,6 +4,19 @@ require 'shellwords'
 
 module KubernetesDeploy
   class KubernetesResource
+    def self.logger=(value)
+      @logger = value
+    end
+
+    def self.logger
+      @logger ||= begin
+        l = Logger.new($stderr)
+        l.formatter = proc do |_severity, _datetime, _progname, msg|
+          "#{msg}\n"
+        end
+        l
+      end
+    end
 
     attr_reader :name, :namespace, :file, :context
     attr_writer :type, :deploy_started
@@ -112,7 +125,7 @@ module KubernetesDeploy
     end
 
     def log_status
-      STDOUT.puts "[KUBESTATUS] #{JSON.dump(status_data)}"
+      KubernetesResource.logger.info("[KUBESTATUS] #{JSON.dump(status_data)}")
     end
   end
 end

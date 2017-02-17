@@ -13,6 +13,7 @@ module KubernetesDeploy
       @logger_stream = StringIO.new
       @logger = Logger.new(@logger_stream)
       KubernetesDeploy.logger = @logger
+      KubernetesResource.logger = @logger
     end
 
     def teardown
