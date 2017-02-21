@@ -174,7 +174,8 @@ MSG
       delay_sync_until = Time.now.utc
       started_at = delay_sync_until
       human_resources = watched_resources.map(&:id).join(", ")
-      KubernetesDeploy.logger.info("Waiting for #{human_resources}")
+      max_wait_time = watched_resources.map(&:timeout).max
+      KubernetesDeploy.logger.info("Waiting for #{human_resources} with #{max_wait_time}s timeout")
       while watched_resources.present?
         if Time.now.utc < delay_sync_until
           sleep (delay_sync_until - Time.now.utc)

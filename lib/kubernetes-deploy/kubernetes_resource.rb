@@ -24,6 +24,14 @@ module KubernetesDeploy
       end
     end
 
+    def self.timeout
+      self::TIMEOUT
+    end
+
+    def timeout
+      self.class.timeout
+    end
+
     def initialize(name, namespace, context, file)
       # subclasses must also set these
       @name, @namespace, @context, @file = name, namespace, context, file
@@ -68,7 +76,7 @@ module KubernetesDeploy
 
     def deploy_timed_out?
       return false unless @deploy_started
-      !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started > self.class::TIMEOUT)
+      !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started > timeout)
     end
 
     def tpr?
