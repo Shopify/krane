@@ -25,7 +25,6 @@ module KubernetesDeploy
             pod = Pod.new(pod_name, namespace, context, nil, parent: "#{@name.capitalize} deployment")
             pod.deploy_started = @deploy_started
             pod.interpret_json_data(pod_json)
-            pod.log_status
             @pods << pod
           end
         end
