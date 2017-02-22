@@ -37,8 +37,8 @@ module KubernetesDeploy
     def deploy_succeeded?
       return false unless @rollout_data.key?("availableReplicas")
       # TODO: this should look at the current replica set's pods too
-      @rollout_data["availableReplicas"].to_i == @pods.length &&
-      @rollout_data.values.uniq.length == 1 # num desired, current, up-to-date and available are equal
+      @rollout_data["updatedReplicas"].to_i == @rollout_data["replicas"].to_i &&
+      @rollout_data["updatedReplicas"].to_i == @rollout_data["availableReplicas"].to_i
     end
 
     def deploy_failed?
