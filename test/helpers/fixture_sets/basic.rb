@@ -9,7 +9,7 @@ module FixtureSetAssertions
       assert_unmanaged_pod_statuses("Succeeded")
       assert_all_web_resources_up
       assert_all_redis_resources_up
-      assert_configmap_data_up
+      assert_configmap_data_present
     end
 
     def assert_unmanaged_pod_statuses(status, count=1)
@@ -19,11 +19,12 @@ module FixtureSetAssertions
     end
 
     def refute_managed_pod_exists
-      assert_unmanaged_pod_statuses("", 0)
+      pods = kubeclient.get_pods(namespace: namespace, label_selector: "type=unmanaged-pod,app=#{app_name}")
+      assert_equal 0, pods.size, "Expected to find 0 managed pods, found #{pods.size}"
     end
 
-    def assert_configmap_data_up
-      assert_configmap_up("basic-configmap-data", { datapoint1: "value1", datapoint2: "value2" })
+    def assert_configmap_data_present
+      assert_configmap_present("basic-configmap-data", { datapoint1: "value1", datapoint2: "value2" })
     end
 
     def refute_configmap_data_exists

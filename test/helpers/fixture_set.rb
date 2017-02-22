@@ -67,7 +67,7 @@ module FixtureSetAssertions
       assert_equal 1, ing.size, "Expected 1 #{ing_name} ingress, got #{ing.size}"
     end
 
-    def assert_configmap_up(cm_name, expected_data)
+    def assert_configmap_present(cm_name, expected_data)
       configmaps = kubeclient.get_config_maps(namespace: namespace, label_selector: "name=#{cm_name},app=#{app_name}")
       assert_equal 1, configmaps.size, "Expected 1 configmap, got #{configmaps.size}"
       assert_equal expected_data, configmaps.first["data"].to_h

@@ -8,10 +8,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_partial_deploy_followed_by_full_deploy
-    deploy_fixture_set("basic", ["configmap-data", "redis"])
+    deploy_fixture_set("basic", subset: ["configmap-data", "redis"])
     basic = FixtureSetAssertions::Basic.new(@namespace)
     basic.assert_all_redis_resources_up
-    basic.assert_configmap_data_up
+    basic.assert_configmap_data_present
     basic.refute_managed_pod_exists
     basic.refute_web_resources_exist
 
@@ -24,7 +24,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     basic = FixtureSetAssertions::Basic.new(@namespace)
     basic.assert_all_up
 
-    deploy_fixture_set("basic", ["redis"])
+    deploy_fixture_set("basic", subset: ["redis"])
     basic.assert_all_redis_resources_up
     basic.refute_configmap_data_exists
     basic.refute_managed_pod_exists
@@ -32,16 +32,17 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_pvcs_are_not_pruned
-    deploy_fixture_set("basic", ["redis"])
+    deploy_fixture_set("basic", subset: ["redis"])
     basic = FixtureSetAssertions::Basic.new(@namespace)
     basic.assert_all_redis_resources_up
 
-    deploy_fixture_set("basic", ["configmap-data"])
-    basic.assert_configmap_data_up
+    deploy_fixture_set("basic", subset: ["configmap-data"])
+    basic.assert_configmap_data_present
     basic.refute_redis_resources_exist(expect_pvc: true)
   end
 
   def test_success_with_unrecognized_resource_type
+    # Secrets are intentionally unsupported because they should not be committed to your repo
     fixture_set = load_fixture_data("basic", ["configmap-data"])
     secret = {
       "apiVersion" => "v1",
@@ -58,7 +59,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
   def test_invalid_yaml_fails_fast
     error = assert_raises(KubernetesDeploy::FatalDeploymentError) do
-      deploy_fixture_set("invalid", ["yaml-error"])
+      deploy_fixture_set("invalid", subset: ["yaml-error"])
     end
     assert_match /Template \S+ cannot be parsed/, error.to_s
   end
@@ -85,7 +86,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     sleep 1 # make sure to hit DeadlineExceeded on at least one pod
 
-    deploy_fixture_set("basic", ["web", "configmap-data"])
+    deploy_fixture_set("basic", subset: ["web", "configmap-data"])
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=web,app=basic")
     running_pods, not_running_pods = pods.partition { |pod| pod.status.phase == "Running" }
     assert_equal 1, running_pods.size
@@ -105,7 +106,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     basic = FixtureSetAssertions::Basic.new(@namespace)
     basic.assert_unmanaged_pod_statuses("Failed")
-    basic.assert_configmap_data_up # priority resource
+    basic.assert_configmap_data_present # priority resource
     basic.refute_redis_resources_exist(expect_pvc: true) # pvc is priority resource
     basic.refute_web_resources_exist
   end
@@ -124,7 +125,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
   def test_wait_false_ignores_non_priority_resource_failures
     # web depends on configmap so will not succeed deployed alone
-    deploy_fixture_set("basic", ["web"], wait: false)
+    deploy_fixture_set("basic", subset: ["web"], wait: false)
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=basic')
     assert_equal 1, pods.size, "Unable to find web pod"

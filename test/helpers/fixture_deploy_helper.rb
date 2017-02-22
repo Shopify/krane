@@ -1,6 +1,6 @@
 module FixtureDeployHelper
   # use deploy_fixture_set if you are not adding to or otherwise modifying the template set
-  def deploy_fixture_set(set, subset=nil, wait: true)
+  def deploy_fixture_set(set, subset: nil, wait: true)
     source_dir = fixture_path(set)
     return deploy_dir(source_dir) unless subset
 
@@ -15,7 +15,7 @@ module FixtureDeployHelper
 
     deploy_dir(target_dir, wait: wait)
   ensure
-    files.each { |f| File.delete(f) } if files
+    FileUtils.remove_dir(target_dir) if target_dir
   end
 
   # use load_fixture_data + deploy_loaded_fixture_set to have the chance to add to / modify the template set before deploy
@@ -69,7 +69,7 @@ module FixtureDeployHelper
     runner.run
   end
 
-  # HELPER METHODS BELOW NOT INTENDED FOR INCLUDING CLASS USE
+  private
 
   def fixture_path(set_name)
     source_dir = File.expand_path("../../fixtures/#{set_name}", __FILE__)
