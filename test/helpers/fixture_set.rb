@@ -25,8 +25,6 @@ module FixtureSetAssertions
       @app_name
     end
 
-    private
-
     def refute_resource_exists(type, name, beta: false)
       client = beta ? v1beta1_kubeclient : kubeclient
       resources = client.public_send("get_#{type}", name, namespace) # 404s
@@ -35,10 +33,10 @@ module FixtureSetAssertions
       raise unless e.to_s.include?("not found")
     end
 
-    def assert_pod_status(pod_name, status)
+    def assert_pod_status(pod_name, status, count=1)
       pods = kubeclient.get_pods(namespace: namespace, label_selector: "name=#{pod_name},app=#{app_name}")
-      assert_equal 1, pods.size, "Unable to find #{pod_name} pod"
-      assert_equal status, pods.first.status.phase
+      num_with_status = pods.count { |pod| pod.status.phase == status }
+      assert_equal count, num_with_status, "Expected to find #{count} #{pod_name} pods with status #{status}, found #{num_with_status}"
     end
 
     def assert_service_up(svc_name)

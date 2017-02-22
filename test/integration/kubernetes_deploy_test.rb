@@ -77,6 +77,21 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_match /error validating data\: found invalid field myKey for v1.ObjectMeta/, @logger_stream.read
   end
 
+  def test_dead_pods_in_old_replicaset_are_ignored
+    fixture_set = load_fixture_data("basic", ["configmap-data", "web"])
+    deployment = fixture_set["web"]["Deployment"].first
+    container = deployment["spec"]["template"]["spec"]["activeDeadlineSeconds"] = 1
+    deploy_loaded_fixture_set(fixture_set, wait: false) # this will never succeed as pods are killed after 1s
+
+    sleep 1 # make sure to hit DeadlineExceeded on at least one pod
+
+    deploy_fixture_set("basic", ["web", "configmap-data"])
+    pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=web,app=basic")
+    running_pods, not_running_pods = pods.partition { |pod| pod.status.phase == "Running" }
+    assert_equal 1, running_pods.size
+    assert not_running_pods.size >= 1
+  end
+
   def test_bad_container_image_on_run_once_halts_and_fails_deploy
     fixture_set = load_fixture_data("basic")
     pod = fixture_set["unmanaged-pod"]["Pod"].first
