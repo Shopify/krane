@@ -112,7 +112,7 @@ module KubernetesDeploy
     end
 
     def log_status
-      STDOUT.puts "[KUBESTATUS] #{JSON.dump(status_data)}"
+      STDOUT.puts "[KUBESTATUS #{@namespace}] #{JSON.dump(status_data)}"
     end
   end
 end
