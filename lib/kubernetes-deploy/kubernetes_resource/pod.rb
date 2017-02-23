@@ -76,7 +76,7 @@ module KubernetesDeploy
         next unless st.success? && out.present?
 
         KubernetesDeploy.logger.info "Logs from #{id} container #{container_name}:"
-        STDOUT.puts "#{out}"
+        KubernetesResource.logger.info(out)
         @already_displayed = true
       end
     end
