@@ -97,7 +97,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     fixture_set = load_fixture_data("basic")
     pod = fixture_set["unmanaged-pod"]["Pod"].first
     pod["spec"]["activeDeadlineSeconds"] = 3
-    pod["spec"]["containers"].first["image"] = "hello-world:elephants"
+    pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
 
     error = assert_raises(KubernetesDeploy::FatalDeploymentError) do
       deploy_loaded_fixture_set(fixture_set)
@@ -115,7 +115,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     fixture_set = load_fixture_data("basic")
     pod = fixture_set["unmanaged-pod"]["Pod"].first
     pod["spec"]["activeDeadlineSeconds"] = 1
-    pod["spec"]["containers"].first["image"] = "hello-world:elephants"
+    pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
 
     error = assert_raises(KubernetesDeploy::FatalDeploymentError) do
       deploy_loaded_fixture_set(fixture_set)
