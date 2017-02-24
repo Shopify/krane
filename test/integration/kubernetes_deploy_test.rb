@@ -74,6 +74,22 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match(/error validating data\: found invalid field myKey for v1.ObjectMeta/)
   end
 
+  # Reproduces k8s bug
+  # https://github.com/kubernetes/kubernetes/issues/42057
+  def test_invalid_k8s_spec_that_is_valid_yaml_fails_on_apply
+    err = assert_raises(KubernetesDeploy::FatalDeploymentError) do
+      deploy_fixtures("basic", subset: ["configmap-data.yml"]) do |fixtures|
+        configmap = fixtures["configmap-data.yml"]["ConfigMap"].first
+        configmap["metadata"]["labels"] = {
+          "name" => { "not_a_name" => [1, 2] }
+        }
+      end
+    end
+    assert_match(/The following command failed/, err.to_s)
+    assert_match(/error: unable to decode/, err.to_s)
+    assert_logs_match(/Inspecting the file mentioned in the error message/)
+  end
+
   def test_dead_pods_in_old_replicaset_are_ignored
     deploy_fixtures("basic", subset: ["configmap-data.yml", "web.yml.erb"], wait: false) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
