@@ -125,7 +125,7 @@ module KubernetesDeploy
     end
 
     def log_status
-      KubernetesResource.logger.info("[KUBESTATUS] #{JSON.dump(status_data)}")
+      KubernetesResource.logger.info("[KUBESTATUS][#{@context}][#{@namespace}] #{JSON.dump(status_data)}")
     end
   end
 end
