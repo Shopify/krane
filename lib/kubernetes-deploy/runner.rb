@@ -269,7 +269,13 @@ MSG
         PRUNE_WHITELIST.each { |type| command.push("--prune-whitelist=#{type}") }
       end
 
-      run_kubectl(*command)
+      _, err, st = run_kubectl(*command)
+      unless st.success?
+        raise FatalDeploymentError, <<-MSG
+"The following command failed: #{Shellwords.join(command)}"
+#{err}
+MSG
+      end
     end
 
     def confirm_context_exists
