@@ -1,5 +1,8 @@
 module FixtureDeployHelper
-  # use deploy_fixture_set if you are not adding to or otherwise modifying the template set
+  # Deploys the templates in the specified fixture set via KubernetesDeploy::Runner.
+  # Optionally takes an array of names of template files in that set, in which case only those files are deployed.
+  # If you need to add to or modify the fixture set before deploying,
+  # use load_fixture_data(set, subset=nil) and deploy_loaded_fixture_set(template_map, wait: true) instead.
   def deploy_fixture_set(set, subset: nil, wait: true)
     source_dir = fixture_path(set)
     return deploy_dir(source_dir) unless subset
@@ -18,7 +21,9 @@ module FixtureDeployHelper
     FileUtils.remove_dir(target_dir) if target_dir
   end
 
-  # use load_fixture_data + deploy_loaded_fixture_set to have the chance to add to / modify the template set before deploy
+  # Takes an array of templates in the format returned by load_fixture_data, saves them to a temporary directory,
+  # and invokes KubernetesDeploy::Runner on that directory with the requested options.
+  # Use this with load_fixture_data when you want to add to and/or modify the template set before deploying it.
   def deploy_loaded_fixture_set(template_map, wait: true)
     dir = Dir.mktmpdir
     files = []
@@ -35,15 +40,19 @@ module FixtureDeployHelper
     files.each { |f| File.delete(f) }
   end
 
-  # load_fixture_data return format
-  # {
-  #   file_basename: {
-  #     type_name: [
-  #       loaded_yaml_of_type,
-  #       loaded_yaml_of_type,
-  #     ]
-  #   }
-  # }
+  # Returns a hash containing a key for each template file in the set.
+  # The values of those keys are hashes containing a key for each resource type in the template file.
+  # In turn, the values of those keys are arrays of loaded kubernetes resource yaml.
+  #
+  # Example:
+  #   load_fixture_data("basic", ["web"])
+  #   => {
+  #        "web" => {
+  #          "Ingress" => [loaded_ingress_yaml],
+  #          "Service" => [loaded_service_yaml],
+  #          "Deployment" => [loaded_service_yaml]
+  #        }
+  #      }
   def load_fixture_data(set, subset=nil)
     source_dir = fixture_path(set)
     templates = {}
@@ -58,6 +67,8 @@ module FixtureDeployHelper
     templates
   end
 
+  private
+
   def deploy_dir(dir, sha: 'abcabcabc', wait: true)
     runner = KubernetesDeploy::Runner.new(
       namespace: @namespace,
@@ -68,8 +79,6 @@ module FixtureDeployHelper
     )
     runner.run
   end
-
-  private
 
   def fixture_path(set_name)
     source_dir = File.expand_path("../../fixtures/#{set_name}", __FILE__)
