@@ -1,70 +1,49 @@
 module FixtureDeployHelper
-  # Deploys the templates in the specified fixture set via KubernetesDeploy::Runner.
-  # Optionally takes an array of names of template files in that set, in which case only those files are deployed.
-  # If you need to add to or modify the fixture set before deploying,
-  # use load_fixture_data(set, subset=nil) and deploy_loaded_fixture_set(template_map, wait: true) instead.
-  def deploy_fixture_set(set, subset: nil, wait: true)
-    source_dir = fixture_path(set)
-    return deploy_dir(source_dir) unless subset
-
-    target_dir = Dir.mktmpdir
-    each_k8s_yaml(source_dir, subset) do |basename, ext, content|
-      Tempfile.open([basename, ext], target_dir) do |f|
-        f.write(content)
-      end
-    end
-
-    deploy_dir(target_dir, wait: wait)
-  ensure
-    FileUtils.remove_dir(target_dir) if target_dir
-  end
-
-  # Takes an array of templates in the format returned by load_fixture_data, saves them to a temporary directory,
-  # and invokes KubernetesDeploy::Runner on that directory with the requested options.
-  # Use this with load_fixture_data when you want to add to and/or modify the template set before deploying it.
-  def deploy_loaded_fixture_set(template_map, wait: true)
-    target_dir = Dir.mktmpdir
-    template_map.each do |file_basename, file_data|
-      data = YAML.dump_stream(*file_data.values.flatten)
-      # assume they're all erb now in case erb was added
-      Tempfile.open([file_basename, ".yml.erb"], target_dir) do |f|
-        f.write(data)
-      end
-    end
-    deploy_dir(target_dir, wait: wait)
-  ensure
-    FileUtils.remove_dir(target_dir) if target_dir
-  end
-
-  # Returns a hash containing a key for each template file in the set.
-  # The values of those keys are hashes containing a key for each resource type in the template file.
-  # In turn, the values of those keys are arrays of loaded kubernetes resource yaml.
+  # Deploys the specified set of fixtures via KubernetesDeploy::Runner.
+  #
+  # Optionally takes an array of filenames belonging to the fixture, and deploys that subset only.
+  # Example:
+  # # Deploys basic/redis.yml
+  # deploy_fixtures("basic", ["redis.yml"])
+  #
+  # Optionally yields a hash of the fixture's loaded templates that can be modified before the deploy is executed.
+  # The following example illustrates the format of the yielded hash:
+  #  {
+  #    "web.yml.erb" => {
+  #      "Ingress" => [loaded_ingress_yaml],
+  #      "Service" => [loaded_service_yaml],
+  #      "Deployment" => [loaded_service_yaml]
+  #    }
+  #  }
   #
   # Example:
-  #   load_fixture_data("basic", ["web"])
-  #   => {
-  #        "web" => {
-  #          "Ingress" => [loaded_ingress_yaml],
-  #          "Service" => [loaded_service_yaml],
-  #          "Deployment" => [loaded_service_yaml]
-  #        }
-  #      }
-  def load_fixture_data(set, subset=nil)
-    source_dir = fixture_path(set)
-    templates = {}
+  # # The following will deploy the "basic" fixture set, but with the unmanaged pod modified to use a bad image
+  #   deploy_fixtures("basic") do |fixtures|
+  #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+  #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
+  #   end
+  def deploy_fixtures(set, subset: nil, wait: true)
+    fixtures = load_fixtures(set, subset)
+    raise "Cannot deploy empty template set" if fixtures.empty?
 
-    each_k8s_yaml(source_dir, subset) do |basename, ext, content|
-      templates[basename] = {}
-      YAML.load_stream(content) do |doc|
-        templates[basename][doc["kind"]] ||= []
-        templates[basename][doc["kind"]] << doc
-      end
-    end
-    templates
+    yield fixtures if block_given?
+
+    target_dir = Dir.mktmpdir
+    write_fixtures_to_dir(fixtures, target_dir)
+    deploy_dir(target_dir, wait: wait)
+  ensure
+    FileUtils.remove_dir(target_dir) if target_dir
   end
 
-  private
+  def fixture_path(set_name)
+    source_dir = File.expand_path("../../fixtures/#{set_name}", __FILE__)
+    raise "Fixture set #{set_name} does not exist as directory #{source_dir}" unless File.directory?(source_dir)
+    source_dir
+  end
 
+  # Deploys all fixtures in the given directory via KubernetesDeploy::Runner
+  # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
+  # for example because it contains an intentional syntax error
   def deploy_dir(dir, sha: 'abcabcabc', wait: true)
     runner = KubernetesDeploy::Runner.new(
       namespace: @namespace,
@@ -76,20 +55,38 @@ module FixtureDeployHelper
     runner.run
   end
 
-  def fixture_path(set_name)
-    source_dir = File.expand_path("../../fixtures/#{set_name}", __FILE__)
-    raise "Fixture set #{set_name} does not exist as directory #{source_dir}" unless File.directory?(source_dir)
-    source_dir
-  end
+  private
 
-  def each_k8s_yaml(source_dir, subset)
-    Dir["#{source_dir}/*.yml*"].each do |filename|
-      match_data = File.basename(filename).match(/(?<basename>.*)(?<ext>\.yml(?:\.erb)?)\z/)
-      basename = match_data[:basename]
-      ext = match_data[:ext]
+  def load_fixtures(set, subset)
+    fixtures = {}
+    Dir["#{fixture_path(set)}/*.yml*"].each do |filename|
+      basename = File.basename(filename)
       next unless !subset || subset.include?(basename)
 
-      yield basename, ext, File.read(filename)
+      content = File.read(filename)
+      fixtures[basename] = {}
+      YAML.load_stream(content) do |doc|
+        fixtures[basename][doc["kind"]] ||= []
+        fixtures[basename][doc["kind"]] << doc
+      end
     end
+    fixtures
+  end
+
+  def write_fixtures_to_dir(fixtures, target_dir)
+    files = [] # keep reference outside Tempfile.open to prevent garbage collection
+    fixtures.each do |filename, file_data|
+      basename, exts = extract_basename_and_extensions(filename)
+      data = YAML.dump_stream(*file_data.values.flatten)
+      Tempfile.open([basename, exts], target_dir) do |f|
+        files << f
+        f.write(data)
+      end
+    end
+  end
+
+  def extract_basename_and_extensions(filename)
+    match_data = filename.match(/(?<basename>.*)(?<ext>\.yml(?:\.erb)?)\z/)
+    [match_data[:basename], match_data[:ext]]
   end
 end
