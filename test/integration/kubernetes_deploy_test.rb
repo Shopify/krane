@@ -58,10 +58,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_fails_fast
-    error = assert_raises(KubernetesDeploy::FatalDeploymentError) do
+    assert_raises(KubernetesDeploy::FatalDeploymentError, /Template \S+ cannot be parsed/) do
       deploy_fixture_set("invalid", subset: ["yaml-error"])
     end
-    assert_match /Template \S+ cannot be parsed/, error.to_s
   end
 
   def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast
@@ -69,13 +68,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     configmap = fixture_set["configmap-data"]["ConfigMap"].first
     configmap["metadata"]["myKey"] = "uhOh"
 
-    error = assert_raises(KubernetesDeploy::FatalDeploymentError) do
+    assert_raises(KubernetesDeploy::FatalDeploymentError, /Dry run failed for template configmap-data/) do
       deploy_loaded_fixture_set(fixture_set)
     end
-    assert_match /Dry run failed for template configmap-data/, error.to_s
-
-    @logger_stream.rewind
-    assert_match /error validating data\: found invalid field myKey for v1.ObjectMeta/, @logger_stream.read
+    assert_logs_match(/error validating data\: found invalid field myKey for v1.ObjectMeta/)
   end
 
   def test_dead_pods_in_old_replicaset_are_ignored
@@ -99,10 +95,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     pod["spec"]["activeDeadlineSeconds"] = 3
     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
 
-    error = assert_raises(KubernetesDeploy::FatalDeploymentError) do
+    assert_raises(KubernetesDeploy::FatalDeploymentError, /1 priority resources failed to deploy/) do
       deploy_loaded_fixture_set(fixture_set)
     end
-    assert_match /1 priority resources failed to deploy/, error.to_s
 
     basic = FixtureSetAssertions::Basic.new(@namespace)
     basic.assert_unmanaged_pod_statuses("Failed")
@@ -117,10 +112,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     pod["spec"]["activeDeadlineSeconds"] = 1
     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
 
-    error = assert_raises(KubernetesDeploy::FatalDeploymentError) do
+    assert_raises(KubernetesDeploy::FatalDeploymentError, /1 priority resources failed to deploy/) do
       deploy_loaded_fixture_set(fixture_set)
     end
-    assert_match /1 priority resources failed to deploy/, error.to_s
+    assert_logs_match(/DeadlineExceeded/)
   end
 
   def test_wait_false_ignores_non_priority_resource_failures

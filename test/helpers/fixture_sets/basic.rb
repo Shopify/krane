@@ -35,7 +35,7 @@ module FixtureSetAssertions
       assert_pod_status("web", "Running")
       assert_ingress_up("web")
       assert_service_up("web")
-      assert_deployment_up("web", 1)
+      assert_deployment_up("web", replicas: 1)
     end
 
     def refute_web_resources_exist
@@ -47,7 +47,7 @@ module FixtureSetAssertions
     def assert_all_redis_resources_up
       assert_pod_status("redis", "Running")
       assert_service_up("redis")
-      assert_deployment_up("redis", 1)
+      assert_deployment_up("redis", replicas: 1)
       assert_pvc_status("redis", "Bound")
     end
 

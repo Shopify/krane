@@ -8,10 +8,8 @@ module FixtureDeployHelper
     return deploy_dir(source_dir) unless subset
 
     target_dir = Dir.mktmpdir
-    files = []
     each_k8s_yaml(source_dir, subset) do |basename, ext, content|
       Tempfile.open([basename, ext], target_dir) do |f|
-        files << f
         f.write(content)
       end
     end
@@ -25,19 +23,17 @@ module FixtureDeployHelper
   # and invokes KubernetesDeploy::Runner on that directory with the requested options.
   # Use this with load_fixture_data when you want to add to and/or modify the template set before deploying it.
   def deploy_loaded_fixture_set(template_map, wait: true)
-    dir = Dir.mktmpdir
-    files = []
+    target_dir = Dir.mktmpdir
     template_map.each do |file_basename, file_data|
       data = YAML.dump_stream(*file_data.values.flatten)
       # assume they're all erb now in case erb was added
-      Tempfile.open([file_basename, ".yml.erb"], dir) do |f|
-        files << f
+      Tempfile.open([file_basename, ".yml.erb"], target_dir) do |f|
         f.write(data)
       end
     end
-    deploy_dir(dir, wait: wait)
+    deploy_dir(target_dir, wait: wait)
   ensure
-    files.each { |f| File.delete(f) }
+    FileUtils.remove_dir(target_dir) if target_dir
   end
 
   # Returns a hash containing a key for each template file in the set.
@@ -82,7 +78,7 @@ module FixtureDeployHelper
 
   def fixture_path(set_name)
     source_dir = File.expand_path("../../fixtures/#{set_name}", __FILE__)
-    raise "Fixture set pat #{source_dir} is invalid" unless File.directory?(source_dir)
+    raise "Fixture set #{set_name} does not exist as directory #{source_dir}" unless File.directory?(source_dir)
     source_dir
   end
 

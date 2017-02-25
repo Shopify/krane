@@ -49,7 +49,7 @@ module FixtureSetAssertions
       assert_equal 1, num_endpoints
     end
 
-    def assert_deployment_up(dep_name, replicas)
+    def assert_deployment_up(dep_name, replicas:)
       deployments = v1beta1_kubeclient.get_deployments(namespace: namespace, label_selector: "name=#{dep_name},app=#{app_name}")
       assert_equal 1, deployments.size, "Expected 1 #{dep_name} deployment, got #{deployments.size}"
       available = deployments.first["status"]["availableReplicas"]

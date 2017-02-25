@@ -23,6 +23,11 @@ module KubernetesDeploy
     def teardown
       @logger_stream.close
     end
+
+    def assert_logs_match(regexp)
+      @logger_stream.rewind
+      assert_match regexp, @logger_stream.read
+    end
   end
 
   class IntegrationTest < KubernetesDeploy::TestCase
