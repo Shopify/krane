@@ -279,7 +279,7 @@ MSG
     end
 
     def confirm_context_exists
-      out, err, st = run_kubectl("config", "get-contexts", "-o", "name", namespaced: false, with_context: false)
+      out, err, st = run_kubectl("config", "get-contexts", "-o", "name", with_namespace: false, with_context: false)
       available_contexts = out.split("\n")
       if !st.success?
         raise FatalDeploymentError, err
@@ -290,30 +290,23 @@ MSG
     end
 
     def confirm_namespace_exists
-      _, _, st = run_kubectl("get", "namespace", @namespace, namespaced: false)
+      _, _, st = run_kubectl("get", "namespace", @namespace, with_namespace: false)
       raise FatalDeploymentError, "Namespace #{@namespace} not found" unless st.success?
       KubernetesDeploy.logger.info("Namespace #{@namespace} found")
     end
 
-    def run_kubectl(*args, namespaced: true, with_context: true)
-      args = args.unshift("kubectl")
-      if namespaced
+    def run_kubectl(*args, with_namespace: true, with_context: true)
+      opts = {}
+      if with_namespace
         raise FatalDeploymentError, "Namespace missing for namespaced command" if @namespace.blank?
-        args.push("--namespace=#{@namespace}")
+        opts[:namespace] = @namespace
       end
 
       if with_context
         raise FatalDeploymentError, "Explicit context is required to run this command" if @context.blank?
-        args.push("--context=#{@context}")
+        opts[:context] = @context
       end
-      KubernetesDeploy.logger.debug Shellwords.join(args)
-      out, err, st = Open3.capture3(*args)
-      KubernetesDeploy.logger.debug(out.shellescape)
-      unless st.success?
-        KubernetesDeploy.logger.warn("The following command failed: #{Shellwords.join(args)}")
-        KubernetesDeploy.logger.warn(err)
-      end
-      [out.chomp, err.chomp, st]
+      KubernetesDeploy::KubectlWrapper.run_kubectl(*args, **opts)
     end
 
     def phase_heading(phase_name)

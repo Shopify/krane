@@ -5,6 +5,7 @@ require 'active_support/core_ext/numeric/time'
 require 'active_support/core_ext/string/inflections'
 
 require 'logger'
+require 'kubernetes-deploy/kubectl_wrapper'
 require 'kubernetes-deploy/runner'
 
 module KubernetesDeploy

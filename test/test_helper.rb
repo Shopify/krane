@@ -3,6 +3,7 @@ require 'kubernetes-deploy'
 require 'kubeclient'
 require 'pry'
 require 'minitest/autorun'
+require 'mocha/mini_test'
 
 require 'helpers/kubeclient_helper'
 require 'helpers/fixture_deploy_helper'
