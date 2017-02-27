@@ -3,7 +3,11 @@ require 'kubernetes-deploy'
 require 'kubeclient'
 require 'pry'
 require 'minitest/autorun'
+
 require 'helpers/kubeclient_helper'
+require 'helpers/fixture_deploy_helper'
+require 'helpers/fixture_set'
+require 'helpers/fixture_sets/basic'
 
 ENV["KUBECONFIG"] ||= "#{Dir.home}/.kube/config"
 
@@ -19,10 +23,16 @@ module KubernetesDeploy
     def teardown
       @logger_stream.close
     end
+
+    def assert_logs_match(regexp)
+      @logger_stream.rewind
+      assert_match regexp, @logger_stream.read
+    end
   end
 
   class IntegrationTest < KubernetesDeploy::TestCase
     include KubeclientHelper
+    include FixtureDeployHelper
 
     def run
       @namespace = TestProvisioner.claim_namespace(self.name)
@@ -77,4 +87,5 @@ module KubernetesDeploy
   end
 
   TestProvisioner.prepare_pv("pv0001")
+  TestProvisioner.prepare_pv("pv0002")
 end
