@@ -5,3 +5,4 @@ gemspec
 
 gem 'pry'
 gem 'kubeclient'
+gem 'rubocop'

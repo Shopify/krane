@@ -7,3 +7,6 @@
 /pkg/
 /spec/reports/
 /tmp/
+
+# Ignore RuboCop cache
+.rubocop-http---shopify-github-io-ruby-style-guide-rubocop-yml
