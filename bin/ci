@@ -1,28 +1,9 @@
 #!/bin/bash
 set -eox pipefail
 
-MINIKUBE_VER=0.16.0
 KUBERNETES_VER=1.5.2
-DOCKER_MACHINE_KVM_VER=0.7.0
 
 echo "--- Installing dependencies"
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/v$MINIKUBE_VER/minikube-linux-amd64
-chmod +x minikube
-sudo mv minikube /usr/local/bin/
-
-# minikube requires kubectl
-curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v$KUBERNETES_VER/bin/linux/amd64/kubectl
-chmod +x kubectl
-sudo mv kubectl /usr/local/bin/
-
-# KVM support for minikube
-curl -Lo docker-machine-driver-kvm https://github.com/dhiltgen/docker-machine-kvm/releases/download/v$DOCKER_MACHINE_KVM_VER/docker-machine-driver-kvm
-chmod +x docker-machine-driver-kvm
-sudo mv docker-machine-driver-kvm /usr/local/bin/
-
-minikube config set vm-driver kvm
-
-gem install bundler --no-ri --no-rdoc
 bundle install --jobs 4
 
 echo "--- Starting minikube"
