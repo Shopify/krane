@@ -112,6 +112,24 @@ MSG
 
     private
 
+    # Inspect the file referenced in the kubectl stderr
+    # to make it easier for developer to understand what's going on
+    def inspect_kubectl_out_for_files(stderr)
+      # Output example:
+      # error: unable to decode "/tmp/path/to/file": [pos 96]: json: expect char '"' but got char '{'
+      match = stderr.match(/error: unable to decode "(?<path>\S+)":/)
+      return unless match
+
+      path = match[:path]
+      if path.present? && File.file?(path)
+        suspicious_file = File.read(path)
+        KubernetesDeploy.logger.warn("Inspecting the file mentioned in the error message (#{path})")
+        KubernetesDeploy.logger.warn(suspicious_file)
+      else
+        KubernetesDeploy.logger.warn("Detected a file (#{path.inspect}) referenced in the kubectl stderr but was unable to inspect it")
+      end
+    end
+
     def predeploy_priority_resources(resource_list)
       PREDEPLOY_SEQUENCE.each do |resource_type|
         matching_resources = resource_list.select { |r| r.type == resource_type }
@@ -271,6 +289,7 @@ MSG
 
       _, err, st = run_kubectl(*command)
       unless st.success?
+        inspect_kubectl_out_for_files(err)
         raise FatalDeploymentError, <<-MSG
 "The following command failed: #{Shellwords.join(command)}"
 #{err}
