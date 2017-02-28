@@ -1,6 +1,6 @@
 # Kubernetes::Deploy
 
-[![Build status](https://badge.buildkite.com/0f2d4956d49fbc795f9c17b0a741a6aa9ea532738e5f872ac8.svg)](https://buildkite.com/shopify/kubernetes-deploy-gem)
+[![Build status](https://badge.buildkite.com/0f2d4956d49fbc795f9c17b0a741a6aa9ea532738e5f872ac8.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy-gem)
 
 Deploy script used to manage a Kubernetes application's namespace with [Shipit](https://github.com/Shopify/shipit-engine).
 
