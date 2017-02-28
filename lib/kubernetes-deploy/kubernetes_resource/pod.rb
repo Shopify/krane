@@ -1,6 +1,6 @@
 module KubernetesDeploy
   class Pod < KubernetesResource
-    TIMEOUT = 15.minutes
+    TIMEOUT = 10.minutes
     SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError).freeze
 
     def initialize(name, namespace, context, file, parent: nil)
