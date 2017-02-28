@@ -7,7 +7,7 @@ echo "--- Installing dependencies"
 bundle install --jobs 4
 
 echo "--- Starting minikube"
-minikube start --cpus 2 --memory 2048 --disk-size=2gb --kubernetes-version=$KUBERNETES_VER
+minikube start --cpus 2 --memory 2048 --disk-size=2gb --kubernetes-version=$KUBERNETES_VER --logtostderr
 
 echo "--- Running tests"
 bundle exec rake test
