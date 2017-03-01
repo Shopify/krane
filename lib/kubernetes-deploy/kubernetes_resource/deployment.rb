@@ -1,6 +1,6 @@
 module KubernetesDeploy
   class Deployment < KubernetesResource
-    TIMEOUT = 15.minutes
+    TIMEOUT = 5.minutes
 
     def initialize(name, namespace, context, file)
       @name, @namespace, @context, @file = name, namespace, context, file
