@@ -4,5 +4,5 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'pry'
-gem 'kubeclient'
 gem 'rubocop'
+gem 'timecop'

@@ -29,9 +29,16 @@ Requirements:
  - kubectl 1.5.1+ binary must be available in your path
  - `ENV['KUBECONFIG']` must point to a valid kubeconfig file that includes the context you want to deploy to
  - The target namespace must already exist in the target context
- - `ENV['GOOGLE_APPLICATION_CREDENTIALS']` must point to the credentials for an authenticated service account if your user's auth provider is gcp
+ - `ENV['GOOGLE_APPLICATION_CREDENTIALS']` must point to the credentials for an authenticated service account if your user's auth provider is GCP
  - `ENV['ENVIRONMENT']` must be set to use the default template path (`config/deploy/$ENVIRONMENT`) in the absence of the `--template-dir=DIR` option
 
+The tool also provides a task for restarting all of the pods in one or more deployments.
+It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec.
+The rollout strategy defined for each deployment will be respected by the restart.
+
+The following command will restart all pods in the `web` and `jobs` deployments:
+
+`kubernetes-restart <kube namespace> <kube context> --deployments=web,jobs`
 
 ## Development
 
