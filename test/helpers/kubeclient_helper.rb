@@ -1,5 +1,6 @@
+# frozen_string_literal: true
 module KubeclientHelper
-  MINIKUBE_CONTEXT = "minikube".freeze
+  MINIKUBE_CONTEXT = "minikube"
 
   def kubeclient
     @kubeclient ||= build_kube_client("v1")

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'kubernetes-deploy'
 require 'kubeclient'
@@ -35,7 +36,7 @@ module KubernetesDeploy
     include FixtureDeployHelper
 
     def run
-      @namespace = TestProvisioner.claim_namespace(self.name)
+      @namespace = TestProvisioner.claim_namespace(name)
       super
     ensure
       TestProvisioner.delete_namespace(@namespace)
@@ -46,7 +47,7 @@ module KubernetesDeploy
     extend KubeclientHelper
 
     def self.claim_namespace(test_name)
-      test_name = test_name.gsub(/[^-a-z0-9]/, '-').slice(0,36) # namespace name length must be <= 63 chars
+      test_name = test_name.gsub(/[^-a-z0-9]/, '-').slice(0, 36) # namespace name length must be <= 63 chars
       ns = "k8sdeploy-#{test_name}-#{SecureRandom.hex(8)}"
       create_namespace(ns)
       ns

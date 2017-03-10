@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'test_helper'
 
 class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
@@ -94,7 +95,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     deploy_fixtures("basic", subset: ["configmap-data.yml", "web.yml.erb"], wait: false) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
       # web pods will get killed after one second and will not be cleaned up
-      container = deployment["spec"]["template"]["spec"]["activeDeadlineSeconds"] = 1
+      deployment["spec"]["template"]["spec"]["activeDeadlineSeconds"] = 1
     end
 
     sleep 1 # make sure to hit DeadlineExceeded on at least one pod

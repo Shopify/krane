@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'helpers/kubeclient_helper'
 
 module FixtureSetAssertions
@@ -16,27 +17,29 @@ module FixtureSetAssertions
     end
 
     def namespace
-      raise FixtureSetError.new("@namespace must be set in initializer") if @namespace.blank?
+      raise FixtureSetError, "@namespace must be set in initializer" if @namespace.blank?
       @namespace
     end
 
     def app_name
-      raise FixtureSetError.new("@app_name must be set in initializer") if @app_name.blank?
+      raise FixtureSetError, "@app_name must be set in initializer" if @app_name.blank?
       @app_name
     end
 
     def refute_resource_exists(type, name, beta: false)
       client = beta ? v1beta1_kubeclient : kubeclient
-      resources = client.public_send("get_#{type}", name, namespace) # 404s
+      client.public_send("get_#{type}", name, namespace) # 404s
       flunk "#{type} #{name} unexpectedly existed"
     rescue KubeException => e
       raise unless e.to_s.include?("not found")
     end
 
-    def assert_pod_status(pod_name, status, count=1)
+    def assert_pod_status(pod_name, status, count = 1)
       pods = kubeclient.get_pods(namespace: namespace, label_selector: "name=#{pod_name},app=#{app_name}")
       num_with_status = pods.count { |pod| pod.status.phase == status }
-      assert_equal count, num_with_status, "Expected to find #{count} #{pod_name} pods with status #{status}, found #{num_with_status}"
+
+      msg = "Expected to find #{count} #{pod_name} pods with status #{status}, found #{num_with_status}"
+      assert_equal count, num_with_status, msg
     end
 
     def assert_service_up(svc_name)
@@ -50,14 +53,22 @@ module FixtureSetAssertions
     end
 
     def assert_deployment_up(dep_name, replicas:)
-      deployments = v1beta1_kubeclient.get_deployments(namespace: namespace, label_selector: "name=#{dep_name},app=#{app_name}")
+      deployments = v1beta1_kubeclient.get_deployments(
+        namespace: namespace,
+        label_selector: "name=#{dep_name},app=#{app_name}"
+      )
       assert_equal 1, deployments.size, "Expected 1 #{dep_name} deployment, got #{deployments.size}"
       available = deployments.first["status"]["availableReplicas"]
-      assert_equal replicas, available, "Expected #{dep_name} deployment to have #{replicas} available replicas, saw #{available}"
+
+      msg = "Expected #{dep_name} deployment to have #{replicas} available replicas, saw #{available}"
+      assert_equal replicas, available, msg
     end
 
     def assert_pvc_status(pvc_name, status)
-      pvc = kubeclient.get_persistent_volume_claims(namespace: namespace, label_selector: "name=#{pvc_name},app=#{app_name}")
+      pvc = kubeclient.get_persistent_volume_claims(
+        namespace: namespace,
+        label_selector: "name=#{pvc_name},app=#{app_name}"
+      )
       assert_equal 1, pvc.size, "Expected 1 #{pvc_name} pvc, saw #{pvc.size}"
       assert_equal status, pvc.first.status.phase
     end

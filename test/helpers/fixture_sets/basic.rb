@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module FixtureSetAssertions
   class Basic < FixtureSet
     def initialize(namespace)
@@ -12,7 +13,7 @@ module FixtureSetAssertions
       assert_configmap_data_present
     end
 
-    def assert_unmanaged_pod_statuses(status, count=1)
+    def assert_unmanaged_pod_statuses(status, count = 1)
       pods = kubeclient.get_pods(namespace: namespace, label_selector: "type=unmanaged-pod,app=#{app_name}")
       assert_equal count, pods.size, "Expected to find #{count} unmanaged pod(s), found #{pods.size}"
       assert pods.all? { |pod| pod.status.phase == status }
@@ -24,7 +25,7 @@ module FixtureSetAssertions
     end
 
     def assert_configmap_data_present
-      assert_configmap_present("basic-configmap-data", { datapoint1: "value1", datapoint2: "value2" })
+      assert_configmap_present("basic-configmap-data", datapoint1: "value1", datapoint2: "value2")
     end
 
     def refute_configmap_data_exists
