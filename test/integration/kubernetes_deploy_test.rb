@@ -74,6 +74,14 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match(/error validating data\: found invalid field myKey for v1.ObjectMeta/)
   end
 
+  def test_dynamic_erb_collection_works
+    deploy_raw_fixtures("collection-with-erb")
+
+    deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
+    assert_equal 3, deployments.size
+    assert_equal ["web-one", "web-three", "web-two"], deployments.map { |d| d.metadata.name }.sort
+  end
+
   # Reproduces k8s bug
   # https://github.com/kubernetes/kubernetes/issues/42057
   def test_invalid_k8s_spec_that_is_valid_yaml_fails_on_apply

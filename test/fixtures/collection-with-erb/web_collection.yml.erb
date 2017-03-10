@@ -1,0 +1,23 @@
+<% %w(one two three).each do |name| %>
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: <%= "web-#{name}" %>
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: <%= "web-#{name}" %>
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: GITHUB_REV
+          value: <%= current_sha %>
+---
+<% end %>

@@ -168,6 +168,8 @@ MSG
       file_content = File.read(File.join(@template_dir, filename))
       rendered_content = render_template(filename, file_content)
       YAML.load_stream(rendered_content) do |doc|
+        next if doc.blank?
+
         f = Tempfile.new(filename)
         f.write(YAML.dump(doc))
         f.close
