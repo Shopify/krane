@@ -35,9 +35,14 @@ module FixtureDeployHelper
     FileUtils.remove_dir(target_dir) if target_dir
   end
 
+  def deploy_raw_fixtures(set, wait: true)
+    deploy_dir(fixture_path(set), wait: wait)
+  end
+
   def fixture_path(set_name)
     source_dir = File.expand_path("../../fixtures/#{set_name}", __FILE__)
-    raise "Fixture set #{set_name} does not exist as directory #{source_dir}" unless File.directory?(source_dir)
+    raise ArgumentError,
+      "Fixture set #{set_name} does not exist as directory #{source_dir}" unless File.directory?(source_dir)
     source_dir
   end
 
