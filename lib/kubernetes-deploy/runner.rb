@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'open3'
 require 'securerandom'
 require 'erb'
@@ -126,7 +127,8 @@ MSG
         KubernetesDeploy.logger.warn("Inspecting the file mentioned in the error message (#{path})")
         KubernetesDeploy.logger.warn(suspicious_file)
       else
-        KubernetesDeploy.logger.warn("Detected a file (#{path.inspect}) referenced in the kubectl stderr but was unable to inspect it")
+        KubernetesDeploy.logger.warn("Detected a file (#{path.inspect}) referenced in the kubectl stderr " \
+          "but was unable to inspect it")
       end
     end
 
@@ -159,7 +161,7 @@ MSG
     end
 
     def discover_resource_via_dry_run(tempfile)
-      resource_id, err, st = run_kubectl("create", "-f", tempfile.path, "--dry-run", "--output=name")
+      resource_id, _err, st = run_kubectl("create", "-f", tempfile.path, "--dry-run", "--output=name")
       raise FatalDeploymentError, "Dry run failed for template #{File.basename(tempfile.path)}." unless st.success?
       resource_id
     end
@@ -185,7 +187,7 @@ MSG
         log_green("Deploy succeeded!")
       else
         fail_list = resources.select { |r| r.deploy_failed? || r.deploy_timed_out? }.map(&:id)
-        KubernetesDeploy.logger.error("The following resources failed to deploy: #{fail_list.join(", ")}")
+        KubernetesDeploy.logger.error("The following resources failed to deploy: #{fail_list.join(', ')}")
         raise FatalDeploymentError, "#{fail_list.length} resources failed to deploy"
       end
     end
@@ -198,7 +200,7 @@ MSG
       KubernetesDeploy.logger.info("Waiting for #{human_resources} with #{max_wait_time}s timeout")
       while watched_resources.present?
         if Time.now.utc < delay_sync_until
-          sleep (delay_sync_until - Time.now.utc)
+          sleep(delay_sync_until - Time.now.utc)
         end
         delay_sync_until = Time.now.utc + 3 # don't pummel the API if the sync is fast
         watched_resources.each(&:sync)
@@ -206,7 +208,9 @@ MSG
         newly_finished_resources.each do |resource|
           next unless resource.deploy_failed? || resource.deploy_timed_out?
           KubernetesDeploy.logger.error("#{resource.id} failed to deploy with status '#{resource.status}'.")
-          KubernetesDeploy.logger.error("This script will continue to poll until the status of all resources deployed in this phase is resolved, but the deploy is now doomed and you may wish abort it.")
+          KubernetesDeploy.logger.error("This script will continue to poll until the status " \
+            "of all resources deployed in this phase is resolved, " \
+            "but the deploy is now doomed and you may wish abort it.")
           KubernetesDeploy.logger.error(resource.status_data)
         end
       end
@@ -229,7 +233,7 @@ MSG
     def validate_configuration
       errors = []
       if ENV["KUBECONFIG"].blank? || !File.file?(ENV["KUBECONFIG"])
-        errors << "Kube config not found at #{ENV["KUBECONFIG"]}"
+        errors << "Kube config not found at #{ENV['KUBECONFIG']}"
       end
 
       if @current_sha.blank?
@@ -252,7 +256,7 @@ MSG
         errors << "Context must be specified"
       end
 
-      raise FatalDeploymentError, "Configuration invalid: #{errors.join(", ")}" unless errors.empty?
+      raise FatalDeploymentError, "Configuration invalid: #{errors.join(', ')}" unless errors.empty?
       KubernetesDeploy.logger.info("All required parameters and files are present")
     end
 
@@ -340,7 +344,7 @@ MSG
     def phase_heading(phase_name)
       @current_phase += 1
       heading = "Phase #{@current_phase}: #{phase_name}"
-      padding = (100.0 - heading.length)/2
+      padding = (100.0 - heading.length) / 2
       KubernetesDeploy.logger.info("")
       KubernetesDeploy.logger.info("#{'-' * padding.floor}#{heading}#{'-' * padding.ceil}")
     end
