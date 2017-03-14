@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module FixtureDeployHelper
   # Deploys the specified set of fixtures via KubernetesDeploy::Runner.
   #

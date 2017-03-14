@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'test_helper'
 
 class RunnerTest < KubernetesDeploy::TestCase
@@ -26,7 +27,7 @@ class RunnerTest < KubernetesDeploy::TestCase
     assert_includes error_msg, "Current SHA must be specified"
     assert_includes error_msg, "Namespace must be specified"
     assert_includes error_msg, "Context must be specified"
-    assert_match /Template directory (\S+) doesn't exist/, error_msg
+    assert_match(/Template directory (\S+) doesn't exist/, error_msg)
 
   ensure
     ENV["KUBECONFIG"] = original_env
