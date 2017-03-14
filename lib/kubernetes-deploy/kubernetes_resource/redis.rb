@@ -1,10 +1,14 @@
+# frozen_string_literal: true
 module KubernetesDeploy
   class Redis < KubernetesResource
     TIMEOUT = 5.minutes
-    UUID_ANNOTATION = "redis.stable.shopify.io/owner_uid".freeze
+    UUID_ANNOTATION = "redis.stable.shopify.io/owner_uid"
 
     def initialize(name, namespace, context, file)
-      @name, @namespace, @context, @file = name, namespace, context, file
+      @name = name
+      @namespace = namespace
+      @context = context
+      @file = file
     end
 
     def sync
@@ -36,6 +40,7 @@ module KubernetesDeploy
     end
 
     private
+
     def redis_deployment_exists?
       deployment, st = run_kubectl("get", "deployments", "redis-#{redis_resource_uuid}", "-o=json")
 
@@ -75,6 +80,5 @@ module KubernetesDeploy
         @redis_resource_uuid = parsed.fetch("metadata", {}).fetch("uid", nil)
       end
     end
-
   end
 end

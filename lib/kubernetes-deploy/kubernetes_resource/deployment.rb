@@ -1,9 +1,13 @@
+# frozen_string_literal: true
 module KubernetesDeploy
   class Deployment < KubernetesResource
     TIMEOUT = 5.minutes
 
     def initialize(name, namespace, context, file)
-      @name, @namespace, @context, @file = name, namespace, context, file
+      @name = name
+      @namespace = namespace
+      @context = context
+      @file = file
     end
 
     def sync
@@ -14,7 +18,8 @@ module KubernetesDeploy
       @pods = []
 
       if @found
-        @rollout_data = JSON.parse(json_data)["status"].slice("updatedReplicas", "replicas", "availableReplicas", "unavailableReplicas")
+        @rollout_data = JSON.parse(json_data)["status"]
+          .slice("updatedReplicas", "replicas", "availableReplicas", "unavailableReplicas")
         @status, _ = run_kubectl("rollout", "status", type, @name, "--watch=false") if @deploy_started
 
         pod_list, st = run_kubectl("get", "pods", "-a", "-l", "name=#{name}", "--output=json")

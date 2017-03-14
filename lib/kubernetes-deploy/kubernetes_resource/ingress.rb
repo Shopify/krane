@@ -1,9 +1,13 @@
+# frozen_string_literal: true
 module KubernetesDeploy
   class Ingress < KubernetesResource
     TIMEOUT = 30.seconds
 
     def initialize(name, namespace, context, file)
-      @name, @namespace, @context, @file = name, namespace, context, file
+      @name = name
+      @namespace = namespace
+      @context = context
+      @file = file
     end
 
     def sync

@@ -1,9 +1,13 @@
+# frozen_string_literal: true
 module KubernetesDeploy
   class Cloudsql < KubernetesResource
     TIMEOUT = 5.minutes
 
     def initialize(name, namespace, context, file)
-      @name, @namespace, @context, @file = name, namespace, context, file
+      @name = name
+      @namespace = namespace
+      @context = context
+      @file = file
     end
 
     def sync
@@ -35,6 +39,7 @@ module KubernetesDeploy
     end
 
     private
+
     def cloudsql_proxy_deployment_exists?
       deployment, st = run_kubectl("get", "deployments", "cloudsql-proxy", "-o=json")
 
@@ -64,6 +69,5 @@ module KubernetesDeploy
 
       false
     end
-
   end
 end

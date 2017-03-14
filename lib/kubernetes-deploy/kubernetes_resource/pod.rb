@@ -1,10 +1,15 @@
+# frozen_string_literal: true
 module KubernetesDeploy
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
     SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError).freeze
 
     def initialize(name, namespace, context, file, parent: nil)
-      @name, @namespace, @context, @file, @parent = name, namespace, context, file, parent
+      @name = name
+      @namespace = namespace
+      @context = context
+      @file = file
+      @parent = parent
       @bare = !@parent
     end
 
@@ -31,12 +36,12 @@ module KubernetesDeploy
           waiting_state = status["state"]["waiting"] if status["state"]
           reason = waiting_state["reason"] if waiting_state
           next unless SUSPICIOUS_CONTAINER_STATES.include?(reason)
-          KubernetesDeploy.logger.warn("#{id} has container in state #{reason} (#{waiting_state["message"]})")
+          KubernetesDeploy.logger.warn("#{id} has container in state #{reason} (#{waiting_state['message']})")
         end
       end
 
       if @phase == "Failed"
-        @status = "#{@phase} (Reason: #{pod_data["status"]["reason"]})"
+        @status = "#{@phase} (Reason: #{pod_data['status']['reason']})"
       elsif @phase == "Terminating"
         @status = @phase
       else
