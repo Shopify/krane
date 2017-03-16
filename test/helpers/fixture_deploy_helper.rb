@@ -4,8 +4,8 @@ module FixtureDeployHelper
   #
   # Optionally takes an array of filenames belonging to the fixture, and deploys that subset only.
   # Example:
-  # # Deploys basic/redis.yml
-  # deploy_fixtures("basic", ["redis.yml"])
+  # # Deploys hello-cloud/redis.yml
+  # deploy_fixtures("hello-cloud", ["redis.yml"])
   #
   # Optionally yields a hash of the fixture's loaded templates that can be modified before the deploy is executed.
   # The following example illustrates the format of the yielded hash:
@@ -18,8 +18,8 @@ module FixtureDeployHelper
   #  }
   #
   # Example:
-  # # The following will deploy the "basic" fixture set, but with the unmanaged pod modified to use a bad image
-  #   deploy_fixtures("basic") do |fixtures|
+  # # The following will deploy the "hello-cloud" fixture set, but with the unmanaged pod modified to use a bad image
+  #   deploy_fixtures("hello-cloud") do |fixtures|
   #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end

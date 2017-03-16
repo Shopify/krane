@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 module FixtureSetAssertions
-  class Basic < FixtureSet
+  class HelloCloud < FixtureSet
     def initialize(namespace)
       @namespace = namespace
-      @app_name = "basic"
+      @app_name = "hello-cloud"
     end
 
     def assert_all_up
@@ -25,11 +25,11 @@ module FixtureSetAssertions
     end
 
     def assert_configmap_data_present
-      assert_configmap_present("basic-configmap-data", datapoint1: "value1", datapoint2: "value2")
+      assert_configmap_present("hello-cloud-configmap-data", datapoint1: "value1", datapoint2: "value2")
     end
 
     def refute_configmap_data_exists
-      refute_resource_exists("config_map", "basic-configmap-data")
+      refute_resource_exists("config_map", "hello-cloud-configmap-data")
     end
 
     def assert_all_web_resources_up
