@@ -5,17 +5,17 @@ metadata:
   labels:
     type: unmanaged-pod
     name: unmanaged-pod-<%= deployment_id %>
-    app: basic
+    app: hello-cloud
 spec:
   activeDeadlineSeconds: 20
   restartPolicy: Never
   containers:
-    - name: basic
+    - name: hello-cloud
       image: hello-world:latest
       imagePullPolicy: IfNotPresent
       env:
       - name: CONFIG
         valueFrom:
           configMapKeyRef:
-            name: basic-configmap-data
+            name: hello-cloud-configmap-data
             key: datapoint2

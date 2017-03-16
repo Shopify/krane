@@ -8,7 +8,7 @@ require 'minitest/autorun'
 require 'helpers/kubeclient_helper'
 require 'helpers/fixture_deploy_helper'
 require 'helpers/fixture_set'
-require 'helpers/fixture_sets/basic'
+require 'helpers/fixture_sets/hello-cloud'
 
 ENV["KUBECONFIG"] ||= "#{Dir.home}/.kube/config"
 

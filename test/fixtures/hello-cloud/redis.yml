@@ -4,7 +4,7 @@ metadata:
   name: redis
   labels:
     name: redis
-    app: basic
+    app: hello-cloud
 spec:
   ports:
   - port: 6379
@@ -15,10 +15,10 @@ spec:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: basic-redis
+  name: hello-cloud-redis
   labels:
     name: redis
-    app: basic
+    app: hello-cloud
 spec:
   accessModes:
     - ReadWriteOnce
@@ -36,7 +36,7 @@ spec:
     metadata:
       labels:
         name: redis
-        app: basic
+        app: hello-cloud
     spec:
       containers:
       - name: master
@@ -50,4 +50,4 @@ spec:
       volumes:
       - name: redis-data
         persistentVolumeClaim:
-          claimName: basic-redis
+          claimName: hello-cloud-redis
