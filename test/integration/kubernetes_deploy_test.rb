@@ -106,13 +106,19 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       deployment["spec"]["template"]["spec"]["activeDeadlineSeconds"] = 1
     end
 
-    sleep 1 # make sure to hit DeadlineExceeded on at least one pod
+    initial_failed_pod_count = 0
+    while initial_failed_pod_count < 1
+      pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=web,app=hello-cloud")
+      initial_failed_pod_count = pods.count { |pod| pod.status.phase == "Failed" }
+    end
 
     deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "configmap-data.yml"])
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=web,app=hello-cloud")
-    running_pods, not_running_pods = pods.partition { |pod| pod.status.phase == "Running" }
-    assert_equal 1, running_pods.size
-    assert not_running_pods.size >= 1
+    running_pod_count = pods.count { |pod| pod.status.phase == "Running" }
+    final_failed_pod_count = pods.count { |pod| pod.status.phase == "Failed" }
+
+    assert_equal 1, running_pod_count
+    assert final_failed_pod_count >= initial_failed_pod_count # failed pods not cleaned up
   end
 
   def test_bad_container_image_on_run_once_halts_and_fails_deploy
