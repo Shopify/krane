@@ -17,12 +17,13 @@ module KubernetesDeploy
       @logger ||= begin
         l = Logger.new($stderr)
         l.level = level_from_env
-        l.formatter = proc do |severity, _datetime, _progname, msg|
+        l.formatter = proc do |severity, datetime, _progname, msg|
+          log_text = "[#{severity}][#{datetime}]\t#{msg}"
           case severity
-          when "FATAL", "ERROR" then "\033[0;31m[#{severity}]\t#{msg}\x1b[0m\n" # red
-          when "WARN" then "\033[0;33m[#{severity}]\t#{msg}\x1b[0m\n" # yellow
-          when "INFO" then "\033[0;36m#{msg}\x1b[0m\n" # blue
-          else "[#{severity}]\t#{msg}\n"
+          when "FATAL" then "\033[0;31m#{log_text}\x1b[0m\n" # red
+          when "ERROR", "WARN" then "\033[0;33m#{log_text}\x1b[0m\n" # yellow
+          when "INFO" then "\033[0;36m#{log_text}\x1b[0m\n" # blue
+          else "#{log_text}\n"
           end
         end
         l

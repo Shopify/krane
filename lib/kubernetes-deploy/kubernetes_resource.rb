@@ -11,8 +11,8 @@ module KubernetesDeploy
     def self.logger
       @logger ||= begin
         l = Logger.new($stderr)
-        l.formatter = proc do |_severity, _datetime, _progname, msg|
-          "#{msg}\n"
+        l.formatter = proc do |_severity, datetime, _progname, msg|
+          "[KUBESTATUS][#{datetime}]\t#{msg}\n"
         end
         l
       end
@@ -125,7 +125,7 @@ module KubernetesDeploy
     end
 
     def log_status
-      KubernetesResource.logger.info("[KUBESTATUS][#{@context}][#{@namespace}] #{JSON.dump(status_data)}")
+      KubernetesResource.logger.info("[#{@context}][#{@namespace}] #{JSON.dump(status_data)}")
     end
   end
 end

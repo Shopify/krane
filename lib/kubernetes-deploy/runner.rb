@@ -206,7 +206,7 @@ MSG
         newly_finished_resources, watched_resources = watched_resources.partition(&:deploy_finished?)
         newly_finished_resources.each do |resource|
           next unless resource.deploy_failed? || resource.deploy_timed_out?
-          KubernetesDeploy.logger.warn("#{resource.id} failed to deploy with status '#{resource.status}'.")
+          KubernetesDeploy.logger.error("#{resource.id} failed to deploy with status '#{resource.status}'.")
         end
       end
 

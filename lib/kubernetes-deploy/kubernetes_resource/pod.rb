@@ -23,8 +23,8 @@ module KubernetesDeploy
         @ready = false
         @containers = []
       end
-      display_logs if @bare && deploy_finished?
       log_status
+      display_logs if @bare && deploy_finished?
     end
 
     def interpret_json_data(pod_data)
@@ -80,8 +80,7 @@ module KubernetesDeploy
         out, st = run_kubectl("logs", @name, "--timestamps=true", "--since-time=#{@deploy_started.to_datetime.rfc3339}")
         next unless st.success? && out.present?
 
-        KubernetesDeploy.logger.info "Logs from #{id} container #{container_name}:"
-        KubernetesResource.logger.info(out)
+        KubernetesDeploy.logger.info "Logs from #{id} container #{container_name}:\x1b[0m \n#{out}\n"
         @already_displayed = true
       end
     end
