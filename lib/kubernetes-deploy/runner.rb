@@ -138,9 +138,9 @@ MSG
         next if matching_resources.empty?
         deploy_resources(matching_resources)
         wait_for_completion(matching_resources)
-        fail_count = matching_resources.count { |r| r.deploy_failed? || r.deploy_timed_out? }
-        if fail_count > 0
-          raise FatalDeploymentError, "#{fail_count} priority resources failed to deploy"
+        fail_list = matching_resources.select { |r| r.deploy_failed? || r.deploy_timed_out? }.map(&:id)
+        unless fail_list.empty?
+          raise FatalDeploymentError, "The following priority resources failed to deploy: #{fail_list.join(', ')}"
         end
       end
     end
@@ -187,8 +187,7 @@ MSG
         log_green("Deploy succeeded!")
       else
         fail_list = resources.select { |r| r.deploy_failed? || r.deploy_timed_out? }.map(&:id)
-        KubernetesDeploy.logger.error("The following resources failed to deploy: #{fail_list.join(', ')}")
-        raise FatalDeploymentError, "#{fail_list.length} resources failed to deploy"
+        raise FatalDeploymentError, "The following resources failed to deploy: #{fail_list.join(', ')}"
       end
     end
 
@@ -207,10 +206,7 @@ MSG
         newly_finished_resources, watched_resources = watched_resources.partition(&:deploy_finished?)
         newly_finished_resources.each do |resource|
           next unless resource.deploy_failed? || resource.deploy_timed_out?
-          KubernetesDeploy.logger.error("#{resource.id} failed to deploy with status '#{resource.status}'.")
-          KubernetesDeploy.logger.error("This script will continue to poll until the status of all resources " \
-            "deployed in this phase is resolved, but the deploy is now doomed and you may wish abort it.")
-          KubernetesDeploy.logger.error(resource.status_data)
+          KubernetesDeploy.logger.warn("#{resource.id} failed to deploy with status '#{resource.status}'.")
         end
       end
 
