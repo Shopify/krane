@@ -5,6 +5,7 @@ require 'kubeclient'
 require 'pry'
 require 'timecop'
 require 'minitest/autorun'
+require 'minitest/stub/const'
 
 require 'helpers/kubeclient_helper'
 require 'helpers/fixture_deploy_helper'

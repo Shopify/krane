@@ -100,7 +100,12 @@ MSG
       predeploy_priority_resources(resources)
 
       phase_heading("Deploying all resources")
-      deploy_resources(resources, prune: true)
+      if PROTECTED_NAMESPACES.include?(@namespace)
+        KubernetesDeploy.logger.warn("Deploying to protected namespace #{@namespace} without resource pruning.")
+        deploy_resources(resources, prune: false)
+      else
+        deploy_resources(resources, prune: true)
+      end
 
       return unless wait_for_completion?
       wait_for_completion(resources)
@@ -229,7 +234,12 @@ MSG
       if @namespace.blank?
         errors << "Namespace must be specified"
       elsif PROTECTED_NAMESPACES.include?(@namespace)
-        errors << "Refusing to deploy to protected namespace #{@namespace}"
+        warning = <<-WARNING.strip_heredoc
+        You're deploying to protected namespace #{@namespace}, which cannot be pruned.
+        Existing resources can only be removed manually with kubectl. Removing templates from the set deployed will have no effect.
+        ***Please do not deploy to #{@namespace} unless you really know what you are doing.***
+        WARNING
+        KubernetesDeploy.logger.warn(warning)
       end
 
       if @context.blank?

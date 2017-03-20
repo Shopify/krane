@@ -32,6 +32,19 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.refute_web_resources_exist
   end
 
+  def test_deploying_to_protected_namespace_does_not_prune
+    KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
+      deploy_fixtures("hello-cloud")
+      hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+      hello_cloud.assert_all_up
+      assert_logs_match(/deploying to protected namespace/)
+      assert_logs_match(/without resource pruning/)
+
+      deploy_fixtures("hello-cloud", subset: ["redis.yml"])
+      hello_cloud.assert_all_up
+    end
+  end
+
   def test_pvcs_are_not_pruned
     deploy_fixtures("hello-cloud", subset: ["redis.yml"])
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
