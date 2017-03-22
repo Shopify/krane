@@ -110,7 +110,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       namespace: "walrus"
     )
-    error = assert_raises(KubernetesDeploy::RestartTask::NamespaceNotFoundError) do
+    error = assert_raises(KubernetesDeploy::NamespaceNotFoundError) do
       restart.perform(["web"])
     end
     assert_equal "Namespace `walrus` not found in context `minikube`. Aborting the task.", error.to_s

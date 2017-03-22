@@ -83,5 +83,13 @@ module FixtureSetAssertions
       assert_equal 1, configmaps.size, "Expected 1 configmap, got #{configmaps.size}"
       assert_equal expected_data, configmaps.first["data"].to_h
     end
+
+    def assert_pod_templates_present(cm_name)
+      pod_templates = kubeclient.get_pod_templates(
+        namespace: namespace,
+        label_selector: "name=#{cm_name},app=#{app_name}"
+      )
+      assert_equal 1, pod_templates.size, "Expected 1 podtemplate, got #{pod_templates.size}"
+    end
   end
 end

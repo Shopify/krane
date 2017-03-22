@@ -40,6 +40,27 @@ The following command will restart all pods in the `web` and `jobs` deployments:
 
 `kubernetes-restart <kube namespace> <kube context> --deployments=web,jobs`
 
+### Running one off tasks
+
+To trigger a one-off job such as a rake task _outside_ of a deploy, use the following command:
+
+`kubernetes-run <kube namespace> <kube context> <arguments> --entrypoint=/bin/bash`
+
+This command assumes that you've already deployed a `PodTemplate` named `task-runner-template`, which contains a full pod specification in its `data`. The pod specification in turn must have a container named `task-runner`. Based on this specification `kubernetes-run` will create a new pod with the entrypoint of the task-runner container overriden with the supplied arguments.
+
+#### Creating a PodTemplate
+
+The [`PodTemplate`](https://kubernetes.io/docs/api-reference/v1.6/#podtemplate-v1-core) object should have a field `template` containing a `Pod` specification which does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`. 
+
+#### Providing multiple different task-runner configurations
+
+If your application requires task runner templates you can specify which template to use by using the `--template` option. All templates are expected to provide a container called `task-runner`.
+
+#### Specifying environment variables for the container
+
+If you also need to specify environment variables on top of the arguments, you can specify the `--env-vars` flag which accepts a comma separated list of environment variables like so: `--env-vars="ENV=VAL,ENV2=VAL"`
+
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. You currently need to [manually install kubectl version 1.6.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) as well if you don't already have it.

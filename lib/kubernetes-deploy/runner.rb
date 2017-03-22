@@ -5,7 +5,6 @@ require 'erb'
 require 'yaml'
 require 'shellwords'
 require 'tempfile'
-
 require 'kubernetes-deploy/kubernetes_resource'
 %w(
   cloudsql
@@ -16,6 +15,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   pod
   redis
   service
+  pod_template
   bugsnag
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
@@ -116,6 +116,7 @@ MSG
       if PROTECTED_NAMESPACES.include?(@namespace) && @prune
         raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
       end
+
       deploy_resources(resources, prune: @prune)
 
       return unless wait_for_completion?

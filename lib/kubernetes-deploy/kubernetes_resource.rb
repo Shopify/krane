@@ -35,6 +35,7 @@ module KubernetesDeploy
       when 'ingress' then Ingress.new(name, namespace, context, file)
       when 'persistentvolumeclaim' then PersistentVolumeClaim.new(name, namespace, context, file)
       when 'service' then Service.new(name, namespace, context, file)
+      when 'podtemplate' then PodTemplate.new(name, namespace, context, file)
       else self.new(name, namespace, context, file).tap { |r| r.type = type }
       end
     end

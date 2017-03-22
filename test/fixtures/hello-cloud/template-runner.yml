@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PodTemplate
+metadata:
+  name: hello-cloud-template-runner
+  labels:
+    name: hello-cloud-template-runner
+    app: hello-cloud
+template:
+  metadata:
+    name: task-runner
+    labels:
+      name: runner
+      app: hello-cloud
+  spec:
+    containers:
+    - name: task-runner
+      image: hello-world:latest
+      env:
+      - name: CONFIG
+        valueFrom:
+          configMapKeyRef:
+            name: hello-cloud-configmap-data
+            key: datapoint1
