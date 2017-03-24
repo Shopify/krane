@@ -19,9 +19,13 @@ require 'kubernetes-deploy/kubernetes_resource'
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
+require 'kubernetes-deploy/resource_watcher'
+require "kubernetes-deploy/ui_helpers"
 
 module KubernetesDeploy
   class Runner
+    include UIHelpers
+
     PREDEPLOY_SEQUENCE = %w(
       Cloudsql
       Redis
@@ -79,7 +83,6 @@ MSG
     end
 
     def run
-      @current_phase = 0
       phase_heading("Validating configuration")
       validate_configuration
 
@@ -192,26 +195,8 @@ MSG
     end
 
     def wait_for_completion(watched_resources)
-      delay_sync_until = Time.now.utc
-      started_at = delay_sync_until
-      human_resources = watched_resources.map(&:id).join(", ")
-      max_wait_time = watched_resources.map(&:timeout).max
-      KubernetesDeploy.logger.info("Waiting for #{human_resources} with #{max_wait_time}s timeout")
-      while watched_resources.present?
-        if Time.now.utc < delay_sync_until
-          sleep(delay_sync_until - Time.now.utc)
-        end
-        delay_sync_until = Time.now.utc + 3 # don't pummel the API if the sync is fast
-        watched_resources.each(&:sync)
-        newly_finished_resources, watched_resources = watched_resources.partition(&:deploy_finished?)
-        newly_finished_resources.each do |resource|
-          next unless resource.deploy_failed? || resource.deploy_timed_out?
-          KubernetesDeploy.logger.error("#{resource.id} failed to deploy with status '#{resource.status}'.")
-        end
-      end
-
-      watch_time = Time.now.utc - started_at
-      KubernetesDeploy.logger.info("Spent #{watch_time.round(2)}s waiting for #{human_resources}")
+      watcher = ResourceWatcher.new(watched_resources)
+      watcher.run
     end
 
     def render_template(filename, raw_template)
@@ -334,18 +319,6 @@ MSG
         KubernetesDeploy.logger.warn(err)
       end
       [out.chomp, err.chomp, st]
-    end
-
-    def phase_heading(phase_name)
-      @current_phase += 1
-      heading = "Phase #{@current_phase}: #{phase_name}"
-      padding = (100.0 - heading.length) / 2
-      KubernetesDeploy.logger.info("")
-      KubernetesDeploy.logger.info("#{'-' * padding.floor}#{heading}#{'-' * padding.ceil}")
-    end
-
-    def log_green(msg)
-      KubernetesDeploy.logger.info("\033[0;32m#{msg}\x1b[0m")
     end
   end
 end
