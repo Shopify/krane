@@ -891,4 +891,22 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
     cronjobs.assert_cronjob_present("my-cronjob")
   end
+
+  def test_resource_watcher_raises_after_timeout_seconds
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'], max_watch_seconds: 5) do |fixtures|
+      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+      deployment['spec']['progressDeadlineSeconds'] = 100
+      container = deployment['spec']['template']['spec']['containers'].first
+      container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
+    end
+
+    assert_deploy_failure(result, :timed_out)
+    assert_logs_match_all([
+      "Successfully deployed 1 resource and timed out waiting for 1 resource to deploy",
+      "Successful resources",
+      "Service/multi-replica",
+      "Deployment/undying: GLOBAL WATCH TIMEOUT (5 seconds)",
+      "If you expected it to take longer than 5 seconds for your deploy to roll out, increase --max-watch-seconds."
+    ], in_order: true)
+  end
 end

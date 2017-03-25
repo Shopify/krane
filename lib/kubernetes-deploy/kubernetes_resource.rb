@@ -158,9 +158,15 @@ module KubernetesDeploy
       @debug_info_synced = true
     end
 
-    def debug_message
+    def debug_message(cause = nil, info_hash = {})
+      sync_debug_info unless @debug_info_synced
+
       helpful_info = []
-      if deploy_failed?
+      if cause == :gave_up
+        helpful_info << ColorizedString.new("#{id}: GLOBAL WATCH TIMEOUT (#{info_hash[:timeout]} seconds)").yellow
+        helpful_info << "If you expected it to take longer than #{info_hash[:timeout]} seconds for your deploy"\
+        " to roll out, increase --max-watch-seconds."
+      elsif deploy_failed?
         helpful_info << ColorizedString.new("#{id}: FAILED").red
         helpful_info << failure_message if failure_message.present?
       elsif deploy_timed_out?

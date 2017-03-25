@@ -7,8 +7,10 @@ require 'kubernetes-deploy'
 require 'kubernetes-deploy/restart_task'
 
 raw_deployments = nil
+max_watch_seconds = nil
 ARGV.options do |opts|
   opts.on("--deployments=LIST") { |v| raw_deployments = v.split(",") }
+  opts.on("--max-watch-seconds=seconds") { |t| max_watch_seconds = t.to_i }
   opts.parse!
 end
 
@@ -16,7 +18,8 @@ namespace = ARGV[0]
 context = ARGV[1]
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
 
-restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: context, logger: logger)
+restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: context, logger: logger,
+   max_watch_seconds: max_watch_seconds)
 begin
   restart.perform!(raw_deployments)
 rescue KubernetesDeploy::DeploymentTimeoutError

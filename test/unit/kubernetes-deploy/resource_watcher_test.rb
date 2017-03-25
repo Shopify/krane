@@ -97,6 +97,21 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     assert_logs_match(/Continuing to wait for: second, third/, 1) # only once
   end
 
+  def test_timeout_allows_success
+    resource = build_mock_resource(hits_to_complete: 1)
+    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger, timeout: 2)
+
+    watcher.run(delay_sync: 0.1)
+    assert_logs_match(/Successfully deployed in \d.\ds: web-pod/)
+  end
+
+  def test_timeout_raises_after_timeout_seconds
+    resource = build_mock_resource(hits_to_complete: 10**100)
+    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger, timeout: 2)
+
+    assert_raises(KubernetesDeploy::DeploymentTimeoutError) { watcher.run(delay_sync: 0.1) }
+  end
+
   private
 
   def build_watcher(resources)
@@ -105,7 +120,9 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   end
 
   MockResource = Struct.new(:id, :hits_to_complete, :status) do
-    attr_reader :debug_message
+    def debug_message(*)
+      @debug_message
+    end
 
     def sync(_mediator)
       @hits ||= 0
