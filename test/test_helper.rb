@@ -17,6 +17,7 @@ module KubernetesDeploy
     def setup
       @logger_stream = StringIO.new
       @logger = Logger.new(@logger_stream)
+      @logger.level = Logger::INFO
       KubernetesDeploy.logger = @logger
       KubernetesResource.logger = @logger
     end
