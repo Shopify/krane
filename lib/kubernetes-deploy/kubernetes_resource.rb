@@ -115,13 +115,9 @@ module KubernetesDeploy
     def run_kubectl(*args)
       raise FatalDeploymentError, "Namespace missing for namespaced command" if namespace.blank?
       raise FatalDeploymentError, "Explicit context is required to run this command" if context.blank?
-      args = args.unshift("kubectl").push("--namespace=#{namespace}").push("--context=#{context}")
 
-      KubernetesDeploy.logger.debug Shellwords.join(args)
-      out, err, st = Open3.capture3(*args)
-      KubernetesDeploy.logger.debug(out.shellescape)
-      KubernetesDeploy.logger.debug("[ERROR] #{err.shellescape}") unless st.success?
-      [out.chomp, st]
+      out, _, st = KubernetesDeploy::KubectlWrapper.run_kubectl(*args, namespace: namespace, context: context)
+      [out, st]
     end
 
     def log_status
