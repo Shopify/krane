@@ -68,7 +68,8 @@ MSG
       exit 1
     end
 
-    def initialize(namespace:, current_sha:, context:, wait_for_completion:, template_dir:, allow_protected_ns: false)
+    def initialize(namespace:, current_sha:, context:, template_dir:,
+      wait_for_completion:, allow_protected_ns: false, prune: true)
       @namespace = namespace
       @context = context
       @current_sha = current_sha
@@ -77,6 +78,7 @@ MSG
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
       @wait_for_completion = wait_for_completion
       @allow_protected_ns = allow_protected_ns
+      @prune = prune
     end
 
     def wait_for_completion?
@@ -107,9 +109,11 @@ MSG
       phase_heading("Deploying all resources")
       if PROTECTED_NAMESPACES.include?(@namespace)
         KubernetesDeploy.logger.warn("Deploying to protected namespace #{@namespace} without resource pruning.")
+        # Ignoring @prune here is a redundant safeguard given the danger of pruning protected namespaces:
+        # validate_configuration should already raise an error if it is true with a protected ns
         deploy_resources(resources, prune: false)
       else
-        deploy_resources(resources, prune: true)
+        deploy_resources(resources, prune: @prune)
       end
 
       return unless wait_for_completion?
@@ -239,7 +243,9 @@ MSG
       if @namespace.blank?
         errors << "Namespace must be specified"
       elsif PROTECTED_NAMESPACES.include?(@namespace)
-        if allow_protected_ns?
+        if allow_protected_ns? && @prune
+          errors << "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
+        elsif allow_protected_ns?
           warning = <<-WARNING.strip_heredoc
           You're deploying to protected namespace #{@namespace}, which cannot be pruned.
           Existing resources can only be removed manually with kubectl. Removing templates from the set deployed will have no effect.
