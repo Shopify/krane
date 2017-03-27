@@ -23,7 +23,7 @@ module FixtureDeployHelper
   #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end
-  def deploy_fixtures(set, subset: nil, wait: true)
+  def deploy_fixtures(set, subset: nil, wait: true, allow_protected_ns: false)
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
 
@@ -31,7 +31,7 @@ module FixtureDeployHelper
 
     target_dir = Dir.mktmpdir
     write_fixtures_to_dir(fixtures, target_dir)
-    deploy_dir(target_dir, wait: wait)
+    deploy_dir(target_dir, wait: wait, allow_protected_ns: allow_protected_ns)
   ensure
     FileUtils.remove_dir(target_dir) if target_dir
   end
@@ -50,13 +50,14 @@ module FixtureDeployHelper
   # Deploys all fixtures in the given directory via KubernetesDeploy::Runner
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
-  def deploy_dir(dir, sha: 'abcabcabc', wait: true)
+  def deploy_dir(dir, sha: 'abcabcabc', wait: true, allow_protected_ns: false)
     runner = KubernetesDeploy::Runner.new(
       namespace: @namespace,
       current_sha: sha,
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       template_dir: dir,
       wait_for_completion: wait,
+      allow_protected_ns: allow_protected_ns,
     )
     runner.run
   end

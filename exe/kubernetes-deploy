@@ -7,8 +7,10 @@ require 'optparse'
 
 skip_wait = false
 template_dir = nil
+allow_protected_ns = false
 ARGV.options do |opts|
   opts.on("--skip-wait") { skip_wait = true }
+  opts.on("--allow-protected-ns") { allow_protected_ns = true }
   opts.on("--template-dir=DIR") { |v| template_dir = v }
   opts.parse!
 end
@@ -35,6 +37,7 @@ KubernetesDeploy::Runner.with_friendly_errors do
     current_sha: revision,
     template_dir: template_dir,
     wait_for_completion: !skip_wait,
+    allow_protected_ns: allow_protected_ns,
   )
   runner.run
 end

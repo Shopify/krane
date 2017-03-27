@@ -32,16 +32,24 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.refute_web_resources_exist
   end
 
-  def test_deploying_to_protected_namespace_does_not_prune
+  def test_deploying_to_protected_namespace_with_override_does_not_prune
     KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
-      deploy_fixtures("hello-cloud")
+      deploy_fixtures("hello-cloud", allow_protected_ns: true)
       hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
       hello_cloud.assert_all_up
-      assert_logs_match(/deploying to protected namespace/)
-      assert_logs_match(/without resource pruning/)
+      assert_logs_match(/Please do not deploy to #{@namespace} unless you really know what you are doing/)
+      assert_logs_match(/Deploying to protected namespace #{@namespace} without resource pruning/)
 
-      deploy_fixtures("hello-cloud", subset: ["redis.yml"])
+      deploy_fixtures("hello-cloud", subset: ["redis.yml"], allow_protected_ns: true)
       hello_cloud.assert_all_up
+    end
+  end
+
+  def test_refuses_deploy_to_protected_namespace_without_override
+    assert_raises(KubernetesDeploy::FatalDeploymentError, /Refusing to deploy to protected namespace/) do
+      KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
+        deploy_fixtures("hello-cloud")
+      end
     end
   end
 
