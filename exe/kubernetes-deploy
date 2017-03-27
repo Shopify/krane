@@ -10,6 +10,7 @@ template_dir = nil
 ARGV.options do |opts|
   opts.on("--skip-wait") { skip_wait = true }
   opts.on("--template-dir=DIR") { |v| template_dir = v }
+  opts.on("--timeout=TIMEOUT") { |v| KubernetesDeploy::KubernetesResource::timeout_override = v.to_i }
   opts.parse!
 end
 

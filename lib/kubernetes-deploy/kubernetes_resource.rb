@@ -20,6 +20,7 @@ module KubernetesDeploy
 
     attr_reader :name, :namespace, :file, :context
     attr_writer :type, :deploy_started
+    class_attribute :timeout_override
 
     TIMEOUT = 5.minutes
 
@@ -38,7 +39,7 @@ module KubernetesDeploy
     end
 
     def self.timeout
-      self::TIMEOUT
+      self.timeout_override || self::TIMEOUT
     end
 
     def timeout
