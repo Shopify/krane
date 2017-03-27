@@ -88,7 +88,7 @@ MSG
 
       phase_heading("Identifying deployment target")
       confirm_context_exists
-      confirm_namespace_exists
+      ensure_namespace_exists
 
       phase_heading("Parsing deploy content")
       resources = discover_resources
@@ -294,10 +294,18 @@ MSG
       KubernetesDeploy.logger.info("Context #{@context} found")
     end
 
-    def confirm_namespace_exists
+    def ensure_namespace_exists
       _, _, st = run_kubectl("get", "namespace", @namespace, namespaced: false)
-      raise FatalDeploymentError, "Namespace #{@namespace} not found" unless st.success?
-      KubernetesDeploy.logger.info("Namespace #{@namespace} found")
+      unless st.success?
+        _, _, st = run_kubectl("create", "namespace", @namespace, namespaced: false)
+        if st.success?
+          KubernetesDeploy.logger.info("Created namespace #{@namespace}")
+        else
+          raise FatalDeploymentError, "Failed to create #{@namespace}" 
+        end
+      else
+        KubernetesDeploy.logger.info("Namespace #{@namespace} found")
+      end
     end
 
     def run_kubectl(*args, namespaced: true, with_context: true)
