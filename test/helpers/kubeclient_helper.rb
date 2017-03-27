@@ -1,31 +1,16 @@
 # frozen_string_literal: true
+require 'kubernetes-deploy/kubeclient_builder'
+
 module KubeclientHelper
   MINIKUBE_CONTEXT = "minikube"
 
+  include KubernetesDeploy::KubeclientBuilder
+
   def kubeclient
-    @kubeclient ||= build_kube_client("v1")
+    @kubeclient ||= build_v1_kubeclient(MINIKUBE_CONTEXT)
   end
 
   def v1beta1_kubeclient
-    @v1beta1_kubeclient ||= build_kube_client("v1beta1", "/apis/extensions/")
-  end
-
-  def build_kube_client(api_version, endpoint_path="")
-    config = Kubeclient::Config.read(ENV["KUBECONFIG"])
-    unless config.contexts.include?(MINIKUBE_CONTEXT)
-      raise "`#{MINIKUBE_CONTEXT}` context must be configured in your KUBECONFIG (#{ENV["KUBECONFIG"]}). Please see the README."
-    end
-    minikube = config.context(MINIKUBE_CONTEXT)
-
-    client = Kubeclient::Client.new(
-      "#{minikube.api_endpoint}#{endpoint_path}",
-      api_version,
-      {
-        ssl_options: minikube.ssl_options,
-        auth_options: minikube.auth_options
-      }
-    )
-    client.discover
-    client
+    @v1beta1_kubeclient ||= build_v1beta1_kubeclient(MINIKUBE_CONTEXT)
   end
 end

@@ -3,6 +3,7 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'kubernetes-deploy'
 require 'kubeclient'
 require 'pry'
+require 'timecop'
 require 'minitest/autorun'
 
 require 'helpers/kubeclient_helper'
@@ -26,9 +27,14 @@ module KubernetesDeploy
       @logger_stream.close
     end
 
-    def assert_logs_match(regexp)
+    def assert_logs_match(regexp, times = nil)
       @logger_stream.rewind
-      assert_match regexp, @logger_stream.read
+      if times
+        count = @logger_stream.read.scan(regexp).count
+        assert_equal 1, count, "Expected #{regexp} to appear #{times} time(s) in the log, but appeared #{count} times"
+      else
+        assert_match regexp, @logger_stream.read
+      end
     end
   end
 
