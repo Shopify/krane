@@ -32,6 +32,45 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.refute_web_resources_exist
   end
 
+  def test_pruning_disabled
+    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"])
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_configmap_data_present
+
+    deploy_fixtures("hello-cloud", subset: ["redis.yml"], prune: false)
+    hello_cloud.assert_configmap_data_present
+    hello_cloud.assert_all_redis_resources_up
+  end
+
+  def test_deploying_to_protected_namespace_with_override_does_not_prune
+    KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
+      deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: false)
+      hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+      hello_cloud.assert_all_up
+      assert_logs_match(/cannot be pruned/)
+      assert_logs_match(/Please do not deploy to #{@namespace} unless you really know what you are doing/)
+
+      deploy_fixtures("hello-cloud", subset: ["redis.yml"], allow_protected_ns: true, prune: false)
+      hello_cloud.assert_all_up
+    end
+  end
+
+  def test_refuses_deploy_to_protected_namespace_with_override_if_pruning_enabled
+    assert_raises(KubernetesDeploy::FatalDeploymentError, /Refusing to deploy to protected namespace with pruning/) do
+      KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
+        deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: true)
+      end
+    end
+  end
+
+  def test_refuses_deploy_to_protected_namespace_without_override
+    assert_raises(KubernetesDeploy::FatalDeploymentError, /Refusing to deploy to protected namespace/) do
+      KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
+        deploy_fixtures("hello-cloud", prune: false)
+      end
+    end
+  end
+
   def test_pvcs_are_not_pruned
     deploy_fixtures("hello-cloud", subset: ["redis.yml"])
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)

@@ -68,7 +68,8 @@ MSG
       exit 1
     end
 
-    def initialize(namespace:, current_sha:, context:, wait_for_completion:, template_dir:)
+    def initialize(namespace:, current_sha:, context:, template_dir:,
+      wait_for_completion:, allow_protected_ns: false, prune: true)
       @namespace = namespace
       @context = context
       @current_sha = current_sha
@@ -76,10 +77,16 @@ MSG
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
       @wait_for_completion = wait_for_completion
+      @allow_protected_ns = allow_protected_ns
+      @prune = prune
     end
 
     def wait_for_completion?
       @wait_for_completion
+    end
+
+    def allow_protected_ns?
+      @allow_protected_ns
     end
 
     def run
@@ -100,7 +107,10 @@ MSG
       predeploy_priority_resources(resources)
 
       phase_heading("Deploying all resources")
-      deploy_resources(resources, prune: true)
+      if PROTECTED_NAMESPACES.include?(@namespace) && @prune
+        raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
+      end
+      deploy_resources(resources, prune: @prune)
 
       return unless wait_for_completion?
       wait_for_completion(resources)
@@ -229,7 +239,18 @@ MSG
       if @namespace.blank?
         errors << "Namespace must be specified"
       elsif PROTECTED_NAMESPACES.include?(@namespace)
-        errors << "Refusing to deploy to protected namespace #{@namespace}"
+        if allow_protected_ns? && @prune
+          errors << "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
+        elsif allow_protected_ns?
+          warning = <<-WARNING.strip_heredoc
+          You're deploying to protected namespace #{@namespace}, which cannot be pruned.
+          Existing resources can only be removed manually with kubectl. Removing templates from the set deployed will have no effect.
+          ***Please do not deploy to #{@namespace} unless you really know what you are doing.***
+          WARNING
+          KubernetesDeploy.logger.warn(warning)
+        else
+          errors << "Refusing to deploy to protected namespace '#{@namespace}'"
+        end
       end
 
       if @context.blank?
