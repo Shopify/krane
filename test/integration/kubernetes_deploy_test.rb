@@ -47,8 +47,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: false)
       hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
       hello_cloud.assert_all_up
+      assert_logs_match(/cannot be pruned/)
       assert_logs_match(/Please do not deploy to #{@namespace} unless you really know what you are doing/)
-      assert_logs_match(/Deploying to protected namespace #{@namespace} without resource pruning/)
 
       deploy_fixtures("hello-cloud", subset: ["redis.yml"], allow_protected_ns: true, prune: false)
       hello_cloud.assert_all_up

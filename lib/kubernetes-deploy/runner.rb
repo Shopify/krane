@@ -107,14 +107,10 @@ MSG
       predeploy_priority_resources(resources)
 
       phase_heading("Deploying all resources")
-      if PROTECTED_NAMESPACES.include?(@namespace)
-        KubernetesDeploy.logger.warn("Deploying to protected namespace #{@namespace} without resource pruning.")
-        # Ignoring @prune here is a redundant safeguard given the danger of pruning protected namespaces:
-        # validate_configuration should already raise an error if it is true with a protected ns
-        deploy_resources(resources, prune: false)
-      else
-        deploy_resources(resources, prune: @prune)
+      if PROTECTED_NAMESPACES.include?(@namespace) && @prune
+        raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
       end
+      deploy_resources(resources, prune: @prune)
 
       return unless wait_for_completion?
       wait_for_completion(resources)
