@@ -11,7 +11,7 @@ module KubernetesDeploy
     end
 
     def sync
-      @status, st = run_kubectl("get", type, @name, "--output=jsonpath={.status.phase}")
+      @status, _err, st = run_kubectl("get", type, @name, "--output=jsonpath={.status.phase}")
       @found = st.success?
       log_status
     end
