@@ -58,6 +58,7 @@ module KubernetesDeploy
     ).freeze
 
     PRUNE_WHITELIST_V_1_5 = %w(extensions/v1beta1/HorizontalPodAutoscaler).freeze
+    PRUNE_WHITELIST_V_1_6 = %w(autoscaling/v1/HorizontalPodAutoscaler).freeze
 
     def self.with_friendly_errors
       yield
@@ -293,8 +294,10 @@ MSG
       if prune
         command.push("--prune", "--all")
         PRUNE_WHITELIST.each { |type| command.push("--prune-whitelist=#{type}") }
-        if run_kubectl('version').first =~ /Server Version: version.Info{Major:"1", Minor:"5"/
+        if run_kubectl('version', '--short').first =~ /Server Version: v1.5./
           PRUNE_WHITELIST_V_1_5.each { |type| command.push("--prune-whitelist=#{type}") }
+        else
+          PRUNE_WHITELIST_V_1_6.each { |type| command.push("--prune-whitelist=#{type}") }
         end
       end
 
