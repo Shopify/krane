@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eox pipefail
 
-KUBERNETES_VER=1.5.2
+KUBERNETES_VER=1.6.0
 
 echo "--- Installing dependencies"
 bundle install --jobs 4
