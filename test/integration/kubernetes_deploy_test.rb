@@ -134,7 +134,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       end
     end
     assert_match(/The following command failed/, err.to_s)
-    assert_match(/error: unable to decode/, err.to_s)
+    assert_match(/Error from server \(BadRequest\): error when creating/, err.to_s)
     assert_logs_match(/Inspecting the file mentioned in the error message/)
   end
 

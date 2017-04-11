@@ -149,8 +149,8 @@ MSG
     # to make it easier for developer to understand what's going on
     def inspect_kubectl_out_for_files(stderr)
       # Output example:
-      # error: unable to decode "/tmp/path/to/file": [pos 96]: json: expect char '"' but got char '{'
-      match = stderr.match(/error: unable to decode "(?<path>\S+)":/)
+      # Error from server (BadRequest): error when creating "/path/to/configmap-gqq5oh.yml20170411-33615-t0t3m":
+      match = stderr.match(%r{BadRequest.*"(?<path>\/\S+\.yml\S+)"})
       return unless match
 
       path = match[:path]
