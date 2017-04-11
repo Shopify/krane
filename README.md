@@ -26,7 +26,7 @@ Or install it yourself as:
 
 Requirements:
 
- - kubectl 1.5.1+ binary must be available in your path
+ - kubectl 1.6.0+ binary must be available in your path
  - `ENV['KUBECONFIG']` must point to a valid kubeconfig file that includes the context you want to deploy to
  - The target namespace must already exist in the target context
  - `ENV['GOOGLE_APPLICATION_CREDENTIALS']` must point to the credentials for an authenticated service account if your user's auth provider is GCP
@@ -42,7 +42,7 @@ The following command will restart all pods in the `web` and `jobs` deployments:
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. You currently need to [manually install kubectl version 1.5.1 or higher](https://kubernetes.io/docs/user-guide/prereqs/) as well if you don't already have it.
+After checking out the repo, run `bin/setup` to install dependencies. You currently need to [manually install kubectl version 1.6.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) as well if you don't already have it.
 
 To run the tests:
 
