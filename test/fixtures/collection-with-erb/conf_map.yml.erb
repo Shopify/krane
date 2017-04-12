@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: extra-binding
+  labels:
+    name: extra-binding
+data:
+  BINDING_TEST_A: <%= binding_test_a %>
+  BINDING_TEST_B: <%= binding_test_b %>

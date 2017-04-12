@@ -9,7 +9,23 @@ skip_wait = false
 template_dir = nil
 allow_protected_ns = false
 prune = true
+bindings = {}
+
+def blank?(v)
+  !v || v == ""
+end
+
+def parse_bindings(binds)
+  binds.each_with_object({}) do |bind, bindings|
+    k,v = bind.split('=')
+    raise "key for value #{v} is blank!" if blank?(k)
+    raise "value for key #{k} is blank!" if blank?(v)
+    bindings[k] = v
+  end
+end
+
 ARGV.options do |opts|
+  opts.on("--bindings=BINDINGS", Array, "k1=v1,k2=v2") { |binds| bindings = parse_bindings(binds) }
   opts.on("--skip-wait") { skip_wait = true }
   opts.on("--allow-protected-ns") { allow_protected_ns = true }
   opts.on("--no-prune") { prune = false }
@@ -41,6 +57,7 @@ KubernetesDeploy::Runner.with_friendly_errors do
     wait_for_completion: !skip_wait,
     allow_protected_ns: allow_protected_ns,
     prune: prune,
+    bindings: bindings
   )
   runner.run
 end
