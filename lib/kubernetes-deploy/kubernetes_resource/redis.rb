@@ -12,7 +12,7 @@ module KubernetesDeploy
     end
 
     def sync
-      _, st = run_kubectl("get", type, @name)
+      _, _err, st = run_kubectl("get", type, @name)
       @found = st.success?
       @status = if redis_deployment_exists? && redis_service_exists?
         "Provisioned"
@@ -42,7 +42,7 @@ module KubernetesDeploy
     private
 
     def redis_deployment_exists?
-      deployment, st = run_kubectl("get", "deployments", "redis-#{redis_resource_uuid}", "-o=json")
+      deployment, _err, st = run_kubectl("get", "deployments", "redis-#{redis_resource_uuid}", "-o=json")
 
       if st.success?
         parsed = JSON.parse(deployment)
@@ -57,7 +57,7 @@ module KubernetesDeploy
     end
 
     def redis_service_exists?
-      service, st = run_kubectl("get", "services", "redis-#{redis_resource_uuid}", "-o=json")
+      service, _err, st = run_kubectl("get", "services", "redis-#{redis_resource_uuid}", "-o=json")
 
       if st.success?
         parsed = JSON.parse(service)
@@ -73,7 +73,7 @@ module KubernetesDeploy
     def redis_resource_uuid
       return @redis_resource_uuid if defined?(@redis_resource_uuid) && @redis_resource_uuid
 
-      redis, st = run_kubectl("get", "redises", @name, "-o=json")
+      redis, _err, st = run_kubectl("get", "redises", @name, "-o=json")
       if st.success?
         parsed = JSON.parse(redis)
 

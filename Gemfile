@@ -6,3 +6,4 @@ gemspec
 gem 'pry'
 gem 'rubocop'
 gem 'timecop'
+gem 'byebug'

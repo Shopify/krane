@@ -11,7 +11,7 @@ module KubernetesDeploy
     end
 
     def sync
-      _, st = run_kubectl("get", type, @name)
+      _, _err, st = run_kubectl("get", type, @name)
       @found = st.success?
       @status = if cloudsql_proxy_deployment_exists? && mysql_service_exists?
         "Provisioned"
@@ -41,7 +41,7 @@ module KubernetesDeploy
     private
 
     def cloudsql_proxy_deployment_exists?
-      deployment, st = run_kubectl("get", "deployments", "cloudsql-proxy", "-o=json")
+      deployment, _err, st = run_kubectl("get", "deployments", "cloudsql-proxy", "-o=json")
 
       if st.success?
         parsed = JSON.parse(deployment)
@@ -56,7 +56,7 @@ module KubernetesDeploy
     end
 
     def mysql_service_exists?
-      service, st = run_kubectl("get", "services", "mysql", "-o=json")
+      service, _err, st = run_kubectl("get", "services", "mysql", "-o=json")
 
       if st.success?
         parsed = JSON.parse(service)

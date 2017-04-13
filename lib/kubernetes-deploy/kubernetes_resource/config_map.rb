@@ -11,7 +11,7 @@ module KubernetesDeploy
     end
 
     def sync
-      _, st = run_kubectl("get", type, @name)
+      _, _err, st = run_kubectl("get", type, @name)
       @status = st.success? ? "Available" : "Unknown"
       @found = st.success?
       log_status

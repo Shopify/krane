@@ -14,7 +14,7 @@ module KubernetesDeploy
     end
 
     def sync
-      out, st = run_kubectl("get", type, @name, "-a", "--output=json")
+      out, _err, st = run_kubectl("get", type, @name, "-a", "--output=json")
       if @found = st.success?
         pod_data = JSON.parse(out)
         interpret_json_data(pod_data)
@@ -77,7 +77,12 @@ module KubernetesDeploy
       return {} unless exists? && @containers.present? && !@already_displayed
 
       @containers.each do |container_name|
-        out, st = run_kubectl("logs", @name, "--timestamps=true", "--since-time=#{@deploy_started.to_datetime.rfc3339}")
+        out, _err, st = run_kubectl(
+          "logs",
+          @name,
+          "--timestamps=true",
+          "--since-time=#{@deploy_started.to_datetime.rfc3339}"
+        )
         next unless st.success? && out.present?
 
         KubernetesDeploy.logger.info "Logs from #{id} container #{container_name}:\x1b[0m \n#{out}\n"

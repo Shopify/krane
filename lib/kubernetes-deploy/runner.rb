@@ -21,6 +21,7 @@ require 'kubernetes-deploy/kubernetes_resource'
 end
 require 'kubernetes-deploy/resource_watcher'
 require "kubernetes-deploy/ui_helpers"
+require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class Runner
@@ -341,24 +342,15 @@ MSG
     end
 
     def run_kubectl(*args, namespaced: true, with_context: true)
-      args = args.unshift("kubectl")
       if namespaced
-        raise FatalDeploymentError, "Namespace missing for namespaced command" if @namespace.blank?
-        args.push("--namespace=#{@namespace}")
+        raise KubectlError, "Namespace missing for namespaced command" if @namespace.blank?
       end
 
       if with_context
-        raise FatalDeploymentError, "Explicit context is required to run this command" if @context.blank?
-        args.push("--context=#{@context}")
+        raise KubectlError, "Explicit context is required to run this command" if @context.blank?
       end
-      KubernetesDeploy.logger.debug Shellwords.join(args)
-      out, err, st = Open3.capture3(*args)
-      KubernetesDeploy.logger.debug(out.shellescape)
-      unless st.success?
-        KubernetesDeploy.logger.warn("The following command failed: #{Shellwords.join(args)}")
-        KubernetesDeploy.logger.warn(err)
-      end
-      [out.chomp, err.chomp, st]
+
+      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context)
     end
   end
 end

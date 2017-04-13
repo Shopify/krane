@@ -1,6 +1,7 @@
 require 'json'
 require 'open3'
 require 'shellwords'
+require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class KubernetesResource
@@ -112,20 +113,15 @@ module KubernetesDeploy
       type.downcase.pluralize
     end
 
-    def run_kubectl(*args)
-      raise FatalDeploymentError, "Namespace missing for namespaced command" if namespace.blank?
-      raise FatalDeploymentError, "Explicit context is required to run this command" if context.blank?
-      args = args.unshift("kubectl").push("--namespace=#{namespace}").push("--context=#{context}")
-
-      KubernetesDeploy.logger.debug Shellwords.join(args)
-      out, err, st = Open3.capture3(*args)
-      KubernetesDeploy.logger.debug(out.shellescape)
-      KubernetesDeploy.logger.debug("[ERROR] #{err.shellescape}") unless st.success?
-      [out.chomp, st]
-    end
-
     def log_status
       KubernetesResource.logger.info("[#{@context}][#{@namespace}] #{JSON.dump(status_data)}")
+    end
+
+    def run_kubectl(*args)
+      raise FatalDeploymentError, "Namespace missing for namespaced command" if @namespace.blank?
+      raise KubectlError, "Explicit context is required to run this command" if @context.blank?
+
+      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context)
     end
   end
 end

@@ -11,7 +11,7 @@ module KubernetesDeploy
     end
 
     def sync
-      json_data, st = run_kubectl("get", type, @name, "--output=json")
+      json_data, _err, st = run_kubectl("get", type, @name, "--output=json")
       @found = st.success?
       @rollout_data = {}
       @status = nil
@@ -20,9 +20,9 @@ module KubernetesDeploy
       if @found
         @rollout_data = JSON.parse(json_data)["status"]
           .slice("updatedReplicas", "replicas", "availableReplicas", "unavailableReplicas")
-        @status, _ = run_kubectl("rollout", "status", type, @name, "--watch=false") if @deploy_started
+        @status, _err, _ = run_kubectl("rollout", "status", type, @name, "--watch=false") if @deploy_started
 
-        pod_list, st = run_kubectl("get", "pods", "-a", "-l", "name=#{name}", "--output=json")
+        pod_list, _err, st = run_kubectl("get", "pods", "-a", "-l", "name=#{name}", "--output=json")
         if st.success?
           pods_json = JSON.parse(pod_list)["items"]
           pods_json.each do |pod_json|

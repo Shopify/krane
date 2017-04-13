@@ -11,10 +11,10 @@ module KubernetesDeploy
     end
 
     def sync
-      _, st = run_kubectl("get", type, @name)
+      _, _err, st = run_kubectl("get", type, @name)
       @found = st.success?
       if @found
-        endpoints, st = run_kubectl("get", "endpoints", @name, "--output=jsonpath={.subsets[*].addresses[*].ip}")
+        endpoints, _err, st = run_kubectl("get", "endpoints", @name, "--output=jsonpath={.subsets[*].addresses[*].ip}")
         @num_endpoints = (st.success? ? endpoints.split.length : 0)
       else
         @num_endpoints = 0
