@@ -23,10 +23,12 @@ Gem::Specification.new do |spec|
   spec.add_dependency "activesupport", ">= 4.2"
   spec.add_dependency "kubeclient", "~> 2.3"
   spec.add_dependency "googleauth", ">= 0.5"
+  spec.add_dependency "ejson", "1.0.1"
 
   spec.add_development_dependency "bundler", "~> 1.13"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "minitest", "~> 5.0"
   spec.add_development_dependency "minitest-stub-const", "~> 0.6"
   spec.add_development_dependency "webmock", "~> 3.0"
+  spec.add_development_dependency "mocha", "~> 1.1"
 end

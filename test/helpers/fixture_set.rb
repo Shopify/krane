@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'helpers/kubeclient_helper'
+require 'base64'
 
 module FixtureSetAssertions
   class FixtureSet
@@ -90,6 +91,26 @@ module FixtureSetAssertions
         label_selector: "name=#{cm_name},app=#{app_name}"
       )
       assert_equal 1, pod_templates.size, "Expected 1 podtemplate, got #{pod_templates.size}"
+    end
+
+    def assert_secret_present(secret_name, expected_data = nil, type: 'Opaque', managed: false)
+      secrets = kubeclient.get_secrets(namespace: namespace, label_selector: "name=#{secret_name}")
+      assert_equal 1, secrets.size, "Expected 1 secret, got #{secrets.size}"
+      secret = secrets.first
+      assert_annotated(secret, KubernetesDeploy::EjsonSecretProvisioner::MANAGEMENT_ANNOTATION) if managed
+      assert_equal type, secret["type"]
+      return unless expected_data
+
+      secret_data = secret["data"].to_h.stringify_keys
+      secret_data.each do |key, value|
+        secret_data[key] = Base64.decode64(value)
+      end
+      assert_equal expected_data, secret_data
+    end
+
+    def assert_annotated(obj, annotation)
+      annotations = obj.metadata.annotations.to_h.stringify_keys
+      assert annotations.key?(annotation), "Expected secret to have annotation #{annotation}, but it did not"
     end
   end
 end

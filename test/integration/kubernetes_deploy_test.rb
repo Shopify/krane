@@ -226,6 +226,75 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal [2, 2], count.values
   end
 
+  def test_create_and_update_secrets_from_ejson
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    deploy_fixtures("ejson-cloud")
+    ejson_cloud.assert_all_up
+    assert_logs_match(/Creating secret catphotoscom/)
+    assert_logs_match(/Creating secret unused-secret/)
+    assert_logs_match(/Creating secret monitoring-token/)
+
+    updated_data = { "_test" => "a" }
+    deploy_fixtures("ejson-cloud") do |fixtures|
+      fixtures["secrets.ejson"]["kubernetes_secrets"]["unused-secret"]["data"] = updated_data
+    end
+    ejson_cloud.assert_secret_present('unused-secret', updated_data, managed: true)
+    ejson_cloud.assert_web_resources_up
+    assert_logs_match(/Updating secret unused-secret/)
+  end
+
+  def test_create_ejson_secrets_with_malformed_secret_data
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+
+    malformed = { "_bad_data" => %w(foo bar) }
+    assert_raises_message(KubernetesDeploy::EjsonSecretError, /Data for secret monitoring-token was invalid/) do
+      deploy_fixtures("ejson-cloud") do |fixtures|
+        fixtures["secrets.ejson"]["kubernetes_secrets"]["monitoring-token"]["data"] = malformed
+      end
+    end
+  end
+
+  def test_pruning_of_secrets_created_from_ejson
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    deploy_fixtures("ejson-cloud")
+    ejson_cloud.assert_secret_present('unused-secret', managed: true)
+
+    deploy_fixtures("ejson-cloud") do |fixtures|
+      fixtures["secrets.ejson"]["kubernetes_secrets"].delete("unused-secret")
+    end
+    assert_logs_match(/Pruning secret unused-secret/)
+
+    # The removed secret was pruned
+    ejson_cloud.refute_resource_exists('secret', 'unused-secret')
+    # The remaining secrets exist
+    ejson_cloud.assert_secret_present('monitoring-token', managed: true)
+    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', managed: true)
+    # The unmanaged secret was not pruned
+    ejson_cloud.assert_secret_present('ejson-keys', managed: false)
+  end
+
+  def test_pruning_of_existing_managed_secrets_when_ejson_file_has_been_deleted
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    deploy_fixtures("ejson-cloud")
+    ejson_cloud.assert_all_up
+
+    deploy_fixtures("ejson-cloud") do |fixtures|
+      fixtures.delete("secrets.ejson")
+    end
+
+    assert_logs_match("Pruning secret unused-secret")
+    assert_logs_match("Pruning secret catphotoscom")
+    assert_logs_match("Pruning secret monitoring-token")
+
+    ejson_cloud.refute_resource_exists('secret', 'unused-secret')
+    ejson_cloud.refute_resource_exists('secret', 'catphotoscom')
+    ejson_cloud.refute_resource_exists('secret', 'monitoring-token')
+  end
+
   private
 
   def count_by_revisions(pods)

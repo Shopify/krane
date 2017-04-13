@@ -1,0 +1,37 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: web
+        app: ejson-cloud
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - mountPath: /keys
+          name: ejson-keys
+        - mountPath: /server-cert
+          name: server-cert
+        env:
+        - name: MONITORING_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: monitoring-token
+              key: api-token
+      volumes:
+      - name: server-cert
+        secret:
+          secretName: catphotoscom
+      - name: ejson-keys
+        secret:
+          secretName: ejson-keys
