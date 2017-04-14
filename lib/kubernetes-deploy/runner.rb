@@ -39,6 +39,7 @@ module KubernetesDeploy
     PROTECTED_NAMESPACES = %w(
       default
       kube-system
+      kube-public
     )
 
     # Things removed from default prune whitelist:
