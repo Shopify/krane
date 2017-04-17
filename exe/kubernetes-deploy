@@ -11,15 +11,11 @@ allow_protected_ns = false
 prune = true
 bindings = {}
 
-def blank?(v)
-  !v || v == ""
-end
-
 def parse_bindings(binds)
   binds.each_with_object({}) do |bind, bindings|
     k,v = bind.split('=')
-    raise "key for value #{v} is blank!" if blank?(k)
-    raise "value for key #{k} is blank!" if blank?(v)
+    raise "key for value #{v} is blank!" if k.blank?
+    raise "value for key #{k} is blank!" if v.blank?
     bindings[k] = v
   end
 end
