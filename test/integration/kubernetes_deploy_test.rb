@@ -204,4 +204,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal 'binding_test_a', map['BINDING_TEST_A']
     assert_equal 'binding_test_b', map['BINDING_TEST_B']
   end
+
+  def test_should_raise_if_required_binding_not_present
+    assert_raises NameError do
+      deploy_fixtures('collection-with-erb', subset: ["conf_map.yml.erb"])
+    end
+  end
 end
