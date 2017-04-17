@@ -11,17 +11,16 @@ allow_protected_ns = false
 prune = true
 bindings = {}
 
-def parse_bindings(binds)
-  binds.each_with_object({}) do |bind, bindings|
-    k,v = bind.split('=')
-    raise "key for value #{v} is blank!" if k.blank?
-    raise "value for key #{k} is blank!" if v.blank?
-    bindings[k] = v
-  end
-end
-
 ARGV.options do |opts|
-  opts.on("--bindings=BINDINGS", Array, "k1=v1,k2=v2") { |binds| bindings = parse_bindings(binds) }
+  opts.on("--bindings=BINDINGS", Array, "k1=v1,k2=v2") do |binds|
+    bindings = binds.each_with_object({}) do |bind, acc|
+      k,v = bind.split('=')
+      raise "key for value #{v} is blank!" if k.blank?
+      raise "value for key #{k} is blank!" if v.blank?
+      acc[k] = v
+    end
+  end
+
   opts.on("--skip-wait") { skip_wait = true }
   opts.on("--allow-protected-ns") { allow_protected_ns = true }
   opts.on("--no-prune") { prune = false }
