@@ -11,7 +11,7 @@ module KubernetesDeploy
 
     def self.logger
       @logger ||= begin
-        l = Logger.new($stderr)
+        l = ::Logger.new($stderr)
         l.formatter = proc do |_severity, datetime, _progname, msg|
           "[KUBESTATUS][#{datetime}]\t#{msg}\n"
         end
