@@ -16,6 +16,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   pod
   redis
   service
+  bugsnag
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -30,6 +31,7 @@ module KubernetesDeploy
     PREDEPLOY_SEQUENCE = %w(
       Cloudsql
       Redis
+      Bugsnag
       ConfigMap
       PersistentVolumeClaim
       Pod
