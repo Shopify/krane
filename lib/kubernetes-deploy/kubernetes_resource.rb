@@ -121,7 +121,7 @@ module KubernetesDeploy
       raise FatalDeploymentError, "Namespace missing for namespaced command" if @namespace.blank?
       raise KubectlError, "Explicit context is required to run this command" if @context.blank?
 
-      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context)
+      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context, log_failure: false)
     end
   end
 end
