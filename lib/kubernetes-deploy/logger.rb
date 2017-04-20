@@ -32,12 +32,12 @@ module KubernetesDeploy
       private
 
       def level_from_env
-        return Logger::DEBUG if ENV["DEBUG"]
+        return ::Logger::DEBUG if ENV["DEBUG"]
 
         if ENV["LEVEL"]
-          Logger.const_get(ENV["LEVEL"].upcase)
+          ::Logger.const_get(ENV["LEVEL"].upcase)
         else
-          Logger::INFO
+          ::Logger::INFO
         end
       end
     end
