@@ -39,13 +39,14 @@ module KubernetesDeploy
     end
 
     alias_method :orig_assert_raises, :assert_raises
-    def assert_raises(*args)
+    def assert_raises(*args, msg: nil)
       case args.last
       when Regexp, String
-        flunk("Please use assert_raises_msg to check the exception message.\n"\
-          "That is not what the last argument of assert_raises does.")
+        flunk("Please use assert_raises_msg to check the exception message,\n"\
+          "or use the msg keyword argument to specify a message to use when the assertion fails.")
       else
-        orig_assert_raises(*args) { yield }
+        args_for_orig = (args + Array(msg)).compact
+        orig_assert_raises(*args_for_orig) { yield }
       end
     end
 
