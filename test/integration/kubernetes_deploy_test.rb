@@ -115,7 +115,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_dynamic_erb_collection_works
-    deploy_raw_fixtures("collection-with-erb")
+    deploy_raw_fixtures("collection-with-erb", bindings: { binding_test_a: 'foo', binding_test_b: 'bar' })
 
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
     assert_equal 3, deployments.size
@@ -194,5 +194,20 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=hello-cloud')
     assert_equal 1, pods.size, "Unable to find web pod"
     assert_equal "Pending", pods.first.status.phase
+  end
+
+  def test_extra_bindings_should_be_rendered
+    deploy_fixtures('collection-with-erb', subset: ["conf_map.yml.erb"],
+      bindings: { binding_test_a: 'binding_test_a', binding_test_b: 'binding_test_b' })
+
+    map = kubeclient.get_config_map('extra-binding', @namespace).data
+    assert_equal 'binding_test_a', map['BINDING_TEST_A']
+    assert_equal 'binding_test_b', map['BINDING_TEST_B']
+  end
+
+  def test_should_raise_if_required_binding_not_present
+    assert_raises NameError do
+      deploy_fixtures('collection-with-erb', subset: ["conf_map.yml.erb"])
+    end
   end
 end

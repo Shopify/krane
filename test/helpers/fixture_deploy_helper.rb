@@ -23,7 +23,7 @@ module FixtureDeployHelper
   #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end
-  def deploy_fixtures(set, subset: nil, wait: true, allow_protected_ns: false, prune: true)
+  def deploy_fixtures(set, subset: nil, wait: true, allow_protected_ns: false, prune: true, bindings: {})
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
 
@@ -31,13 +31,13 @@ module FixtureDeployHelper
 
     target_dir = Dir.mktmpdir
     write_fixtures_to_dir(fixtures, target_dir)
-    deploy_dir(target_dir, wait: wait, allow_protected_ns: allow_protected_ns, prune: prune)
+    deploy_dir(target_dir, wait: wait, allow_protected_ns: allow_protected_ns, prune: prune, bindings: bindings)
   ensure
     FileUtils.remove_dir(target_dir) if target_dir
   end
 
-  def deploy_raw_fixtures(set, wait: true)
-    deploy_dir(fixture_path(set), wait: wait)
+  def deploy_raw_fixtures(set, wait: true, bindings: {})
+    deploy_dir(fixture_path(set), wait: wait, bindings: bindings)
   end
 
   def fixture_path(set_name)
@@ -50,7 +50,7 @@ module FixtureDeployHelper
   # Deploys all fixtures in the given directory via KubernetesDeploy::Runner
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
-  def deploy_dir(dir, sha: 'abcabcabc', wait: true, allow_protected_ns: false, prune: true)
+  def deploy_dir(dir, sha: 'abcabcabc', wait: true, allow_protected_ns: false, prune: true, bindings: {})
     runner = KubernetesDeploy::Runner.new(
       namespace: @namespace,
       current_sha: sha,
@@ -59,6 +59,7 @@ module FixtureDeployHelper
       wait_for_completion: wait,
       allow_protected_ns: allow_protected_ns,
       prune: prune,
+      bindings: bindings
     )
     runner.run
   end

@@ -72,7 +72,7 @@ MSG
     end
 
     def initialize(namespace:, current_sha:, context:, template_dir:,
-      wait_for_completion:, allow_protected_ns: false, prune: true)
+      wait_for_completion:, allow_protected_ns: false, prune: true, bindings: {})
       @namespace = namespace
       @context = context
       @current_sha = current_sha
@@ -82,6 +82,7 @@ MSG
       @wait_for_completion = wait_for_completion
       @allow_protected_ns = allow_protected_ns
       @prune = prune
+      @bindings = bindings
     end
 
     def wait_for_completion?
@@ -124,7 +125,7 @@ MSG
       {
         'current_sha' => @current_sha,
         'deployment_id' => @id,
-      }
+      }.merge(@bindings)
     end
 
     private
