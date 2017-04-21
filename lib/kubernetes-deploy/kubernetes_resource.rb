@@ -31,6 +31,7 @@ module KubernetesDeploy
       when 'deployment' then Deployment.new(name, namespace, context, file)
       when 'pod' then Pod.new(name, namespace, context, file)
       when 'redis' then Redis.new(name, namespace, context, file)
+      when 'bugsnag' then Bugsnag.new(name, namespace, context, file)
       when 'ingress' then Ingress.new(name, namespace, context, file)
       when 'persistentvolumeclaim' then PersistentVolumeClaim.new(name, namespace, context, file)
       when 'service' then Service.new(name, namespace, context, file)
