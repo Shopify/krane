@@ -37,6 +37,22 @@ module KubernetesDeploy
         assert_match regexp, @logger_stream.read
       end
     end
+
+    alias_method :orig_assert_raises, :assert_raises
+    def assert_raises(*args)
+      case args.last
+      when Regexp, String
+        flunk("Please use assert_raises_msg to check the exception message. That is not what the last argument of assert_raises does.")
+      else
+        orig_assert_raises(*args) { yield }
+      end
+    end
+
+    def assert_raises_msg(exception_class, exception_message)
+      exception = orig_assert_raises(exception_class) { yield }
+      assert_match exception_message, exception.message
+      exception
+    end
   end
 
   class IntegrationTest < KubernetesDeploy::TestCase
