@@ -56,7 +56,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_refuses_deploy_to_protected_namespace_with_override_if_pruning_enabled
-    assert_raises_msg(KubernetesDeploy::FatalDeploymentError, /Refusing to deploy to protected namespace .* pruning enabled/) do
+    expected_msg = /Refusing to deploy to protected namespace .* pruning enabled/
+    assert_raises_msg(KubernetesDeploy::FatalDeploymentError, expected_msg) do
       KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
         deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: true)
       end
@@ -161,7 +162,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_bad_container_image_on_run_once_halts_and_fails_deploy
-    expected_msg = /The following priority resources failed to deploy: Pod\/unmanaged-pod/
+    expected_msg = %r{The following priority resources failed to deploy: Pod\/unmanaged-pod}
     assert_raises_msg(KubernetesDeploy::FatalDeploymentError, expected_msg) do
       deploy_fixtures("hello-cloud") do |fixtures|
         pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
@@ -178,7 +179,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_wait_false_still_waits_for_priority_resources
-    expected_msg = /The following priority resources failed to deploy: Pod\/unmanaged-pod/
+    expected_msg = %r{The following priority resources failed to deploy: Pod\/unmanaged-pod}
     assert_raises_msg(KubernetesDeploy::FatalDeploymentError, expected_msg) do
       deploy_fixtures("hello-cloud") do |fixtures|
         pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first

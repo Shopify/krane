@@ -42,7 +42,8 @@ module KubernetesDeploy
     def assert_raises(*args)
       case args.last
       when Regexp, String
-        flunk("Please use assert_raises_msg to check the exception message. That is not what the last argument of assert_raises does.")
+        flunk("Please use assert_raises_msg to check the exception message.\n"\
+          "That is not what the last argument of assert_raises does.")
       else
         orig_assert_raises(*args) { yield }
       end
