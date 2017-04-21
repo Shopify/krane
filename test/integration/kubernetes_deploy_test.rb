@@ -57,7 +57,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
   def test_refuses_deploy_to_protected_namespace_with_override_if_pruning_enabled
     expected_msg = /Refusing to deploy to protected namespace .* pruning enabled/
-    assert_raises_msg(KubernetesDeploy::FatalDeploymentError, expected_msg) do
+    assert_raises_message(KubernetesDeploy::FatalDeploymentError, expected_msg) do
       KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
         deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: true)
       end
@@ -65,7 +65,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_refuses_deploy_to_protected_namespace_without_override
-    assert_raises_msg(KubernetesDeploy::FatalDeploymentError, /Refusing to deploy to protected namespace/) do
+    assert_raises_message(KubernetesDeploy::FatalDeploymentError, /Refusing to deploy to protected namespace/) do
       KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
         deploy_fixtures("hello-cloud", prune: false)
       end
@@ -100,13 +100,13 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_fails_fast
-    assert_raises_msg(KubernetesDeploy::FatalDeploymentError, /Template yaml-error.yml cannot be parsed/) do
+    assert_raises_message(KubernetesDeploy::FatalDeploymentError, /Template yaml-error.yml cannot be parsed/) do
       deploy_dir(fixture_path("invalid"))
     end
   end
 
   def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast
-    assert_raises_msg(KubernetesDeploy::FatalDeploymentError, /Dry run failed for template configmap-data/) do
+    assert_raises_message(KubernetesDeploy::FatalDeploymentError, /Dry run failed for template configmap-data/) do
       deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
         configmap = fixtures["configmap-data.yml"]["ConfigMap"].first
         configmap["metadata"]["myKey"] = "uhOh"
@@ -163,7 +163,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
   def test_bad_container_image_on_run_once_halts_and_fails_deploy
     expected_msg = %r{The following priority resources failed to deploy: Pod\/unmanaged-pod}
-    assert_raises_msg(KubernetesDeploy::FatalDeploymentError, expected_msg) do
+    assert_raises_message(KubernetesDeploy::FatalDeploymentError, expected_msg) do
       deploy_fixtures("hello-cloud") do |fixtures|
         pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
         pod["spec"]["activeDeadlineSeconds"] = 1
@@ -180,7 +180,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
   def test_wait_false_still_waits_for_priority_resources
     expected_msg = %r{The following priority resources failed to deploy: Pod\/unmanaged-pod}
-    assert_raises_msg(KubernetesDeploy::FatalDeploymentError, expected_msg) do
+    assert_raises_message(KubernetesDeploy::FatalDeploymentError, expected_msg) do
       deploy_fixtures("hello-cloud") do |fixtures|
         pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
         pod["spec"]["activeDeadlineSeconds"] = 1

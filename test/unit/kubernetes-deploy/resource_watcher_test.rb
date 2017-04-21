@@ -4,7 +4,7 @@ require 'test_helper'
 class ResourceWatcherTest < KubernetesDeploy::TestCase
   def test_requires_enumerable
     expected_msg = "ResourceWatcher expects Enumerable collection, got `Object` instead"
-    assert_raises_msg(ArgumentError, expected_msg) do
+    assert_raises_message(ArgumentError, expected_msg) do
       KubernetesDeploy::ResourceWatcher.new(Object.new)
     end
 

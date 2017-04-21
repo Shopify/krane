@@ -43,14 +43,14 @@ module KubernetesDeploy
       case exp.last
       when String, Regexp
         raise ArgumentError, "Please use the kwarg message instead of the positional one.\n"\
-          "To assert the message exception, use `assert_raises_msg` or the return value of `assert_raises`"
+          "To assert the message exception, use `assert_raises_message` or the return value of `assert_raises`"
       else
         exp += Array(message)
         orig_assert_raises(*exp) { yield }
       end
     end
 
-    def assert_raises_msg(exception_class, exception_message)
+    def assert_raises_message(exception_class, exception_message)
       exception = orig_assert_raises(exception_class) { yield }
       assert_match exception_message, exception.message
       exception
