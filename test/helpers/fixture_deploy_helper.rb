@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'securerandom'
 module FixtureDeployHelper
   # Deploys the specified set of fixtures via KubernetesDeploy::Runner.
   #
@@ -50,10 +51,10 @@ module FixtureDeployHelper
   # Deploys all fixtures in the given directory via KubernetesDeploy::Runner
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
-  def deploy_dir(dir, sha: 'abcabcabc', wait: true, allow_protected_ns: false, prune: true, bindings: {})
+  def deploy_dir(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {})
     runner = KubernetesDeploy::Runner.new(
       namespace: @namespace,
-      current_sha: sha,
+      current_sha: SecureRandom.hex(6),
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       template_dir: dir,
       wait_for_completion: wait,
