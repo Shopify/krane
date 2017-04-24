@@ -20,6 +20,26 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert fetch_restarted_at("web"), "RESTARTED_AT is present after the restart"
   end
 
+  def test_restart_all
+    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"])
+
+    refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
+    refute fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment"
+
+    restart = KubernetesDeploy::RestartTask.new(
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      namespace: @namespace,
+    )
+    restart.perform("all")
+
+    assert_logs_match(/Triggered `web` restart/, 1)
+    assert_logs_match(/Triggered `redis` restart/, 1)
+    assert_logs_match(/Restart of `redis`, `web` deployments succeeded/, 1)
+
+    assert fetch_restarted_at("web"), "RESTARTED_AT is present after the restart"
+    assert fetch_restarted_at("redis"), "RESTARTED_AT is present after the restart"
+  end
+
   def test_restart_twice
     deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
 
@@ -86,6 +106,17 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     refute fetch_restarted_at("web"), "no RESTARTED_AT env after failed restart task"
   end
 
+  def test_restart_all_none_found
+    restart = KubernetesDeploy::RestartTask.new(
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      namespace: @namespace,
+    )
+    error = assert_raises(ArgumentError) do
+      restart.perform("all")
+    end
+    assert_match(/no deployments found in namespace/, error.to_s)
+  end
+
   def test_restart_none
     restart = KubernetesDeploy::RestartTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
@@ -122,6 +153,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     deployment = v1beta1_kubeclient.get_deployment(deployment_name, @namespace)
     containers = deployment.spec.template.spec.containers
     assert_equal 1, containers.size
-    containers.first.env.find { |n| n.name == "RESTARTED_AT" }
+    env = containers.first.env
+    env && env.find { |n| n.name == "RESTARTED_AT" }
   end
 end
