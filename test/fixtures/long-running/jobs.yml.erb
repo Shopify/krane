@@ -1,0 +1,20 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: jobs
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        name: jobs
+        app: fixtures
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        command: ["sleep", "40"]
+        env:
+        - name: GITHUB_REV
+          value: <%= current_sha %>
+      terminationGracePeriodSeconds: 30

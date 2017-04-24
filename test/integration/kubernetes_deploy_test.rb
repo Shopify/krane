@@ -213,4 +213,28 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       deploy_fixtures('collection-with-erb', subset: ["conf_map.yml.erb"])
     end
   end
+
+  def test_long_running_deployment
+    2.times do
+      deploy_fixtures('long-running')
+    end
+
+    pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=jobs,app=fixtures')
+    assert_equal 4, pods.size
+
+    count = count_by_revisions(pods)
+    assert_equal [2, 2], count.values
+  end
+
+  private
+
+  def count_by_revisions(pods)
+    revisions = {}
+    pods.each do |pod|
+      rev = pod.spec.containers.first.env.find { |var| var.name == "GITHUB_REV" }.value
+      revisions[rev] ||= 0
+      revisions[rev] += 1
+    end
+    revisions
+  end
 end
