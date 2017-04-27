@@ -11,6 +11,7 @@ module FixtureSetAssertions
       assert_all_web_resources_up
       assert_all_redis_resources_up
       assert_configmap_data_present
+      assert_podtemplate_runner_present
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -60,6 +61,10 @@ module FixtureSetAssertions
       else
         refute_resource_exists("pvc", "redis")
       end
+    end
+
+    def assert_podtemplate_runner_present
+      assert_pod_templates_present("hello-cloud-template-runner")
     end
   end
 end

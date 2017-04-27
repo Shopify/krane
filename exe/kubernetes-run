@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'kubernetes-deploy'
+require 'kubernetes-deploy/runner_task'
+require 'optparse'
+
+template = "task-runner-template"
+entrypoint = nil
+env_vars = []
+
+ARGV.options do |opts|
+  opts.on("--template=TEMPLATE") { |n| template = n }
+  opts.on("--env-vars=ENV_VARS") { |vars| env_vars = n.split(",")}
+  opts.on("--entrypoint=ENTRYPOINT") { |c| entrypoint = [c] }
+  opts.parse!
+end
+
+runner = KubernetesDeploy::RunnerTask.new(
+  namespace: ARGV[0],
+  context: ARGV[1],
+)
+
+ KubernetesDeploy::Runner.with_friendly_errors do
+  runner.run(
+    task_template: template,
+    entrypoint: entrypoint,
+    args: ARGV[2..-1],
+    env_vars: env_vars
+  )
+end
