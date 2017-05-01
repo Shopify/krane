@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'kubeclient'
+require 'kubernetes-deploy/kubeclient_builder/google_friendly_config'
 
 module KubernetesDeploy
   module KubeclientBuilder
@@ -28,7 +29,7 @@ module KubernetesDeploy
     end
 
     def _build_kubeclient(api_version:, context:, endpoint_path: nil)
-      config = Kubeclient::Config.read(ENV.fetch("KUBECONFIG"))
+      config = GoogleFriendlyConfig.read(ENV.fetch("KUBECONFIG"))
       unless config.contexts.include?(context)
         raise ContextMissingError, context
       end

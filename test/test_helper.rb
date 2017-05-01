@@ -6,6 +6,7 @@ require 'pry'
 require 'timecop'
 require 'minitest/autorun'
 require 'minitest/stub/const'
+require 'webmock/minitest'
 
 require 'helpers/kubeclient_helper'
 require 'helpers/fixture_deploy_helper'
@@ -13,6 +14,8 @@ require 'helpers/fixture_set'
 require 'helpers/fixture_sets/hello-cloud'
 
 ENV["KUBECONFIG"] ||= "#{Dir.home}/.kube/config"
+
+WebMock.allow_net_connect!
 
 module KubernetesDeploy
   class TestCase < ::Minitest::Test
