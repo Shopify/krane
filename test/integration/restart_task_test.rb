@@ -20,6 +20,36 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert fetch_restarted_at("web"), "RESTARTED_AT is present after the restart"
   end
 
+  def test_restart_by_annotation
+    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"])
+
+    refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
+    refute fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment"
+
+    restart = KubernetesDeploy::RestartTask.new(
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      namespace: @namespace,
+    )
+    restart.perform
+
+    assert_logs_match(/Triggered `web` restart/, 1)
+    assert_logs_match(/Restart of `web` deployments succeeded/, 1)
+
+    assert fetch_restarted_at("web"), "RESTARTED_AT is present after the restart"
+    refute fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment"
+  end
+
+  def test_restart_by_annotation_none_found
+    restart = KubernetesDeploy::RestartTask.new(
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      namespace: @namespace,
+    )
+    error = assert_raises(ArgumentError) do
+      restart.perform
+    end
+    assert_match(/no deployments found in namespace/, error.to_s)
+  end
+
   def test_restart_twice
     deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
 
@@ -74,15 +104,17 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_one_not_existing_deployment
+    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
+
     restart = KubernetesDeploy::RestartTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       namespace: @namespace,
     )
-    assert_raises(KubernetesDeploy::RestartTask::DeploymentNotFoundError) do
+    error = assert_raises(KubernetesDeploy::RestartTask::DeploymentNotFoundError) do
       restart.perform(%w(walrus web))
     end
 
-    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
+    assert_match(/Deployment `walrus` not found/, error.to_s)
     refute fetch_restarted_at("web"), "no RESTARTED_AT env after failed restart task"
   end
 
@@ -122,6 +154,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     deployment = v1beta1_kubeclient.get_deployment(deployment_name, @namespace)
     containers = deployment.spec.template.spec.containers
     assert_equal 1, containers.size
-    containers.first.env.find { |n| n.name == "RESTARTED_AT" }
+    env = containers.first.env
+    env && env.find { |n| n.name == "RESTARTED_AT" }
   end
 end

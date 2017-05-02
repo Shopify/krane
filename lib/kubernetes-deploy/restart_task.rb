@@ -23,6 +23,7 @@ module KubernetesDeploy
     end
 
     HTTP_OK_RANGE = 200..299
+    ANNOTATION = "shipit.shopify.io/restart"
 
     def initialize(context:, namespace:, logger: KubernetesDeploy.logger)
       @context = context
@@ -32,22 +33,33 @@ module KubernetesDeploy
       @v1beta1_kubeclient = build_v1beta1_kubeclient(context)
     end
 
-    def perform(deployments_names)
+    def perform(deployments_names = nil)
       verify_namespace
 
-      if deployments_names.empty?
-        raise ArgumentError, "#perform takes at least one deployment to restart"
+      if deployments_names
+        deployments = fetch_deployments(deployments_names.uniq)
+
+        if deployments.none?
+          raise ArgumentError, "no deployments with names #{deployments_names} found in namespace #{@namespace}"
+        end
+      else
+        deployments = @v1beta1_kubeclient
+          .get_deployments(namespace: @namespace)
+          .select { |d| d.metadata.annotations[ANNOTATION] }
+
+        if deployments.none?
+          raise ArgumentError, "no deployments found in namespace #{@namespace} with #{ANNOTATION} annotation available"
+        end
       end
 
       phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
-      deployments = fetch_deployments(deployments_names.uniq)
       patch_kubeclient_deployments(deployments)
 
       phase_heading("Waiting for rollout")
       wait_for_rollout(deployments)
 
       names = deployments.map { |d| "`#{d.metadata.name}`" }
-      @logger.info "Restart of #{names.join(', ')} deployments succeeded"
+      @logger.info "Restart of #{names.sort.join(', ')} deployments succeeded"
     end
 
     private
