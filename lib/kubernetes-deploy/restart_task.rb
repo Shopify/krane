@@ -39,6 +39,11 @@ module KubernetesDeploy
         raise ArgumentError, "#perform takes at least one deployment to restart"
       end
 
+      if deployments_names == "all"
+        deployments_names = @v1beta1_kubeclient.get_deployments(namespace: @namespace).map { |d| d.metadata.name }
+        raise ArgumentError, "no deployments found in namespace #{@namespace}" if deployments_names.none?
+      end
+
       phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       deployments = fetch_deployments(deployments_names.uniq)
       patch_kubeclient_deployments(deployments)
@@ -47,7 +52,7 @@ module KubernetesDeploy
       wait_for_rollout(deployments)
 
       names = deployments.map { |d| "`#{d.metadata.name}`" }
-      @logger.info "Restart of #{names.join(', ')} deployments succeeded"
+      @logger.info "Restart of #{names.sort.join(', ')} deployments succeeded"
     end
 
     private
