@@ -99,7 +99,7 @@ module KubernetesDeploy
 
       raise FatalTaskRunError, "Pod spec does not contain a template container called 'task-runner'" if container.nil?
 
-      container.command = entrypoint
+      container.command = entrypoint if entrypoint
       container.args = args
       container.env ||= []
 
