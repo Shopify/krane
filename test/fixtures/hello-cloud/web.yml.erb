@@ -34,6 +34,8 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: web
+  annotations:
+    shipit.shopify.io/restart: "true"
 spec:
   replicas: 1
   template:

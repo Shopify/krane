@@ -8,16 +8,11 @@ require 'kubernetes-deploy/restart_task'
 
 raw_deployments = nil
 ARGV.options do |opts|
-  opts.on("--deployments=LIST") { |v| raw_deployments = v }
+  opts.on("--deployments=LIST") { |v| raw_deployments = v.split(",") }
   opts.parse!
-end
-
-if raw_deployments.nil?
-  puts "Failed: specify at least one deployment to restart with --deployments flag"
-  exit 1
 end
 
 KubernetesDeploy::Runner.with_friendly_errors do
   restart = KubernetesDeploy::RestartTask.new(namespace: ARGV[0], context: ARGV[1])
-  restart.perform(raw_deployments.split(","))
+  restart.perform(raw_deployments)
 end
