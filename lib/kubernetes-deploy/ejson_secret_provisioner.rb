@@ -3,6 +3,7 @@ require 'json'
 require 'base64'
 require 'open3'
 require 'kubernetes-deploy/logger'
+require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class EjsonSecretError < FatalDeploymentError
@@ -17,10 +18,13 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, template_dir:, client:)
+    def initialize(namespace:, context:, template_dir:)
       @namespace = namespace
+      @context = context
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
-      @kubeclient = client
+
+      raise FatalDeploymentError, "Cannot create secrets without a namespace" if @namespace.blank?
+      raise FatalDeploymentError, "Cannot create secrets without a context" if @context.blank?
     end
 
     def secret_changes_required?
@@ -52,25 +56,27 @@ module KubernetesDeploy
 
     def prune_managed_secrets
       ejson_secret_names = encrypted_ejson.fetch(MANAGED_SECRET_EJSON_KEY, {}).keys
-      live_secrets = @kubeclient.get_secrets(namespace: @namespace)
+      live_secrets = run_kubectl_json("get", "secrets")
 
       live_secrets.each do |secret|
-        secret_name = secret.metadata.name
+        secret_name = secret["metadata"]["name"]
         next unless secret_managed?(secret)
         next if ejson_secret_names.include?(secret_name)
 
         KubernetesDeploy.logger.info("Pruning secret #{secret_name}")
-        @kubeclient.delete_secret(secret_name, @namespace)
+        out, err, st = run_kubectl("delete", "secret", secret_name)
+        KubernetesDeploy.logger.debug(out)
+        raise EjsonSecretError, err unless st.success?
       end
     end
 
     def managed_secrets_exist?
-      all_secrets = @kubeclient.get_secrets(namespace: @namespace)
+      all_secrets = run_kubectl_json("get", "secrets")
       all_secrets.any? { |secret| secret_managed?(secret) }
     end
 
     def secret_managed?(secret)
-      secret.metadata.annotations.to_h.stringify_keys.key?(MANAGEMENT_ANNOTATION)
+      secret["metadata"].fetch("annotations", {}).key?(MANAGEMENT_ANNOTATION)
     end
 
     def encrypted_ejson
@@ -96,31 +102,47 @@ module KubernetesDeploy
     end
 
     def create_or_update_secret(secret_name, secret_type, data)
-      metadata = {
-        name: secret_name,
-        labels: { "name" => secret_name },
-        namespace: @namespace,
-        annotations: { MANAGEMENT_ANNOTATION => "true" }
-      }
-      secret = Kubeclient::Secret.new(type: secret_type, stringData: data, metadata: metadata)
-      if secret_exists?(secret)
-        KubernetesDeploy.logger.info("Updating secret #{secret_name}")
-        @kubeclient.update_secret(secret)
-      else
-        KubernetesDeploy.logger.info("Creating secret #{secret_name}")
-        @kubeclient.create_secret(secret)
-      end
-    rescue KubeException => e
-      raise unless e.error_code == 400
-      raise EjsonSecretError, "Data for secret #{secret_name} was invalid: #{e}"
+      msg = secret_exists?(secret_name) ? "Updating secret #{secret_name}" : "Creating secret #{secret_name}"
+      KubernetesDeploy.logger.info(msg)
+
+      secret_yaml = generate_secret_yaml(secret_name, secret_type, data)
+      file = Tempfile.new(secret_name)
+      file.write(secret_yaml)
+      file.close
+
+      out, err, st = run_kubectl("apply", "--filename=#{file.path}")
+      KubernetesDeploy.logger.debug(out)
+      raise EjsonSecretError, err unless st.success?
+    ensure
+      file.unlink if file
     end
 
-    def secret_exists?(secret)
-      @kubeclient.get_secret(secret.metadata.name, @namespace)
-      true
-    rescue KubeException => error
-      raise unless error.error_code == 404
-      false
+    def generate_secret_yaml(secret_name, secret_type, data)
+      unless data.is_a?(Hash) && data.values.all? { |v| v.is_a?(String) } # Secret data is map[string]string
+        raise EjsonSecretError, "Data for secret #{secret_name} was invalid. Only key-value pairs are permitted."
+      end
+      encoded_data = data.each_with_object({}) do |(key, value), encoded|
+        encoded[key] = Base64.encode64(value)
+      end
+
+      secret = {
+        'kind' => 'Secret',
+        'apiVersion' => 'v1',
+        'type' => secret_type,
+        'metadata' => {
+          "name" => secret_name,
+          "labels" => { "name" => secret_name },
+          "namespace" => @namespace,
+          "annotations" => { MANAGEMENT_ANNOTATION => "true" }
+        },
+        "data" => encoded_data
+      }
+      secret.to_yaml
+    end
+
+    def secret_exists?(secret_name)
+      _out, _err, st = run_kubectl("get", "secret", secret_name)
+      st.success?
     end
 
     def load_ejson_from_file
@@ -152,17 +174,26 @@ module KubernetesDeploy
 
     def fetch_private_key_from_secret
       KubernetesDeploy.logger.info("Fetching ejson private key from secret #{EJSON_KEYS_SECRET}")
-      secret = @kubeclient.get_secret(EJSON_KEYS_SECRET, @namespace)
+
+      secret = run_kubectl_json("get", "secret", EJSON_KEYS_SECRET)
       encoded_private_key = secret["data"][public_key]
       unless encoded_private_key
         raise EjsonSecretError, "Private key for #{public_key} not found in #{EJSON_KEYS_SECRET} secret"
       end
 
       Base64.decode64(encoded_private_key)
-    rescue KubeException => error
-      raise unless error.error_code == 404
-      secret_missing_err = "Failed to decrypt ejson: secret #{EJSON_KEYS_SECRET} not found in namespace #{@namespace}."
-      raise EjsonSecretError, secret_missing_err
+    end
+
+    def run_kubectl_json(*args)
+      args += ["--output=json"]
+      out, err, st = run_kubectl(*args)
+      raise EjsonSecretError, err unless st.success?
+      result = JSON.parse(out)
+      result.fetch('items', result)
+    end
+
+    def run_kubectl(*args)
+      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context)
     end
   end
 end

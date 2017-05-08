@@ -2,25 +2,29 @@
 require 'test_helper'
 
 class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
+  def setup
+    KubernetesDeploy::Kubectl.expects(:run_kubectl).never
+    super
+  end
+
   def test_secret_changes_required_based_on_ejson_file_existence
-    mock_kubeclient.expects(:get_secrets).with(namespace: 'test').returns([])
+    stub_kubectl_response("get", "secrets", "--output=json", resp: { items: [dummy_ejson_secret] })
+
     refute build_provisioner(fixture_path('hello-cloud')).secret_changes_required?
     assert build_provisioner(fixture_path('ejson-cloud')).secret_changes_required?
   end
 
   def test_secret_changes_required_based_on_managed_secret_existence
-    metadata = {
-      annotations: { KubernetesDeploy::EjsonSecretProvisioner::MANAGEMENT_ANNOTATION => "true" },
-      name: 'foo'
-    }
-    managed_secret = Kubeclient::Secret.new(type: 'Opaque', metadata: metadata)
-    mock_kubeclient.expects(:get_secrets).with(namespace: 'test').returns([managed_secret])
+    stub_kubectl_response(
+      "get", "secrets", "--output=json",
+      resp: { items: [dummy_secret_hash(managed: true), dummy_ejson_secret] }
+    )
     assert build_provisioner(fixture_path('hello-cloud')).secret_changes_required?
   end
 
   def test_run_with_no_secrets_file_or_managed_secrets_no_ops
-    # nothing raised, no unexpected kubeclient calls
-    mock_kubeclient.expects(:get_secrets).with(namespace: 'test').returns([])
+    # nothing raised, no unexpected kubectl calls
+    stub_kubectl_response("get", "secrets", "--output=json", resp: { items: [] })
     build_provisioner(fixture_path('hello-cloud')).run
   end
 
@@ -33,39 +37,41 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_run_with_ejson_keypair_mismatch
-    wrong_data = {
+    wrong_public = {
       "2200e55f22dd0c93fac3832ba14842cc75fa5a99a2e01696daa30e188d465036" =>
-        "MTM5ZDVjMmEzMDkwMWRkOGFlMTg2YmU1ODJjY2MwYTg4MmMxNmY4ZTBiYjU0Mjk4ODRkYmM3Mjk2ZTgwNjY5ZQo="
+        "139d5c2a30901dd8ae186be582ccc0a882c16f8e0bb5429884dbc7296e80669e"
     }
-    mock_kubeclient.expects(:get_secret).with('ejson-keys', 'test').returns("data" => wrong_data)
+    stub_kubectl_response("get", "secret", "ejson-keys", "--output=json", resp: dummy_ejson_secret(wrong_public))
 
-    msg = "Private key for 65f79806388144edf800bf9fa683c98d3bc9484768448a275a35d398729c892a not found"
+    msg = "Private key for #{fixture_public_key} not found"
     assert_raises_message(KubernetesDeploy::EjsonSecretError, msg) do
       build_provisioner.run
     end
   end
 
   def test_run_with_bad_private_key_in_cloud_keys
-    wrong_private = {
-      "65f79806388144edf800bf9fa683c98d3bc9484768448a275a35d398729c892a" =>
-        "MTM5ZDVjMmEzMDkwMWRkOGFlMTg2YmU1ODJjY2MwYTg4MmMxNmY4ZTBiYjU0Mjk4ODRkYmM3Mjk2ZTgwNjY5ZQo="
-    }
-    mock_kubeclient.expects(:get_secret).with('ejson-keys', 'test').returns("data" => wrong_private)
+    wrong_private = { fixture_public_key => "139d5c2a30901dd8ae186be582ccc0a882c16f8e0bb5429884dbc7296e80669e" }
+    stub_kubectl_response("get", "secret", "ejson-keys", "--output=json", resp: dummy_ejson_secret(wrong_private))
+
     assert_raises_message(KubernetesDeploy::EjsonSecretError, /Decryption failed/) do
       build_provisioner.run
     end
   end
 
   def test_run_with_cloud_keys_secret_missing
-    mock_kubeclient.expects(:get_secret).with('ejson-keys', 'test').raises(KubeException.new(404, "not found", nil))
-    assert_raises_message(KubernetesDeploy::EjsonSecretError, /secret ejson-keys not found in namespace test/) do
+    realistic_err = "Error from server (NotFound): secrets \"ejson-keys\" not found"
+    stub_kubectl_response("get", "secret", "ejson-keys", "--output=json", resp: "", err: realistic_err, success: false)
+    assert_raises_message(KubernetesDeploy::EjsonSecretError, /secrets "ejson-keys" not found/) do
       build_provisioner.run
     end
   end
 
   def test_run_with_file_missing_section_for_managed_secrets_logs_warning
-    mock_kubeclient.expects(:get_secret).with('ejson-keys', 'test').returns("data" => correct_ejson_key_secret_data)
-    mock_kubeclient.expects(:get_secrets).with(namespace: 'test').returns([])
+    stub_kubectl_response("get", "secret", "ejson-keys", "--output=json", resp: dummy_ejson_secret)
+    stub_kubectl_response(
+      "get", "secrets", "--output=json",
+      resp: { items: [dummy_ejson_secret, dummy_secret_hash(managed: false)] }
+    )
     new_content = { "_public_key" => fixture_public_key, "not_the_right_key" => [] }
 
     with_ejson_file(new_content.to_json) do |target_dir|
@@ -75,7 +81,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_run_with_incomplete_secret_spec
-    mock_kubeclient.expects(:get_secret).with('ejson-keys', 'test').returns("data" => correct_ejson_key_secret_data)
+    stub_kubectl_response("get", "secret", "ejson-keys", "--output=json", resp: dummy_ejson_secret)
     new_content = {
       "_public_key" => fixture_public_key,
       "kubernetes_secrets" => { "foobar" => {} }
@@ -93,7 +99,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def correct_ejson_key_secret_data
     {
-      fixture_public_key => "ZmVkY2M5NTEzMmU5YjM5OWVlMWY0MDQzNjRmZGJjODFiZGJlNGZlYjViODI5MmIwNjFmMTAyMjQ4MTE1N2Q1YQ=="
+      fixture_public_key => "fedcc95132e9b399ee1f404364fdbc81bdbe4feb5b8292b061f1022481157d5a"
     }
   end
 
@@ -108,16 +114,45 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     end
   end
 
-  def mock_kubeclient
-    @mock_kubeclient ||= mock('kubeclient')
+  def stub_kubectl_response(*args, resp:, err: "", success: true)
+    response = [resp.to_json, err, stub(success?: success)]
+    KubernetesDeploy::Kubectl.expects(:run_kubectl)
+      .with(*args, namespace: 'test', context: 'minikube')
+      .returns(response)
+  end
+
+  def dummy_ejson_secret(data = correct_ejson_key_secret_data)
+    dummy_secret_hash(data: data, name: 'ejson-keys', managed: false)
+  end
+
+  def dummy_secret_hash(name: SecureRandom.hex(4), data: {}, managed: true)
+    encoded_data = data.each_with_object({}) do |(key, value), encoded|
+      encoded[key] = Base64.encode64(value)
+    end
+
+    secret = {
+      'kind' => 'Secret',
+      'apiVersion' => 'v1',
+      'type' => 'Opaque',
+      'metadata' => {
+        "name" => name,
+        "labels" => { "name" => name },
+        "namespace" => 'test'
+      },
+      "data" => encoded_data
+    }
+    if managed
+      secret['metadata']['annotations'] = { KubernetesDeploy::EjsonSecretProvisioner::MANAGEMENT_ANNOTATION => true }
+    end
+    secret
   end
 
   def build_provisioner(dir = nil)
     dir ||= fixture_path('ejson-cloud')
     KubernetesDeploy::EjsonSecretProvisioner.new(
       namespace: 'test',
-      template_dir: dir,
-      client: mock_kubeclient
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      template_dir: dir
     )
   end
 end
