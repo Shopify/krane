@@ -40,6 +40,42 @@ The following command will restart all pods in the `web` and `jobs` deployments:
 
 `kubernetes-restart <kube namespace> <kube context> --deployments=web,jobs`
 
+### Deploying Kubernetes secrets
+
+**Note: If you're a Shopify employee using our cloud platform, this setup has already been done for you. Please consult the CloudPlatform User Guide for usage instructions.**
+
+Since their data is only base64 encoded, Kubernetes secrets should not be committed to your repository. Instead, `kubernetes-deploy` supports generating secrets from an encrypted [ejson](https://github.com/Shopify/ejson) file in your template directory. Here's how to use this feature:
+
+1. Install the ejson gem: `gem install ejson`
+2. Generate a new keypair: `ejson keygen` (prints the keypair to stdout)
+3. Create a Kubernetes secret in your target namespace with the new keypair: `kubectl create secret generic ejson-keys --from-literal=YOUR_PUBLIC_KEY=YOUR_PRIVATE_KEY --namespace=TARGET_NAMESPACE`
+4. (optional but highly recommended) Back up the keypair somewhere secure, such as a password manager, for disaster recovery purposes.
+5. In your template directory (alongside your Kubernetes templates), create `secrets.ejson` with the format shown below. The `_type` key should have the value “kubernetes.io/tls” for TLS secrets and “Opaque” for all others. The `data` key must be a json object, but its keys and values can be whatever you need.
+
+```json
+{
+  "_public_key": "YOUR_PUBLIC_KEY",
+  "kubernetes_secrets": {
+    "catphotoscom": {
+      "_type": "kubernetes.io/tls",
+      "data": {
+        "tls.crt": "cert-data-here",
+        "tls.key": "key-data-here"
+      }
+    },
+    "monitoring-token": {
+      "_type": "Opaque",
+      "data": {
+        "api-token": "token-value-here"
+      }
+    }
+  }
+}
+```
+
+6. Encrypt the file: `ejson encrypt /PATH/TO/secrets.ejson`
+7. Commit the encrypted file and deploy as usual. The deploy will create secrets from the data in the `kubernetes_secrets` key.
+
 ### Running one off tasks
 
 To trigger a one-off job such as a rake task _outside_ of a deploy, use the following command:
@@ -50,7 +86,7 @@ This command assumes that you've already deployed a `PodTemplate` named `task-ru
 
 #### Creating a PodTemplate
 
-The [`PodTemplate`](https://kubernetes.io/docs/api-reference/v1.6/#podtemplate-v1-core) object should have a field `template` containing a `Pod` specification which does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`. 
+The [`PodTemplate`](https://kubernetes.io/docs/api-reference/v1.6/#podtemplate-v1-core) object should have a field `template` containing a `Pod` specification which does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
 
 #### Providing multiple different task-runner configurations
 

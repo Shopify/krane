@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 require 'securerandom'
 module FixtureDeployHelper
+  EJSON_FILENAME = KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE
+
   # Deploys the specified set of fixtures via KubernetesDeploy::Runner.
   #
   # Optionally takes an array of filenames belonging to the fixture, and deploys that subset only.
@@ -30,22 +32,14 @@ module FixtureDeployHelper
 
     yield fixtures if block_given?
 
-    target_dir = Dir.mktmpdir
-    write_fixtures_to_dir(fixtures, target_dir)
-    deploy_dir(target_dir, wait: wait, allow_protected_ns: allow_protected_ns, prune: prune, bindings: bindings)
-  ensure
-    FileUtils.remove_dir(target_dir) if target_dir
+    Dir.mktmpdir("fixture_dir") do |target_dir|
+      write_fixtures_to_dir(fixtures, target_dir)
+      deploy_dir(target_dir, wait: wait, allow_protected_ns: allow_protected_ns, prune: prune, bindings: bindings)
+    end
   end
 
   def deploy_raw_fixtures(set, wait: true, bindings: {})
     deploy_dir(fixture_path(set), wait: wait, bindings: bindings)
-  end
-
-  def fixture_path(set_name)
-    source_dir = File.expand_path("../../fixtures/#{set_name}", __FILE__)
-    raise ArgumentError,
-      "Fixture set #{set_name} does not exist as directory #{source_dir}" unless File.directory?(source_dir)
-    source_dir
   end
 
   # Deploys all fixtures in the given directory via KubernetesDeploy::Runner
@@ -69,6 +63,9 @@ module FixtureDeployHelper
 
   def load_fixtures(set, subset)
     fixtures = {}
+    ejson_file = File.join(fixture_path(set), EJSON_FILENAME)
+    fixtures[EJSON_FILENAME] = JSON.parse(File.read(ejson_file)) if File.exist?(ejson_file)
+
     Dir["#{fixture_path(set)}/*.yml*"].each do |filename|
       basename = File.basename(filename)
       next unless !subset || subset.include?(basename)
@@ -84,19 +81,9 @@ module FixtureDeployHelper
   end
 
   def write_fixtures_to_dir(fixtures, target_dir)
-    files = [] # keep reference outside Tempfile.open to prevent garbage collection
     fixtures.each do |filename, file_data|
-      basename, exts = extract_basename_and_extensions(filename)
-      data = YAML.dump_stream(*file_data.values.flatten)
-      Tempfile.open([basename, exts], target_dir) do |f|
-        files << f
-        f.write(data)
-      end
+      data_str = filename == EJSON_FILENAME ? file_data.to_json : YAML.dump_stream(*file_data.values.flatten)
+      File.write(File.join(target_dir, filename), data_str)
     end
-  end
-
-  def extract_basename_and_extensions(filename)
-    match_data = filename.match(/(?<basename>.*)(?<ext>\.yml(?:\.erb)?)\z/)
-    [match_data[:basename], match_data[:ext]]
   end
 end

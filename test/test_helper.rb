@@ -7,15 +7,15 @@ require 'timecop'
 require 'minitest/autorun'
 require 'minitest/stub/const'
 require 'webmock/minitest'
+require 'mocha/mini_test'
 
-require 'helpers/kubeclient_helper'
-require 'helpers/fixture_deploy_helper'
-require 'helpers/fixture_set'
-require 'helpers/fixture_sets/hello-cloud'
-
+Dir.glob(File.expand_path("../helpers/**/*.rb", __FILE__)).each { |file| require file }
 ENV["KUBECONFIG"] ||= "#{Dir.home}/.kube/config"
 
 WebMock.allow_net_connect!
+Mocha::Configuration.prevent(:stubbing_method_unnecessarily)
+Mocha::Configuration.prevent(:stubbing_non_existent_method)
+Mocha::Configuration.prevent(:stubbing_non_public_method)
 
 module KubernetesDeploy
   class TestCase < ::Minitest::Test
@@ -41,7 +41,6 @@ module KubernetesDeploy
       end
     end
 
-    alias_method :orig_assert_raises, :assert_raises
     def assert_raises(*exp, message: nil)
       case exp.last
       when String, Regexp
@@ -49,14 +48,21 @@ module KubernetesDeploy
           "To assert the message exception, use `assert_raises_message` or the return value of `assert_raises`"
       else
         exp += Array(message)
-        orig_assert_raises(*exp) { yield }
+        super(*exp) { yield }
       end
     end
 
     def assert_raises_message(exception_class, exception_message)
-      exception = orig_assert_raises(exception_class) { yield }
+      exception = assert_raises(exception_class) { yield }
       assert_match exception_message, exception.message
       exception
+    end
+
+    def fixture_path(set_name)
+      source_dir = File.expand_path("../fixtures/#{set_name}", __FILE__)
+      raise ArgumentError,
+        "Fixture set #{set_name} does not exist as directory #{source_dir}" unless File.directory?(source_dir)
+      source_dir
     end
   end
 
