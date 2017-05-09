@@ -193,7 +193,7 @@ module KubernetesDeploy
     end
 
     def run_kubectl(*args)
-      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context)
+      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context, log_failure: false)
     end
   end
 end
