@@ -117,7 +117,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def stub_kubectl_response(*args, resp:, err: "", success: true)
     response = [resp.to_json, err, stub(success?: success)]
     KubernetesDeploy::Kubectl.expects(:run_kubectl)
-      .with(*args, namespace: 'test', context: 'minikube')
+      .with(*args, namespace: 'test', context: 'minikube', log_failure: false)
       .returns(response)
   end
 
