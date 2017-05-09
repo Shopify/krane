@@ -113,11 +113,7 @@ MSG
       phase_heading("Checking initial resource statuses")
       resources.each(&:sync)
 
-      ejson = EjsonSecretProvisioner.new(
-        namespace: @namespace,
-        template_dir: @template_dir,
-        client: build_v1_kubeclient(@context)
-      )
+      ejson = EjsonSecretProvisioner.new(namespace: @namespace, context: @context, template_dir: @template_dir)
       if ejson.secret_changes_required?
         phase_heading("Deploying kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}")
         ejson.run
