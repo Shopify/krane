@@ -29,7 +29,10 @@ module FixtureSetAssertions
       assert_secret_present("ejson-keys")
       cert_data = { "tls.crt" => "this-is-the-certificate", "tls.key" => "this-is-the-key" }
       assert_secret_present("catphotoscom", cert_data, type: "kubernetes.io/tls", managed: true)
-      assert_secret_present("monitoring-token", { "api-token" => "this-is-the-api-token" }, managed: true)
+
+      token_data = { "api-token" => "this-is-the-api-token", "service" => "Datadog" } # Impt: it isn't _service: Datadog
+      assert_secret_present("monitoring-token", token_data, managed: true)
+
       assert_secret_present("unused-secret", { "this-is-for-testing-deletion" => "true" }, managed: true)
     end
 

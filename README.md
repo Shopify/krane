@@ -76,6 +76,21 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
 6. Encrypt the file: `ejson encrypt /PATH/TO/secrets.ejson`
 7. Commit the encrypted file and deploy as usual. The deploy will create secrets from the data in the `kubernetes_secrets` key.
 
+**Note**: Since leading underscores in ejson keys are used to skip encryption of the associated value, `kubernetes-deploy` will strip these leading underscores when it creates the keys for the Kubernetes secret data. For example, given the ejson data below, the `monitoring-token` secret will have keys `api-token` and `property` (_not_ `_property`):
+```json
+{
+  "_public_key": "YOUR_PUBLIC_KEY",
+  "kubernetes_secrets": {
+    "monitoring-token": {
+      "_type": "kubernetes.io/tls",
+      "data": {
+        "api-token": "EJ[ENCRYPTED]",
+        "_property": "some unencrypted value"
+      }
+    }
+  }
+```
+
 ### Running one off tasks
 
 To trigger a one-off job such as a rake task _outside_ of a deploy, use the following command:

@@ -122,7 +122,10 @@ module KubernetesDeploy
         raise EjsonSecretError, "Data for secret #{secret_name} was invalid. Only key-value pairs are permitted."
       end
       encoded_data = data.each_with_object({}) do |(key, value), encoded|
-        encoded[key] = Base64.encode64(value)
+        # Leading underscores in ejson keys are used to skip encryption of the associated value
+        # To support this ejson feature, we need to exclude these leading underscores from the secret's keys
+        secret_key = key.sub(/\A_/, '')
+        encoded[secret_key] = Base64.encode64(value)
       end
 
       secret = {
