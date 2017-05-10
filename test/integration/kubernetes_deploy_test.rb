@@ -235,11 +235,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match(/Creating secret unused-secret/)
     assert_logs_match(/Creating secret monitoring-token/)
 
-    updated_data = { "_test" => "a" }
     deploy_fixtures("ejson-cloud") do |fixtures|
-      fixtures["secrets.ejson"]["kubernetes_secrets"]["unused-secret"]["data"] = updated_data
+      fixtures["secrets.ejson"]["kubernetes_secrets"]["unused-secret"]["data"] = { "_test" => "a" }
     end
-    ejson_cloud.assert_secret_present('unused-secret', updated_data, managed: true)
+    ejson_cloud.assert_secret_present('unused-secret', { "test" => "a" }, managed: true)
     ejson_cloud.assert_web_resources_up
     assert_logs_match(/Updating secret unused-secret/)
   end
