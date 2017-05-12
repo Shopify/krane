@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/kubeclient_builder'
-require 'kubernetes-deploy/ui_helpers'
 require 'kubernetes-deploy/resource_watcher'
 
 module KubernetesDeploy
   class RestartTask
-    include UIHelpers
     include KubernetesDeploy::KubeclientBuilder
 
     class DeploymentNotFoundError < FatalDeploymentError
@@ -35,6 +33,7 @@ module KubernetesDeploy
     end
 
     def perform(deployments_names = nil)
+      @logger.reset
       verify_namespace
 
       if deployments_names
@@ -53,10 +52,10 @@ module KubernetesDeploy
         end
       end
 
-      phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
+      @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
 
-      phase_heading("Waiting for rollout")
+      @logger.phase_heading("Waiting for rollout")
       wait_for_rollout(deployments)
 
       names = deployments.map { |d| "`#{d.metadata.name}`" }

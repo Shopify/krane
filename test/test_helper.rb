@@ -19,8 +19,20 @@ Mocha::Configuration.prevent(:stubbing_non_public_method)
 module KubernetesDeploy
   class TestCase < ::Minitest::Test
     def setup
-      ColorizedString.disable_colorization = true unless ENV["PRINT_LOGS"]
       @logger_stream = StringIO.new
+
+      if ENV["PRINT_LOGS"]
+        # Allows you to view the integration test output as a series of tophat scenarios
+        <<-MESSAGE.strip_heredoc.each_line { |l| $stderr.puts l }
+
+          \033[0;35m***************************************************************************
+           Begin test: #{name}
+          ***************************************************************************\033[0m
+
+        MESSAGE
+      else
+        ColorizedString.disable_colorization = true
+      end
     end
 
     def logger

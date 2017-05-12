@@ -7,7 +7,6 @@ module KubernetesDeploy
       _, _err, st = kubectl.run("get", type, @name)
       @status = st.success? ? "Available" : "Unknown"
       @found = st.success?
-      log_status
     end
 
     def deploy_succeeded?
@@ -16,6 +15,10 @@ module KubernetesDeploy
 
     def deploy_failed?
       false
+    end
+
+    def timeout_message
+      UNUSUAL_FAILURE_MESSAGE
     end
 
     def exists?

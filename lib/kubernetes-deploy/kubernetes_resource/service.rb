@@ -13,7 +13,6 @@ module KubernetesDeploy
         @num_endpoints = 0
       end
       @status = "#{@num_endpoints} endpoints"
-      log_status
     end
 
     def deploy_succeeded?
@@ -22,6 +21,13 @@ module KubernetesDeploy
 
     def deploy_failed?
       false
+    end
+
+    def timeout_message
+      <<-MSG.strip_heredoc.strip
+        This service does not have any endpoints. If the related pods are failing, fixing them will solve this as well.
+        If the related pods are up, this service's selector is probably incorrect.
+      MSG
     end
 
     def exists?

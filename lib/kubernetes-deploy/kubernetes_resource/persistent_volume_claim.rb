@@ -4,9 +4,9 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
 
     def sync
-      @status, _err, st = kubectl.run("get", type, @name, "--output=jsonpath={.status.phase}")
+      out, _err, st = kubectl.run("get", type, @name, "--output=jsonpath={.status.phase}")
       @found = st.success?
-      log_status
+      @status = out if @found
     end
 
     def deploy_succeeded?

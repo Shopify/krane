@@ -7,17 +7,18 @@ module KubernetesDeploy
     def sync
       _, _err, st = kubectl.run("get", type, @name)
       @found = st.success?
-      @status = if redis_deployment_exists? && redis_service_exists?
+      @deployment_exists = redis_deployment_exists?
+      @service_exists = redis_service_exists?
+
+      @status = if @deployment_exists && @service_exists
         "Provisioned"
       else
         "Unknown"
       end
-
-      log_status
     end
 
     def deploy_succeeded?
-      redis_deployment_exists? && redis_service_exists?
+      @deployment_exists && @service_exists
     end
 
     def deploy_failed?

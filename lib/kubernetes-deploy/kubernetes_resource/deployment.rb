@@ -8,12 +8,13 @@ module KubernetesDeploy
       @found = st.success?
       @rollout_data = {}
       @status = nil
+      @representative_pod = nil
       @pods = []
 
       if @found
         @rollout_data = JSON.parse(json_data)["status"]
           .slice("updatedReplicas", "replicas", "availableReplicas", "unavailableReplicas")
-        @status, _err, _ = kubectl.run("rollout", "status", type, @name, "--watch=false") if @deploy_started
+        @status = @rollout_data.map { |replica_state, num| "#{num} #{replica_state}" }.join(", ")
 
         pod_list, _err, st = kubectl.run("get", "pods", "-a", "-l", "name=#{name}", "--output=json")
         if st.success?
@@ -30,12 +31,24 @@ module KubernetesDeploy
             )
             pod.deploy_started = @deploy_started
             pod.interpret_json_data(pod_json)
+
+            if !@representative_pod && pod_probably_new?(pod_json)
+              @representative_pod = pod
+            end
             @pods << pod
           end
         end
       end
+    end
 
-      log_status
+    def fetch_logs
+      @representative_pod ? @representative_pod.fetch_logs : {}
+    end
+
+    def fetch_events
+      own_events = super
+      return own_events unless @representative_pod
+      own_events.merge(@representative_pod.fetch_events)
     end
 
     def deploy_succeeded?
@@ -59,8 +72,12 @@ module KubernetesDeploy
       @found
     end
 
-    def status_data
-      super.merge(replicas: @rollout_data, num_pods: @pods.length)
+    private
+
+    def pod_probably_new?(pod_json)
+      return false unless @deploy_started
+      # Shitty, brittle workaround to identify a pod from the new ReplicaSet before implementing ReplicaSet awareness
+      Time.parse(pod_json["metadata"]["creationTimestamp"]) >= (@deploy_started - 30.seconds)
     end
   end
 end
