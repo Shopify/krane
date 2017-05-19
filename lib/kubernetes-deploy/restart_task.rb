@@ -31,6 +31,7 @@ module KubernetesDeploy
       @logger = logger
       @kubeclient = build_v1_kubeclient(context)
       @v1beta1_kubeclient = build_v1beta1_kubeclient(context)
+      @policy_v1beta1_kubeclient = build_policy_v1beta1_kubeclient(context)
     end
 
     def perform(deployments_names = nil)

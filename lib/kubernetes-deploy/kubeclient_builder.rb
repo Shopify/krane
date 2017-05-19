@@ -28,6 +28,14 @@ module KubernetesDeploy
       )
     end
 
+    def build_policy_v1beta1_kubeclient(context)
+      _build_kubeclient(
+        api_version: "v1beta1",
+        context: context,
+        endpoint_path: "/apis/policy/"
+      )
+    end
+
     def _build_kubeclient(api_version:, context:, endpoint_path: nil)
       config = GoogleFriendlyConfig.read(ENV.fetch("KUBECONFIG"))
       unless config.contexts.include?(context)

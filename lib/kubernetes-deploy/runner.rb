@@ -17,6 +17,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   service
   pod_template
   bugsnag
+  pod_disruption_budget
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -295,25 +296,38 @@ MSG
       KubernetesDeploy.logger.info("All required parameters and files are present")
     end
 
-    def update_tprs(resources)
-      resources.each do |r|
-        KubernetesDeploy.logger.info("- #{r.id}")
-        r.deploy_started = Time.now.utc
-        _, _, st = run_kubectl("replace", "-f", r.file.path)
-
-        unless st.success?
-          # it doesn't exist so we can't replace it
-          run_kubectl("create", "-f", r.file.path)
-        end
-      end
-    end
-
     def deploy_resources(resources, prune: false)
       KubernetesDeploy.logger.info("Deploying resources:")
 
-      # TPRs must use update for now: https://github.com/kubernetes/kubernetes/issues/39906
-      tprs, resources = resources.partition(&:tpr?)
-      update_tprs(tprs)
+      # Apply can be done in one large batch, the rest have to be done individually
+      applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
+
+      individuals.each do |r|
+        KubernetesDeploy.logger.info("- #{r.id}")
+        r.deploy_started = Time.now.utc
+        case r.deploy_method
+        when :replace
+          _, _, st = run_kubectl("replace", "-f", r.file.path)
+        when :replace_force
+          _, _, st = run_kubectl("replace", "--force", "-f", r.file.path)
+        end
+
+        unless st.success?
+          # it doesn't exist so we can't replace it
+          _, err, st = run_kubectl("create", "-f", r.file.path)
+          unless st.success?
+            raise FatalDeploymentError, <<~MSG
+              Failed to replace or create resource: #{r.id}
+              #{err}
+            MSG
+          end
+        end
+      end
+
+      apply_all(applyables, prune)
+    end
+
+    def apply_all(resources, prune)
       return unless resources.present?
 
       command = ["apply"]

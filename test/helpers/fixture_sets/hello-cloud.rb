@@ -12,6 +12,7 @@ module FixtureSetAssertions
       assert_all_redis_resources_up
       assert_configmap_data_present
       assert_podtemplate_runner_present
+      assert_poddisruptionbudget
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -65,6 +66,12 @@ module FixtureSetAssertions
 
     def assert_podtemplate_runner_present
       assert_pod_templates_present("hello-cloud-template-runner")
+    end
+
+    def assert_poddisruptionbudget
+      budgets = policy_v1beta1_kubeclient.get_pod_disruption_budgets(namespace: namespace)
+      assert_equal 1, budgets.size, "Expected 1 PodDisruptionBudget"
+      assert_equal 2, budgets[0].spec.minAvailable, "Expected PodDisruptionBudget to be overridden"
     end
   end
 end
