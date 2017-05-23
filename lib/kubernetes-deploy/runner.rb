@@ -310,13 +310,16 @@ MSG
           _, _, st = run_kubectl("replace", "-f", r.file.path)
         when :replace_force
           _, _, st = run_kubectl("replace", "--force", "-f", r.file.path)
+        else
+          # Fail Fast! This is a programmer mistake.
+          raise "Unexpected deploy method! (#{r.deploy_method.inspect})"
         end
 
         unless st.success?
           # it doesn't exist so we can't replace it
           _, err, st = run_kubectl("create", "-f", r.file.path)
           unless st.success?
-            raise FatalDeploymentError, <<~MSG
+            raise FatalDeploymentError, <<-MSG.strip_heredoc
               Failed to replace or create resource: #{r.id}
               #{err}
             MSG

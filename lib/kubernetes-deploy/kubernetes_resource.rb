@@ -102,6 +102,7 @@ module KubernetesDeploy
 
     # Expected values: :apply, :replace, :replace_force
     def deploy_method
+      # TPRs must use update for now: https://github.com/kubernetes/kubernetes/issues/39906
       tpr? ? :replace : :apply
     end
 
