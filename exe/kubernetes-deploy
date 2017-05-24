@@ -10,6 +10,7 @@ template_dir = nil
 allow_protected_ns = false
 prune = true
 bindings = {}
+verbose_log_tags = false
 
 ARGV.options do |opts|
   opts.on("--bindings=BINDINGS", Array, "k1=v1,k2=v2") do |binds|
@@ -25,6 +26,7 @@ ARGV.options do |opts|
   opts.on("--allow-protected-ns") { allow_protected_ns = true }
   opts.on("--no-prune") { prune = false }
   opts.on("--template-dir=DIR") { |v| template_dir = v }
+  opts.on("--verbose-log-tags") { verbose_log_tags = true }
   opts.parse!
 end
 
@@ -43,16 +45,23 @@ revision = ENV.fetch('REVISION') do
   exit 1
 end
 
-KubernetesDeploy::Runner.with_friendly_errors do
+namespace = ARGV[0]
+context = ARGV[1]
+logger = KubernetesDeploy::Logger.build(namespace, context, verbose_tags: verbose_log_tags)
+
   runner = KubernetesDeploy::Runner.new(
-    namespace: ARGV[0],
-    context: ARGV[1],
+    namespace: namespace,
+    context: context,
     current_sha: revision,
     template_dir: template_dir,
-    wait_for_completion: !skip_wait,
-    allow_protected_ns: allow_protected_ns,
-    prune: prune,
-    bindings: bindings
+    bindings: bindings,
+    logger: logger
   )
-  runner.run
+
+KubernetesDeploy::Runner.with_friendly_errors do
+  runner.run(
+    skip_wait: skip_wait,
+    allow_protected_ns: allow_protected_ns,
+    prune: prune
+  )
 end

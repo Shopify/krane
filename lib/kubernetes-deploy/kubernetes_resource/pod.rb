@@ -4,17 +4,18 @@ module KubernetesDeploy
     TIMEOUT = 10.minutes
     SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError).freeze
 
-    def initialize(name, namespace, context, file, parent: nil)
+    def initialize(name:, namespace:, context:, file:, logger:, parent: nil)
       @name = name
       @namespace = namespace
       @context = context
       @file = file
       @parent = parent
+      @logger = logger
       @bare = !@parent
     end
 
     def sync
-      out, _err, st = run_kubectl("get", type, @name, "-a", "--output=json")
+      out, _err, st = kubectl.run("get", type, @name, "-a", "--output=json")
       if @found = st.success?
         pod_data = JSON.parse(out)
         interpret_json_data(pod_data)
@@ -36,7 +37,7 @@ module KubernetesDeploy
           waiting_state = status["state"]["waiting"] if status["state"]
           reason = waiting_state["reason"] if waiting_state
           next unless SUSPICIOUS_CONTAINER_STATES.include?(reason)
-          KubernetesDeploy.logger.warn("#{id} has container in state #{reason} (#{waiting_state['message']})")
+          @logger.warn("#{id} has container in state #{reason} (#{waiting_state['message']})")
         end
       end
 
@@ -77,7 +78,7 @@ module KubernetesDeploy
       return {} unless exists? && @containers.present? && !@already_displayed
 
       @containers.each do |container_name|
-        out, _err, st = run_kubectl(
+        out, _err, st = kubectl.run(
           "logs",
           @name,
           "--timestamps=true",
@@ -85,7 +86,11 @@ module KubernetesDeploy
         )
         next unless st.success? && out.present?
 
-        KubernetesDeploy.logger.info "Logs from #{id} container #{container_name}:\x1b[0m \n#{out}\n"
+        @logger.info("Logs from #{id}/#{container_name}:")
+        out.split("\n").each do |line|
+          level = deploy_succeeded? ? :info : :error
+          @logger.public_send(level, "[#{id}/#{container_name}]\t#{line}")
+        end
         @already_displayed = true
       end
     end

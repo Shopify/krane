@@ -1,21 +1,22 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class ResourceWatcher
-    def initialize(resources)
+    def initialize(resources, logger:)
       unless resources.is_a?(Enumerable)
         raise ArgumentError, <<-MSG.strip
 ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
 MSG
       end
       @resources = resources
+      @logger = logger
     end
 
-    def run(delay_sync: 3.seconds, logger: KubernetesDeploy.logger)
+    def run(delay_sync: 3.seconds)
       delay_sync_until = Time.now.utc
       started_at = delay_sync_until
       human_resources = @resources.map(&:id).join(", ")
       max_wait_time = @resources.map(&:timeout).max
-      logger.info("Waiting for #{human_resources} with #{max_wait_time}s timeout")
+      @logger.info("Waiting for #{human_resources} with #{max_wait_time}s timeout")
 
       while @resources.present?
         if Time.now.utc < delay_sync_until
@@ -26,12 +27,12 @@ MSG
         newly_finished_resources, @resources = @resources.partition(&:deploy_finished?)
         newly_finished_resources.each do |resource|
           next unless resource.deploy_failed? || resource.deploy_timed_out?
-          logger.error("#{resource.id} failed to deploy with status '#{resource.status}'.")
+          @logger.error("#{resource.id} failed to deploy with status '#{resource.status}'.")
         end
       end
 
       watch_time = Time.now.utc - started_at
-      logger.info("Spent #{watch_time.round(2)}s waiting for #{human_resources}")
+      @logger.info("Spent #{watch_time.round(2)}s waiting for #{human_resources}")
     end
   end
 end

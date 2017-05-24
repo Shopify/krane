@@ -4,15 +4,8 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     UUID_ANNOTATION = "redis.stable.shopify.io/owner_uid"
 
-    def initialize(name, namespace, context, file)
-      @name = name
-      @namespace = namespace
-      @context = context
-      @file = file
-    end
-
     def sync
-      _, _err, st = run_kubectl("get", type, @name)
+      _, _err, st = kubectl.run("get", type, @name)
       @found = st.success?
       @status = if redis_deployment_exists? && redis_service_exists?
         "Provisioned"
@@ -42,7 +35,7 @@ module KubernetesDeploy
     private
 
     def redis_deployment_exists?
-      deployment, _err, st = run_kubectl("get", "deployments", "redis-#{redis_resource_uuid}", "-o=json")
+      deployment, _err, st = kubectl.run("get", "deployments", "redis-#{redis_resource_uuid}", "-o=json")
 
       if st.success?
         parsed = JSON.parse(deployment)
@@ -57,7 +50,7 @@ module KubernetesDeploy
     end
 
     def redis_service_exists?
-      service, _err, st = run_kubectl("get", "services", "redis-#{redis_resource_uuid}", "-o=json")
+      service, _err, st = kubectl.run("get", "services", "redis-#{redis_resource_uuid}", "-o=json")
 
       if st.success?
         parsed = JSON.parse(service)
@@ -73,7 +66,7 @@ module KubernetesDeploy
     def redis_resource_uuid
       return @redis_resource_uuid if defined?(@redis_resource_uuid) && @redis_resource_uuid
 
-      redis, _err, st = run_kubectl("get", "redises", @name, "-o=json")
+      redis, _err, st = kubectl.run("get", "redises", @name, "-o=json")
       if st.success?
         parsed = JSON.parse(redis)
 

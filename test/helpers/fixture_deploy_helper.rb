@@ -51,12 +51,14 @@ module FixtureDeployHelper
       current_sha: SecureRandom.hex(6),
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       template_dir: dir,
-      wait_for_completion: wait,
-      allow_protected_ns: allow_protected_ns,
-      prune: prune,
+      logger: test_logger,
       bindings: bindings
     )
-    runner.run
+    runner.run(
+      skip_wait: !wait,
+      allow_protected_ns: allow_protected_ns,
+      prune: prune
+    )
   end
 
   private

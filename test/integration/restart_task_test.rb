@@ -8,10 +8,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
 
-    restart = KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
-      namespace: @namespace,
-    )
+    restart = build_restart_task
     restart.perform(["web"])
 
     assert_logs_match(/Triggered `web` restart/, 1)
@@ -26,10 +23,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
     refute fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment"
 
-    restart = KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
-      namespace: @namespace,
-    )
+    restart = build_restart_task
     restart.perform
 
     assert_logs_match(/Triggered `web` restart/, 1)
@@ -40,10 +34,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_by_annotation_none_found
-    restart = KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
-      namespace: @namespace,
-    )
+    restart = build_restart_task
     error = assert_raises(ArgumentError) do
       restart.perform
     end
@@ -55,10 +46,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
 
-    restart = KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
-      namespace: @namespace,
-    )
+    restart = build_restart_task
     restart.perform(["web"])
 
     assert_logs_match(/Triggered `web` restart/, 1)
@@ -81,10 +69,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
 
-    restart = KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
-      namespace: @namespace,
-    )
+    restart = build_restart_task
     restart.perform(%w(web web))
 
     assert_logs_match(/Triggered `web` restart/, 1)
@@ -94,10 +79,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_not_existing_deployment
-    restart = KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
-      namespace: @namespace,
-    )
+    restart = build_restart_task
     assert_raises(KubernetesDeploy::RestartTask::DeploymentNotFoundError) do
       restart.perform(["web"])
     end
@@ -106,10 +88,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_one_not_existing_deployment
     deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
 
-    restart = KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
-      namespace: @namespace,
-    )
+    restart = build_restart_task
     error = assert_raises(KubernetesDeploy::RestartTask::DeploymentNotFoundError) do
       restart.perform(%w(walrus web))
     end
@@ -119,10 +98,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_none
-    restart = KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
-      namespace: @namespace,
-    )
+    restart = build_restart_task
     assert_raises(ArgumentError) do
       restart.perform([])
     end
@@ -133,6 +109,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       KubernetesDeploy::RestartTask.new(
         context: "walrus",
         namespace: @namespace,
+        logger: test_logger
       )
     end
   end
@@ -140,7 +117,8 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_not_existing_namespace
     restart = KubernetesDeploy::RestartTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
-      namespace: "walrus"
+      namespace: "walrus",
+      logger: test_logger
     )
     error = assert_raises(KubernetesDeploy::NamespaceNotFoundError) do
       restart.perform(["web"])
@@ -149,6 +127,14 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   private
+
+  def build_restart_task
+    KubernetesDeploy::RestartTask.new(
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      namespace: @namespace,
+      logger: test_logger
+    )
+  end
 
   def fetch_restarted_at(deployment_name)
     deployment = v1beta1_kubeclient.get_deployment(deployment_name, @namespace)

@@ -2,29 +2,18 @@
 require 'test_helper'
 
 class LoggerTest < KubernetesDeploy::TestCase
-  def setup
-    # don't use the test logger
-    KubernetesDeploy.logger = nil
-  end
-
-  def teardown
-    # reset to the test logger
-    KubernetesDeploy.logger = @logger
-  end
-
-  def test_real_logger
-    prod_logger = KubernetesDeploy.logger
-    assert prod_logger.is_a?(::Logger)
-    assert prod_logger.instance_variable_get(:@logdev).dev == ::STDERR, "This was not the actual production logger"
-    assert_equal ::Logger::INFO, prod_logger.level
-    refute_nil prod_logger.formatter
+  def test_build
+    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream)
+    assert new_logger.is_a?(::Logger)
+    assert_equal ::Logger::INFO, new_logger.level
+    refute_nil new_logger.formatter
   end
 
   def test_debug_log_level_from_env
     original_env = ENV["DEBUG"]
     ENV["DEBUG"] = "lol"
-    prod_logger = KubernetesDeploy.logger
-    assert_equal ::Logger::DEBUG, prod_logger.level
+    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream)
+    assert_equal ::Logger::DEBUG, new_logger.level
   ensure
     ENV["DEBUG"] = original_env
   end
@@ -32,9 +21,46 @@ class LoggerTest < KubernetesDeploy::TestCase
   def test_warn_log_level_from_env
     original_env = ENV["LEVEL"]
     ENV["LEVEL"] = "warn"
-    prod_logger = KubernetesDeploy.logger
-    assert_equal ::Logger::WARN, prod_logger.level
+    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream)
+    assert_equal ::Logger::WARN, new_logger.level
   ensure
     ENV["LEVEL"] = original_env
+  end
+
+  def test_verbose_tag_mode
+    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream, verbose_tags: true)
+    new_logger.info("This should have namespace and context information")
+    assert_logs_match(/^\[INFO\].*\[minikube\]\[test-ns\]\tThis should have namespace and context information$/)
+  end
+
+  def test_blank_line
+    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream)
+    new_logger.info("FYI")
+    new_logger.blank_line
+    new_logger.warn("Warning")
+    new_logger.blank_line(:warn)
+    new_logger.error("Error")
+    new_logger.blank_line(:fatal)
+    new_logger.fatal("Fatal")
+
+    # example output
+    # [INFO][2017-05-19 20:07:31 -0400]\tFYI
+    # [INFO][2017-05-19 20:07:31 -0400]\t
+    # [WARN][2017-05-19 20:07:31 -0400]\tWarning
+    # [WARN][2017-05-19 20:07:31 -0400]\t
+    # [ERROR][2017-05-19 20:07:31 -0400]\tError
+    # [FATAL][2017-05-19 20:07:31 -0400]\t
+    # [FATAL][2017-05-19 20:07:31 -0400]\tFatal
+
+    @logger_stream.rewind
+    scanner = StringScanner.new(@logger_stream.read)
+
+    assert scanner.scan_until(/^\[INFO\].*\]\tFYI$/)
+    assert scanner.scan_until(/^\[INFO\].*\]\t$/)
+    assert scanner.scan_until(/^\[WARN\].*\]\tWarning$/)
+    assert scanner.scan_until(/^\[WARN\].*\]\t$/)
+    assert scanner.scan_until(/^\[ERROR\].*\]\tError$/)
+    assert scanner.scan_until(/^\[FATAL\].*\]\t$/)
+    assert scanner.scan_until(/^\[FATAL\].*\]\tFatal$/)
   end
 end

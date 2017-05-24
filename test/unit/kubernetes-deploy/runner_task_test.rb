@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'test_helper'
+require 'kubernetes-deploy/runner_task'
 
 class RunnerTaskUnitTest < KubernetesDeploy::TestCase
   def test_missing_namespace
@@ -8,6 +9,7 @@ class RunnerTaskUnitTest < KubernetesDeploy::TestCase
       task_runner = KubernetesDeploy::RunnerTask.new(
         context: KubeclientHelper::MINIKUBE_CONTEXT,
         namespace: "missing",
+        logger: test_logger,
       )
 
       task_runner.run(
@@ -23,6 +25,7 @@ class RunnerTaskUnitTest < KubernetesDeploy::TestCase
       task_runner = KubernetesDeploy::RunnerTask.new(
         context: KubeclientHelper::MINIKUBE_CONTEXT,
         namespace: @namespace,
+        logger: test_logger,
       )
 
       task_runner.run(
@@ -37,7 +40,8 @@ class RunnerTaskUnitTest < KubernetesDeploy::TestCase
     assert_raises(KubernetesDeploy::RunnerTask::FatalTaskRunError) do
       task_runner = KubernetesDeploy::RunnerTask.new(
         namespace: @namespace,
-        context: KubeclientHelper::MINIKUBE_CONTEXT
+        context: KubeclientHelper::MINIKUBE_CONTEXT,
+        logger: test_logger,
       )
 
       task_runner.run(

@@ -14,20 +14,20 @@ class RunnerTest < KubernetesDeploy::TestCase
 
     runner = KubernetesDeploy::Runner.new(
       namespace: "",
-      current_sha: "",
       context: "",
+      logger: test_logger,
+      current_sha: "",
       template_dir: "unknown",
-      wait_for_completion: true,
     )
-    error_msg = assert_raises(KubernetesDeploy::FatalDeploymentError) do
+    assert_raises_message(KubernetesDeploy::FatalDeploymentError, "Configuration invalid") do
       runner.run
-    end.to_s
+    end
 
-    assert_includes error_msg, "Kube config not found at /this-really-should/not-exist"
-    assert_includes error_msg, "Current SHA must be specified"
-    assert_includes error_msg, "Namespace must be specified"
-    assert_includes error_msg, "Context must be specified"
-    assert_match(/Template directory (\S+) doesn't exist/, error_msg)
+    assert_logs_match("Kube config not found at /this-really-should/not-exist")
+    assert_logs_match("Current SHA must be specified")
+    assert_logs_match("Namespace must be specified")
+    assert_logs_match("Context must be specified")
+    assert_logs_match(/Template directory (\S+) doesn't exist/)
 
   ensure
     ENV["KUBECONFIG"] = original_env

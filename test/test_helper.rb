@@ -20,18 +20,29 @@ Mocha::Configuration.prevent(:stubbing_non_public_method)
 module KubernetesDeploy
   class TestCase < ::Minitest::Test
     def setup
+      ColorizedString.disable_colorization = true unless ENV["PRINT_LOGS"]
       @logger_stream = StringIO.new
-      @logger = ::Logger.new(@logger_stream)
-      @logger.level = ::Logger::INFO
-      KubernetesDeploy.logger = @logger
-      KubernetesResource.logger = @logger
+    end
+
+    def test_logger
+      @test_logger ||= begin
+        device = ENV["PRINT_LOGS"] ? $stderr : @logger_stream
+        KubernetesDeploy::Logger.build(@namespace, KubeclientHelper::MINIKUBE_CONTEXT, device)
+      end
     end
 
     def teardown
+      ColorizedString.disable_colorization = false
       @logger_stream.close
     end
 
     def assert_logs_match(regexp, times = nil)
+      if ENV["PRINT_LOGS"]
+        assertion = "\033[0;35massert_logs_match(#{regexp.inspect})\033[0;33m"
+        $stderr.puts("\033[0;33mWARNING: Skipping #{assertion} while logs are redirected to stderr\033[0m")
+        return
+      end
+
       @logger_stream.rewind
       if times
         count = @logger_stream.read.scan(regexp).count

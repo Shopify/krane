@@ -8,7 +8,6 @@ require 'kubernetes-deploy/kubectl'
 module KubernetesDeploy
   class RunnerTask
     include KubeclientBuilder
-    include Kubectl
     include UIHelpers
 
     class FatalTaskRunError < FatalDeploymentError; end
@@ -18,7 +17,7 @@ module KubernetesDeploy
       end
     end
 
-    def initialize(namespace:, context:, logger: KubernetesDeploy.logger)
+    def initialize(namespace:, context:, logger:)
       @logger = logger
       @namespace = namespace
       @kubeclient = build_v1_kubeclient(context)
@@ -38,7 +37,7 @@ module KubernetesDeploy
       validate_pod_spec(rendered_template)
 
       phase_heading("Creating pod")
-      KubernetesDeploy.logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
+      @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
       @kubeclient.create_pod(rendered_template)
     end
 
@@ -73,7 +72,7 @@ module KubernetesDeploy
     end
 
     def get_template(template_name)
-      KubernetesDeploy.logger.info(
+      @logger.info(
         "Fetching task runner pod template: '#{template_name}' in namespace: '#{@namespace}'"
       )
 
@@ -89,7 +88,7 @@ module KubernetesDeploy
     end
 
     def build_pod_template(base_template, entrypoint, args, env_vars)
-      KubernetesDeploy.logger.info("Rendering template for task runner pod")
+      @logger.info("Rendering template for task runner pod")
 
       rendered_template = base_template.dup
       rendered_template.kind = 'Pod'
@@ -112,7 +111,7 @@ module KubernetesDeploy
 
       unique_name = rendered_template.metadata.name + "-" + SecureRandom.hex(8)
 
-      KubernetesDeploy.logger.warn("Name is too long, using '#{unique_name[0..62]}'") if unique_name.length > 63
+      @logger.warn("Name is too long, using '#{unique_name[0..62]}'") if unique_name.length > 63
       rendered_template.metadata.name = unique_name[0..62]
       rendered_template.metadata.namespace = @namespace
 
@@ -124,11 +123,8 @@ module KubernetesDeploy
       f.write recursive_to_h(pod).to_json
       f.close
 
-      _out, err, status = Kubectl.run_kubectl(
-        "apply", "--dry-run", "-f", f.path,
-        namespace: @namespace,
-        context: @context
-      )
+      kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+      _out, err, status = kubectl.run("apply", "--dry-run", "-f", f.path)
 
       unless status.success?
         raise FatalTaskRunError, "Invalid pod spec: #{err}"
