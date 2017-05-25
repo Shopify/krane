@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class Cloudsql < KubernetesResource
-    TIMEOUT = 5.minutes
+    TIMEOUT = 10.minutes
 
     def initialize(name, namespace, context, file)
       @name = name
