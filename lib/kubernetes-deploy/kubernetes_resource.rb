@@ -36,6 +36,7 @@ module KubernetesDeploy
       when 'persistentvolumeclaim' then PersistentVolumeClaim.new(name, namespace, context, file)
       when 'service' then Service.new(name, namespace, context, file)
       when 'podtemplate' then PodTemplate.new(name, namespace, context, file)
+      when 'poddisruptionbudget' then PodDisruptionBudget.new(name, namespace, context, file)
       else self.new(name, namespace, context, file).tap { |r| r.type = type }
       end
     end
@@ -97,6 +98,12 @@ module KubernetesDeploy
 
     def tpr?
       false
+    end
+
+    # Expected values: :apply, :replace, :replace_force
+    def deploy_method
+      # TPRs must use update for now: https://github.com/kubernetes/kubernetes/issues/39906
+      tpr? ? :replace : :apply
     end
 
     def status_data

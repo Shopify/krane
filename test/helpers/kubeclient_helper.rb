@@ -13,4 +13,8 @@ module KubeclientHelper
   def v1beta1_kubeclient
     @v1beta1_kubeclient ||= build_v1beta1_kubeclient(MINIKUBE_CONTEXT)
   end
+
+  def policy_v1beta1_kubeclient
+    @policy_v1beta1_kubeclient ||= build_policy_v1beta1_kubeclient(MINIKUBE_CONTEXT)
+  end
 end
