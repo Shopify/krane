@@ -312,7 +312,7 @@ MSG
           _, _, st = run_kubectl("replace", "--force", "-f", r.file.path)
         else
           # Fail Fast! This is a programmer mistake.
-          raise "Unexpected deploy method! (#{r.deploy_method.inspect})"
+          raise ArgumentError, "Unexpected deploy method! (#{r.deploy_method.inspect})"
         end
 
         unless st.success?

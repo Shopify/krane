@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class PodDisruptionBudget < KubernetesResource
-    TIMEOUT = 30.seconds
+    TIMEOUT = 10.seconds
 
     def initialize(name, namespace, context, file)
       @name = name
@@ -22,6 +22,7 @@ module KubernetesDeploy
     end
 
     def deploy_method
+      # Required until https://github.com/kubernetes/kubernetes/issues/45398 changes
       :replace_force
     end
 
