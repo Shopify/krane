@@ -2,13 +2,13 @@
 require 'logger'
 
 module KubernetesDeploy
-  module Logger
-    def self.build(namespace, context, stream = $stderr, verbose_tags: false)
-      l = ::Logger.new(stream)
+  class FormattedLogger < Logger
+    def self.build(namespace, context, stream = $stderr, verbose_prefix: false)
+      l = new(stream)
       l.level = level_from_env
 
       l.formatter = proc do |severity, datetime, _progname, msg|
-        middle = verbose_tags ? "[#{context}][#{namespace}]" : ""
+        middle = verbose_prefix ? "[#{context}][#{namespace}]" : ""
         colorized_line = ColorizedString.new("[#{severity}][#{datetime}]#{middle}\t#{msg}\n")
 
         case severity
@@ -22,11 +22,6 @@ module KubernetesDeploy
           colorized_line
         end
       end
-
-      def l.blank_line(level = :info)
-        public_send(level, "")
-      end
-
       l
     end
 
@@ -39,7 +34,10 @@ module KubernetesDeploy
         ::Logger::INFO
       end
     end
-
     private_class_method :level_from_env
+
+    def blank_line(level = :info)
+      public_send(level, "")
+    end
   end
 end

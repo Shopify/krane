@@ -22,6 +22,7 @@ module KubernetesDeploy
       @context = context
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
       @logger = logger
+      @kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
     end
 
     def secret_changes_required?
@@ -61,7 +62,7 @@ module KubernetesDeploy
         next if ejson_secret_names.include?(secret_name)
 
         @logger.info("Pruning secret #{secret_name}")
-        out, err, st = kubectl.run("delete", "secret", secret_name)
+        out, err, st = @kubectl.run("delete", "secret", secret_name)
         @logger.debug(out)
         raise EjsonSecretError, err unless st.success?
       end
@@ -107,7 +108,7 @@ module KubernetesDeploy
       file.write(secret_yaml)
       file.close
 
-      out, err, st = kubectl.run("apply", "--filename=#{file.path}")
+      out, err, st = @kubectl.run("apply", "--filename=#{file.path}")
       @logger.debug(out)
       raise EjsonSecretError, err unless st.success?
     ensure
@@ -141,7 +142,7 @@ module KubernetesDeploy
     end
 
     def secret_exists?(secret_name)
-      _out, _err, st = kubectl.run("get", "secret", secret_name)
+      _out, _err, st = @kubectl.run("get", "secret", secret_name)
       st.success?
     end
 
@@ -186,14 +187,10 @@ module KubernetesDeploy
 
     def run_kubectl_json(*args)
       args += ["--output=json"]
-      out, err, st = kubectl.run(*args)
+      out, err, st = @kubectl.run(*args)
       raise EjsonSecretError, err unless st.success?
       result = JSON.parse(out)
       result.fetch('items', result)
-    end
-
-    def kubectl
-      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
     end
   end
 end

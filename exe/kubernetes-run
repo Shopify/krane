@@ -18,7 +18,7 @@ end
 
 namespace = ARGV[0]
 context = ARGV[1]
-logger = KubernetesDeploy::Logger.build(namespace, context)
+logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
 
 runner = KubernetesDeploy::RunnerTask.new(
   namespace: namespace,

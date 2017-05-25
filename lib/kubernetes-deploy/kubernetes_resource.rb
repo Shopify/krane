@@ -25,10 +25,11 @@ module KubernetesDeploy
       when 'poddisruptionbudget' then PodDisruptionBudget
       end
 
+      opts = { name: name, namespace: namespace, context: context, file: file, logger: logger }
       if subclass
-        subclass.new(name: name, namespace: namespace, context: context, file: file, logger: logger)
+        subclass.new(**opts)
       else
-        inst = new(name: name, namespace: namespace, context: context, file: file, logger: logger)
+        inst = new(**opts)
         inst.tap { |r| r.type = type }
       end
     end

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class LoggerTest < KubernetesDeploy::TestCase
+class FormattedLoggerTest < KubernetesDeploy::TestCase
   def test_build
-    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream)
+    new_logger = KubernetesDeploy::FormattedLogger.build('test-ns', 'minikube', @logger_stream)
     assert new_logger.is_a?(::Logger)
     assert_equal ::Logger::INFO, new_logger.level
     refute_nil new_logger.formatter
@@ -12,7 +12,7 @@ class LoggerTest < KubernetesDeploy::TestCase
   def test_debug_log_level_from_env
     original_env = ENV["DEBUG"]
     ENV["DEBUG"] = "lol"
-    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream)
+    new_logger = KubernetesDeploy::FormattedLogger.build('test-ns', 'minikube', @logger_stream)
     assert_equal ::Logger::DEBUG, new_logger.level
   ensure
     ENV["DEBUG"] = original_env
@@ -21,20 +21,20 @@ class LoggerTest < KubernetesDeploy::TestCase
   def test_warn_log_level_from_env
     original_env = ENV["LEVEL"]
     ENV["LEVEL"] = "warn"
-    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream)
+    new_logger = KubernetesDeploy::FormattedLogger.build('test-ns', 'minikube', @logger_stream)
     assert_equal ::Logger::WARN, new_logger.level
   ensure
     ENV["LEVEL"] = original_env
   end
 
   def test_verbose_tag_mode
-    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream, verbose_tags: true)
+    new_logger = KubernetesDeploy::FormattedLogger.build('test-ns', 'minikube', @logger_stream, verbose_prefix: true)
     new_logger.info("This should have namespace and context information")
     assert_logs_match(/^\[INFO\].*\[minikube\]\[test-ns\]\tThis should have namespace and context information$/)
   end
 
   def test_blank_line
-    new_logger = KubernetesDeploy::Logger.build('test-ns', 'minikube', @logger_stream)
+    new_logger = KubernetesDeploy::FormattedLogger.build('test-ns', 'minikube', @logger_stream)
     new_logger.info("FYI")
     new_logger.blank_line
     new_logger.warn("Warning")

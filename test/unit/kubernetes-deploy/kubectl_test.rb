@@ -40,38 +40,38 @@ class KubectlTest < KubernetesDeploy::TestCase
 
   def test_run_logs_failures_when_log_failure_by_default_is_true_and_override_is_unspecified
     stub_open3(%w(kubectl get pods --namespace=testn --context=testc), resp: "", err: "oops", success: false)
-    test_logger.expects(:warn).twice
     build_kubectl(log_failure_by_default: true).run("get", "pods")
+    assert_logs_match("[WARN]", 2)
   end
 
   def test_run_logs_failures_when_log_failure_by_default_is_true_and_override_is_also_true
     stub_open3(%w(kubectl get pods --namespace=testn --context=testc), resp: "", err: "oops", success: false)
-    test_logger.expects(:warn).twice
     build_kubectl(log_failure_by_default: true).run("get", "pods", log_failure: true)
+    assert_logs_match("[WARN]", 2)
   end
 
   def test_run_does_not_log_failures_when_log_failure_by_default_is_true_and_override_is_false
     stub_open3(%w(kubectl get pods --namespace=testn --context=testc), resp: "", err: "oops", success: false)
-    test_logger.expects(:warn).never
     build_kubectl(log_failure_by_default: true).run("get", "pods", log_failure: false)
+    refute_logs_match("[WARN]")
   end
 
   def test_run_does_not_log_failures_when_log_failure_by_default_is_false_and_override_is_unspecified
     stub_open3(%w(kubectl get pods --namespace=testn --context=testc), resp: "", err: "oops", success: false)
-    test_logger.expects(:warn).never
     build_kubectl(log_failure_by_default: false).run("get", "pods")
+    refute_logs_match("[WARN]")
   end
 
   def test_run_does_not_log_failures_when_log_failure_by_default_is_false_and_override_is_also_false
     stub_open3(%w(kubectl get pods --namespace=testn --context=testc), resp: "", err: "oops", success: false)
-    test_logger.expects(:warn).never
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: false)
+    refute_logs_match("[WARN]")
   end
 
   def test_run_logs_failures_when_log_failure_by_default_is_false_and_override_is_true
     stub_open3(%w(kubectl get pods --namespace=testn --context=testc), resp: "", err: "oops", success: false)
-    test_logger.expects(:warn).twice
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: true)
+    assert_logs_match("[WARN]", 2)
   end
 
   private

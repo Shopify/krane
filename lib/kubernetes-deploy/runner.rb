@@ -85,7 +85,7 @@ module KubernetesDeploy
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
     end
 
-    def run(skip_wait: false, allow_protected_ns: false, prune: true)
+    def run(verify_result: true, allow_protected_ns: false, prune: true)
       phase_heading("Validating configuration")
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
 
@@ -120,7 +120,7 @@ module KubernetesDeploy
 
       deploy_resources(resources, prune: prune)
 
-      return if skip_wait
+      return unless verify_result
       wait_for_completion(resources)
       report_final_status(resources)
     rescue FatalDeploymentError => error

@@ -55,7 +55,7 @@ module FixtureDeployHelper
       bindings: bindings
     )
     runner.run(
-      skip_wait: !wait,
+      verify_result: wait,
       allow_protected_ns: allow_protected_ns,
       prune: prune
     )

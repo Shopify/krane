@@ -27,7 +27,7 @@ module KubernetesDeploy
     def test_logger
       @test_logger ||= begin
         device = ENV["PRINT_LOGS"] ? $stderr : @logger_stream
-        KubernetesDeploy::Logger.build(@namespace, KubeclientHelper::MINIKUBE_CONTEXT, device)
+        KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::MINIKUBE_CONTEXT, device)
       end
     end
 
@@ -46,10 +46,21 @@ module KubernetesDeploy
       @logger_stream.rewind
       if times
         count = @logger_stream.read.scan(regexp).count
-        assert_equal 1, count, "Expected #{regexp} to appear #{times} time(s) in the log, but appeared #{count} times"
+        assert_equal times, count, "Expected #{regexp} to appear #{times} time(s) in the log, but appeared #{count} times"
       else
         assert_match regexp, @logger_stream.read
       end
+    end
+
+    def refute_logs_match(regexp)
+      if ENV["PRINT_LOGS"]
+        assertion = "\033[0;35mrefute_logs_match(#{regexp.inspect})\033[0;33m"
+        $stderr.puts("\033[0;33mWARNING: Skipping #{assertion} while logs are redirected to stderr\033[0m")
+        return
+      end
+
+      @logger_stream.rewind
+      refute_match regexp, @logger_stream.read
     end
 
     def assert_raises(*exp, message: nil)

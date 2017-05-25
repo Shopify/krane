@@ -10,7 +10,7 @@ template_dir = nil
 allow_protected_ns = false
 prune = true
 bindings = {}
-verbose_log_tags = false
+verbose_log_prefix = false
 
 ARGV.options do |opts|
   opts.on("--bindings=BINDINGS", Array, "k1=v1,k2=v2") do |binds|
@@ -26,7 +26,7 @@ ARGV.options do |opts|
   opts.on("--allow-protected-ns") { allow_protected_ns = true }
   opts.on("--no-prune") { prune = false }
   opts.on("--template-dir=DIR") { |v| template_dir = v }
-  opts.on("--verbose-log-tags") { verbose_log_tags = true }
+  opts.on("--verbose-log-prefix") { verbose_log_prefix = true }
   opts.parse!
 end
 
@@ -47,7 +47,7 @@ end
 
 namespace = ARGV[0]
 context = ARGV[1]
-logger = KubernetesDeploy::Logger.build(namespace, context, verbose_tags: verbose_log_tags)
+logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
 
   runner = KubernetesDeploy::Runner.new(
     namespace: namespace,
@@ -60,7 +60,7 @@ logger = KubernetesDeploy::Logger.build(namespace, context, verbose_tags: verbos
 
 KubernetesDeploy::Runner.with_friendly_errors do
   runner.run(
-    skip_wait: skip_wait,
+    verify_result: !skip_wait,
     allow_protected_ns: allow_protected_ns,
     prune: prune
   )

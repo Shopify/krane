@@ -14,7 +14,7 @@ end
 
 namespace = ARGV[0]
 context = ARGV[1]
-logger = KubernetesDeploy::Logger.build(namespace, context)
+logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
 
 KubernetesDeploy::Runner.with_friendly_errors do
   restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: context, logger: logger)
