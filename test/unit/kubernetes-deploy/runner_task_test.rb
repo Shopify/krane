@@ -3,6 +3,11 @@ require 'test_helper'
 require 'kubernetes-deploy/runner_task'
 
 class RunnerTaskUnitTest < KubernetesDeploy::TestCase
+  def setup
+    Kubeclient::Client.any_instance.stubs(:discover)
+    super
+  end
+
   def test_invalid_configuration
     task_runner = KubernetesDeploy::RunnerTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,

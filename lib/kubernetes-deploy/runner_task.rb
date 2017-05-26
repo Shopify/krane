@@ -63,7 +63,7 @@ module KubernetesDeploy
       end
 
       begin
-        @kubeclient.get_namespace(@namespace)
+        @kubeclient.get_namespace(@namespace) if @namespace.present?
       rescue KubeException => e
         errors << if e.error_code == 404
           "Namespace was not found"

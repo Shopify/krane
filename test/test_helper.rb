@@ -12,7 +12,6 @@ require 'mocha/mini_test'
 Dir.glob(File.expand_path("../helpers/**/*.rb", __FILE__)).each { |file| require file }
 ENV["KUBECONFIG"] ||= "#{Dir.home}/.kube/config"
 
-WebMock.allow_net_connect!
 Mocha::Configuration.prevent(:stubbing_method_unnecessarily)
 Mocha::Configuration.prevent(:stubbing_non_existent_method)
 Mocha::Configuration.prevent(:stubbing_non_public_method)
@@ -93,10 +92,12 @@ module KubernetesDeploy
     include FixtureDeployHelper
 
     def run
+      WebMock.allow_net_connect!
       @namespace = TestProvisioner.claim_namespace(name)
       super
     ensure
       TestProvisioner.delete_namespace(@namespace)
+      WebMock.disable_net_connect!
     end
   end
 
@@ -144,6 +145,8 @@ module KubernetesDeploy
     end
   end
 
+  WebMock.allow_net_connect!
   TestProvisioner.prepare_pv("pv0001")
   TestProvisioner.prepare_pv("pv0002")
+  WebMock.disable_net_connect!
 end
