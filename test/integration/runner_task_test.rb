@@ -15,7 +15,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert task_runner.run(
       task_template: 'hello-cloud-template-runner',
       entrypoint: ['/bin/bash'],
-      args: %w(echo "KUBERNETES-DEPLOY")
+      args: ["echo", "'KUBERNETES-DEPLOY'"]
     )
 
     assert_logs_match(/Starting task runner/)
@@ -68,8 +68,9 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     refute task_runner.run(
       task_template: 'hello-cloud-template-runner',
       entrypoint: ['/bin/bash'],
-      args: %w(echo "KUBERNETES-DEPLOY")
+      args: ["echo", "'KUBERNETES-DEPLOY'"]
     )
-    assert_logs_match(/Pod template `hello-cloud-template-runner` cannot be found in namespace: `.+`, context: `minikube`/)
+    expected = /Pod template `hello-cloud-template-runner` cannot be found in namespace: `.+`, context: `minikube`/
+    assert_logs_match(expected)
   end
 end

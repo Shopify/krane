@@ -45,7 +45,8 @@ module KubernetesDeploy
       @logger_stream.rewind
       if times
         count = @logger_stream.read.scan(regexp).count
-        assert_equal times, count, "Expected #{regexp} to appear #{times} time(s) in the log, but appeared #{count} times"
+        fail_msg = "Expected #{regexp} to appear #{times} time(s) in the log, but it appeared #{count} times"
+        assert_equal times, count, fail_msg
       else
         assert_match regexp, @logger_stream.read
       end

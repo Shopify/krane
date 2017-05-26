@@ -167,7 +167,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
-    assert_logs_match(/The following priority resources failed to deploy: Pod\/unmanaged-pod/)
+    assert_logs_match(%r{The following priority resources failed to deploy: Pod\/unmanaged-pod})
 
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_unmanaged_pod_statuses("Failed")
@@ -183,7 +183,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
-    assert_logs_match(/The following priority resources failed to deploy: Pod\/unmanaged-pod/)
+    assert_logs_match(%r{The following priority resources failed to deploy: Pod\/unmanaged-pod})
     assert_logs_match(/DeadlineExceeded/)
   end
 
