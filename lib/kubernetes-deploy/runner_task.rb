@@ -24,7 +24,15 @@ module KubernetesDeploy
       @context = context
     end
 
-    def run(task_template:, entrypoint:, args:, env_vars: [])
+    def run(*args)
+      run!(*args)
+      true
+    rescue FatalDeploymentError => error
+      @logger.fatal "#{error.class}: #{error.message}"
+      false
+    end
+
+    def run!(task_template:, entrypoint:, args:, env_vars: [])
       phase_heading("Validating configuration")
       validate_configuration(task_template, args)
 
@@ -39,10 +47,6 @@ module KubernetesDeploy
       phase_heading("Creating pod")
       @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
       @kubeclient.create_pod(rendered_template)
-      true
-    rescue FatalDeploymentError => error
-      @logger.fatal "#{error.class}: #{error.message}"
-      false
     end
 
     private
