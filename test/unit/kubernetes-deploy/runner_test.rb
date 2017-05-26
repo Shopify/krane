@@ -19,10 +19,9 @@ class RunnerTest < KubernetesDeploy::TestCase
       current_sha: "",
       template_dir: "unknown",
     )
-    assert_raises_message(KubernetesDeploy::FatalDeploymentError, "Configuration invalid") do
-      runner.run
-    end
+    runner.run
 
+    assert_logs_match("Configuration invalid")
     assert_logs_match("Kube config not found at /this-really-should/not-exist")
     assert_logs_match("Current SHA must be specified")
     assert_logs_match("Namespace must be specified")

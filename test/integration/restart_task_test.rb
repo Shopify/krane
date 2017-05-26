@@ -4,12 +4,12 @@ require 'kubernetes-deploy/restart_task'
 
 class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart
-    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
+    assert deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
 
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
 
     restart = build_restart_task
-    restart.perform(["web"])
+    assert restart.perform(["web"])
 
     assert_logs_match(/Triggered `web` restart/, 1)
     assert_logs_match(/Restart of `web` deployments succeeded/, 1)
@@ -18,13 +18,13 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_by_annotation
-    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"])
+    assert deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"])
 
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
     refute fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment"
 
     restart = build_restart_task
-    restart.perform
+    assert restart.perform
 
     assert_logs_match(/Triggered `web` restart/, 1)
     assert_logs_match(/Restart of `web` deployments succeeded/, 1)
@@ -42,12 +42,12 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_twice
-    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
+    assert deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
 
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
 
     restart = build_restart_task
-    restart.perform(["web"])
+    assert restart.perform(["web"])
 
     assert_logs_match(/Triggered `web` restart/, 1)
     assert_logs_match(/Restart of `web` deployments succeeded/, 1)
@@ -56,7 +56,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert first_restarted_at, "RESTARTED_AT is present after first restart"
 
     Timecop.freeze(1.second.from_now) do
-      restart.perform(["web"])
+      assert restart.perform(["web"])
     end
 
     second_restarted_at = fetch_restarted_at("web")
@@ -65,12 +65,12 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_with_same_resource_twice
-    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
+    assert deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
 
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
 
     restart = build_restart_task
-    restart.perform(%w(web web))
+    assert restart.perform(%w(web web))
 
     assert_logs_match(/Triggered `web` restart/, 1)
     assert_logs_match(/Restart of `web` deployments succeeded/, 1)
@@ -80,20 +80,17 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
   def test_restart_not_existing_deployment
     restart = build_restart_task
-    assert_raises(KubernetesDeploy::RestartTask::DeploymentNotFoundError) do
-      restart.perform(["web"])
-    end
+    refute restart.perform(["web"])
+    assert_logs_match(/Deployment `web` not found in namespace .+. Aborting the task./)
   end
 
   def test_restart_one_not_existing_deployment
-    deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
+    assert deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
 
     restart = build_restart_task
-    error = assert_raises(KubernetesDeploy::RestartTask::DeploymentNotFoundError) do
-      restart.perform(%w(walrus web))
-    end
+    refute restart.perform(%w(walrus web))
 
-    assert_match(/Deployment `walrus` not found/, error.to_s)
+    assert_logs_match(/Deployment `walrus` not found/)
     refute fetch_restarted_at("web"), "no RESTARTED_AT env after failed restart task"
   end
 
@@ -120,10 +117,8 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       namespace: "walrus",
       logger: test_logger
     )
-    error = assert_raises(KubernetesDeploy::NamespaceNotFoundError) do
-      restart.perform(["web"])
-    end
-    assert_equal "Namespace `walrus` not found in context `minikube`. Aborting the task.", error.to_s
+    refute restart.perform(["web"])
+    assert_logs_match("Namespace `walrus` not found in context `minikube`. Aborting the task.")
   end
 
   private

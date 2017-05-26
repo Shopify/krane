@@ -12,13 +12,15 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       logger: test_logger,
     )
 
-    task_runner.run(
+    assert task_runner.run(
       task_template: 'hello-cloud-template-runner',
       entrypoint: ['/bin/bash'],
       args: %w(echo "KUBERNETES-DEPLOY")
     )
 
     assert_logs_match(/Starting task runner/)
+    pods = kubeclient.get_pods(namespace: @namespace)
+    assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
   end
 
   def test_substitutes_arguments
@@ -30,12 +32,44 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       logger: test_logger,
     )
 
-    pod = task_runner.run(
+    assert task_runner.run(
       task_template: 'hello-cloud-template-runner',
       entrypoint: nil,
       args: %w(rake some_task)
     )
 
-    assert_equal %w(rake some_task), pod.spec.containers.first.args
+    pods = kubeclient.get_pods(namespace: @namespace)
+    assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
+    assert_equal %w(rake some_task), pods.first.spec.containers.first.args
+  end
+
+  def test_missing_namespace
+    task_runner = KubernetesDeploy::RunnerTask.new(
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      namespace: "missing",
+      logger: test_logger,
+    )
+
+    refute task_runner.run(
+      task_template: 'hello-cloud-template-runner',
+      entrypoint: nil,
+      args: 'a'
+    )
+    assert_logs_match("Configuration invalid: Namespace was not found")
+  end
+
+  def test_template_runner_template_missing
+    task_runner = KubernetesDeploy::RunnerTask.new(
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      namespace: @namespace,
+      logger: test_logger,
+    )
+
+    refute task_runner.run(
+      task_template: 'hello-cloud-template-runner',
+      entrypoint: ['/bin/bash'],
+      args: %w(echo "KUBERNETES-DEPLOY")
+    )
+    assert_logs_match(/Pod template `hello-cloud-template-runner` cannot be found in namespace: `.+`, context: `minikube`/)
   end
 end

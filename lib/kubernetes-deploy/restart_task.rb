@@ -61,6 +61,10 @@ module KubernetesDeploy
 
       names = deployments.map { |d| "`#{d.metadata.name}`" }
       @logger.info "Restart of #{names.sort.join(', ')} deployments succeeded"
+      true
+    rescue FatalDeploymentError => error
+      @logger.fatal "#{error.class}: #{error.message}"
+      false
     end
 
     private

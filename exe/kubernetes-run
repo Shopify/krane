@@ -26,11 +26,10 @@ runner = KubernetesDeploy::RunnerTask.new(
   logger: logger
 )
 
- KubernetesDeploy::Runner.with_friendly_errors do
-  runner.run(
-    task_template: template,
-    entrypoint: entrypoint,
-    args: ARGV[2..-1],
-    env_vars: env_vars
-  )
-end
+success = runner.run(
+  task_template: template,
+  entrypoint: entrypoint,
+  args: ARGV[2..-1],
+  env_vars: env_vars
+)
+exit 1 unless success

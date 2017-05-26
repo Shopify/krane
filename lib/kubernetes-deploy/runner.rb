@@ -68,12 +68,6 @@ module KubernetesDeploy
     PRUNE_WHITELIST_V_1_5 = %w(extensions/v1beta1/HorizontalPodAutoscaler).freeze
     PRUNE_WHITELIST_V_1_6 = %w(autoscaling/v1/HorizontalPodAutoscaler).freeze
 
-    def self.with_friendly_errors
-      yield
-    rescue FatalDeploymentError
-      exit 1
-    end
-
     def initialize(namespace:, context:, current_sha:, template_dir:, logger:, bindings: {})
       @namespace = namespace
       @context = context
@@ -120,12 +114,14 @@ module KubernetesDeploy
 
       deploy_resources(resources, prune: prune)
 
-      return unless verify_result
+      return true unless verify_result
       wait_for_completion(resources)
       report_final_status(resources)
+
+      resources.all?(&:deploy_succeeded?)
     rescue FatalDeploymentError => error
       @logger.fatal "#{error.class}: #{error.message}"
-      raise error
+      false
     end
 
     def template_variables
