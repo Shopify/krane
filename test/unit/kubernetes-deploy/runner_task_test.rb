@@ -7,7 +7,7 @@ class RunnerTaskUnitTest < KubernetesDeploy::TestCase
     task_runner = KubernetesDeploy::RunnerTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       namespace: nil,
-      logger: test_logger,
+      logger: logger,
     )
 
     refute task_runner.run(

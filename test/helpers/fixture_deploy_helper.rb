@@ -54,7 +54,7 @@ module FixtureDeployHelper
       current_sha: SecureRandom.hex(6),
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       template_dir: dir,
-      logger: test_logger,
+      logger: logger,
       bindings: bindings
     )
     runner.run(

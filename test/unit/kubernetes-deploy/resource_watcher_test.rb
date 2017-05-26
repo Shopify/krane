@@ -5,16 +5,16 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   def test_requires_enumerable
     expected_msg = "ResourceWatcher expects Enumerable collection, got `Object` instead"
     assert_raises_message(ArgumentError, expected_msg) do
-      KubernetesDeploy::ResourceWatcher.new(Object.new, logger: test_logger)
+      KubernetesDeploy::ResourceWatcher.new(Object.new, logger: logger)
     end
 
-    KubernetesDeploy::ResourceWatcher.new([], logger: test_logger)
+    KubernetesDeploy::ResourceWatcher.new([], logger: logger)
   end
 
   def test_success_with_mock_resource
     resource = build_mock_resource
 
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: test_logger)
+    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
     watcher.run(delay_sync: 0.1)
 
     assert_logs_match(/Waiting for web-pod with 1s timeout/)
@@ -24,7 +24,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   def test_failure_with_mock_resource
     resource = build_mock_resource(final_status: "failed")
 
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: test_logger)
+    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
     watcher.run(delay_sync: 0.1)
 
     assert_logs_match(/Waiting for web-pod with 1s timeout/)
@@ -35,7 +35,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   def test_timeout_from_resource
     resource = build_mock_resource(final_status: "timeout")
 
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: test_logger)
+    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
     watcher.run(delay_sync: 0.1)
 
     assert_logs_match(/Waiting for web-pod with 1s timeout/)
@@ -49,7 +49,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     third = build_mock_resource(final_status: "failed", hits_to_complete: 3, name: "third")
     fourth = build_mock_resource(final_status: "success", hits_to_complete: 4, name: "fourth")
 
-    watcher = KubernetesDeploy::ResourceWatcher.new([first, second, third, fourth], logger: test_logger)
+    watcher = KubernetesDeploy::ResourceWatcher.new([first, second, third, fourth], logger: logger)
     watcher.run(delay_sync: 0.1)
 
     assert_logs_match(/Waiting for first, second, third, fourth with 4s timeout/)

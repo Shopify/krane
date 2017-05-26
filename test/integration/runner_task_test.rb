@@ -9,7 +9,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     task_runner = KubernetesDeploy::RunnerTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       namespace: @namespace,
-      logger: test_logger,
+      logger: logger,
     )
 
     assert task_runner.run(
@@ -29,7 +29,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     task_runner = KubernetesDeploy::RunnerTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       namespace: @namespace,
-      logger: test_logger,
+      logger: logger,
     )
 
     assert task_runner.run(
@@ -47,7 +47,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     task_runner = KubernetesDeploy::RunnerTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       namespace: "missing",
-      logger: test_logger,
+      logger: logger,
     )
 
     refute task_runner.run(
@@ -62,7 +62,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     task_runner = KubernetesDeploy::RunnerTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       namespace: @namespace,
-      logger: test_logger,
+      logger: logger,
     )
 
     refute task_runner.run(

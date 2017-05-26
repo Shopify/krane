@@ -15,7 +15,7 @@ class RunnerTest < KubernetesDeploy::TestCase
     runner = KubernetesDeploy::Runner.new(
       namespace: "",
       context: "",
-      logger: test_logger,
+      logger: logger,
       current_sha: "",
       template_dir: "unknown",
     )

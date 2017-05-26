@@ -153,7 +153,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       namespace: 'test',
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       template_dir: dir,
-      logger: test_logger
+      logger: logger
     )
   end
 end

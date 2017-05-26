@@ -9,13 +9,13 @@ class KubectlTest < KubernetesDeploy::TestCase
 
   def test_raises_if_initialized_with_null_context
     assert_raises_message(ArgumentError, "context is required") do
-      KubernetesDeploy::Kubectl.new(namespace: 'test', context: nil, logger: test_logger, log_failure_by_default: true)
+      KubernetesDeploy::Kubectl.new(namespace: 'test', context: nil, logger: logger, log_failure_by_default: true)
     end
   end
 
   def test_raises_if_initialized_with_null_namespace
     assert_raises_message(ArgumentError, "namespace is required") do
-      KubernetesDeploy::Kubectl.new(namespace: nil, context: 'test', logger: test_logger, log_failure_by_default: true)
+      KubernetesDeploy::Kubectl.new(namespace: nil, context: 'test', logger: logger, log_failure_by_default: true)
     end
   end
 
@@ -77,7 +77,7 @@ class KubectlTest < KubernetesDeploy::TestCase
   private
 
   def build_kubectl(log_failure_by_default: true)
-    KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: test_logger,
+    KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: logger,
       log_failure_by_default: log_failure_by_default)
   end
 

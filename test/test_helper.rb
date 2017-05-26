@@ -24,8 +24,8 @@ module KubernetesDeploy
       @logger_stream = StringIO.new
     end
 
-    def test_logger
-      @test_logger ||= begin
+    def logger
+      @logger ||= begin
         device = ENV["PRINT_LOGS"] ? $stderr : @logger_stream
         KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::MINIKUBE_CONTEXT, device)
       end

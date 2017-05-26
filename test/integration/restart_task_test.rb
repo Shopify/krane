@@ -106,7 +106,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       KubernetesDeploy::RestartTask.new(
         context: "walrus",
         namespace: @namespace,
-        logger: test_logger
+        logger: logger
       )
     end
   end
@@ -115,7 +115,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     restart = KubernetesDeploy::RestartTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       namespace: "walrus",
-      logger: test_logger
+      logger: logger
     )
     refute restart.perform(["web"])
     assert_logs_match("Namespace `walrus` not found in context `minikube`. Aborting the task.")
@@ -127,7 +127,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     KubernetesDeploy::RestartTask.new(
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       namespace: @namespace,
-      logger: test_logger
+      logger: logger
     )
   end
 
