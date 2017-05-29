@@ -18,6 +18,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   pod_template
   bugsnag
   pod_disruption_budget
+  replica_set
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end

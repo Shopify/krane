@@ -6,6 +6,18 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert deploy_fixtures("hello-cloud")
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_all_up
+
+    assert_logs_match_all([
+      "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
+      "Hello from Docker!", # unmanaged pod logs
+      "Result: SUCCESS",
+      "Successfully deployed 12 resources"
+    ], in_order: true)
+
+    assert_logs_match_all([
+      %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica}
+    ])
   end
 
   def test_partial_deploy_followed_by_full_deploy
@@ -38,10 +50,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'deployment "web"',
       'ingress "web"'
     ] # not necessarily listed in this order
-    assert_logs_match(/Pruned 5 resources and successfully deployed 3 resources/)
-    expected_pruned.each do |resource|
-      assert_logs_match(/The following resources were pruned:.*#{resource}/)
+    expected_msgs = [/Pruned 5 resources and successfully deployed 3 resources/]
+    expected_pruned.map do |resource|
+      expected_msgs << /The following resources were pruned:.*#{resource}/
     end
+    assert_logs_match_all(expected_msgs)
   end
 
   def test_pruning_disabled
@@ -59,8 +72,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       assert deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: false)
       hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
       hello_cloud.assert_all_up
-      assert_logs_match(/cannot be pruned/)
-      assert_logs_match(/Please do not deploy to #{@namespace} unless you really know what you are doing/)
+      assert_logs_match_all([
+        /cannot be pruned/,
+        /Please do not deploy to #{@namespace} unless you really know what you are doing/
+      ])
 
       assert deploy_fixtures("hello-cloud", subset: ["redis.yml"], allow_protected_ns: true, prune: false)
       hello_cloud.assert_all_up
@@ -111,8 +126,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
   def test_invalid_yaml_fails_fast
     refute deploy_dir(fixture_path("invalid"))
-    assert_logs_match(/Template 'yaml-error.yml' cannot be parsed/)
-    assert_logs_match(/datapoint1: value1:/)
+    assert_logs_match_all([
+      /Template 'yaml-error.yml' cannot be parsed/,
+      /datapoint1: value1:/
+    ])
   end
 
   def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast
@@ -122,8 +139,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
 
-    assert_logs_match(/'configmap-data.yml' is not a valid Kubernetes template/)
-    assert_logs_match(/error validating data\: found invalid field myKey for v1.ObjectMeta/)
+    assert_logs_match_all([
+      /'configmap-data.yml' is not a valid Kubernetes template/,
+      /error validating data\: found invalid field myKey for v1.ObjectMeta/
+    ])
   end
 
   def test_dynamic_erb_collection_works
@@ -144,11 +163,12 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       }
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
-
-    assert_logs_match(/Command failed: apply -f/)
-    assert_logs_match(/Error from server \(BadRequest\): error when creating/)
-    assert_logs_match(/Rendered template content:/)
-    assert_logs_match(/not_a_name:/)
+    assert_logs_match_all([
+      /Command failed: apply -f/,
+      /Error from server \(BadRequest\): error when creating/,
+      /Rendered template content:/,
+      /not_a_name:/,
+    ], in_order: true)
   end
 
   def test_dead_pods_in_old_replicaset_are_ignored
@@ -198,9 +218,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
-    assert_logs_match("Failed to deploy 1 priority resource")
-    assert_logs_match(%r{Pod\/unmanaged-pod-\w+-\w+: FAILED})
-    assert_logs_match(/DeadlineExceeded/)
+    assert_logs_match_all([
+      "Failed to deploy 1 priority resource",
+      %r{Pod\/unmanaged-pod-\w+-\w+: FAILED},
+      "Final status: Failed (Reason: DeadlineExceeded)"
+    ])
   end
 
   def test_wait_false_ignores_non_priority_resource_failures
@@ -208,9 +230,12 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], wait: false)
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_deployment_up("web", replicas: 0) # it exists, but no pods available yet
-    assert_logs_match("Result: SUCCESS")
-    assert_logs_match("Deployed 3 resources")
-    assert_logs_match("Deploy result verification is disabled for this deploy.")
+
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Deployed 3 resources",
+      "Deploy result verification is disabled for this deploy."
+    ], in_order: true)
   end
 
   def test_extra_bindings_should_be_rendered
@@ -244,9 +269,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ejson_cloud.create_ejson_keys_secret
     assert deploy_fixtures("ejson-cloud")
     ejson_cloud.assert_all_up
-    assert_logs_match(/Creating secret catphotoscom/)
-    assert_logs_match(/Creating secret unused-secret/)
-    assert_logs_match(/Creating secret monitoring-token/)
+    assert_logs_match_all([
+      /Creating secret catphotoscom/,
+      /Creating secret unused-secret/,
+      /Creating secret monitoring-token/
+    ])
 
     success = deploy_fixtures("ejson-cloud") do |fixtures|
       fixtures["secrets.ejson"]["kubernetes_secrets"]["unused-secret"]["data"] = { "_test" => "a" }
@@ -301,9 +328,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_equal true, success, "Deploy failed when it was expected to succeed"
 
-    assert_logs_match("Pruning secret unused-secret")
-    assert_logs_match("Pruning secret catphotoscom")
-    assert_logs_match("Pruning secret monitoring-token")
+    assert_logs_match_all([
+      "Pruning secret unused-secret",
+      "Pruning secret catphotoscom",
+      "Pruning secret monitoring-token"
+    ])
 
     ejson_cloud.refute_resource_exists('secret', 'unused-secret')
     ejson_cloud.refute_resource_exists('secret', 'catphotoscom')
@@ -325,21 +354,28 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
 
     # List of successful resources
-    assert_logs_match(%r{ConfigMap/hello-cloud-configmap-data\s+Available})
-    assert_logs_match(%r{Ingress/web\s+Created})
+    assert_logs_match_all([
+      %r{ConfigMap/hello-cloud-configmap-data\s+Available},
+      %r{Ingress/web\s+Created}
+    ])
 
     # Debug info for service timeout
-    assert_logs_match("Service/web: TIMED OUT (limit: #{service_timeout}s)")
-    assert_logs_match("service does not have any endpoints")
-    assert_logs_match("Final status: 0 endpoints")
+    assert_logs_match_all([
+      "Service/web: TIMED OUT (limit: #{service_timeout}s)",
+      "service does not have any endpoints",
+      "Final status: 0 endpoints"
+    ])
 
     # Debug info for deployment failure
-    assert_logs_match("Deployment/web: FAILED")
-    assert_logs_match("Final status: 1 updatedReplicas, 1 replicas, 1 unavailableReplicas")
-    assert_logs_match(%r{\[Deployment/web\].*Scaled up replica set web-}) # deployment event
-    assert_logs_match(/Back-off restarting failed container/) # event
-    assert_logs_match("nginx: [error]") # app log
-    assert_logs_match("ls: /not-a-dir: No such file or directory") # sidecar log
+    assert_logs_match_all([
+      "Deployment/web: FAILED",
+      "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
+      %r{\[Deployment/web\].*Scaled up replica set web-}, # deployment event
+      "SuccessfulCreate: Created pod", # replicaset event
+      /Back-off restarting failed container/, # pod event
+      "nginx: [error]", # app log
+      "ls: /not-a-dir: No such file or directory" # sidecar log
+    ])
 
     refute_logs_match(/Started container with id/)
     refute_logs_match(/Created container with id/)
@@ -362,9 +398,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_equal false, success
 
-    assert_logs_match("Failed to deploy 1 priority resource")
-    assert_logs_match("Container command '/some/bad/path' not found or does not exist") # from an event
-    assert_logs_match(/Result.*no such file or directory/m) # from logs
+    assert_logs_match_all([
+      "Failed to deploy 1 priority resource",
+      "Container command '/some/bad/path' not found or does not exist", # from an event
+      /Result.*no such file or directory/m # from logs
+    ])
     refute_logs_match(/no such file or directory.*Result/m) # logs not also displayed before summary
   end
 
@@ -384,8 +422,27 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       web["spec"]["template"]["metadata"]["labels"] = { "name" => "foobar" }
     end
     assert_equal false, success
-    assert_logs_match("one of your templates is invalid")
-    assert_logs_match(/The Deployment "web" is invalid.*`selector` does not match template `labels`/)
+
+    assert_logs_match_all([
+      "one of your templates is invalid",
+      /The Deployment "web" is invalid.*`selector` does not match template `labels`/
+    ])
+  end
+
+  def test_can_deploy_deployment_with_zero_replicas
+    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+      web = fixtures["web.yml.erb"]["Deployment"].first
+      web["spec"]["replicas"] = 0
+    end
+
+    assert_equal true, success, "Failed to deploy deployment with zero replicas"
+    pods = kubeclient.get_pods(namespace: @namespace)
+    assert_equal 0, pods.length, "Pods were running from zero-replica deployment"
+
+    assert_logs_match_all([
+      %r{Service/web\s+0 endpoints},
+      %r{Deployment/web\s+0 replicas}
+    ])
   end
 
   def test_deploy_aborts_immediately_if_metadata_name_missing

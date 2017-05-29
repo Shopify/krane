@@ -13,6 +13,7 @@ module FixtureSetAssertions
       assert_configmap_data_present
       assert_podtemplate_runner_present
       assert_poddisruptionbudget
+      assert_bare_replicaset_up
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -72,6 +73,11 @@ module FixtureSetAssertions
       budgets = policy_v1beta1_kubeclient.get_pod_disruption_budgets(namespace: namespace)
       assert_equal 1, budgets.size, "Expected 1 PodDisruptionBudget"
       assert_equal 2, budgets[0].spec.minAvailable, "Expected PodDisruptionBudget to be overridden"
+    end
+
+    def assert_bare_replicaset_up
+      assert_pod_status("bare-replica-set", "Running")
+      assert assert_replica_set_up("bare-replica-set", replicas: 1)
     end
   end
 end
