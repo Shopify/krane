@@ -2,16 +2,15 @@
 module KubernetesDeploy
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
-    SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError).freeze
+    SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError ErrImagePull).freeze
 
-    def initialize(name:, namespace:, context:, file:, logger:, parent: nil)
+    def initialize(name:, namespace:, context:, file:, parent: nil, logger:)
       @name = name
       @namespace = namespace
       @context = context
       @file = file
       @parent = parent
       @logger = logger
-      @bare = !@parent
     end
 
     def sync
@@ -24,8 +23,7 @@ module KubernetesDeploy
         @ready = false
         @containers = []
       end
-      log_status
-      display_logs if @bare && deploy_finished?
+      display_logs if unmanaged? && deploy_succeeded?
     end
 
     def interpret_json_data(pod_data)
@@ -53,7 +51,7 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      if @bare
+      if unmanaged?
         @phase == "Succeeded"
       else
         @phase == "Running" && @ready
@@ -65,34 +63,57 @@ module KubernetesDeploy
     end
 
     def exists?
-      @bare ? @found : true
+      unmanaged? ? @found : true
     end
 
-    def group_name
-      @bare ? "Bare pods" : @parent
-    end
+    # Returns a hash in the following format:
+    # {
+    #   "pod/web-1/app-container" => "giant blob of logs\nas a single string"
+    #   "pod/web-1/nginx-container" => "another giant blob of logs\nas a single string"
+    # }
+    def fetch_logs
+      return {} unless exists? && @containers.present?
 
-    private
-
-    def display_logs
-      return {} unless exists? && @containers.present? && !@already_displayed
-
-      @containers.each do |container_name|
-        out, _err, st = kubectl.run(
+      @containers.each_with_object({}) do |container_name, container_logs|
+        out, _err, _st = kubectl.run(
           "logs",
           @name,
           "--timestamps=true",
           "--since-time=#{@deploy_started.to_datetime.rfc3339}"
         )
-        next unless st.success? && out.present?
-
-        @logger.info("Logs from #{id}/#{container_name}:")
-        out.split("\n").each do |line|
-          level = deploy_succeeded? ? :info : :error
-          @logger.public_send(level, "[#{id}/#{container_name}]\t#{line}")
-        end
-        @already_displayed = true
+        container_logs["#{id}/#{container_name}"] = out
       end
+    end
+
+    private
+
+    def unmanaged?
+      @parent.blank?
+    end
+
+    def display_logs
+      return if @already_displayed
+      container_logs = fetch_logs
+
+      if container_logs.empty?
+        @logger.warn("No logs found for pod #{id}")
+        return
+      end
+
+      container_logs.each do |container_identifier, logs|
+        if logs.blank?
+          @logger.warn("No logs found for #{container_identifier}")
+        else
+          @logger.blank_line
+          @logger.info("Logs from #{container_identifier}:")
+          logs.split("\n").each do |line|
+            @logger.info("[#{container_identifier}]\t#{line}")
+          end
+          @logger.blank_line
+        end
+      end
+
+      @already_displayed = true
     end
   end
 end

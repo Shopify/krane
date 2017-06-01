@@ -12,7 +12,6 @@ module KubernetesDeploy
         @secret_found = secrets.split.any? { |s| s.end_with?("-bugsnag") }
       end
       @status = @secret_found ? "Available" : "Unknown"
-      log_status
     end
 
     def deploy_succeeded?

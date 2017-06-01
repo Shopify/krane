@@ -49,6 +49,7 @@ module KubernetesDeploy
           validate_secret_spec(secret_name, secret_spec)
           create_or_update_secret(secret_name, secret_spec["_type"], secret_spec["data"])
         end
+        @logger.summary.add_action("created/updated #{secrets.length} #{'secret'.pluralize(secrets.length)}")
       end
     end
 
@@ -56,16 +57,19 @@ module KubernetesDeploy
       ejson_secret_names = encrypted_ejson.fetch(MANAGED_SECRET_EJSON_KEY, {}).keys
       live_secrets = run_kubectl_json("get", "secrets")
 
+      prune_count = 0
       live_secrets.each do |secret|
         secret_name = secret["metadata"]["name"]
         next unless secret_managed?(secret)
         next if ejson_secret_names.include?(secret_name)
 
         @logger.info("Pruning secret #{secret_name}")
+        prune_count += 1
         out, err, st = @kubectl.run("delete", "secret", secret_name)
         @logger.debug(out)
         raise EjsonSecretError, err unless st.success?
       end
+      @logger.summary.add_action("pruned #{prune_count} #{'secret'.pluralize(prune_count)}") if prune_count > 0
     end
 
     def managed_secrets_exist?

@@ -7,7 +7,6 @@ module KubernetesDeploy
       _, _err, st = kubectl.run("get", type, @name)
       @status = st.success? ? "Created" : "Unknown"
       @found = st.success?
-      log_status
     end
 
     def deploy_succeeded?
@@ -20,10 +19,6 @@ module KubernetesDeploy
 
     def exists?
       @found
-    end
-
-    def group_name
-      "Ingresses"
     end
   end
 end

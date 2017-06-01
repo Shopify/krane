@@ -2,13 +2,11 @@
 require 'tempfile'
 
 require 'kubernetes-deploy/kubeclient_builder'
-require 'kubernetes-deploy/ui_helpers'
 require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class RunnerTask
     include KubeclientBuilder
-    include UIHelpers
 
     class FatalTaskRunError < FatalDeploymentError; end
     class TaskTemplateMissingError < FatalDeploymentError
@@ -33,18 +31,19 @@ module KubernetesDeploy
     end
 
     def run!(task_template:, entrypoint:, args:, env_vars: [])
-      phase_heading("Validating configuration")
+      @logger.reset
+      @logger.phase_heading("Validating configuration")
       validate_configuration(task_template, args)
 
-      phase_heading("Fetching task template")
+      @logger.phase_heading("Fetching task template")
       raw_template = get_template(task_template)
 
-      phase_heading("Constructing final pod specification")
+      @logger.phase_heading("Constructing final pod specification")
       rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
 
       validate_pod_spec(rendered_template)
 
-      phase_heading("Creating pod")
+      @logger.phase_heading("Creating pod")
       @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
       @kubeclient.create_pod(rendered_template)
     end

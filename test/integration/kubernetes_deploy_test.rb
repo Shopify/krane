@@ -20,7 +20,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.assert_all_up
   end
 
-  def test_pruning
+  def test_pruning_works
     assert deploy_fixtures("hello-cloud")
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_all_up
@@ -30,6 +30,18 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.refute_configmap_data_exists
     hello_cloud.refute_managed_pod_exists
     hello_cloud.refute_web_resources_exist
+
+    expected_pruned = [
+      'configmap "hello-cloud-configmap-data"',
+      'pod "unmanaged-pod-',
+      'service "web"',
+      'deployment "web"',
+      'ingress "web"'
+    ] # not necessarily listed in this order
+    assert_logs_match(/Pruned 5 resources and successfully deployed 3 resources/)
+    expected_pruned.each do |resource|
+      assert_logs_match(/The following resources were pruned:.*#{resource}/)
+    end
   end
 
   def test_pruning_disabled
@@ -99,7 +111,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
   def test_invalid_yaml_fails_fast
     refute deploy_dir(fixture_path("invalid"))
-    assert_logs_match(/Template yaml-error.yml cannot be parsed/)
+    assert_logs_match(/Template 'yaml-error.yml' cannot be parsed/)
+    assert_logs_match(/datapoint1: value1:/)
   end
 
   def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast
@@ -109,7 +122,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
 
-    assert_logs_match(/Dry run failed for template configmap-data/)
+    assert_logs_match(/'configmap-data' is not a valid Kubernetes template/)
     assert_logs_match(/error validating data\: found invalid field myKey for v1.ObjectMeta/)
   end
 
@@ -132,9 +145,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
 
-    assert_logs_match(/The following command failed: apply/)
+    assert_logs_match(/Command failed: apply -f/)
     assert_logs_match(/Error from server \(BadRequest\): error when creating/)
-    assert_logs_match(/Inspecting the file mentioned in the error message/)
+    assert_logs_match(/Rendered template content:/)
+    assert_logs_match(/not_a_name:/)
   end
 
   def test_dead_pods_in_old_replicaset_are_ignored
@@ -167,7 +181,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
-    assert_logs_match(%r{The following priority resources failed to deploy: Pod\/unmanaged-pod})
+    assert_logs_match("Failed to deploy 1 priority resource")
+    assert_logs_match(%r{Pod\/unmanaged-pod-\w+-\w+: FAILED})
 
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_unmanaged_pod_statuses("Failed")
@@ -183,7 +198,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
-    assert_logs_match(%r{The following priority resources failed to deploy: Pod\/unmanaged-pod})
+    assert_logs_match("Failed to deploy 1 priority resource")
+    assert_logs_match(%r{Pod\/unmanaged-pod-\w+-\w+: FAILED})
     assert_logs_match(/DeadlineExceeded/)
   end
 
@@ -205,10 +221,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal 'binding_test_b', map['BINDING_TEST_B']
   end
 
-  def test_should_raise_if_required_binding_not_present
-    assert_raises NameError do
-      deploy_fixtures('collection-with-erb', subset: ["conf_map.yml.erb"])
-    end
+  def test_deploy_fails_if_required_binding_not_present
+    refute deploy_fixtures('collection-with-erb', subset: ["conf_map.yml.erb"])
+    assert_logs_match("Template 'conf_map.yml.erb' cannot be rendered")
   end
 
   def test_long_running_deployment
@@ -250,7 +265,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       fixtures["secrets.ejson"]["kubernetes_secrets"]["monitoring-token"]["data"] = malformed
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
-    assert_logs_match(/Data for secret monitoring-token was invalid/)
+    assert_logs_match(/data for secret monitoring-token was invalid/)
   end
 
   def test_pruning_of_secrets_created_from_ejson
@@ -292,6 +307,78 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ejson_cloud.refute_resource_exists('secret', 'unused-secret')
     ejson_cloud.refute_resource_exists('secret', 'catphotoscom')
     ejson_cloud.refute_resource_exists('secret', 'monitoring-token')
+  end
+
+  def test_deploy_result_logging_for_mixed_result_deploy
+    KubernetesDeploy::Pod.any_instance.stubs(:deploy_failed?).returns(false, false, false, false, true)
+    service_timeout = 5
+    KubernetesDeploy::Service.any_instance.stubs(:timeout).returns(service_timeout)
+
+    success = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "configmap-data.yml"]) do |fixtures|
+      web = fixtures["web.yml.erb"]["Deployment"].first
+      container = web["spec"]["template"]["spec"]["containers"].first
+      container["command"] = ["/usr/sbin/nginx", "-s", "stop"] # it isn't running, so this will log some errors
+    end
+    assert_equal false, success, "Deploy succeeded when it was expected to fail"
+
+    # List of successful resources
+    assert_logs_match(%r{ConfigMap/hello-cloud-configmap-data\s+Available})
+    assert_logs_match(%r{Ingress/web\s+Created})
+
+    # Debug info for service timeout
+    assert_logs_match("Service/web: TIMED OUT (limit: #{service_timeout}s)")
+    assert_logs_match("service does not have any endpoints")
+    assert_logs_match("Final status: 0 endpoints")
+
+    # Debug info for deployment failure
+    assert_logs_match("Deployment/web: FAILED")
+    assert_logs_match("Final status: 1 updatedReplicas, 1 replicas, 1 unavailableReplicas")
+    assert_logs_match(%r{\[Deployment/web\].*Scaled up replica set web-}) # deployment event
+    assert_logs_match(%r{\[Pod/web-.*CrashLoopBackOff.*restarting failed container=app pod=web-}) # pod event
+    assert_logs_match("nginx: [error]") # pod log
+  end
+
+  def test_failed_deploy_to_nonexistent_namespace
+    original_ns = @namespace
+    @namespace = 'this-certainly-should-not-exist'
+    refute deploy_fixtures("hello-cloud", subset: ['configmap-data.yml'])
+    assert_logs_match(/Result: FAILURE.*Namespace this-certainly-should-not-exist not found/m)
+  ensure
+    @namespace = original_ns
+  end
+
+  def test_failure_logs_from_unmanaged_pod_appear_in_summary_section
+    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
+      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+      container = pod["spec"]["containers"].first
+      container["command"] = ["/some/bad/path"] # should throw an error
+    end
+    assert_equal false, success
+
+    assert_logs_match("Failed to deploy 1 priority resource")
+    assert_logs_match("Container command '/some/bad/path' not found or does not exist") # from an event
+    assert_logs_match(/Result.*no such file or directory/m) # from logs
+    refute_logs_match(/no such file or directory.*Result/m) # logs not also displayed before summary
+  end
+
+  def test_unusual_timeout_output
+    KubernetesDeploy::ConfigMap.any_instance.stubs(:deploy_succeeded?).returns(false)
+    KubernetesDeploy::ConfigMap.any_instance.stubs(:timeout).returns(2)
+    refute deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
+    assert_logs_match("It is very unusual for this resource type to fail to deploy. Please try the deploy again.")
+    assert_logs_match("Final status: Available")
+  end
+
+  # ref https://github.com/kubernetes/kubernetes/issues/26202
+  def test_output_when_switching_labels_incorrectly
+    assert deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
+    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+      web = fixtures["web.yml.erb"]["Deployment"].first
+      web["spec"]["template"]["metadata"]["labels"] = { "name" => "foobar" }
+    end
+    assert_equal false, success
+    assert_logs_match("one of your templates is invalid")
+    assert_logs_match(/The Deployment "web" is invalid.*`selector` does not match template `labels`/)
   end
 
   private

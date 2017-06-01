@@ -14,25 +14,36 @@ MSG
     def run(delay_sync: 3.seconds)
       delay_sync_until = Time.now.utc
       started_at = delay_sync_until
-      human_resources = @resources.map(&:id).join(", ")
-      max_wait_time = @resources.map(&:timeout).max
-      @logger.info("Waiting for #{human_resources} with #{max_wait_time}s timeout")
 
       while @resources.present?
         if Time.now.utc < delay_sync_until
           sleep(delay_sync_until - Time.now.utc)
         end
+        watch_time = (Time.now.utc - started_at).round(1)
         delay_sync_until = Time.now.utc + delay_sync # don't pummel the API if the sync is fast
         @resources.each(&:sync)
         newly_finished_resources, @resources = @resources.partition(&:deploy_finished?)
+
+        new_success_list = []
         newly_finished_resources.each do |resource|
-          next unless resource.deploy_failed? || resource.deploy_timed_out?
-          @logger.error("#{resource.id} failed to deploy with status '#{resource.status}'.")
+          if resource.deploy_failed?
+            @logger.error("#{resource.id} failed to deploy after #{watch_time}s")
+          elsif resource.deploy_timed_out?
+            @logger.error("#{resource.id} deployment timed out")
+          else
+            new_success_list << resource.id
+          end
+        end
+
+        unless new_success_list.empty?
+          success_string = ColorizedString.new("Successfully deployed in #{watch_time}s:").green
+          @logger.info("#{success_string} #{new_success_list.join(', ')}")
+        end
+
+        if newly_finished_resources.present? && @resources.present? # something happened this cycle, more to go
+          @logger.info("Continuing to wait for: #{@resources.map(&:id).join(', ')}")
         end
       end
-
-      watch_time = Time.now.utc - started_at
-      @logger.info("Spent #{watch_time.round(2)}s waiting for #{human_resources}")
     end
   end
 end
