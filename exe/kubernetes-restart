@@ -12,7 +12,10 @@ ARGV.options do |opts|
   opts.parse!
 end
 
-KubernetesDeploy::Runner.with_friendly_errors do
-  restart = KubernetesDeploy::RestartTask.new(namespace: ARGV[0], context: ARGV[1])
-  restart.perform(raw_deployments)
-end
+namespace = ARGV[0]
+context = ARGV[1]
+logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
+
+restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: context, logger: logger)
+success = restart.perform(raw_deployments)
+exit 1 unless success

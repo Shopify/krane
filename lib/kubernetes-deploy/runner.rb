@@ -68,41 +68,20 @@ module KubernetesDeploy
     PRUNE_WHITELIST_V_1_5 = %w(extensions/v1beta1/HorizontalPodAutoscaler).freeze
     PRUNE_WHITELIST_V_1_6 = %w(autoscaling/v1/HorizontalPodAutoscaler).freeze
 
-    def self.with_friendly_errors
-      yield
-    rescue FatalDeploymentError => error
-      KubernetesDeploy.logger.fatal <<-MSG
-#{error.class}: #{error.message}
-  #{error.backtrace && error.backtrace.join("\n  ")}
-MSG
-      exit 1
-    end
-
-    def initialize(namespace:, current_sha:, context:, template_dir:,
-      wait_for_completion:, allow_protected_ns: false, prune: true, bindings: {})
+    def initialize(namespace:, context:, current_sha:, template_dir:, logger:, bindings: {})
       @namespace = namespace
       @context = context
       @current_sha = current_sha
       @template_dir = File.expand_path(template_dir)
+      @logger = logger
+      @bindings = bindings
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
-      @wait_for_completion = wait_for_completion
-      @allow_protected_ns = allow_protected_ns
-      @prune = prune
-      @bindings = bindings
     end
 
-    def wait_for_completion?
-      @wait_for_completion
-    end
-
-    def allow_protected_ns?
-      @allow_protected_ns
-    end
-
-    def run
+    def run(verify_result: true, allow_protected_ns: false, prune: true)
       phase_heading("Validating configuration")
-      validate_configuration
+      validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
 
       phase_heading("Identifying deployment target")
       confirm_context_exists
@@ -114,7 +93,12 @@ MSG
       phase_heading("Checking initial resource statuses")
       resources.each(&:sync)
 
-      ejson = EjsonSecretProvisioner.new(namespace: @namespace, context: @context, template_dir: @template_dir)
+      ejson = EjsonSecretProvisioner.new(
+        namespace: @namespace,
+        context: @context,
+        template_dir: @template_dir,
+        logger: @logger
+      )
       if ejson.secret_changes_required?
         phase_heading("Deploying kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}")
         ejson.run
@@ -124,15 +108,20 @@ MSG
       predeploy_priority_resources(resources)
 
       phase_heading("Deploying all resources")
-      if PROTECTED_NAMESPACES.include?(@namespace) && @prune
+      if PROTECTED_NAMESPACES.include?(@namespace) && prune
         raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
       end
 
-      deploy_resources(resources, prune: @prune)
+      deploy_resources(resources, prune: prune)
 
-      return unless wait_for_completion?
+      return true unless verify_result
       wait_for_completion(resources)
       report_final_status(resources)
+
+      resources.all?(&:deploy_succeeded?)
+    rescue FatalDeploymentError => error
+      @logger.fatal "#{error.class}: #{error.message}"
+      false
     end
 
     def template_variables
@@ -154,7 +143,7 @@ MSG
 
     def server_major_version
       @server_major_version ||= begin
-        out, _, _ = run_kubectl('version', '--short')
+        out, _, _ = kubectl.run('version', '--short')
         matchdata = /Server Version: v(?<version>\d\.\d)/.match(out)
         raise "Could not determine server version" unless matchdata[:version]
         matchdata[:version]
@@ -172,10 +161,10 @@ MSG
       path = match[:path]
       if path.present? && File.file?(path)
         suspicious_file = File.read(path)
-        KubernetesDeploy.logger.warn("Inspecting the file mentioned in the error message (#{path})")
-        KubernetesDeploy.logger.warn(suspicious_file)
+        @logger.warn("Inspecting the file mentioned in the error message (#{path})")
+        @logger.warn(suspicious_file)
       else
-        KubernetesDeploy.logger.warn("Detected a file (#{path.inspect}) referenced in the kubectl stderr " \
+        @logger.warn("Detected a file (#{path.inspect}) referenced in the kubectl stderr " \
           "but was unable to inspect it")
       end
     end
@@ -201,15 +190,16 @@ MSG
         split_templates(filename) do |tempfile|
           resource_id = discover_resource_via_dry_run(tempfile)
           type, name = resource_id.split("/", 2) # e.g. "pod/web-198612918-dzvfb"
-          resources << KubernetesResource.for_type(type, name, @namespace, @context, tempfile)
-          KubernetesDeploy.logger.info "Discovered template for #{resource_id}"
+          resources << KubernetesResource.for_type(type: type, name: name, namespace: @namespace, context: @context,
+            file: tempfile, logger: @logger)
+          @logger.info "Discovered template for #{resource_id}"
         end
       end
       resources
     end
 
     def discover_resource_via_dry_run(tempfile)
-      resource_id, _err, st = run_kubectl("create", "-f", tempfile.path, "--dry-run", "--output=name")
+      resource_id, _err, st = kubectl.run("create", "-f", tempfile.path, "--dry-run", "--output=name")
       raise FatalDeploymentError, "Dry run failed for template #{File.basename(tempfile.path)}." unless st.success?
       resource_id
     end
@@ -226,13 +216,13 @@ MSG
         yield f
       end
     rescue Psych::SyntaxError => e
-      KubernetesDeploy.logger.error(rendered_content)
+      @logger.error(rendered_content)
       raise FatalDeploymentError, "Template #{filename} cannot be parsed: #{e.message}"
     end
 
     def report_final_status(resources)
       if resources.all?(&:deploy_succeeded?)
-        log_green("Deploy succeeded!")
+        @logger.info("Deploy succeeded!")
       else
         fail_list = resources.select { |r| r.deploy_failed? || r.deploy_timed_out? }.map(&:id)
         raise FatalDeploymentError, "The following resources failed to deploy: #{fail_list.join(', ')}"
@@ -240,7 +230,7 @@ MSG
     end
 
     def wait_for_completion(watched_resources)
-      watcher = ResourceWatcher.new(watched_resources)
+      watcher = ResourceWatcher.new(watched_resources, logger: @logger)
       watcher.run
     end
 
@@ -255,7 +245,7 @@ MSG
       erb_template.result(erb_binding)
     end
 
-    def validate_configuration
+    def validate_configuration(allow_protected_ns:, prune:)
       errors = []
       if ENV["KUBECONFIG"].blank? || !File.file?(ENV["KUBECONFIG"])
         errors << "Kube config not found at #{ENV['KUBECONFIG']}"
@@ -274,15 +264,15 @@ MSG
       if @namespace.blank?
         errors << "Namespace must be specified"
       elsif PROTECTED_NAMESPACES.include?(@namespace)
-        if allow_protected_ns? && @prune
+        if allow_protected_ns && prune
           errors << "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
-        elsif allow_protected_ns?
+        elsif allow_protected_ns
           warning = <<-WARNING.strip_heredoc
           You're deploying to protected namespace #{@namespace}, which cannot be pruned.
           Existing resources can only be removed manually with kubectl. Removing templates from the set deployed will have no effect.
           ***Please do not deploy to #{@namespace} unless you really know what you are doing.***
           WARNING
-          KubernetesDeploy.logger.warn(warning)
+          @logger.warn(warning)
         else
           errors << "Refusing to deploy to protected namespace '#{@namespace}'"
         end
@@ -293,37 +283,36 @@ MSG
       end
 
       raise FatalDeploymentError, "Configuration invalid: #{errors.join(', ')}" unless errors.empty?
-      KubernetesDeploy.logger.info("All required parameters and files are present")
+      @logger.info("All required parameters and files are present")
     end
 
     def deploy_resources(resources, prune: false)
-      KubernetesDeploy.logger.info("Deploying resources:")
+      @logger.info("Deploying resources:")
 
       # Apply can be done in one large batch, the rest have to be done individually
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
 
       individuals.each do |r|
-        KubernetesDeploy.logger.info("- #{r.id}")
+        @logger.info("- #{r.id}")
         r.deploy_started = Time.now.utc
         case r.deploy_method
         when :replace
-          _, _, st = run_kubectl("replace", "-f", r.file.path)
+          _, _, st = kubectl.run("replace", "-f", r.file.path, log_failure: false)
         when :replace_force
-          _, _, st = run_kubectl("replace", "--force", "-f", r.file.path)
+          _, _, st = kubectl.run("replace", "--force", "-f", r.file.path, log_failure: false)
         else
           # Fail Fast! This is a programmer mistake.
           raise ArgumentError, "Unexpected deploy method! (#{r.deploy_method.inspect})"
         end
 
+        next if st.success?
+        # it doesn't exist so we can't replace it
+        _, err, st = kubectl.run("create", "-f", r.file.path, log_failure: false)
         unless st.success?
-          # it doesn't exist so we can't replace it
-          _, err, st = run_kubectl("create", "-f", r.file.path)
-          unless st.success?
-            raise FatalDeploymentError, <<-MSG.strip_heredoc
-              Failed to replace or create resource: #{r.id}
-              #{err}
-            MSG
-          end
+          raise FatalDeploymentError, <<-MSG.strip_heredoc
+            Failed to replace or create resource: #{r.id}
+            #{err}
+          MSG
         end
       end
 
@@ -335,7 +324,7 @@ MSG
 
       command = ["apply"]
       resources.each do |r|
-        KubernetesDeploy.logger.info("- #{r.id}")
+        @logger.info("- #{r.id}")
         command.push("-f", r.file.path)
         r.deploy_started = Time.now.utc
       end
@@ -345,7 +334,7 @@ MSG
         versioned_prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
       end
 
-      _, err, st = run_kubectl(*command)
+      _, err, st = kubectl.run(*command)
       unless st.success?
         inspect_kubectl_out_for_files(err)
         raise FatalDeploymentError, <<-MSG
@@ -356,32 +345,24 @@ MSG
     end
 
     def confirm_context_exists
-      out, err, st = run_kubectl("config", "get-contexts", "-o", "name", namespaced: false, with_context: false)
+      out, err, st = kubectl.run("config", "get-contexts", "-o", "name", use_namespace: false, use_context: false)
       available_contexts = out.split("\n")
       if !st.success?
         raise FatalDeploymentError, err
       elsif !available_contexts.include?(@context)
         raise FatalDeploymentError, "Context #{@context} is not available. Valid contexts: #{available_contexts}"
       end
-      KubernetesDeploy.logger.info("Context #{@context} found")
+      @logger.info("Context #{@context} found")
     end
 
     def confirm_namespace_exists
-      _, _, st = run_kubectl("get", "namespace", @namespace, namespaced: false)
+      _, _, st = kubectl.run("get", "namespace", @namespace, use_namespace: false, log_failure: false)
       raise FatalDeploymentError, "Namespace #{@namespace} not found" unless st.success?
-      KubernetesDeploy.logger.info("Namespace #{@namespace} found")
+      @logger.info("Namespace #{@namespace} found")
     end
 
-    def run_kubectl(*args, namespaced: true, with_context: true)
-      if namespaced
-        raise KubectlError, "Namespace missing for namespaced command" if @namespace.blank?
-      end
-
-      if with_context
-        raise KubectlError, "Explicit context is required to run this command" if @context.blank?
-      end
-
-      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context)
+    def kubectl
+      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
     end
   end
 end

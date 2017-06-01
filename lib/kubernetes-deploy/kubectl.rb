@@ -1,18 +1,31 @@
 # frozen_string_literal: true
 
 module KubernetesDeploy
-  module Kubectl
-    def self.run_kubectl(*args, namespace:, context:, log_failure: true)
-      args = args.unshift("kubectl")
-      args.push("--namespace=#{namespace}") if namespace.present?
-      args.push("--context=#{context}")     if context.present?
+  class Kubectl
+    def initialize(namespace:, context:, logger:, log_failure_by_default:)
+      @namespace = namespace
+      @context = context
+      @logger = logger
+      @log_failure_by_default = log_failure_by_default
 
-      KubernetesDeploy.logger.debug Shellwords.join(args)
+      raise ArgumentError, "namespace is required" if namespace.blank?
+      raise ArgumentError, "context is required" if context.blank?
+    end
+
+    def run(*args, log_failure: nil, use_context: true, use_namespace: true)
+      log_failure = @log_failure_by_default if log_failure.nil?
+
+      args = args.unshift("kubectl")
+      args.push("--namespace=#{@namespace}") if use_namespace
+      args.push("--context=#{@context}")     if use_context
+
+      @logger.debug Shellwords.join(args)
       out, err, st = Open3.capture3(*args)
-      KubernetesDeploy.logger.debug(out.shellescape)
+      @logger.debug(out.shellescape)
+
       if !st.success? && log_failure
-        KubernetesDeploy.logger.warn("The following command failed: #{Shellwords.join(args)}")
-        KubernetesDeploy.logger.warn(err)
+        @logger.warn("The following command failed: #{Shellwords.join(args)}")
+        @logger.warn(err)
       end
       [out.chomp, err.chomp, st]
     end

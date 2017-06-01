@@ -5,11 +5,11 @@ require 'active_support/core_ext/numeric/time'
 require 'active_support/core_ext/string/inflections'
 require 'active_support/core_ext/string/strip'
 require 'active_support/core_ext/hash/keys'
+require 'colorized_string'
 
 require 'kubernetes-deploy/errors'
-require 'kubernetes-deploy/logger'
+require 'kubernetes-deploy/formatted_logger'
 require 'kubernetes-deploy/runner'
 
 module KubernetesDeploy
-  include Logger
 end

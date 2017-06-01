@@ -32,10 +32,13 @@ module FixtureDeployHelper
 
     yield fixtures if block_given?
 
+    success = false
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
-      deploy_dir(target_dir, wait: wait, allow_protected_ns: allow_protected_ns, prune: prune, bindings: bindings)
+      success = deploy_dir(target_dir, wait: wait, allow_protected_ns: allow_protected_ns,
+        prune: prune, bindings: bindings)
     end
+    success
   end
 
   def deploy_raw_fixtures(set, wait: true, bindings: {})
@@ -51,12 +54,14 @@ module FixtureDeployHelper
       current_sha: SecureRandom.hex(6),
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       template_dir: dir,
-      wait_for_completion: wait,
-      allow_protected_ns: allow_protected_ns,
-      prune: prune,
+      logger: logger,
       bindings: bindings
     )
-    runner.run
+    runner.run(
+      verify_result: wait,
+      allow_protected_ns: allow_protected_ns,
+      prune: prune
+    )
   end
 
   private

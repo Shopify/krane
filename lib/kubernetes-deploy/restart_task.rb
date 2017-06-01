@@ -25,7 +25,7 @@ module KubernetesDeploy
     HTTP_OK_RANGE = 200..299
     ANNOTATION = "shipit.shopify.io/restart"
 
-    def initialize(context:, namespace:, logger: KubernetesDeploy.logger)
+    def initialize(context:, namespace:, logger:)
       @context = context
       @namespace = namespace
       @logger = logger
@@ -61,13 +61,19 @@ module KubernetesDeploy
 
       names = deployments.map { |d| "`#{d.metadata.name}`" }
       @logger.info "Restart of #{names.sort.join(', ')} deployments succeeded"
+      true
+    rescue FatalDeploymentError => error
+      @logger.fatal "#{error.class}: #{error.message}"
+      false
     end
 
     private
 
     def wait_for_rollout(kubeclient_resources)
-      resources = kubeclient_resources.map { |d| Deployment.new(d.metadata.name, @namespace, @context, nil) }
-      watcher = ResourceWatcher.new(resources)
+      resources = kubeclient_resources.map do |d|
+        Deployment.new(name: d.metadata.name, namespace: @namespace, context: @context, file: nil, logger: @logger)
+      end
+      watcher = ResourceWatcher.new(resources, logger: @logger)
       watcher.run
     end
 

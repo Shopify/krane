@@ -3,15 +3,8 @@ module KubernetesDeploy
   class Ingress < KubernetesResource
     TIMEOUT = 30.seconds
 
-    def initialize(name, namespace, context, file)
-      @name = name
-      @namespace = namespace
-      @context = context
-      @file = file
-    end
-
     def sync
-      _, _err, st = run_kubectl("get", type, @name)
+      _, _err, st = kubectl.run("get", type, @name)
       @status = st.success? ? "Created" : "Unknown"
       @found = st.success?
       log_status

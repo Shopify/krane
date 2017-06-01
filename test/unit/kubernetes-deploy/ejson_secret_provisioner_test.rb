@@ -3,7 +3,7 @@ require 'test_helper'
 
 class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def setup
-    KubernetesDeploy::Kubectl.expects(:run_kubectl).never
+    KubernetesDeploy::Kubectl.any_instance.expects(:run).never
     super
   end
 
@@ -116,8 +116,8 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def stub_kubectl_response(*args, resp:, err: "", success: true)
     response = [resp.to_json, err, stub(success?: success)]
-    KubernetesDeploy::Kubectl.expects(:run_kubectl)
-      .with(*args, namespace: 'test', context: 'minikube', log_failure: false)
+    KubernetesDeploy::Kubectl.any_instance.expects(:run)
+      .with(*args)
       .returns(response)
   end
 
@@ -152,7 +152,8 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     KubernetesDeploy::EjsonSecretProvisioner.new(
       namespace: 'test',
       context: KubeclientHelper::MINIKUBE_CONTEXT,
-      template_dir: dir
+      template_dir: dir,
+      logger: logger
     )
   end
 end

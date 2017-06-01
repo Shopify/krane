@@ -16,16 +16,20 @@ ARGV.options do |opts|
   opts.parse!
 end
 
+namespace = ARGV[0]
+context = ARGV[1]
+logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
+
 runner = KubernetesDeploy::RunnerTask.new(
-  namespace: ARGV[0],
-  context: ARGV[1],
+  namespace: namespace,
+  context: context,
+  logger: logger
 )
 
- KubernetesDeploy::Runner.with_friendly_errors do
-  runner.run(
-    task_template: template,
-    entrypoint: entrypoint,
-    args: ARGV[2..-1],
-    env_vars: env_vars
-  )
-end
+success = runner.run(
+  task_template: template,
+  entrypoint: entrypoint,
+  args: ARGV[2..-1],
+  env_vars: env_vars
+)
+exit 1 unless success

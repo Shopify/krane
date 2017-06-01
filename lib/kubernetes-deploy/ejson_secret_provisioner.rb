@@ -2,7 +2,6 @@
 require 'json'
 require 'base64'
 require 'open3'
-require 'kubernetes-deploy/logger'
 require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
@@ -18,13 +17,12 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, template_dir:)
+    def initialize(namespace:, context:, template_dir:, logger:)
       @namespace = namespace
       @context = context
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
-
-      raise FatalDeploymentError, "Cannot create secrets without a namespace" if @namespace.blank?
-      raise FatalDeploymentError, "Cannot create secrets without a context" if @context.blank?
+      @logger = logger
+      @kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
     end
 
     def secret_changes_required?
@@ -42,7 +40,7 @@ module KubernetesDeploy
       with_decrypted_ejson do |decrypted|
         secrets = decrypted[MANAGED_SECRET_EJSON_KEY]
         unless secrets.present?
-          KubernetesDeploy.logger.warn("#{EJSON_SECRETS_FILE} does not have key #{MANAGED_SECRET_EJSON_KEY}."\
+          @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{MANAGED_SECRET_EJSON_KEY}."\
             "No secrets will be created.")
           return
         end
@@ -63,9 +61,9 @@ module KubernetesDeploy
         next unless secret_managed?(secret)
         next if ejson_secret_names.include?(secret_name)
 
-        KubernetesDeploy.logger.info("Pruning secret #{secret_name}")
-        out, err, st = run_kubectl("delete", "secret", secret_name)
-        KubernetesDeploy.logger.debug(out)
+        @logger.info("Pruning secret #{secret_name}")
+        out, err, st = @kubectl.run("delete", "secret", secret_name)
+        @logger.debug(out)
         raise EjsonSecretError, err unless st.success?
       end
     end
@@ -103,15 +101,15 @@ module KubernetesDeploy
 
     def create_or_update_secret(secret_name, secret_type, data)
       msg = secret_exists?(secret_name) ? "Updating secret #{secret_name}" : "Creating secret #{secret_name}"
-      KubernetesDeploy.logger.info(msg)
+      @logger.info(msg)
 
       secret_yaml = generate_secret_yaml(secret_name, secret_type, data)
       file = Tempfile.new(secret_name)
       file.write(secret_yaml)
       file.close
 
-      out, err, st = run_kubectl("apply", "--filename=#{file.path}")
-      KubernetesDeploy.logger.debug(out)
+      out, err, st = @kubectl.run("apply", "--filename=#{file.path}")
+      @logger.debug(out)
       raise EjsonSecretError, err unless st.success?
     ensure
       file.unlink if file
@@ -144,7 +142,7 @@ module KubernetesDeploy
     end
 
     def secret_exists?(secret_name)
-      _out, _err, st = run_kubectl("get", "secret", secret_name)
+      _out, _err, st = @kubectl.run("get", "secret", secret_name)
       st.success?
     end
 
@@ -166,7 +164,7 @@ module KubernetesDeploy
     end
 
     def decrypt_ejson(key_dir)
-      KubernetesDeploy.logger.info("Decrypting #{EJSON_SECRETS_FILE}")
+      @logger.info("Decrypting #{EJSON_SECRETS_FILE}")
       # ejson seems to dump both errors and output to STDOUT
       out_err, st = Open3.capture2e("EJSON_KEYDIR=#{key_dir} ejson decrypt #{@ejson_file}")
       raise EjsonSecretError, out_err unless st.success?
@@ -176,7 +174,7 @@ module KubernetesDeploy
     end
 
     def fetch_private_key_from_secret
-      KubernetesDeploy.logger.info("Fetching ejson private key from secret #{EJSON_KEYS_SECRET}")
+      @logger.info("Fetching ejson private key from secret #{EJSON_KEYS_SECRET}")
 
       secret = run_kubectl_json("get", "secret", EJSON_KEYS_SECRET)
       encoded_private_key = secret["data"][public_key]
@@ -189,14 +187,10 @@ module KubernetesDeploy
 
     def run_kubectl_json(*args)
       args += ["--output=json"]
-      out, err, st = run_kubectl(*args)
+      out, err, st = @kubectl.run(*args)
       raise EjsonSecretError, err unless st.success?
       result = JSON.parse(out)
       result.fetch('items', result)
-    end
-
-    def run_kubectl(*args)
-      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context, log_failure: false)
     end
   end
 end

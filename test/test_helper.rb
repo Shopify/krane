@@ -12,7 +12,6 @@ require 'mocha/mini_test'
 Dir.glob(File.expand_path("../helpers/**/*.rb", __FILE__)).each { |file| require file }
 ENV["KUBECONFIG"] ||= "#{Dir.home}/.kube/config"
 
-WebMock.allow_net_connect!
 Mocha::Configuration.prevent(:stubbing_method_unnecessarily)
 Mocha::Configuration.prevent(:stubbing_non_existent_method)
 Mocha::Configuration.prevent(:stubbing_non_public_method)
@@ -20,25 +19,48 @@ Mocha::Configuration.prevent(:stubbing_non_public_method)
 module KubernetesDeploy
   class TestCase < ::Minitest::Test
     def setup
+      ColorizedString.disable_colorization = true unless ENV["PRINT_LOGS"]
       @logger_stream = StringIO.new
-      @logger = ::Logger.new(@logger_stream)
-      @logger.level = ::Logger::INFO
-      KubernetesDeploy.logger = @logger
-      KubernetesResource.logger = @logger
+    end
+
+    def logger
+      @logger ||= begin
+        device = ENV["PRINT_LOGS"] ? $stderr : @logger_stream
+        KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::MINIKUBE_CONTEXT, device)
+      end
     end
 
     def teardown
+      ColorizedString.disable_colorization = false
       @logger_stream.close
     end
 
     def assert_logs_match(regexp, times = nil)
+      if ENV["PRINT_LOGS"]
+        assertion = "\033[0;35massert_logs_match(#{regexp.inspect})\033[0;33m"
+        $stderr.puts("\033[0;33mWARNING: Skipping #{assertion} while logs are redirected to stderr\033[0m")
+        return
+      end
+
       @logger_stream.rewind
       if times
         count = @logger_stream.read.scan(regexp).count
-        assert_equal 1, count, "Expected #{regexp} to appear #{times} time(s) in the log, but appeared #{count} times"
+        fail_msg = "Expected #{regexp} to appear #{times} time(s) in the log, but it appeared #{count} times"
+        assert_equal times, count, fail_msg
       else
         assert_match regexp, @logger_stream.read
       end
+    end
+
+    def refute_logs_match(regexp)
+      if ENV["PRINT_LOGS"]
+        assertion = "\033[0;35mrefute_logs_match(#{regexp.inspect})\033[0;33m"
+        $stderr.puts("\033[0;33mWARNING: Skipping #{assertion} while logs are redirected to stderr\033[0m")
+        return
+      end
+
+      @logger_stream.rewind
+      refute_match regexp, @logger_stream.read
     end
 
     def assert_raises(*exp, message: nil)
@@ -71,10 +93,12 @@ module KubernetesDeploy
     include FixtureDeployHelper
 
     def run
+      WebMock.allow_net_connect!
       @namespace = TestProvisioner.claim_namespace(name)
       super
     ensure
       TestProvisioner.delete_namespace(@namespace)
+      WebMock.disable_net_connect!
     end
   end
 
@@ -122,6 +146,8 @@ module KubernetesDeploy
     end
   end
 
+  WebMock.allow_net_connect!
   TestProvisioner.prepare_pv("pv0001")
   TestProvisioner.prepare_pv("pv0002")
+  WebMock.disable_net_connect!
 end

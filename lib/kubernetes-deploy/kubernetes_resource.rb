@@ -5,39 +5,32 @@ require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class KubernetesResource
-    def self.logger=(value)
-      @logger = value
-    end
-
-    def self.logger
-      @logger ||= begin
-        l = ::Logger.new($stderr)
-        l.formatter = proc do |_severity, datetime, _progname, msg|
-          "[KUBESTATUS][#{datetime}]\t#{msg}\n"
-        end
-        l
-      end
-    end
-
     attr_reader :name, :namespace, :file, :context
     attr_writer :type, :deploy_started
 
     TIMEOUT = 5.minutes
 
-    def self.for_type(type, name, namespace, context, file)
-      case type
-      when 'cloudsql' then Cloudsql.new(name, namespace, context, file)
-      when 'configmap' then ConfigMap.new(name, namespace, context, file)
-      when 'deployment' then Deployment.new(name, namespace, context, file)
-      when 'pod' then Pod.new(name, namespace, context, file)
-      when 'redis' then Redis.new(name, namespace, context, file)
-      when 'bugsnag' then Bugsnag.new(name, namespace, context, file)
-      when 'ingress' then Ingress.new(name, namespace, context, file)
-      when 'persistentvolumeclaim' then PersistentVolumeClaim.new(name, namespace, context, file)
-      when 'service' then Service.new(name, namespace, context, file)
-      when 'podtemplate' then PodTemplate.new(name, namespace, context, file)
-      when 'poddisruptionbudget' then PodDisruptionBudget.new(name, namespace, context, file)
-      else self.new(name, namespace, context, file).tap { |r| r.type = type }
+    def self.for_type(type:, name:, namespace:, context:, file:, logger:)
+      subclass = case type
+      when 'cloudsql' then Cloudsql
+      when 'configmap' then ConfigMap
+      when 'deployment' then Deployment
+      when 'pod' then Pod
+      when 'redis' then Redis
+      when 'bugsnag' then Bugsnag
+      when 'ingress' then Ingress
+      when 'persistentvolumeclaim' then PersistentVolumeClaim
+      when 'service' then Service
+      when 'podtemplate' then PodTemplate
+      when 'poddisruptionbudget' then PodDisruptionBudget
+      end
+
+      opts = { name: name, namespace: namespace, context: context, file: file, logger: logger }
+      if subclass
+        subclass.new(**opts)
+      else
+        inst = new(**opts)
+        inst.tap { |r| r.type = type }
       end
     end
 
@@ -49,9 +42,13 @@ module KubernetesDeploy
       self.class.timeout
     end
 
-    def initialize(name, namespace, context, file)
-      # subclasses must also set these
-      @name, @namespace, @context, @file = name, namespace, context, file
+    def initialize(name:, namespace:, context:, file:, logger:)
+      # subclasses must also set these if they define their own initializer
+      @name = name
+      @namespace = namespace
+      @context = context
+      @file = file
+      @logger = logger
     end
 
     def id
@@ -68,7 +65,7 @@ module KubernetesDeploy
 
     def deploy_succeeded?
       if @deploy_started && !@success_assumption_warning_shown
-        KubernetesDeploy.logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
+        @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
         @success_assumption_warning_shown = true
       end
       true
@@ -123,14 +120,11 @@ module KubernetesDeploy
     end
 
     def log_status
-      KubernetesResource.logger.info("[#{@context}][#{@namespace}] #{JSON.dump(status_data)}")
+      @logger.info("[KUBESTATUS] #{JSON.dump(status_data)}")
     end
 
-    def run_kubectl(*args)
-      raise FatalDeploymentError, "Namespace missing for namespaced command" if @namespace.blank?
-      raise KubectlError, "Explicit context is required to run this command" if @context.blank?
-
-      Kubectl.run_kubectl(*args, namespace: @namespace, context: @context, log_failure: false)
+    def kubectl
+      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
     end
   end
 end

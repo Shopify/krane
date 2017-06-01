@@ -3,18 +3,11 @@ module KubernetesDeploy
   class Service < KubernetesResource
     TIMEOUT = 5.minutes
 
-    def initialize(name, namespace, context, file)
-      @name = name
-      @namespace = namespace
-      @context = context
-      @file = file
-    end
-
     def sync
-      _, _err, st = run_kubectl("get", type, @name)
+      _, _err, st = kubectl.run("get", type, @name)
       @found = st.success?
       if @found
-        endpoints, _err, st = run_kubectl("get", "endpoints", @name, "--output=jsonpath={.subsets[*].addresses[*].ip}")
+        endpoints, _err, st = kubectl.run("get", "endpoints", @name, "--output=jsonpath={.subsets[*].addresses[*].ip}")
         @num_endpoints = (st.success? ? endpoints.split.length : 0)
       else
         @num_endpoints = 0

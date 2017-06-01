@@ -1,50 +1,39 @@
 # frozen_string_literal: true
 require 'test_helper'
+require 'kubernetes-deploy/runner_task'
 
 class RunnerTaskUnitTest < KubernetesDeploy::TestCase
-  def test_missing_namespace
-    assert_raises(KubernetesDeploy::RunnerTask::FatalTaskRunError,
-      message: "Configuration invalid: Namespace was not found") do
-      task_runner = KubernetesDeploy::RunnerTask.new(
-        context: KubeclientHelper::MINIKUBE_CONTEXT,
-        namespace: "missing",
-      )
-
-      task_runner.run(
-        task_template: 'hello-cloud-template-runner',
-        entrypoint: nil,
-        args: 'a'
-      )
-    end
+  def setup
+    Kubeclient::Client.any_instance.stubs(:discover)
+    super
   end
 
-  def test_missing_arguments
-    assert_raises(KubernetesDeploy::RunnerTask::FatalTaskRunError) do
-      task_runner = KubernetesDeploy::RunnerTask.new(
-        context: KubeclientHelper::MINIKUBE_CONTEXT,
-        namespace: @namespace,
-      )
+  def test_run_with_invalid_configuration
+    task_runner = KubernetesDeploy::RunnerTask.new(
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      namespace: nil,
+      logger: logger,
+    )
 
-      task_runner.run(
-        task_template: 'hello-cloud-template-runner',
-        entrypoint: nil,
-        args: nil
-      )
-    end
+    refute task_runner.run(task_template: nil, entrypoint: nil, args: nil)
+    assert_logs_match(/Task template name can't be nil/)
+    assert_logs_match(/Namespace can't be empty/)
+    assert_logs_match(/Args can't be nil/)
   end
 
-  def test_missing_template
-    assert_raises(KubernetesDeploy::RunnerTask::FatalTaskRunError) do
-      task_runner = KubernetesDeploy::RunnerTask.new(
-        namespace: @namespace,
-        context: KubeclientHelper::MINIKUBE_CONTEXT
-      )
+  def test_run_bang_with_invalid_configuration
+    task_runner = KubernetesDeploy::RunnerTask.new(
+      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      namespace: nil,
+      logger: logger,
+    )
 
-      task_runner.run(
-        task_template: nil,
-        entrypoint: nil,
-        args: ['a']
-      )
+    err = assert_raises(KubernetesDeploy::RunnerTask::FatalTaskRunError) do
+      task_runner.run!(task_template: nil, entrypoint: nil, args: nil)
     end
+
+    assert_match(/Task template name can't be nil/, err.to_s)
+    assert_match(/Namespace can't be empty/, err.to_s)
+    assert_match(/Args can't be nil/, err.to_s)
   end
 end
