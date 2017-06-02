@@ -6,7 +6,7 @@ require 'kubernetes-deploy/version'
 Gem::Specification.new do |spec|
   spec.name          = "kubernetes-deploy"
   spec.version       = KubernetesDeploy::VERSION
-  spec.authors       = ["Kir Shatrov", "Jean Boussier", "Katrina Verey"]
+  spec.authors       = ["Katrina Verey", "Kir Shatrov"]
   spec.email         = ["ops-accounts+shipit@shopify.com"]
 
   spec.summary       = %q{Kubernetes deploy scripts}
