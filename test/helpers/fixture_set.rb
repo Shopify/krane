@@ -59,7 +59,7 @@ module FixtureSetAssertions
         label_selector: "name=#{dep_name},app=#{app_name}"
       )
       assert_equal 1, deployments.size, "Expected 1 #{dep_name} deployment, got #{deployments.size}"
-      available = deployments.first["status"]["availableReplicas"]
+      available = deployments.first["status"]["availableReplicas"].to_i
 
       msg = "Expected #{dep_name} deployment to have #{replicas} available replicas, saw #{available}"
       assert_equal replicas, available, msg

@@ -206,10 +206,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_wait_false_ignores_non_priority_resource_failures
     # web depends on configmap so will not succeed deployed alone
     assert deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], wait: false)
-
-    pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=hello-cloud')
-    assert_equal 1, pods.size, "Unable to find web pod"
-    assert_equal "Pending", pods.first.status.phase
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_deployment_up("web", replicas: 0) # it exists, but no pods available yet
+    assert_logs_match("Result: SUCCESS")
+    assert_logs_match("Deployed 3 resources")
+    assert_logs_match("Deploy result verification is disabled for this deploy.")
   end
 
   def test_extra_bindings_should_be_rendered
