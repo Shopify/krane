@@ -317,8 +317,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     success = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "configmap-data.yml"]) do |fixtures|
       web = fixtures["web.yml.erb"]["Deployment"].first
-      container = web["spec"]["template"]["spec"]["containers"].first
-      container["command"] = ["/usr/sbin/nginx", "-s", "stop"] # it isn't running, so this will log some errors
+      app = web["spec"]["template"]["spec"]["containers"].first
+      app["command"] = ["/usr/sbin/nginx", "-s", "stop"] # it isn't running, so this will log some errors
+      sidecar = web["spec"]["template"]["spec"]["containers"].last
+      sidecar["command"] = ["ls", "/not-a-dir"]
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
 
@@ -335,8 +337,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match("Deployment/web: FAILED")
     assert_logs_match("Final status: 1 updatedReplicas, 1 replicas, 1 unavailableReplicas")
     assert_logs_match(%r{\[Deployment/web\].*Scaled up replica set web-}) # deployment event
-    assert_logs_match(%r{\[Pod/web-.*CrashLoopBackOff.*restarting failed container=app pod=web-}) # pod event
-    assert_logs_match("nginx: [error]") # pod log
+    assert_logs_match(/failed to "StartContainer" for "app" with CrashLoopBackOff/) # app event
+    assert_logs_match(/failed to "StartContainer" for "sidecar" with CrashLoopBackOff/) # sidecar event
+    assert_logs_match("nginx: [error]") # app log
+    assert_logs_match("ls: /not-a-dir: No such file or directory") # sidecar log
   end
 
   def test_failed_deploy_to_nonexistent_namespace

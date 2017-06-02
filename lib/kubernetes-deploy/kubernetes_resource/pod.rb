@@ -79,6 +79,7 @@ module KubernetesDeploy
           "logs",
           @name,
           "--timestamps=true",
+          "--container=#{container_name}",
           "--since-time=#{@deploy_started.to_datetime.rfc3339}"
         )
         container_logs["#{id}/#{container_name}"] = out
