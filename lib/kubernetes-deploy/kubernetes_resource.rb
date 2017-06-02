@@ -183,7 +183,7 @@ module KubernetesDeploy
     end
 
     def pretty_status
-      padding = " " * (50 - id.length)
+      padding = " " * [50 - id.length, 1].max
       msg = exists? ? status : "not found"
       "#{id}#{padding}#{msg}"
     end
