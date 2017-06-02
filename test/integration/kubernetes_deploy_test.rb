@@ -337,8 +337,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match("Deployment/web: FAILED")
     assert_logs_match("Final status: 1 updatedReplicas, 1 replicas, 1 unavailableReplicas")
     assert_logs_match(%r{\[Deployment/web\].*Scaled up replica set web-}) # deployment event
-    assert_logs_match(/failed to "StartContainer" for "app" with CrashLoopBackOff/) # app event
-    assert_logs_match(/failed to "StartContainer" for "sidecar" with CrashLoopBackOff/) # sidecar event
+    assert_logs_match(/Back-off restarting failed container/) # event
     assert_logs_match("nginx: [error]") # app log
     assert_logs_match("ls: /not-a-dir: No such file or directory") # sidecar log
   end

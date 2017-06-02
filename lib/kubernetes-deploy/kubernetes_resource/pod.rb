@@ -78,7 +78,6 @@ module KubernetesDeploy
         out, _err, _st = kubectl.run(
           "logs",
           @name,
-          "--timestamps=true",
           "--container=#{container_name}",
           "--since-time=#{@deploy_started.to_datetime.rfc3339}"
         )
