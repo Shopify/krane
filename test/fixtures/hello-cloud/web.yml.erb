@@ -58,3 +58,6 @@ spec:
             configMapKeyRef:
               name: hello-cloud-configmap-data
               key: datapoint1
+      - name: sidecar
+        image: busybox
+        command: ["sleep", "8000"]

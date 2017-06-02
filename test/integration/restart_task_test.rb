@@ -134,8 +134,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def fetch_restarted_at(deployment_name)
     deployment = v1beta1_kubeclient.get_deployment(deployment_name, @namespace)
     containers = deployment.spec.template.spec.containers
-    assert_equal 1, containers.size
-    env = containers.first.env
-    env && env.find { |n| n.name == "RESTARTED_AT" }
+    app_container = containers.find { |c| c["name"] == "app" }
+    app_container && app_container.env.find { |n| n.name == "RESTARTED_AT" }
   end
 end

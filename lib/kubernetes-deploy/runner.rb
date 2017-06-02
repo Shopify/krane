@@ -113,7 +113,16 @@ module KubernetesDeploy
 
       deploy_resources(resources, prune: prune)
 
-      return true unless verify_result
+      unless verify_result
+        @logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
+        warning = <<-MSG.strip_heredoc
+          Deploy result verification is disabled for this deploy.
+          This means the desired changes were communicated to Kubernetes, but the deploy did not make sure they actually succeeded.
+        MSG
+        @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
+        return success = true
+      end
+
       wait_for_completion(resources)
       record_statuses(resources)
       success = resources.all?(&:deploy_succeeded?)
