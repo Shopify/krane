@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "ejson", "1.0.1"
   spec.add_dependency "colorize", "~> 0.8"
 
-  spec.add_development_dependency "bundler", "~> 1.13"
+  spec.add_development_dependency "bundler"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "minitest", "~> 5.0"
   spec.add_development_dependency "minitest-stub-const", "~> 0.6"
