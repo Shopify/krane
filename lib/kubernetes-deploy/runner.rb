@@ -111,21 +111,20 @@ module KubernetesDeploy
         raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
       end
 
-      deploy_resources(resources, prune: prune)
-
-      unless verify_result
+      if verify_result
+        deploy_resources(resources, prune: prune, verify: true)
+        record_statuses(resources)
+        success = resources.all?(&:deploy_succeeded?)
+      else
+        deploy_resources(resources, prune: prune, verify: false)
         @logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
         warning = <<-MSG.strip_heredoc
           Deploy result verification is disabled for this deploy.
           This means the desired changes were communicated to Kubernetes, but the deploy did not make sure they actually succeeded.
         MSG
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
-        return success = true
+        success = true
       end
-
-      wait_for_completion(resources)
-      record_statuses(resources)
-      success = resources.all?(&:deploy_succeeded?)
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message)
       success = false
@@ -200,8 +199,7 @@ module KubernetesDeploy
       PREDEPLOY_SEQUENCE.each do |resource_type|
         matching_resources = resource_list.select { |r| r.type == resource_type }
         next if matching_resources.empty?
-        deploy_resources(matching_resources)
-        wait_for_completion(matching_resources)
+        deploy_resources(matching_resources, verify: true)
 
         failed_resources = matching_resources.reject(&:deploy_succeeded?)
         fail_count = failed_resources.length
@@ -297,8 +295,8 @@ module KubernetesDeploy
       @logger.summary.add_paragraph(debug_msg)
     end
 
-    def wait_for_completion(watched_resources)
-      watcher = ResourceWatcher.new(watched_resources, logger: @logger)
+    def wait_for_completion(watched_resources, started_at)
+      watcher = ResourceWatcher.new(watched_resources, logger: @logger, deploy_started_at: started_at)
       watcher.run
     end
 
@@ -359,7 +357,8 @@ module KubernetesDeploy
       @logger.info("All required parameters and files are present")
     end
 
-    def deploy_resources(resources, prune: false)
+    def deploy_resources(resources, prune: false, verify:)
+      deploy_started_at = Time.now.utc
       @logger.info("Deploying resources:")
 
       # Apply can be done in one large batch, the rest have to be done individually
@@ -390,6 +389,7 @@ module KubernetesDeploy
       end
 
       apply_all(applyables, prune)
+      wait_for_completion(resources, deploy_started_at) if verify
     end
 
     def apply_all(resources, prune)
