@@ -23,12 +23,12 @@ module KubernetesDeploy
       heading("Phase #{@current_phase}: #{phase_name}")
     end
 
-    def heading(text, secondary_msg = '', secondary_msg_color = :blue)
+    def heading(text, secondary_msg = '', secondary_msg_color = :light_blue)
       padding = (100.0 - (text.length + secondary_msg.length)) / 2
       blank_line
-      part1 = ColorizedString.new("#{'-' * padding.floor}#{text}").blue
+      part1 = ColorizedString.new("#{'-' * padding.floor}#{text}").light_blue
       part2 = ColorizedString.new(secondary_msg).colorize(secondary_msg_color)
-      part3 = ColorizedString.new('-' * padding.ceil).blue
+      part3 = ColorizedString.new('-' * padding.ceil).light_blue
       info(part1 + part2 + part3)
     end
 
