@@ -3,9 +3,9 @@ module KubernetesDeploy
   class ResourceWatcher
     def initialize(resources, logger:, deploy_started_at: Time.now.utc)
       unless resources.is_a?(Enumerable)
-        raise ArgumentError, <<-MSG.strip
-ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
-MSG
+        raise ArgumentError, <<-MSG.strip_heredoc
+          ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
+        MSG
       end
       @resources = resources
       @logger = logger

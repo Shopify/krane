@@ -68,11 +68,8 @@ module KubernetesDeploy
       begin
         @kubeclient.get_namespace(@namespace) if @namespace.present?
       rescue KubeException => e
-        errors << if e.error_code == 404
-          "Namespace was not found"
-        else
-          "Could not connect to kubernetes cluster"
-        end
+        msg = e.error_code == 404 ? "Namespace was not found" : "Could not connect to kubernetes cluster"
+        errors << msg
       end
 
       raise FatalTaskRunError, "Configuration invalid: #{errors.join(', ')}" unless errors.empty?

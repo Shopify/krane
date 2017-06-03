@@ -361,7 +361,7 @@ module KubernetesDeploy
       return if resources.empty?
       deploy_started_at = Time.now.utc
 
-     if resources.length > 1
+      if resources.length > 1
         @logger.info("Deploying resources:")
       else
         resource = resources.first
@@ -376,23 +376,23 @@ module KubernetesDeploy
         r.deploy_started = Time.now.utc
         case r.deploy_method
         when :replace
-          _, _, st = kubectl.run("replace", "-f", r.file.path, log_failure: false)
+          _, _, replace_st = kubectl.run("replace", "-f", r.file.path, log_failure: false)
         when :replace_force
-          _, _, st = kubectl.run("replace", "--force", "-f", r.file.path, log_failure: false)
+          _, _, replace_st = kubectl.run("replace", "--force", "-f", r.file.path, log_failure: false)
         else
           # Fail Fast! This is a programmer mistake.
           raise ArgumentError, "Unexpected deploy method! (#{r.deploy_method.inspect})"
         end
 
-        next if st.success?
+        next if replace_st.success?
         # it doesn't exist so we can't replace it
-        _, err, st = kubectl.run("create", "-f", r.file.path, log_failure: false)
-        unless st.success?
-          raise FatalDeploymentError, <<-MSG.strip_heredoc
-            Failed to replace or create resource: #{r.id}
-            #{err}
-          MSG
-        end
+        _, err, create_st = kubectl.run("create", "-f", r.file.path, log_failure: false)
+
+        next if create_st.success?
+        raise FatalDeploymentError, <<-MSG.strip_heredoc
+          Failed to replace or create resource: #{r.id}
+          #{err}
+        MSG
       end
 
       apply_all(applyables, prune)

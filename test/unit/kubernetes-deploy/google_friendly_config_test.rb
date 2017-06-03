@@ -18,10 +18,10 @@ class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
       .to_return(
         headers: { 'Content-Type' => 'application/json' },
         body: {
-          "access_token": "bearer_token",
-          "token_type": "Bearer",
-          "expires_in": 3600,
-          "id_token": "identity_token"
+          "access_token" => "bearer_token",
+          "token_type" => "Bearer",
+          "expires_in" => 3600,
+          "id_token" => "identity_token"
         }.to_json,
         status: 200
       )
