@@ -75,12 +75,14 @@ module KubernetesDeploy
       return {} unless exists? && @containers.present?
 
       @containers.each_with_object({}) do |container_name, container_logs|
-        out, _err, _st = kubectl.run(
+        cmd = [
           "logs",
           @name,
           "--container=#{container_name}",
-          "--since-time=#{@deploy_started.to_datetime.rfc3339}"
-        )
+          "--since-time=#{@deploy_started.to_datetime.rfc3339}",
+        ]
+        cmd << "--tail=50" unless unmanaged?
+        out, _err, _st = kubectl.run(*cmd)
         container_logs["#{id}/#{container_name}"] = out
       end
     end
