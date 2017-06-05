@@ -114,13 +114,6 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     end
   end
 
-  def stub_kubectl_response(*args, resp:, err: "", success: true)
-    response = [resp.to_json, err, stub(success?: success)]
-    KubernetesDeploy::Kubectl.any_instance.expects(:run)
-      .with(*args)
-      .returns(response)
-  end
-
   def dummy_ejson_secret(data = correct_ejson_key_secret_data)
     dummy_secret_hash(data: data, name: 'ejson-keys', managed: false)
   end

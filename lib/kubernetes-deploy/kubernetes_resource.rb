@@ -154,25 +154,18 @@ module KubernetesDeploy
     # Returns a hash in the following format:
     # {
     #   "pod/web-1" => [
-    #     {"subject_kind" => "Pod", "some" => "stuff"}, # event 1
-    #     {"subject_kind" => "Pod", "other" => "stuff"}, # event 2
+    #     "Pulling: pulling image "hello-world:latest" (1 events)",
+    #     "Pulled: Successfully pulled image "hello-world:latest" (1 events)"
     #   ]
     # }
     def fetch_events
       return {} unless exists?
-      fields = "{.involvedObject.kind}\t{.count}\t{.message}\t{.reason}"
-      out, _err, st = kubectl.run("get", "events",
-        %(--output=jsonpath={range .items[?(@.involvedObject.name=="#{name}")]}#{fields}\n{end}))
+      out, _err, st = kubectl.run("get", "events", "--output=jsonpath=#{Event.jsonpath_for(name)}")
       return {} unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
-      out.split("\n").each_with_object(event_collector) do |event_blob, events|
-        pieces = event_blob.split("\t")
-        subject_kind = pieces[0]
-        # jsonpath can only filter by one thing at a time, and we chose involvedObject.name
-        # This means we still need to filter by involvedObject.kind here to make sure we only retain relevant events
-        next unless subject_kind.downcase == type.downcase
-        events[id] << "#{pieces[3] || 'Unknown'}: #{pieces[2]} (#{pieces[1]} events)" # Reason: Message (X events)
+      Event.from_jsonpath_blob(out).each_with_object(event_collector) do |candidate, events|
+        events[id] << candidate.to_s if candidate.belongs_to?(self) && candidate.seen_since?(@deploy_started)
       end
     end
 
@@ -191,6 +184,52 @@ module KubernetesDeploy
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
+    end
+
+    class Event
+      JSONPATH_FIELDS =
+        "{.involvedObject.kind}\t{.involvedObject.name}\t{.count}\t{.lastTimestamp}\t{.reason}\t{.message}"
+      JSONPATH_SEPARATOR = "ENDEVENT\nBEGINEVENT"
+
+      def self.jsonpath_for(name)
+        %({range .items[?(@.involvedObject.name=="#{name}")]}#{JSONPATH_FIELDS}#{JSONPATH_SEPARATOR}{end})
+      end
+
+      def self.from_jsonpath_blob(blob)
+        blob.split(JSONPATH_SEPARATOR).map do |event_blob|
+          pieces = event_blob.split("\t", 6)
+          new(
+            subject_kind: pieces[0],
+            subject_name: pieces[1],
+            count: pieces[2],
+            last_timestamp: pieces[3],
+            reason: pieces[4],
+            message: pieces[5]
+          )
+        end
+      end
+
+      def initialize(subject_kind:, last_timestamp:, reason:, message:, count:, subject_name:)
+        @subject_kind = subject_kind
+        @subject_name = subject_name
+        @last_timestamp = Time.parse(last_timestamp)
+        @reason = reason
+        @message = message.tr("\n", '')
+        @count = count.to_i
+      end
+
+      def belongs_to?(other)
+        other.name == @subject_name &&
+        other.type == @subject_kind
+      end
+
+      def seen_since?(time)
+        time.to_i <= @last_timestamp.to_i
+      end
+
+      def to_s
+        "#{@reason}: #{@message} (#{@count} events)"
+      end
     end
   end
 end

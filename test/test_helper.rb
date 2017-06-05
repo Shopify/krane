@@ -105,6 +105,14 @@ module KubernetesDeploy
       source_dir
     end
 
+    def stub_kubectl_response(*args, resp:, err: "", success: true, json: true)
+      resp = resp.to_json if json
+      response = [resp, err, stub(success?: success)]
+      KubernetesDeploy::Kubectl.any_instance.expects(:run)
+        .with(*args)
+        .returns(response)
+    end
+
     private
 
     def logging_assertion
