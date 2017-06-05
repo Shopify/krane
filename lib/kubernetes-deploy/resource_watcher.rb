@@ -1,25 +1,25 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class ResourceWatcher
-    def initialize(resources, logger:)
+    def initialize(resources, logger:, deploy_started_at: Time.now.utc)
       unless resources.is_a?(Enumerable)
-        raise ArgumentError, <<-MSG.strip
-ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
-MSG
+        raise ArgumentError, <<-MSG.strip_heredoc
+          ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
+        MSG
       end
       @resources = resources
       @logger = logger
+      @deploy_started_at = deploy_started_at
     end
 
     def run(delay_sync: 3.seconds)
       delay_sync_until = Time.now.utc
-      started_at = delay_sync_until
 
       while @resources.present?
         if Time.now.utc < delay_sync_until
           sleep(delay_sync_until - Time.now.utc)
         end
-        watch_time = (Time.now.utc - started_at).round(1)
+        watch_time = (Time.now.utc - @deploy_started_at).round(1)
         delay_sync_until = Time.now.utc + delay_sync # don't pummel the API if the sync is fast
         @resources.each(&:sync)
         newly_finished_resources, @resources = @resources.partition(&:deploy_finished?)

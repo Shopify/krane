@@ -111,21 +111,20 @@ module KubernetesDeploy
         raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
       end
 
-      deploy_resources(resources, prune: prune)
-
-      unless verify_result
+      if verify_result
+        deploy_resources(resources, prune: prune, verify: true)
+        record_statuses(resources)
+        success = resources.all?(&:deploy_succeeded?)
+      else
+        deploy_resources(resources, prune: prune, verify: false)
         @logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
         warning = <<-MSG.strip_heredoc
           Deploy result verification is disabled for this deploy.
           This means the desired changes were communicated to Kubernetes, but the deploy did not make sure they actually succeeded.
         MSG
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
-        return success = true
+        success = true
       end
-
-      wait_for_completion(resources)
-      record_statuses(resources)
-      success = resources.all?(&:deploy_succeeded?)
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message)
       success = false
@@ -200,8 +199,7 @@ module KubernetesDeploy
       PREDEPLOY_SEQUENCE.each do |resource_type|
         matching_resources = resource_list.select { |r| r.type == resource_type }
         next if matching_resources.empty?
-        deploy_resources(matching_resources)
-        wait_for_completion(matching_resources)
+        deploy_resources(matching_resources, verify: true)
 
         failed_resources = matching_resources.reject(&:deploy_succeeded?)
         fail_count = failed_resources.length
@@ -297,8 +295,8 @@ module KubernetesDeploy
       @logger.summary.add_paragraph(debug_msg)
     end
 
-    def wait_for_completion(watched_resources)
-      watcher = ResourceWatcher.new(watched_resources, logger: @logger)
+    def wait_for_completion(watched_resources, started_at)
+      watcher = ResourceWatcher.new(watched_resources, logger: @logger, deploy_started_at: started_at)
       watcher.run
     end
 
@@ -359,37 +357,46 @@ module KubernetesDeploy
       @logger.info("All required parameters and files are present")
     end
 
-    def deploy_resources(resources, prune: false)
-      @logger.info("Deploying resources:")
+    def deploy_resources(resources, prune: false, verify:)
+      return if resources.empty?
+      deploy_started_at = Time.now.utc
+
+      if resources.length > 1
+        @logger.info("Deploying resources:")
+      else
+        resource = resources.first
+        @logger.info("Deploying #{resource.id} (timeout: #{resource.timeout}s)")
+      end
 
       # Apply can be done in one large batch, the rest have to be done individually
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
 
       individuals.each do |r|
-        @logger.info("- #{r.id}")
+        @logger.info("- #{r.id} (timeout: #{r.timeout}s)") if resources.length > 1
         r.deploy_started = Time.now.utc
         case r.deploy_method
         when :replace
-          _, _, st = kubectl.run("replace", "-f", r.file.path, log_failure: false)
+          _, _, replace_st = kubectl.run("replace", "-f", r.file.path, log_failure: false)
         when :replace_force
-          _, _, st = kubectl.run("replace", "--force", "-f", r.file.path, log_failure: false)
+          _, _, replace_st = kubectl.run("replace", "--force", "-f", r.file.path, log_failure: false)
         else
           # Fail Fast! This is a programmer mistake.
           raise ArgumentError, "Unexpected deploy method! (#{r.deploy_method.inspect})"
         end
 
-        next if st.success?
+        next if replace_st.success?
         # it doesn't exist so we can't replace it
-        _, err, st = kubectl.run("create", "-f", r.file.path, log_failure: false)
-        unless st.success?
-          raise FatalDeploymentError, <<-MSG.strip_heredoc
-            Failed to replace or create resource: #{r.id}
-            #{err}
-          MSG
-        end
+        _, err, create_st = kubectl.run("create", "-f", r.file.path, log_failure: false)
+
+        next if create_st.success?
+        raise FatalDeploymentError, <<-MSG.strip_heredoc
+          Failed to replace or create resource: #{r.id}
+          #{err}
+        MSG
       end
 
       apply_all(applyables, prune)
+      wait_for_completion(resources, deploy_started_at) if verify
     end
 
     def apply_all(resources, prune)
@@ -397,7 +404,7 @@ module KubernetesDeploy
 
       command = ["apply"]
       resources.each do |r|
-        @logger.info("- #{r.id} (timeout: #{r.timeout}s)")
+        @logger.info("- #{r.id} (timeout: #{r.timeout}s)") if resources.length > 1
         command.push("-f", r.file.path)
         r.deploy_started = Time.now.utc
       end

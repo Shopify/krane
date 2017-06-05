@@ -11,7 +11,7 @@ env_vars = []
 
 ARGV.options do |opts|
   opts.on("--template=TEMPLATE") { |n| template = n }
-  opts.on("--env-vars=ENV_VARS") { |vars| env_vars = n.split(",")}
+  opts.on("--env-vars=ENV_VARS") { |vars| env_vars = vars.split(",") }
   opts.on("--entrypoint=ENTRYPOINT") { |c| entrypoint = [c] }
   opts.parse!
 end

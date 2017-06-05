@@ -15,7 +15,7 @@ verbose_log_prefix = false
 ARGV.options do |opts|
   opts.on("--bindings=BINDINGS", Array, "k1=v1,k2=v2") do |binds|
     bindings = binds.each_with_object({}) do |bind, acc|
-      k,v = bind.split('=')
+      k, v = bind.split('=')
       raise "key for value #{v} is blank!" if k.blank?
       raise "value for key #{k} is blank!" if v.blank?
       acc[k] = v

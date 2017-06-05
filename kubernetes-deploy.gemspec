@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Katrina Verey", "Kir Shatrov"]
   spec.email         = ["ops-accounts+shipit@shopify.com"]
 
-  spec.summary       = %q{Kubernetes deploy scripts}
+  spec.summary       = 'Kubernetes deploy scripts'
   spec.description   = spec.summary
   spec.homepage      = "https://github.com/Shopify/kubernetes-deploy"
   spec.license       = "MIT"

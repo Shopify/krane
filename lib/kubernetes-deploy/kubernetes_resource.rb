@@ -10,6 +10,7 @@ module KubernetesDeploy
     attr_writer :type, :deploy_started
 
     TIMEOUT = 5.minutes
+    LOG_LINE_COUNT = 250
 
     DEBUG_RESOURCE_NOT_FOUND_MESSAGE = "None found. Please check your usual logging service (e.g. Splunk)."
     UNUSUAL_FAILURE_MESSAGE = <<-MSG.strip_heredoc
@@ -138,7 +139,7 @@ module KubernetesDeploy
         if container_logs.blank? || container_logs.values.all?(&:blank?)
           helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
         else
-          helpful_info << "  - Logs:"
+          helpful_info << "  - Logs (last #{LOG_LINE_COUNT} lines shown):"
           container_logs.each do |identifier, logs|
             logs.split("\n").each do |line|
               helpful_info << "      [#{identifier}]\t#{line}"
