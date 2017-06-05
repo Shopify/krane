@@ -81,7 +81,7 @@ module KubernetesDeploy
           "--container=#{container_name}",
           "--since-time=#{@deploy_started.to_datetime.rfc3339}",
         ]
-        cmd << "--tail=50" unless unmanaged?
+        cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
         out, _err, _st = kubectl.run(*cmd)
         container_logs["#{id}/#{container_name}"] = out
       end
