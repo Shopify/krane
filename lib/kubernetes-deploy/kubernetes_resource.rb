@@ -160,12 +160,12 @@ module KubernetesDeploy
     # }
     def fetch_events
       return {} unless exists?
-      out, _err, st = kubectl.run("get", "events", "--output=jsonpath=#{Event.jsonpath_for(name)}")
+      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}")
       return {} unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
-      Event.from_jsonpath_blob(out).each_with_object(event_collector) do |candidate, events|
-        events[id] << candidate.to_s if candidate.belongs_to?(self) && candidate.seen_since?(@deploy_started)
+      Event.extract_all_from_go_template_blob(out).each_with_object(event_collector) do |candidate, events|
+        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started - 5.seconds)
       end
     end
 
@@ -187,24 +187,39 @@ module KubernetesDeploy
     end
 
     class Event
-      JSONPATH_FIELDS =
-        "{.involvedObject.kind}\t{.involvedObject.name}\t{.count}\t{.lastTimestamp}\t{.reason}\t{.message}"
-      JSONPATH_SEPARATOR = "ENDEVENT\nBEGINEVENT"
+      EVENT_SEPARATOR = "ENDEVENT--BEGINEVENT"
+      FIELD_SEPARATOR = "ENDFIELD--BEGINFIELD"
+      FIELDS = %w(
+        .involvedObject.kind
+        .involvedObject.name
+        .count
+        .lastTimestamp
+        .reason
+        .message
+      )
 
-      def self.jsonpath_for(name)
-        %({range .items[?(@.involvedObject.name=="#{name}")]}#{JSONPATH_FIELDS}#{JSONPATH_SEPARATOR}{end})
+      def self.go_template_for(kind, name)
+        and_conditions = [
+          %[(eq .involvedObject.kind "#{kind}")],
+          %[(eq .involvedObject.name "#{name}")],
+          '(ne .reason "Started")',
+          '(ne .reason "Created")'
+        ]
+        condition_start = "{{if and #{and_conditions.join(' ')}}}"
+        field_part = FIELDS.map { |f| "{{#{f}}}" }.join(%({{print "#{FIELD_SEPARATOR}"}}))
+        %({{range .items}}#{condition_start}#{field_part}{{print "#{EVENT_SEPARATOR}"}}{{end}}{{end}})
       end
 
-      def self.from_jsonpath_blob(blob)
-        blob.split(JSONPATH_SEPARATOR).map do |event_blob|
-          pieces = event_blob.split("\t", 6)
+      def self.extract_all_from_go_template_blob(blob)
+        blob.split(EVENT_SEPARATOR).map do |event_blob|
+          pieces = event_blob.split(FIELD_SEPARATOR, FIELDS.length)
           new(
-            subject_kind: pieces[0],
-            subject_name: pieces[1],
-            count: pieces[2],
-            last_timestamp: pieces[3],
-            reason: pieces[4],
-            message: pieces[5]
+            subject_kind: pieces[FIELDS.index(".involvedObject.kind")],
+            subject_name: pieces[FIELDS.index(".involvedObject.name")],
+            count: pieces[FIELDS.index(".count")],
+            last_timestamp: pieces[FIELDS.index(".lastTimestamp")],
+            reason: pieces[FIELDS.index(".reason")],
+            message: pieces[FIELDS.index(".message")]
           )
         end
       end
@@ -216,11 +231,6 @@ module KubernetesDeploy
         @reason = reason
         @message = message.tr("\n", '')
         @count = count.to_i
-      end
-
-      def belongs_to?(other)
-        other.name == @subject_name &&
-        other.type == @subject_kind
       end
 
       def seen_since?(time)

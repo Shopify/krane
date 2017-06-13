@@ -43,27 +43,13 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     assert_includes_dummy_events(events, first: false, second: true)
   end
 
-  def test_fetch_events_returns_empty_hash_when_jsonpath_results_empty
+  def test_fetch_events_returns_empty_hash_when_kubectl_results_empty
     dummy = DummyResource.new
     dummy.deploy_started = Time.now.utc - 10.seconds
 
     stub_kubectl_response("get", "events", anything, resp: "", json: false)
     events = dummy.fetch_events
     assert_operator events, :empty?
-  end
-
-  def test_fetch_events_excludes_events_belonging_to_other_resources
-    start_time = Time.now.utc - 10.seconds
-    dummy = DummyResource.new
-    dummy.deploy_started = start_time
-
-    not_my_events = dummy_events(start_time)
-    not_my_events.first[:kind] = "Pod"
-    not_my_events.last[:name] = "some-other-thing"
-
-    stub_kubectl_response("get", "events", anything, resp: build_event_jsonpath(not_my_events), json: false)
-    events = dummy.fetch_events
-    assert_includes_dummy_events(events, first: false, second: false)
   end
 
   private
@@ -116,9 +102,10 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   end
 
   def build_event_jsonpath(dummy_events)
-    separator = KubernetesDeploy::KubernetesResource::Event::JSONPATH_SEPARATOR
+    event_separator = KubernetesDeploy::KubernetesResource::Event::EVENT_SEPARATOR
+    field_separator = KubernetesDeploy::KubernetesResource::Event::FIELD_SEPARATOR
     dummy_events.each_with_object([]) do |e, jsonpaths|
-      jsonpaths << [e[:kind], e[:name], e[:count], e[:last_seen].to_s, e[:reason], e[:message]].join("\t")
-    end.join(separator).concat(separator)
+      jsonpaths << [e[:kind], e[:name], e[:count], e[:last_seen].to_s, e[:reason], e[:message]].join(field_separator)
+    end.join(event_separator)
   end
 end
