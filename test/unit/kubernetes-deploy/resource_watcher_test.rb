@@ -47,16 +47,31 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     watcher = KubernetesDeploy::ResourceWatcher.new([first, second, third, fourth], logger: logger)
     watcher.run(delay_sync: 0.1)
 
-    @logger_stream.rewind
-    scanner = StringScanner.new(@logger_stream.read)
+    assert_logs_match_all([
+      /Successfully deployed in \d.\ds: first/,
+      /Continuing to wait for: second, third, fourth/,
+      /second deployment timed out/,
+      /Continuing to wait for: third, fourth/,
+      /third failed to deploy after \d.\ds/,
+      /Continuing to wait for: fourth/,
+      /Successfully deployed in \d.\ds: fourth/
+    ], in_order: true)
+  end
 
-    assert scanner.scan_until(/Successfully deployed in \d.\ds: first/)
-    assert scanner.scan_until(/Continuing to wait for: second, third, fourth/)
-    assert scanner.scan_until(/second deployment timed out/)
-    assert scanner.scan_until(/Continuing to wait for: third, fourth/)
-    assert scanner.scan_until(/third failed to deploy after \d.\ds/)
-    assert scanner.scan_until(/Continuing to wait for: fourth/)
-    assert scanner.scan_until(/Successfully deployed in \d.\ds: fourth/)
+  def test_reminder_logged_at_interval_even_when_nothing_happened
+    resource1 = build_mock_resource(final_status: "success", hits_to_complete: 1, name: 'first')
+    resource2 = build_mock_resource(final_status: "success", hits_to_complete: 9, name: 'second')
+    resource3 = build_mock_resource(final_status: "success", hits_to_complete: 9, name: 'third')
+    watcher = KubernetesDeploy::ResourceWatcher.new([resource1, resource2, resource3], logger: logger)
+    watcher.run(delay_sync: 0.1, reminder_interval: 0.5.seconds)
+
+    assert_logs_match_all([
+      /Successfully deployed in \d.\ds: first/,
+      /Continuing to wait for: second, third/,
+      /Still waiting for: second, third/,
+      /Successfully deployed in \d.\ds: second, third/
+    ], in_order: true)
+    assert_logs_match(/Continuing to wait for: second, third/, 1) # only once
   end
 
   private

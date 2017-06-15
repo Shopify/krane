@@ -48,31 +48,37 @@ module KubernetesDeploy
     end
 
     def assert_logs_match(regexp, times = nil)
-      if ENV["PRINT_LOGS"]
-        assertion = "\033[0;35massert_logs_match(#{regexp.inspect})\033[0;33m"
-        $stderr.puts("\033[0;33mWARNING: Skipping #{assertion} while logs are redirected to stderr\033[0m")
-        return
-      end
+      logging_assertion do |logs|
+        unless times
+          assert_match regexp, logs
+          return
+        end
 
-      @logger_stream.rewind
-      if times
-        count = @logger_stream.read.scan(regexp).count
+        count = logs.scan(regexp).count
         fail_msg = "Expected #{regexp} to appear #{times} time(s) in the log, but it appeared #{count} times"
         assert_equal times, count, fail_msg
-      else
-        assert_match regexp, @logger_stream.read
+      end
+    end
+
+    def assert_logs_match_all(entry_list, in_order: false)
+      logging_assertion do |logs|
+        scanner = StringScanner.new(logs)
+        entry_list.each do |entry|
+          regex = entry.is_a?(Regexp) ? entry : Regexp.new(Regexp.escape(entry))
+          if in_order
+            failure_msg = "'#{entry}' not found in the expected sequence in the following logs:\n#{logs}"
+            assert scanner.scan_until(regex), failure_msg
+          else
+            assert regex =~ logs, "'#{entry}' not found in the following logs:\n#{logs}"
+          end
+        end
       end
     end
 
     def refute_logs_match(regexp)
-      if ENV["PRINT_LOGS"]
-        assertion = "\033[0;35mrefute_logs_match(#{regexp.inspect})\033[0;33m"
-        $stderr.puts("\033[0;33mWARNING: Skipping #{assertion} while logs are redirected to stderr\033[0m")
-        return
+      logging_assertion do |logs|
+        refute_match regexp, logs
       end
-
-      @logger_stream.rewind
-      refute_match regexp, @logger_stream.read
     end
 
     def assert_raises(*exp, message: nil)
@@ -97,6 +103,17 @@ module KubernetesDeploy
       raise ArgumentError,
         "Fixture set #{set_name} does not exist as directory #{source_dir}" unless File.directory?(source_dir)
       source_dir
+    end
+
+    private
+
+    def logging_assertion
+      if ENV["PRINT_LOGS"]
+        $stderr.puts("\033[0;33mWARNING: Skipping logging assertions while logs are redirected to stderr\033[0m")
+      else
+        @logger_stream.rewind
+        yield @logger_stream.read
+      end
     end
   end
 
