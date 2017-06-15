@@ -154,25 +154,18 @@ module KubernetesDeploy
     # Returns a hash in the following format:
     # {
     #   "pod/web-1" => [
-    #     {"subject_kind" => "Pod", "some" => "stuff"}, # event 1
-    #     {"subject_kind" => "Pod", "other" => "stuff"}, # event 2
+    #     "Pulling: pulling image "hello-world:latest" (1 events)",
+    #     "Pulled: Successfully pulled image "hello-world:latest" (1 events)"
     #   ]
     # }
     def fetch_events
       return {} unless exists?
-      fields = "{.involvedObject.kind}\t{.count}\t{.message}\t{.reason}"
-      out, _err, st = kubectl.run("get", "events",
-        %(--output=jsonpath={range .items[?(@.involvedObject.name=="#{name}")]}#{fields}\n{end}))
+      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}")
       return {} unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
-      out.split("\n").each_with_object(event_collector) do |event_blob, events|
-        pieces = event_blob.split("\t")
-        subject_kind = pieces[0]
-        # jsonpath can only filter by one thing at a time, and we chose involvedObject.name
-        # This means we still need to filter by involvedObject.kind here to make sure we only retain relevant events
-        next unless subject_kind.downcase == type.downcase
-        events[id] << "#{pieces[3] || 'Unknown'}: #{pieces[2]} (#{pieces[1]} events)" # Reason: Message (X events)
+      Event.extract_all_from_go_template_blob(out).each_with_object(event_collector) do |candidate, events|
+        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started - 5.seconds)
       end
     end
 
@@ -191,6 +184,62 @@ module KubernetesDeploy
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
+    end
+
+    class Event
+      EVENT_SEPARATOR = "ENDEVENT--BEGINEVENT"
+      FIELD_SEPARATOR = "ENDFIELD--BEGINFIELD"
+      FIELDS = %w(
+        .involvedObject.kind
+        .involvedObject.name
+        .count
+        .lastTimestamp
+        .reason
+        .message
+      )
+
+      def self.go_template_for(kind, name)
+        and_conditions = [
+          %[(eq .involvedObject.kind "#{kind}")],
+          %[(eq .involvedObject.name "#{name}")],
+          '(ne .reason "Started")',
+          '(ne .reason "Created")'
+        ]
+        condition_start = "{{if and #{and_conditions.join(' ')}}}"
+        field_part = FIELDS.map { |f| "{{#{f}}}" }.join(%({{print "#{FIELD_SEPARATOR}"}}))
+        %({{range .items}}#{condition_start}#{field_part}{{print "#{EVENT_SEPARATOR}"}}{{end}}{{end}})
+      end
+
+      def self.extract_all_from_go_template_blob(blob)
+        blob.split(EVENT_SEPARATOR).map do |event_blob|
+          pieces = event_blob.split(FIELD_SEPARATOR, FIELDS.length)
+          new(
+            subject_kind: pieces[FIELDS.index(".involvedObject.kind")],
+            subject_name: pieces[FIELDS.index(".involvedObject.name")],
+            count: pieces[FIELDS.index(".count")],
+            last_timestamp: pieces[FIELDS.index(".lastTimestamp")],
+            reason: pieces[FIELDS.index(".reason")],
+            message: pieces[FIELDS.index(".message")]
+          )
+        end
+      end
+
+      def initialize(subject_kind:, last_timestamp:, reason:, message:, count:, subject_name:)
+        @subject_kind = subject_kind
+        @subject_name = subject_name
+        @last_timestamp = Time.parse(last_timestamp)
+        @reason = reason
+        @message = message.tr("\n", '')
+        @count = count.to_i
+      end
+
+      def seen_since?(time)
+        time.to_i <= @last_timestamp.to_i
+      end
+
+      def to_s
+        "#{@reason}: #{@message} (#{@count} events)"
+      end
     end
   end
 end

@@ -340,6 +340,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match(/Back-off restarting failed container/) # event
     assert_logs_match("nginx: [error]") # app log
     assert_logs_match("ls: /not-a-dir: No such file or directory") # sidecar log
+
+    refute_logs_match(/Started container with id/)
+    refute_logs_match(/Created container with id/)
   end
 
   def test_failed_deploy_to_nonexistent_namespace
