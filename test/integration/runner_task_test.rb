@@ -72,14 +72,15 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert task_runner.run(
       task_template: 'hello-cloud-template-runner',
       entrypoint: nil,
-      args: %w(rake some_task)
+      args: %w(rake some_task),
       env_vars: ['ENV=VAR1']
     )
 
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
     assert_equal %w(rake some_task), pods.first.spec.containers.first.args
-    assert_equal 'ENV', pods.first.spec.containers.env.first.name
+    assert_equal 'ENV', pods.first.spec.containers.first.env.last.name
+    assert_equal 'VAR1', pods.first.spec.containers.first.env.last.value
   end
 
   private
