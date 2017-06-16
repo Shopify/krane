@@ -65,6 +65,23 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     end
   end
 
+  def test_run_with_env_vars
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml"])
+
+    task_runner = build_task_runner
+    assert task_runner.run(
+      task_template: 'hello-cloud-template-runner',
+      entrypoint: nil,
+      args: %w(rake some_task)
+      env_vars: ['ENV=VAR1']
+    )
+
+    pods = kubeclient.get_pods(namespace: @namespace)
+    assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
+    assert_equal %w(rake some_task), pods.first.spec.containers.first.args
+    assert_equal 'ENV', pods.first.spec.containers.env.first.name
+  end
+
   private
 
   def valid_run_params

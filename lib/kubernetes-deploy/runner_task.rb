@@ -106,7 +106,7 @@ module KubernetesDeploy
       container.args = args
       container.env ||= []
 
-      env_args = env_vars.map do |key, value|
+      env_args = env_vars.map do |env|
         key, value = env.split('=', 2)
         { name: key, value: value }
       end
