@@ -215,7 +215,7 @@ module KubernetesDeploy
       resources = []
       @logger.info("Discovering templates:")
       Dir.foreach(@template_dir) do |filename|
-        next unless filename.end_with?(".yml.erb", ".yml", ".yaml")
+        next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
 
         split_templates(filename) do |tempfile|
           resource_id = discover_resource_via_dry_run(tempfile)
