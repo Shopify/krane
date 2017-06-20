@@ -214,7 +214,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_extra_bindings_should_be_rendered
-    assert deploy_fixtures('collection-with-erb', subset: ["conf_map.yml.erb"],
+    assert deploy_fixtures('collection-with-erb', subset: ["conf_map.yaml.erb"],
       bindings: { binding_test_a: 'binding_test_a', binding_test_b: 'binding_test_b' })
 
     map = kubeclient.get_config_map('extra-binding', @namespace).data
@@ -223,8 +223,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_deploy_fails_if_required_binding_not_present
-    refute deploy_fixtures('collection-with-erb', subset: ["conf_map.yml.erb"])
-    assert_logs_match("Template 'conf_map.yml.erb' cannot be rendered")
+    refute deploy_fixtures('collection-with-erb', subset: ["conf_map.yaml.erb"])
+    assert_logs_match("Template 'conf_map.yaml.erb' cannot be rendered")
   end
 
   def test_long_running_deployment
