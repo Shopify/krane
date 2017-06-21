@@ -22,27 +22,14 @@ module KubernetesDeploy
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
 
-    def self.for_type(type:, name:, namespace:, context:, file:, logger:)
-      subclass = case type
-      when 'cloudsql' then Cloudsql
-      when 'configmap' then ConfigMap
-      when 'deployment' then Deployment
-      when 'pod' then Pod
-      when 'redis' then Redis
-      when 'bugsnag' then Bugsnag
-      when 'ingress' then Ingress
-      when 'persistentvolumeclaim' then PersistentVolumeClaim
-      when 'service' then Service
-      when 'podtemplate' then PodTemplate
-      when 'poddisruptionbudget' then PodDisruptionBudget
-      end
-
-      opts = { name: name, namespace: namespace, context: context, file: file, logger: logger }
-      if subclass
-        subclass.new(**opts)
+    def self.build(namespace:, context:, template:, logger:)
+      opts = { namespace: namespace, context: context, template: template, logger: logger }
+      if KubernetesDeploy.const_defined?(template["kind"])
+        klass = KubernetesDeploy.const_get(template["kind"])
+        klass.new(**opts)
       else
         inst = new(**opts)
-        inst.tap { |r| r.type = type }
+        inst.tap { |r| r.type = template["kind"] }
       end
     end
 
@@ -54,17 +41,26 @@ module KubernetesDeploy
       self.class.timeout
     end
 
-    def initialize(name:, namespace:, context:, file:, logger:)
+    def initialize(namespace:, context:, template:, logger:)
       # subclasses must also set these if they define their own initializer
-      @name = name
+      @name = template.fetch("metadata", {})["name"]
       @namespace = namespace
       @context = context
-      @file = file
       @logger = logger
+      @template = template
     end
 
     def id
       "#{type}/#{name}"
+    end
+
+    def file
+      @file ||= begin
+        f = Tempfile.new(["#{type}-#{name}", ".yml"])
+        f.write(YAML.dump(@template))
+        f.close
+        f
+      end
     end
 
     def sync

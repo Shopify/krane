@@ -181,14 +181,13 @@ module KubernetesDeploy
     def find_bad_file_from_kubectl_output(stderr)
       # Output example:
       # Error from server (BadRequest): error when creating "/path/to/configmap-gqq5oh.yml20170411-33615-t0t3m":
-      match = stderr.match(%r{BadRequest.*"(?<path>\/\S+\.ya?ml\S+)"})
+      match = stderr.match(%r{BadRequest.*"(?<path>\/\S+\.ya?ml\S*)"})
       return unless match
 
       path = match[:path]
       if path.present? && File.file?(path)
-        suspicious_file = File.read(path)
+        File.read(path)
       end
-      [File.basename(path, ".*"), suspicious_file]
     end
 
     def deploy_has_priority_resources?(resources)
@@ -217,48 +216,38 @@ module KubernetesDeploy
       Dir.foreach(@template_dir) do |filename|
         next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
 
-        split_templates(filename) do |tempfile|
-          resource_id = discover_resource_via_dry_run(tempfile)
-          type, name = resource_id.split("/", 2) # e.g. "pod/web-198612918-dzvfb"
-          resources << KubernetesResource.for_type(type: type, name: name, namespace: @namespace, context: @context,
-            file: tempfile, logger: @logger)
-          @logger.info "  - #{resource_id}"
+        split_templates(filename) do |template|
+          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, template: template)
+          validate_template_via_dry_run(r.file, filename)
+          resources << r
+          @logger.info "  - #{r.id}"
         end
       end
       resources
     end
 
-    def discover_resource_via_dry_run(tempfile)
+    def validate_template_via_dry_run(tempfile, original_filename)
       command = ["create", "-f", tempfile.path, "--dry-run", "--output=name"]
-      resource_id, err, st = kubectl.run(*command, log_failure: false)
+      _, err, st = kubectl.run(*command, log_failure: false)
+      return if st.success?
 
-      unless st.success?
-        debug_msg = <<-DEBUG_MSG.strip_heredoc
-          This usually means template '#{File.basename(tempfile.path, '.*')}' is not a valid Kubernetes template.
+      debug_msg = <<-DEBUG_MSG.strip_heredoc
+        This usually means template '#{original_filename}' is not a valid Kubernetes template.
+        Error from kubectl:
+          #{err}
+        Rendered template content:
+      DEBUG_MSG
+      debug_msg += File.read(tempfile.path)
+      @logger.summary.add_paragraph(debug_msg)
 
-          Error from kubectl:
-            #{err}
-
-          Rendered template content:
-        DEBUG_MSG
-        debug_msg += File.read(tempfile.path)
-        @logger.summary.add_paragraph(debug_msg)
-
-        raise FatalDeploymentError, "Kubectl dry run failed (command: #{Shellwords.join(command)})"
-      end
-      resource_id
+      raise FatalDeploymentError, "Kubectl dry run failed (command: #{Shellwords.join(command)})"
     end
 
     def split_templates(filename)
       file_content = File.read(File.join(@template_dir, filename))
       rendered_content = render_template(filename, file_content)
       YAML.load_stream(rendered_content) do |doc|
-        next if doc.blank?
-
-        f = Tempfile.new(filename)
-        f.write(YAML.dump(doc))
-        f.close
-        yield f
+        yield doc unless doc.blank?
       end
     rescue Psych::SyntaxError => e
       debug_msg = <<-INFO.strip_heredoc
@@ -273,23 +262,14 @@ module KubernetesDeploy
     end
 
     def record_apply_failure(err)
-      file_name, file_content = find_bad_file_from_kubectl_output(err)
-      if file_name
-        debug_msg = <<-HELPFUL_MESSAGE.strip_heredoc
-          This usually means your template named '#{file_name}' is invalid.
-
-          Error from kubectl:
-            #{err}
-
-          Rendered template content:
-        HELPFUL_MESSAGE
-        debug_msg += file_content || "Failed to read file"
-      else
-        debug_msg = <<-FALLBACK_MSG
-          This usually means one of your templates is invalid, but we were unable to automatically identify which one.
-          Please inspect the error message from kubectl:
-            #{err}
-        FALLBACK_MSG
+      file_content = find_bad_file_from_kubectl_output(err)
+      debug_msg = <<-HELPFUL_MESSAGE.strip_heredoc
+        This usually means one of your templates is invalid.
+        Error from kubectl:
+          #{err}
+      HELPFUL_MESSAGE
+      if file_content
+        debug_msg += "Rendered template content:\n#{file_content}"
       end
 
       @logger.summary.add_paragraph(debug_msg)

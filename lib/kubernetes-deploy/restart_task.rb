@@ -70,7 +70,8 @@ module KubernetesDeploy
 
     def wait_for_rollout(kubeclient_resources)
       resources = kubeclient_resources.map do |d|
-        Deployment.new(name: d.metadata.name, namespace: @namespace, context: @context, file: nil, logger: @logger)
+        template = d.to_h.deep_stringify_keys
+        Deployment.new(namespace: @namespace, context: @context, template: template, logger: @logger)
       end
       watcher = ResourceWatcher.new(resources, logger: @logger)
       watcher.run

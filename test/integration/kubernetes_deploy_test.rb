@@ -122,7 +122,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
 
-    assert_logs_match(/'configmap-data' is not a valid Kubernetes template/)
+    assert_logs_match(/'configmap-data.yml' is not a valid Kubernetes template/)
     assert_logs_match(/error validating data\: found invalid field myKey for v1.ObjectMeta/)
   end
 

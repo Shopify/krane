@@ -50,7 +50,7 @@ module KubernetesDeploy
     def assert_logs_match(regexp, times = nil)
       logging_assertion do |logs|
         unless times
-          assert_match regexp, logs
+          assert_match regexp, logs, "'#{regexp}' not found in the following logs:\n#{logs}"
           return
         end
 
