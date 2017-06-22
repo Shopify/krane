@@ -2,16 +2,16 @@
 module KubernetesDeploy
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
-    SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError ErrImagePull CrashLoopBackOff).freeze
 
     def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started: nil)
       @parent = parent
       @deploy_started = deploy_started
-      @containers = definition.fetch("spec", {}).fetch("containers", {}).map { |c| c["name"] }
+      @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
         raise FatalDeploymentError, "Template is missing required field spec.containers"
       end
+      @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init: true) }
       super(namespace: namespace, context: context, definition: definition, logger: logger)
     end
 
@@ -23,15 +23,16 @@ module KubernetesDeploy
 
       if pod_data.present?
         @found = true
-        interpret_pod_status_data(pod_data["status"], pod_data["metadata"]) # sets @phase, @status and @ready
-        if @deploy_started
-          log_suspicious_states(pod_data["status"].fetch("containerStatuses", []))
-        end
+        @phase = @status = pod_data["status"]["phase"]
+        @status += " (Reason: #{pod_data['status']['reason']})" if pod_data['status']['reason'].present?
+        @ready = ready?(pod_data["status"])
+        update_container_statuses(pod_data["status"])
       else # reset
-        @found = false
-        @phase = @status = nil
-        @ready = false
+        @found = @ready = false
+        @status = @phase = 'Unknown'
+        @containers.each(&:reset_status)
       end
+
       display_logs if unmanaged? && deploy_succeeded?
     end
 
@@ -44,11 +45,34 @@ module KubernetesDeploy
     end
 
     def deploy_failed?
-      @phase == "Failed"
+      return true if @phase == "Failed"
+      @containers.any?(&:doomed?)
     end
 
     def exists?
       @found
+    end
+
+    def timeout_message
+      return unless @phase == "Running" && !@ready
+      pieces = ["Your pods are running, but the following containers seem to be failing their readiness probes:"]
+      @containers.each do |c|
+        next if c.init_container? || c.ready?
+        yellow_name = ColorizedString.new(c.name).yellow
+        pieces << "> #{yellow_name} must respond with a good status code at '#{c.probe_location}'"
+      end
+      pieces.join("\n") + "\n"
+    end
+
+    def failure_message
+      doomed_containers = @containers.select(&:doomed?)
+      return unless doomed_containers.present?
+      container_messages = doomed_containers.map do |c|
+        red_name = ColorizedString.new(c.name).red
+        "> #{red_name}: #{c.doom_reason}"
+      end
+      intro = "The following containers are in a state that is unlikely to be recoverable:\n"
+      intro + container_messages.join("\n") + "\n"
     end
 
     # Returns a hash in the following format:
@@ -58,39 +82,35 @@ module KubernetesDeploy
     # }
     def fetch_logs
       return {} unless exists? && @containers.present?
-      @containers.each_with_object({}) do |container_name, container_logs|
+      @containers.each_with_object({}) do |container, container_logs|
         cmd = [
           "logs",
           @name,
-          "--container=#{container_name}",
+          "--container=#{container.name}",
           "--since-time=#{@deploy_started.to_datetime.rfc3339}",
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
         out, _err, _st = kubectl.run(*cmd)
-        container_logs[container_name] = out.split("\n")
+        container_logs[container.name] = out.split("\n")
       end
     end
 
     private
 
-    def interpret_pod_status_data(status_data, metadata)
-      @status = @phase = (metadata["deletionTimestamp"] ? "Terminating" : status_data["phase"])
-
-      if @phase == "Failed" && status_data['reason'].present?
-        @status += " (Reason: #{status_data['reason']})"
-      elsif @phase != "Terminating"
-        ready_condition = status_data.fetch("conditions", []).find { |condition| condition["type"] == "Ready" }
-        @ready = ready_condition.present? && (ready_condition["status"] == "True")
-        @status += " (Ready: #{@ready})"
-      end
+    def ready?(status_data)
+      ready_condition = status_data.fetch("conditions", []).find { |condition| condition["type"] == "Ready" }
+      ready_condition.present? && (ready_condition["status"] == "True")
     end
 
-    def log_suspicious_states(container_statuses)
-      container_statuses.each do |status|
-        waiting_state = status["state"]["waiting"] if status["state"]
-        reason = waiting_state["reason"] if waiting_state
-        next unless SUSPICIOUS_CONTAINER_STATES.include?(reason)
-        @logger.warn("#{id} has container in state #{reason} (#{waiting_state['message']})")
+    def update_container_statuses(status_data)
+      @containers.each do |c|
+        key = c.init_container? ? "initContainerStatuses" : "containerStatuses"
+        if status_data.key?(key)
+          data = status_data[key].find { |st| st["name"] == c.name }
+          c.update_status(data)
+        else
+          c.reset_status
+        end
       end
     end
 
@@ -119,6 +139,68 @@ module KubernetesDeploy
       end
 
       @already_displayed = true
+    end
+
+    class Container
+      STATUS_SCAFFOLD = {
+        "state" => {
+          "running" => {},
+          "waiting" => {},
+          "terminated" => {},
+        },
+        "lastState" => {
+          "terminated" => {}
+        }
+      }.freeze
+
+      attr_reader :name, :probe_location
+
+      def initialize(definition, init: false)
+        @init = init
+        @name = definition["name"]
+        @image = definition["image"]
+        @probe_location = definition.fetch("readinessProbe", {}).fetch("httpGet", {})["path"]
+        @status = STATUS_SCAFFOLD.dup
+      end
+
+      def doomed?
+        doom_reason.present?
+      end
+
+      def doom_reason
+        exit_code = @status['lastState']['terminated']['exitCode']
+        last_terminated_reason = @status["lastState"]["terminated"]["reason"]
+        limbo_reason = @status["state"]["waiting"]["reason"]
+
+        if last_terminated_reason == "ContainerCannotRun"
+          # ref: https://github.com/kubernetes/kubernetes/blob/562e721ece8a16e05c7e7d6bdd6334c910733ab2/pkg/kubelet/dockershim/docker_container.go#L353
+          "Failing to start (exit #{exit_code}): #{@status['lastState']['terminated']['message']}"
+        elsif limbo_reason == "CrashLoopBackOff"
+          "Crashing repeatedly (exit #{exit_code}). See logs for more information."
+        elsif %w(ImagePullBackOff ErrImagePull).include?(limbo_reason)
+          "Failing to pull image #{@image}. "\
+          "Did you wait for it to be built and pushed to the registry before deploying?"
+        elsif @status["state"]["waiting"]["message"] == "Generate Container Config Failed"
+          # reason/message seem to be backwards for this case -- reason is the free-form part
+          "Failing to generate container configuration: #{limbo_reason}"
+        end
+      end
+
+      def ready?
+        @status['ready'] == "true"
+      end
+
+      def init_container?
+        @init
+      end
+
+      def update_status(data)
+        @status = STATUS_SCAFFOLD.deep_merge(data || {})
+      end
+
+      def reset_status
+        @status = STATUS_SCAFFOLD.dup
+      end
     end
   end
 end

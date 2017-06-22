@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: missing-volumes
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: web
+        app: crash-app
+    spec:
+      containers:
+      - name: mounts-missing-volumes
+        image: nginx:alpine
+        volumeMounts:
+        - mountPath: /server-cert
+          name: server-cert
+      volumes:
+      - name: server-cert
+        secret:
+          secretName: catphotoscom

@@ -1,0 +1,19 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: init-crash
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        name: web
+        app: crash-app
+    spec:
+      initContainers:
+      - name: init-crash-loop-back-off
+        image: busybox
+        command: ["ls", "/not-a-dir"]
+      containers:
+      - name: app
+        image: nginx:alpine

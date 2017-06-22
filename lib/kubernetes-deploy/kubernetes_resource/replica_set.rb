@@ -42,6 +42,14 @@ module KubernetesDeploy
       @pods.present? && @pods.all?(&:deploy_failed?)
     end
 
+    def failure_message
+      @pods.map(&:failure_message).compact.uniq.join("\n")
+    end
+
+    def timeout_message
+      @pods.map(&:timeout_message).compact.uniq.join("\n")
+    end
+
     def deploy_timed_out?
       super || @pods.present? && @pods.all?(&:deploy_timed_out?)
     end
@@ -53,7 +61,8 @@ module KubernetesDeploy
     def fetch_events
       own_events = super
       return own_events unless @pods.present?
-      own_events.merge(@pods.first.fetch_events)
+      most_useful_pod = @pods.find(&:deploy_failed?) || @pods.find(&:deploy_timed_out?) || @pods.first
+      own_events.merge(most_useful_pod.fetch_events)
     end
 
     def fetch_logs
@@ -76,7 +85,9 @@ module KubernetesDeploy
     end
 
     def container_names
-      @definition["spec"]["template"]["spec"]["containers"].map { |c| c["name"] }
+      regular_containers = @definition["spec"]["template"]["spec"]["containers"].map { |c| c["name"] }
+      init_containers = @definition["spec"]["template"]["spec"].fetch("initContainers", {}).map { |c| c["name"] }
+      regular_containers + init_containers
     end
 
     def find_pods(rs_data)

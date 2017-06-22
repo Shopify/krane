@@ -16,7 +16,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
-      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica}
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Service/web\s+Selects 1 pod}
     ])
   end
 
@@ -211,17 +212,85 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.refute_web_resources_exist
   end
 
+  def test_deployment_container_mounting_secret_that_does_not_exist_as_env_var_fails_quickly
+    success = deploy_fixtures("ejson-cloud", subset: ["web.yaml"]) do |fixtures| # exclude secret ejson
+      # Remove the volumes. Right now Kubernetes does not expose a useful status when mounting fails. :(
+      deploy = fixtures["web.yaml"]["Deployment"].first
+      deploy["spec"]["replicas"] = 3
+      pod_spec = deploy["spec"]["template"]["spec"]
+      pod_spec["volumes"] = []
+      pod_spec["containers"].first["volumeMounts"] = []
+    end
+    assert_equal false, success, "Deploy succeeded when it was expected to fail"
+
+    assert_logs_match_all([
+      "Deployment/web: FAILED",
+      "The following containers are in a state that is unlikely to be recoverable:",
+      "app: Failing to generate container configuration: secrets \"monitoring-token\" not found",
+      "Final status: 3 replicas, 3 updatedReplicas, 3 unavailableReplicas"
+    ], in_order: true)
+
+    assert_logs_match("The following containers are in a state that is unlikely to be recoverable", 1) # no duplicates
+  end
+
+  def test_bad_container_image_on_deployment_pod_fails_quickly
+    success = deploy_fixtures("invalid", subset: ["cannot_run.yml"]) do |fixtures|
+      container = fixtures["cannot_run.yml"]["Deployment"].first["spec"]["template"]["spec"]["containers"].first
+      container["image"] = "some-invalid-image:badtag"
+    end
+    assert_equal false, success, "Deploy succeeded when it was expected to fail"
+
+    assert_logs_match_all([
+      "Deployment/cannot-run: FAILED",
+      "The following containers are in a state that is unlikely to be recoverable:",
+      "container-cannot-run: Failing to pull image some-invalid-image:badtag.",
+      "Did you wait for it to be built and pushed to the registry before deploying?"
+    ], in_order: true)
+  end
+
+  def test_bad_init_container_on_deployment_fails_quickly
+    refute deploy_fixtures("invalid", subset: ["init_crash.yml"])
+    assert_logs_match_all([
+      "Deployment/init-crash: FAILED",
+      "The following containers are in a state that is unlikely to be recoverable:",
+      "init-crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
+      "ls: /not-a-dir: No such file or directory" # logs
+    ], in_order: true)
+  end
+
+  def test_crashing_container_on_deployment_fails_quickly
+    refute deploy_fixtures("invalid", subset: ["crash_loop.yml"])
+
+    assert_logs_match_all([
+      "Deployment/crash-loop: FAILED",
+      "The following containers are in a state that is unlikely to be recoverable:",
+      "crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
+      'nginx: [error] open() "/var/run/nginx.pid" failed (2: No such file or directory)' # Logs
+    ], in_order: true)
+  end
+
+  def test_unrunnable_container_on_deployment_pod_fails_quickly
+    refute deploy_fixtures("invalid", subset: ["cannot_run.yml"])
+
+    assert_logs_match_all([
+      "Deployment/cannot-run: FAILED",
+      "The following containers are in a state that is unlikely to be recoverable:",
+      "container-cannot-run: Failing to start (exit 127):",
+      "Container command '/some/bad/path' not found or does not exist."
+    ], in_order: true)
+  end
+
   def test_wait_false_still_waits_for_priority_resources
     success = deploy_fixtures("hello-cloud") do |fixtures|
       pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
-      pod["spec"]["activeDeadlineSeconds"] = 1
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
       %r{Pod\/unmanaged-pod-\w+-\w+: FAILED},
-      "Final status: Failed (Reason: DeadlineExceeded)"
+      "The following containers are in a state that is unlikely to be recoverable:",
+      "hello-cloud: Failing to pull image hello-world:thisImageIsBad"
     ])
   end
 
@@ -255,6 +324,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_long_running_deployment
     2.times do
       assert deploy_fixtures('long-running')
+      assert_logs_match(%r{Service/multi-replica\s+Selects 2 pods})
     end
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=jobs,app=fixtures')
@@ -262,6 +332,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     count = count_by_revisions(pods)
     assert_equal [2, 2], count.values
+    assert_logs_match(%r{Service/multi-replica\s+Selects 4 pods})
   end
 
   def test_create_and_update_secrets_from_ejson
@@ -340,45 +411,40 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_deploy_result_logging_for_mixed_result_deploy
-    KubernetesDeploy::Pod.any_instance.stubs(:deploy_failed?).returns(false, false, false, false, true)
-    service_timeout = 5
-    KubernetesDeploy::Service.any_instance.stubs(:timeout).returns(service_timeout)
+    forced_timeout = 12 # failure often takes 8s, and want both
+    KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(forced_timeout)
+    refute deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"])
 
-    success = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "configmap-data.yml"]) do |fixtures|
-      web = fixtures["web.yml.erb"]["Deployment"].first
-      app = web["spec"]["template"]["spec"]["containers"].first
-      app["command"] = ["/usr/sbin/nginx", "-s", "stop"] # it isn't running, so this will log some errors
-      sidecar = web["spec"]["template"]["spec"]["containers"].last
-      sidecar["command"] = ["ls", "/not-a-dir"]
-    end
-    assert_equal false, success, "Deploy succeeded when it was expected to fail"
-
-    # List of successful resources
+    # Debug info for bad probe timeout
     assert_logs_match_all([
-      %r{ConfigMap/hello-cloud-configmap-data\s+Available},
-      %r{Ingress/web\s+Created}
-    ])
-
-    # Debug info for service timeout
-    assert_logs_match_all([
-      "Service/web: TIMED OUT (limit: #{service_timeout}s)",
-      "service does not have any endpoints",
-      "Final status: 0 endpoints"
-    ])
-
-    # Debug info for deployment failure
-    assert_logs_match_all([
-      "Deployment/web: FAILED",
+      "Deployment/bad-probe: TIMED OUT (limit: #{forced_timeout}s)",
+      "Your pods are running, but the following containers seem to be failing their readiness probes:",
+      "app must respond with a good status code at '/bad/ping/path'",
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
-      %r{\[Deployment/web\].*Scaled up replica set web-}, # deployment event
-      "SuccessfulCreate: Created pod", # replicaset event
-      /Back-off restarting failed container/, # pod event
-      "nginx: [error]", # app log
-      "ls: /not-a-dir: No such file or directory" # sidecar log
-    ])
+      "Successfully assigned bad-probe", # event
+    ], in_order: true)
 
+    # Debug info for missing volume timeout
+    assert_logs_match_all([
+      "Deployment/missing-volumes: TIMED OUT (limit: #{forced_timeout}s)",
+      "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
+      /FailedMount.*secrets "catphotoscom" not found/, # event
+    ], in_order: true)
+
+    # Debug info for failure
+    assert_logs_match_all([
+      "Deployment/init-crash: FAILED",
+      "The following containers are in a state that is unlikely to be recoverable:",
+      "init-crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
+      "Final status: 2 replicas, 2 updatedReplicas, 2 unavailableReplicas",
+      "Successfully assigned init-crash", # event
+      "ls: /not-a-dir: No such file or directory" # log
+    ], in_order: true)
+
+    # Excludes noisy events
     refute_logs_match(/Started container with id/)
     refute_logs_match(/Created container with id/)
+    refute_logs_match(/Created pod/)
   end
 
   def test_failed_deploy_to_nonexistent_namespace
@@ -400,10 +466,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      "Container command '/some/bad/path' not found or does not exist", # from an event
-      /Result.*no such file or directory/m # from logs
-    ])
-    refute_logs_match(/no such file or directory.*Result/m) # logs not also displayed before summary
+      "hello-cloud: Failing to start (exit 127): Container command '/some/bad/path' not found or does not exist.",
+      "Successfully assigned unmanaged-pod-", # from an event
+      "no such file or directory" # from logs
+    ], in_order: true)
+    refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary
   end
 
   def test_unusual_timeout_output
@@ -440,7 +507,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal 0, pods.length, "Pods were running from zero-replica deployment"
 
     assert_logs_match_all([
-      %r{Service/web\s+0 endpoints},
+      %r{Service/web\s+Selects 0 pods},
       %r{Deployment/web\s+0 replicas}
     ])
   end

@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: bad-probe
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: web
+        app: crash-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 8000
+          name: http-alt
+        readinessProbe:
+          httpGet:
+            path: "/bad/ping/path"
+            port: 8000
+          initialDelaySeconds: 0
+          timeoutSeconds: 1
+

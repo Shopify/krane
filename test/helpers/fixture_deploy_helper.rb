@@ -68,8 +68,10 @@ module FixtureDeployHelper
 
   def load_fixtures(set, subset)
     fixtures = {}
-    ejson_file = File.join(fixture_path(set), EJSON_FILENAME)
-    fixtures[EJSON_FILENAME] = JSON.parse(File.read(ejson_file)) if File.exist?(ejson_file)
+    if !subset || subset.include?("secrets.ejson")
+      ejson_file = File.join(fixture_path(set), EJSON_FILENAME)
+      fixtures[EJSON_FILENAME] = JSON.parse(File.read(ejson_file)) if File.exist?(ejson_file)
+    end
 
     Dir.glob("#{fixture_path(set)}/*.{yml,yaml}*").each do |filename|
       basename = File.basename(filename)

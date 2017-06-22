@@ -45,6 +45,14 @@ module KubernetesDeploy
       @latest_rs && @latest_rs.deploy_failed?
     end
 
+    def failure_message
+      @latest_rs.failure_message
+    end
+
+    def timeout_message
+      @latest_rs.timeout_message
+    end
+
     def deploy_timed_out?
       super || @latest_rs && @latest_rs.deploy_timed_out?
     end

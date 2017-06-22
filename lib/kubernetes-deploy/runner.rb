@@ -156,6 +156,7 @@ module KubernetesDeploy
 
       if success_count > 0
         @logger.summary.add_action("successfully deployed #{success_count} #{'resource'.pluralize(success_count)}")
+        successful_resources.map(&:sync) # make sure we're printing the latest on resources that succeeded early
         final_statuses = successful_resources.map(&:pretty_status).join("\n")
         @logger.summary.add_paragraph("#{ColorizedString.new('Successful resources').green}\n#{final_statuses}")
       end
