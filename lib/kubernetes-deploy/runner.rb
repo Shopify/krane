@@ -137,6 +137,8 @@ module KubernetesDeploy
       {
         'current_sha' => @current_sha,
         'deployment_id' => @id,
+        'context' => @context,
+        'namespace' => @namespace,
       }.merge(@bindings)
     end
 
