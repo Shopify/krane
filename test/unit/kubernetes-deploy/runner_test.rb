@@ -31,4 +31,19 @@ class RunnerTest < KubernetesDeploy::TestCase
   ensure
     ENV["KUBECONFIG"] = original_env
   end
+
+  def test_template_variables
+    runner = KubernetesDeploy::Runner.new(
+      namespace: "mynamespace",
+      context: "mycontext",
+      logger: logger,
+      current_sha: "somesha",
+      template_dir: "unknown",
+    )
+
+    variables = runner.template_variables
+    assert_equal "mycontext", variables["context"]
+    assert_equal "mynamespace", variables["namespace"]
+    assert_equal "somesha", variables["current_sha"]
+  end
 end
