@@ -23,7 +23,7 @@ module KubernetesDeploy
             pod = Pod.new(
               namespace: namespace,
               context: context,
-              template: pod_json,
+              definition: pod_json,
               logger: @logger,
               parent: "#{@name.capitalize} deployment",
               deploy_started: @deploy_started

@@ -22,14 +22,15 @@ module KubernetesDeploy
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
 
-    def self.build(namespace:, context:, template:, logger:)
-      opts = { namespace: namespace, context: context, template: template, logger: logger }
-      if KubernetesDeploy.const_defined?(template["kind"])
-        klass = KubernetesDeploy.const_get(template["kind"])
+    def self.build(namespace:, context:, definition:, logger:)
+      opts = { namespace: namespace, context: context, definition: definition, logger: logger }
+      if KubernetesDeploy.const_defined?(definition["kind"])
+        klass = KubernetesDeploy.const_get(definition["kind"])
         klass.new(**opts)
       else
         inst = new(**opts)
-        inst.tap { |r| r.type = template["kind"] }
+        inst.type = definition["kind"]
+        inst
       end
     end
 
@@ -41,26 +42,25 @@ module KubernetesDeploy
       self.class.timeout
     end
 
-    def initialize(namespace:, context:, template:, logger:)
+    def initialize(namespace:, context:, definition:, logger:)
       # subclasses must also set these if they define their own initializer
-      @name = template.fetch("metadata", {})["name"]
+      unless @name = definition.fetch("metadata", {})["name"]
+        logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
+        raise FatalDeploymentError, "Template is missing required field metadata.name"
+      end
+
       @namespace = namespace
       @context = context
       @logger = logger
-      @template = template
+      @definition = definition
     end
 
     def id
       "#{type}/#{name}"
     end
 
-    def file
-      @file ||= begin
-        f = Tempfile.new(["#{type}-#{name}", ".yml"])
-        f.write(YAML.dump(@template))
-        f.close
-        f
-      end
+    def file_path
+      file.path
     end
 
     def sync
@@ -236,6 +236,20 @@ module KubernetesDeploy
       def to_s
         "#{@reason}: #{@message} (#{@count} events)"
       end
+    end
+
+    private
+
+    def file
+      @file ||= create_definition_tempfile
+    end
+
+    def create_definition_tempfile
+      file = Tempfile.new(["#{type}-#{name}", ".yml"])
+      file.write(YAML.dump(@definition))
+      file
+    ensure
+      file.close if file
     end
   end
 end

@@ -388,6 +388,21 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match(/The Deployment "web" is invalid.*`selector` does not match template `labels`/)
   end
 
+  def test_deploy_aborts_immediately_if_metadata_name_missing
+    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
+      definition = fixtures["configmap-data.yml"]["ConfigMap"].first
+      definition["metadata"].delete("name")
+    end
+    assert_equal false, success, "Deploy succeeded when it was expected to fail"
+
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Template is missing required field metadata.name",
+      "Rendered template content:",
+      "kind: ConfigMap"
+    ], in_order: true)
+  end
+
   private
 
   def count_by_revisions(pods)

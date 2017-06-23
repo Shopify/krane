@@ -216,9 +216,9 @@ module KubernetesDeploy
       Dir.foreach(@template_dir) do |filename|
         next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
 
-        split_templates(filename) do |template|
-          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, template: template)
-          validate_template_via_dry_run(r.file, filename)
+        split_templates(filename) do |r_def|
+          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def)
+          validate_template_via_dry_run(r.file_path, filename)
           resources << r
           @logger.info "  - #{r.id}"
         end
@@ -226,8 +226,8 @@ module KubernetesDeploy
       resources
     end
 
-    def validate_template_via_dry_run(tempfile, original_filename)
-      command = ["create", "-f", tempfile.path, "--dry-run", "--output=name"]
+    def validate_template_via_dry_run(file_path, original_filename)
+      command = ["create", "-f", file_path, "--dry-run", "--output=name"]
       _, err, st = kubectl.run(*command, log_failure: false)
       return if st.success?
 
@@ -237,7 +237,7 @@ module KubernetesDeploy
           #{err}
         Rendered template content:
       DEBUG_MSG
-      debug_msg += File.read(tempfile.path)
+      debug_msg += File.read(file_path)
       @logger.summary.add_paragraph(debug_msg)
 
       raise FatalDeploymentError, "Kubectl dry run failed (command: #{Shellwords.join(command)})"
@@ -356,9 +356,9 @@ module KubernetesDeploy
         r.deploy_started = Time.now.utc
         case r.deploy_method
         when :replace
-          _, _, replace_st = kubectl.run("replace", "-f", r.file.path, log_failure: false)
+          _, _, replace_st = kubectl.run("replace", "-f", r.file_path, log_failure: false)
         when :replace_force
-          _, _, replace_st = kubectl.run("replace", "--force", "-f", r.file.path, log_failure: false)
+          _, _, replace_st = kubectl.run("replace", "--force", "-f", r.file_path, log_failure: false)
         else
           # Fail Fast! This is a programmer mistake.
           raise ArgumentError, "Unexpected deploy method! (#{r.deploy_method.inspect})"
@@ -366,7 +366,7 @@ module KubernetesDeploy
 
         next if replace_st.success?
         # it doesn't exist so we can't replace it
-        _, err, create_st = kubectl.run("create", "-f", r.file.path, log_failure: false)
+        _, err, create_st = kubectl.run("create", "-f", r.file_path, log_failure: false)
 
         next if create_st.success?
         raise FatalDeploymentError, <<-MSG.strip_heredoc
@@ -385,7 +385,7 @@ module KubernetesDeploy
       command = ["apply"]
       resources.each do |r|
         @logger.info("- #{r.id} (timeout: #{r.timeout}s)") if resources.length > 1
-        command.push("-f", r.file.path)
+        command.push("-f", r.file_path)
         r.deploy_started = Time.now.utc
       end
 

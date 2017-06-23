@@ -4,11 +4,11 @@ module KubernetesDeploy
     TIMEOUT = 10.minutes
     SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError ErrImagePull).freeze
 
-    def initialize(namespace:, context:, template:, logger:, parent: nil, deploy_started: nil)
+    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started: nil)
       @parent = parent
       @deploy_started = deploy_started
-      @containers = template["spec"]["containers"].map { |c| c["name"] }
-      super(namespace: namespace, context: context, template: template, logger: logger)
+      @containers = definition["spec"]["containers"].map { |c| c["name"] }
+      super(namespace: namespace, context: context, definition: definition, logger: logger)
     end
 
     def sync(pod_data = nil)

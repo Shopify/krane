@@ -4,8 +4,8 @@ require 'test_helper'
 class KubernetesResourceTest < KubernetesDeploy::TestCase
   class DummyResource < KubernetesDeploy::KubernetesResource
     def initialize(*)
-      template = { "kind" => "DummyResource", "metadata" => { "name" => "test" } }
-      super(namespace: 'test', context: 'test', template: template, logger: @logger)
+      definition = { "kind" => "DummyResource", "metadata" => { "name" => "test" } }
+      super(namespace: 'test', context: 'test', definition: definition, logger: @logger)
     end
 
     def exists?
