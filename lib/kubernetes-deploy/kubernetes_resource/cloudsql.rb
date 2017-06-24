@@ -34,7 +34,7 @@ module KubernetesDeploy
     private
 
     def cloudsql_proxy_deployment_exists?
-      deployment, _err, st = kubectl.run("get", "deployments", "cloudsql-proxy", "-o=json")
+      deployment, _err, st = kubectl.run("get", "deployments", "cloudsql-#{cloudsql_resource_uuid}", "-o=json")
 
       if st.success?
         parsed = JSON.parse(deployment)
@@ -61,6 +61,17 @@ module KubernetesDeploy
       end
 
       false
+    end
+
+    def cloudsql_resource_uuid
+      return @cloudsql_resource_uuid if defined?(@cloudsql_resource_uuid) && @cloudsql_resource_uuid
+
+      redis, _err, st = kubectl.run("get", "cloudsqls", @name, "-o=json")
+      if st.success?
+        parsed = JSON.parse(redis)
+
+        @cloudsql_resource_uuid = parsed.fetch("metadata", {}).fetch("uid", nil)
+      end
     end
   end
 end
