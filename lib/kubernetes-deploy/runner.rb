@@ -181,7 +181,7 @@ module KubernetesDeploy
     def find_bad_file_from_kubectl_output(stderr)
       # Output example:
       # Error from server (BadRequest): error when creating "/path/to/configmap-gqq5oh.yml20170411-33615-t0t3m":
-      match = stderr.match(%r{BadRequest.*"(?<path>\/\S+\.yml\S+)"})
+      match = stderr.match(%r{BadRequest.*"(?<path>\/\S+\.ya?ml\S+)"})
       return unless match
 
       path = match[:path]
@@ -215,7 +215,7 @@ module KubernetesDeploy
       resources = []
       @logger.info("Discovering templates:")
       Dir.foreach(@template_dir) do |filename|
-        next unless filename.end_with?(".yml.erb", ".yml")
+        next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
 
         split_templates(filename) do |tempfile|
           resource_id = discover_resource_via_dry_run(tempfile)
@@ -326,7 +326,7 @@ module KubernetesDeploy
 
       if !File.directory?(@template_dir)
         errors << "Template directory `#{@template_dir}` doesn't exist"
-      elsif Dir.entries(@template_dir).none? { |file| file =~ /\.yml(\.erb)?$/ }
+      elsif Dir.entries(@template_dir).none? { |file| file =~ /\.ya?ml(\.erb)?$/ }
         errors << "`#{@template_dir}` doesn't contain valid templates (postfix .yml or .yml.erb)"
       end
 
