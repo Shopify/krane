@@ -15,7 +15,19 @@ module KubernetesDeploy
 
     def sync
       out, _err, st = kubectl.run("get", type, @name, "-a", "--output=json")
-      if @found = st.success?
+      @found = st.success?
+      if @found && !@deploy_started
+        example_color = :green
+        msg = <<-STRING.strip_heredoc
+          Unmanaged pods like #{id} must have unique names on every deploy in order to work as intended.
+          The recommended way to achieve this is to include "<%= deployment_id %>" in the pod's name, like this:
+            #{ColorizedString.new('kind: Pod').colorize(example_color)}
+            #{ColorizedString.new('metadata:').colorize(example_color)}
+              #{ColorizedString.new("name: #{@name}-<%= deployment_id %>").colorize(example_color)}
+        STRING
+        @logger.summary.add_paragraph(msg)
+        raise FatalDeploymentError, "#{id} existed before the deploy started"
+      elsif @found
         pod_data = JSON.parse(out)
         interpret_json_data(pod_data)
       else # reset
