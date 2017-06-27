@@ -71,7 +71,7 @@ module FixtureDeployHelper
     ejson_file = File.join(fixture_path(set), EJSON_FILENAME)
     fixtures[EJSON_FILENAME] = JSON.parse(File.read(ejson_file)) if File.exist?(ejson_file)
 
-    Dir["#{fixture_path(set)}/*.yml*"].each do |filename|
+    Dir.glob("#{fixture_path(set)}/*.{yml,yaml}*").each do |filename|
       basename = File.basename(filename)
       next unless !subset || subset.include?(basename)
 
