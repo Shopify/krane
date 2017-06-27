@@ -44,7 +44,8 @@ module KubernetesDeploy
 
     def initialize(namespace:, context:, definition:, logger:)
       # subclasses must also set these if they define their own initializer
-      unless @name = definition.fetch("metadata", {})["name"]
+      @name = definition.fetch("metadata", {})["name"]
+      unless @name.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
         raise FatalDeploymentError, "Template is missing required field metadata.name"
       end

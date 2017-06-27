@@ -2,12 +2,16 @@
 module KubernetesDeploy
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
-    SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError ErrImagePull).freeze
+    SUSPICIOUS_CONTAINER_STATES = %w(ImagePullBackOff RunContainerError ErrImagePull CrashLoopBackOff).freeze
 
     def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started: nil)
       @parent = parent
       @deploy_started = deploy_started
-      @containers = definition["spec"]["containers"].map { |c| c["name"] }
+      @containers = definition.fetch("spec", {}).fetch("containers", {}).map { |c| c["name"] }
+      unless @containers.present?
+        logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
+        raise FatalDeploymentError, "Template is missing required field spec.containers"
+      end
       super(namespace: namespace, context: context, definition: definition, logger: logger)
     end
 

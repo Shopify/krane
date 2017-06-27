@@ -403,6 +403,21 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   end
 
+  def test_deploy_aborts_immediately_if_unmanged_pod_spec_missing
+    success = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod.yml.erb"]) do |fixtures|
+      definition = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+      definition.delete("spec")
+    end
+    assert_equal false, success, "Deploy succeeded when it was expected to fail"
+
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Template is missing required field spec.containers",
+      "Rendered template content:",
+      "kind: Pod"
+    ], in_order: true)
+  end
+
   private
 
   def count_by_revisions(pods)
