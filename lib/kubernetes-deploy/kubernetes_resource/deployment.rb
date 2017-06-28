@@ -20,17 +20,15 @@ module KubernetesDeploy
         if st.success?
           pods_json = JSON.parse(pod_list)["items"]
           pods_json.each do |pod_json|
-            pod_name = pod_json["metadata"]["name"]
             pod = Pod.new(
-              name: pod_name,
               namespace: namespace,
               context: context,
-              file: nil,
+              definition: pod_json,
+              logger: @logger,
               parent: "#{@name.capitalize} deployment",
-              logger: @logger
+              deploy_started: @deploy_started
             )
-            pod.deploy_started = @deploy_started
-            pod.interpret_json_data(pod_json)
+            pod.sync(pod_json)
 
             if !@representative_pod && pod_probably_new?(pod_json)
               @representative_pod = pod

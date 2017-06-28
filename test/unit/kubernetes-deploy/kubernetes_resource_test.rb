@@ -4,7 +4,8 @@ require 'test_helper'
 class KubernetesResourceTest < KubernetesDeploy::TestCase
   class DummyResource < KubernetesDeploy::KubernetesResource
     def initialize(*)
-      super(name: 'test', namespace: 'test', context: 'test', file: nil, logger: @logger)
+      definition = { "kind" => "DummyResource", "metadata" => { "name" => "test" } }
+      super(namespace: 'test', context: 'test', definition: definition, logger: @logger)
     end
 
     def exists?
@@ -20,7 +21,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_fetch_events_parses_tricky_events_correctly
     start_time = Time.now.utc - 10.seconds
-    dummy = DummyResource.new(name: 'test', namespace: 'test', context: 'test', file: nil, logger: @logger)
+    dummy = DummyResource.new
     dummy.deploy_started = start_time
 
     tricky_events = dummy_events(start_time)

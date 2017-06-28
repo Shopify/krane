@@ -22,27 +22,15 @@ module KubernetesDeploy
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
 
-    def self.for_type(type:, name:, namespace:, context:, file:, logger:)
-      subclass = case type
-      when 'cloudsql' then Cloudsql
-      when 'configmap' then ConfigMap
-      when 'deployment' then Deployment
-      when 'pod' then Pod
-      when 'redis' then Redis
-      when 'bugsnag' then Bugsnag
-      when 'ingress' then Ingress
-      when 'persistentvolumeclaim' then PersistentVolumeClaim
-      when 'service' then Service
-      when 'podtemplate' then PodTemplate
-      when 'poddisruptionbudget' then PodDisruptionBudget
-      end
-
-      opts = { name: name, namespace: namespace, context: context, file: file, logger: logger }
-      if subclass
-        subclass.new(**opts)
+    def self.build(namespace:, context:, definition:, logger:)
+      opts = { namespace: namespace, context: context, definition: definition, logger: logger }
+      if KubernetesDeploy.const_defined?(definition["kind"])
+        klass = KubernetesDeploy.const_get(definition["kind"])
+        klass.new(**opts)
       else
         inst = new(**opts)
-        inst.tap { |r| r.type = type }
+        inst.type = definition["kind"]
+        inst
       end
     end
 
@@ -54,17 +42,26 @@ module KubernetesDeploy
       self.class.timeout
     end
 
-    def initialize(name:, namespace:, context:, file:, logger:)
+    def initialize(namespace:, context:, definition:, logger:)
       # subclasses must also set these if they define their own initializer
-      @name = name
+      @name = definition.fetch("metadata", {})["name"]
+      unless @name.present?
+        logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
+        raise FatalDeploymentError, "Template is missing required field metadata.name"
+      end
+
       @namespace = namespace
       @context = context
-      @file = file
       @logger = logger
+      @definition = definition
     end
 
     def id
       "#{type}/#{name}"
+    end
+
+    def file_path
+      file.path
     end
 
     def sync
@@ -240,6 +237,20 @@ module KubernetesDeploy
       def to_s
         "#{@reason}: #{@message} (#{@count} events)"
       end
+    end
+
+    private
+
+    def file
+      @file ||= create_definition_tempfile
+    end
+
+    def create_definition_tempfile
+      file = Tempfile.new(["#{type}-#{name}", ".yml"])
+      file.write(YAML.dump(@definition))
+      file
+    ensure
+      file.close if file
     end
   end
 end
