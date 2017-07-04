@@ -1,0 +1,27 @@
+---
+apiVersion: extensions/v1beta1
+kind: ReplicaSet
+metadata:
+  labels:
+    app: hello-cloud
+    name: bare-replica-set
+  name: bare-replica-set
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-cloud
+      name: bare-replica-set
+  template:
+    metadata:
+      labels:
+        app: hello-cloud
+        name: bare-replica-set
+    spec:
+      containers:
+      - image: nginx:alpine
+        name: app
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP

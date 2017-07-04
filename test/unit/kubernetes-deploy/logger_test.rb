@@ -52,15 +52,15 @@ class FormattedLoggerTest < KubernetesDeploy::TestCase
     # [FATAL][2017-05-19 20:07:31 -0400]\t
     # [FATAL][2017-05-19 20:07:31 -0400]\tFatal
 
-    @logger_stream.rewind
-    scanner = StringScanner.new(@logger_stream.read)
-
-    assert scanner.scan_until(/^\[INFO\].*\]\tFYI$/)
-    assert scanner.scan_until(/^\[INFO\].*\]\t$/)
-    assert scanner.scan_until(/^\[WARN\].*\]\tWarning$/)
-    assert scanner.scan_until(/^\[WARN\].*\]\t$/)
-    assert scanner.scan_until(/^\[ERROR\].*\]\tError$/)
-    assert scanner.scan_until(/^\[FATAL\].*\]\t$/)
-    assert scanner.scan_until(/^\[FATAL\].*\]\tFatal$/)
+    entries = [
+      /^\[INFO\].*\]\tFYI$/,
+      /^\[INFO\].*\]\t$/,
+      /^\[WARN\].*\]\tWarning$/,
+      /^\[WARN\].*\]\t$/,
+      /^\[ERROR\].*\]\tError$/,
+      /^\[FATAL\].*\]\t$/,
+      /^\[FATAL\].*\]\tFatal$/
+    ]
+    assert_logs_match_all(entries, in_order: true)
   end
 end

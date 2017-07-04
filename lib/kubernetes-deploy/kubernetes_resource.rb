@@ -136,10 +136,11 @@ module KubernetesDeploy
         if container_logs.blank? || container_logs.values.all?(&:blank?)
           helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
         else
-          helpful_info << "  - Logs (last #{LOG_LINE_COUNT} lines shown):"
-          container_logs.each do |identifier, logs|
-            logs.split("\n").each do |line|
-              helpful_info << "      [#{identifier}]\t#{line}"
+          sorted_logs = container_logs.sort_by { |_, log_lines| log_lines.length }
+          sorted_logs.each do |identifier, log_lines|
+            helpful_info << "  - Logs from container '#{identifier}' (last #{LOG_LINE_COUNT} lines shown):"
+            log_lines.each do |line|
+              helpful_info << "      #{line}"
             end
           end
         end

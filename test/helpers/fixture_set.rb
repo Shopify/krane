@@ -65,6 +65,18 @@ module FixtureSetAssertions
       assert_equal replicas, available, msg
     end
 
+    def assert_replica_set_up(rs_name, replicas:)
+      replica_sets = v1beta1_kubeclient.get_replica_sets(
+        namespace: namespace,
+        label_selector: "name=#{rs_name},app=#{app_name}"
+      )
+      assert_equal 1, replica_sets.size, "Expected 1 #{rs_name} replica set, got #{replica_sets.size}"
+      available = replica_sets.first["status"]["availableReplicas"]
+
+      msg = "Expected #{rs_name} replica_sets to have #{replicas} available replicas, saw #{available}"
+      assert_equal replicas, available, msg
+    end
+
     def assert_pvc_status(pvc_name, status)
       pvc = kubeclient.get_persistent_volume_claims(
         namespace: namespace,

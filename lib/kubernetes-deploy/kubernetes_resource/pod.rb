@@ -53,12 +53,11 @@ module KubernetesDeploy
 
     # Returns a hash in the following format:
     # {
-    #   "pod/web-1/app-container" => "giant blob of logs\nas a single string"
-    #   "pod/web-1/nginx-container" => "another giant blob of logs\nas a single string"
+    #   "app" => ["array of log lines", "received from app container"],
+    #   "nginx" => ["array of log lines", "received from nginx container"]
     # }
     def fetch_logs
       return {} unless exists? && @containers.present?
-
       @containers.each_with_object({}) do |container_name, container_logs|
         cmd = [
           "logs",
@@ -68,7 +67,7 @@ module KubernetesDeploy
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
         out, _err, _st = kubectl.run(*cmd)
-        container_logs["#{id}/#{container_name}"] = out
+        container_logs[container_name] = out.split("\n")
       end
     end
 
@@ -110,13 +109,11 @@ module KubernetesDeploy
 
       container_logs.each do |container_identifier, logs|
         if logs.blank?
-          @logger.warn("No logs found for #{container_identifier}")
+          @logger.warn("No logs found for container '#{container_identifier}'")
         else
           @logger.blank_line
-          @logger.info("Logs from #{container_identifier}:")
-          logs.split("\n").each do |line|
-            @logger.info("[#{container_identifier}]\t#{line}")
-          end
+          @logger.info("Logs from #{id} container '#{container_identifier}':")
+          logs.each { |line| @logger.info("\t#{line}") }
           @logger.blank_line
         end
       end
