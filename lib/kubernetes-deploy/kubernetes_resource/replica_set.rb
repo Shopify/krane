@@ -2,6 +2,7 @@
 module KubernetesDeploy
   class ReplicaSet < KubernetesResource
     TIMEOUT = 5.minutes
+    attr_reader :desired_replicas
 
     def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started: nil)
       @parent = parent
@@ -19,6 +20,7 @@ module KubernetesDeploy
 
       if rs_data.present?
         @found = true
+        @desired_replicas = rs_data["spec"]["replicas"].to_i
         @rollout_data = { "replicas" => 0 }.merge(rs_data["status"]
           .slice("replicas", "availableReplicas", "readyReplicas"))
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
@@ -32,8 +34,8 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      @rollout_data["replicas"].to_i == @rollout_data["availableReplicas"].to_i &&
-      @rollout_data["replicas"].to_i == @rollout_data["readyReplicas"].to_i
+      @desired_replicas == @rollout_data["availableReplicas"].to_i &&
+      @desired_replicas == @rollout_data["readyReplicas"].to_i
     end
 
     def deploy_failed?
@@ -46,10 +48,6 @@ module KubernetesDeploy
 
     def exists?
       @found
-    end
-
-    def desired_replicas
-      @definition["spec"]["replicas"].to_i
     end
 
     def fetch_events

@@ -9,6 +9,7 @@ module KubernetesDeploy
 
       if @found
         deployment_data = JSON.parse(raw_json)
+        @desired_replicas = deployment_data["spec"]["replicas"].to_i
         @latest_rs = find_latest_rs(deployment_data)
         @rollout_data = { "replicas" => 0 }.merge(deployment_data["status"]
           .slice("replicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"))
@@ -35,8 +36,8 @@ module KubernetesDeploy
       return false unless @latest_rs
 
       @latest_rs.deploy_succeeded? &&
-      @latest_rs.desired_replicas == desired_replicas && # latest RS fully scaled up
-      @rollout_data["updatedReplicas"].to_i == @rollout_data["replicas"].to_i &&
+      @latest_rs.desired_replicas == @desired_replicas && # latest RS fully scaled up
+      @rollout_data["updatedReplicas"].to_i == @desired_replicas &&
       @rollout_data["updatedReplicas"].to_i == @rollout_data["availableReplicas"].to_i
     end
 
@@ -50,10 +51,6 @@ module KubernetesDeploy
 
     def exists?
       @found
-    end
-
-    def desired_replicas
-      @definition["spec"]["replicas"].to_i
     end
 
     private
