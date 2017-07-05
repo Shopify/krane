@@ -475,6 +475,14 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   end
 
+  def test_success_detection_tolerates_out_of_band_deployment_scaling
+    success = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "configmap-data.yml"]) do |fixtures|
+      definition = fixtures["web.yml.erb"]["Deployment"].first
+      definition["spec"].delete("replicas")
+    end
+    assert_equal true, success, "Failed to deploy deployment with dynamic replica count"
+  end
+
   private
 
   def count_by_revisions(pods)
