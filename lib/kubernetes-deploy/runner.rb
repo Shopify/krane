@@ -79,6 +79,7 @@ module KubernetesDeploy
     end
 
     def run(verify_result: true, allow_protected_ns: false, prune: true)
+      start = Time.now.utc
       @logger.reset
 
       @logger.phase_heading("Initializing deploy")
@@ -104,7 +105,9 @@ module KubernetesDeploy
 
       if deploy_has_priority_resources?(resources)
         @logger.phase_heading("Predeploying priority resources")
-        predeploy_priority_resources(resources)
+        ::StatsD.measure('duration.priority_resources', tags: statsd_tags) do
+          predeploy_priority_resources(resources)
+        end
       end
 
       @logger.phase_heading("Deploying all resources")
@@ -113,7 +116,9 @@ module KubernetesDeploy
       end
 
       if verify_result
-        deploy_resources(resources, prune: prune, verify: true)
+        ::StatsD.measure('duration.normal_resources', tags: statsd_tags) do
+          deploy_resources(resources, prune: prune, verify: true)
+        end
         record_statuses(resources)
         success = resources.all?(&:deploy_succeeded?)
       else
@@ -131,6 +136,7 @@ module KubernetesDeploy
       success = false
     ensure
       @logger.print_summary(success)
+      ::StatsD.measure('duration.total', (Time.now.utc - start) * 1000.0, tags: statsd_tags)
       success
     end
 
@@ -432,6 +438,10 @@ module KubernetesDeploy
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+    end
+
+    def statsd_tags
+      %W(namespace:#{@namespace} sha:#{@current_sha})
     end
   end
 end
