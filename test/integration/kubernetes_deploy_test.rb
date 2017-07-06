@@ -226,7 +226,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Deployment/web: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
-      "app: Failing to generate container configuration: secrets \"monitoring-token\" not found",
+      "app: Failed to generate container configuration: secrets \"monitoring-token\" not found",
       "Final status: 3 replicas, 3 updatedReplicas, 3 unavailableReplicas"
     ], in_order: true)
 
@@ -243,7 +243,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Deployment/cannot-run: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
-      "container-cannot-run: Failing to pull image some-invalid-image:badtag.",
+      "container-cannot-run: Failed to pull image some-invalid-image:badtag.",
       "Did you wait for it to be built and pushed to the registry before deploying?"
     ], in_order: true)
   end
@@ -275,7 +275,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Deployment/cannot-run: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
-      "container-cannot-run: Failing to start (exit 127):",
+      "container-cannot-run: Failed to start (exit 127):",
       "Container command '/some/bad/path' not found or does not exist."
     ], in_order: true)
   end
@@ -289,8 +289,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
       %r{Pod\/unmanaged-pod-\w+-\w+: FAILED},
-      "The following containers are in a state that is unlikely to be recoverable:",
-      "hello-cloud: Failing to pull image hello-world:thisImageIsBad"
+      "The following containers encountered errors:",
+      "hello-cloud: Failed to pull image hello-world:thisImageIsBad"
     ])
   end
 
@@ -327,7 +327,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       assert_logs_match(%r{Service/multi-replica\s+Selects 2 pods})
     end
 
-    pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=jobs,app=fixtures')
+    pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=undying,app=fixtures')
     assert_equal 4, pods.size
 
     count = count_by_revisions(pods)
@@ -421,7 +421,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Your pods are running, but the following containers seem to be failing their readiness probes:",
       "app must respond with a good status code at '/bad/ping/path'",
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
-      "Successfully assigned bad-probe", # event
+      "Scaled up replica set bad-probe-", # event
     ], in_order: true)
 
     # Debug info for missing volume timeout
@@ -437,7 +437,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "The following containers are in a state that is unlikely to be recoverable:",
       "init-crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
       "Final status: 2 replicas, 2 updatedReplicas, 2 unavailableReplicas",
-      "Successfully assigned init-crash", # event
+      "Scaled up replica set init-crash-", # event
       "ls: /not-a-dir: No such file or directory" # log
     ], in_order: true)
 
@@ -466,8 +466,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      "hello-cloud: Failing to start (exit 127): Container command '/some/bad/path' not found or does not exist.",
-      "Successfully assigned unmanaged-pod-", # from an event
+      "hello-cloud: Failed to start (exit 127): Container command '/some/bad/path' not found or does not exist.",
+      "Error response from daemon", # from an event
       "no such file or directory" # from logs
     ], in_order: true)
     refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary

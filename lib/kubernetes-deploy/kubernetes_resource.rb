@@ -124,7 +124,7 @@ module KubernetesDeploy
 
       events = fetch_events
       if events.present?
-        helpful_info << "  - Events:"
+        helpful_info << "  - Events (common success events excluded):"
         events.each do |identifier, event_hashes|
           event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
         end

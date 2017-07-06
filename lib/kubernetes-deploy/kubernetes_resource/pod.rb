@@ -11,7 +11,7 @@ module KubernetesDeploy
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
         raise FatalDeploymentError, "Template is missing required field spec.containers"
       end
-      @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init: true) }
+      @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
       super(namespace: namespace, context: context, definition: definition, logger: logger)
     end
 
@@ -54,6 +54,7 @@ module KubernetesDeploy
     end
 
     def timeout_message
+      return if unmanaged?
       return unless @phase == "Running" && !@ready
       pieces = ["Your pods are running, but the following containers seem to be failing their readiness probes:"]
       @containers.each do |c|
@@ -71,8 +72,13 @@ module KubernetesDeploy
         red_name = ColorizedString.new(c.name).red
         "> #{red_name}: #{c.doom_reason}"
       end
-      intro = "The following containers are in a state that is unlikely to be recoverable:\n"
-      intro + container_messages.join("\n") + "\n"
+
+      intro = if unmanaged?
+        "The following containers encountered errors:"
+      else
+        "The following containers are in a state that is unlikely to be recoverable:"
+      end
+      intro + "\n" + container_messages.join("\n") + "\n"
     end
 
     # Returns a hash in the following format:
@@ -155,8 +161,8 @@ module KubernetesDeploy
 
       attr_reader :name, :probe_location
 
-      def initialize(definition, init: false)
-        @init = init
+      def initialize(definition, init_container: false)
+        @init_container = init_container
         @name = definition["name"]
         @image = definition["image"]
         @probe_location = definition.fetch("readinessProbe", {}).fetch("httpGet", {})["path"]
@@ -171,18 +177,20 @@ module KubernetesDeploy
         exit_code = @status['lastState']['terminated']['exitCode']
         last_terminated_reason = @status["lastState"]["terminated"]["reason"]
         limbo_reason = @status["state"]["waiting"]["reason"]
+        limbo_message = @status["state"]["waiting"]["message"]
 
         if last_terminated_reason == "ContainerCannotRun"
           # ref: https://github.com/kubernetes/kubernetes/blob/562e721ece8a16e05c7e7d6bdd6334c910733ab2/pkg/kubelet/dockershim/docker_container.go#L353
-          "Failing to start (exit #{exit_code}): #{@status['lastState']['terminated']['message']}"
+          "Failed to start (exit #{exit_code}): #{@status['lastState']['terminated']['message']}"
         elsif limbo_reason == "CrashLoopBackOff"
           "Crashing repeatedly (exit #{exit_code}). See logs for more information."
-        elsif %w(ImagePullBackOff ErrImagePull).include?(limbo_reason)
-          "Failing to pull image #{@image}. "\
+        elsif %w(ImagePullBackOff ErrImagePull).include?(limbo_reason) && limbo_message.match("not found")
+          "Failed to pull image #{@image}. "\
           "Did you wait for it to be built and pushed to the registry before deploying?"
-        elsif @status["state"]["waiting"]["message"] == "Generate Container Config Failed"
-          # reason/message seem to be backwards for this case -- reason is the free-form part
-          "Failing to generate container configuration: #{limbo_reason}"
+        elsif limbo_message == "Generate Container Config Failed"
+          # reason/message are backwards
+          # Flip this after https://github.com/kubernetes/kubernetes/commit/df41787b1a3f51b73fb6db8a2203f0a7c7c92931
+          "Failed to generate container configuration: #{limbo_reason}"
         end
       end
 
@@ -191,7 +199,7 @@ module KubernetesDeploy
       end
 
       def init_container?
-        @init
+        @init_container
       end
 
       def update_status(data)

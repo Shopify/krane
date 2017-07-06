@@ -10,6 +10,9 @@ spec:
         name: web
         app: crash-app
     spec:
+      initContainers:
+      - name: successful-init
+        image: hello-world:latest
       containers:
       - name: container-cannot-run
         image: busybox
