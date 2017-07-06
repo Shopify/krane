@@ -49,7 +49,7 @@ module KubernetesDeploy
     end
 
     def mysql_service_exists?
-      service, _err, st = kubectl.run("get", "services", "mysql", "-o=json")
+      service, _err, st = kubectl.run("get", "services", "cloudsql-#{@name}", "-o=json")
 
       if st.success?
         parsed = JSON.parse(service)
