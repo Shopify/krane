@@ -2,6 +2,20 @@
 
 `kubernetes-deploy` is a command line tool that helps you ship changes to a Kubernetes namespace and understand the result. At Shopify, we use it within our much-beloved, open-source [Shipit](https://github.com/Shopify/shipit-engine#kubernetes) deployment app.
 
+Why not just use the standard `kubectl apply` mechanism to deploy? It is indeed a fantastic tool; `kubernetes-deploy` uses it under the hood! However, it leaves its users with some burning questions: _What just happened?_ _Did it work?_
+
+Especially in a CI/CD environment, we need a clear, actionable pass/fail result for each deploy. Providing this was the foundational goal of `kubernetes-deploy`, which has grown to support the following core features:
+
+​:eyes:  Watches the changes you requested to make sure they roll out successfully.
+
+:interrobang: Provides debug information for changes that failed.
+
+:1234:  Predeploys certain types of resources (e.g. ConfigMap, PersistentVolumeClaim) to make sure the latest version will be available when resources that might consume them (e.g. Deployment) are deployed.
+
+:closed_lock_with_key:  [Creates Kubernetes secrets from encrypted EJSON](#deploying-kubernetes-secrets-from-ejson), which you can safely commit to your repository
+
+​:running: [Runs tasks at the beginning of the deploy](#deploy-time-tasks) using bare pods (example use case: Rails migrations)
+
 This repo also includes related tools for [running tasks](#kubernetes-run) and [restarting deployments](#kubernetes-restart).
 
 ![success](screenshots/success.png)
@@ -9,21 +23,6 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 
 
 ![missing-secret-fail](screenshots/missing-secret-fail.png)
-
-
-
-
-## Highlights
-
-:eyes:	Watches the changes you requested to make sure they complete successfully.
-
-:interrobang:	Provides debug information for changes that failed.
-
-:1234:	Predeploys certain types of resources (e.g. ConfigMap, PersistentVolumeClaim) to make sure the latest version will be available when resources that might consume them (e.g. Deployment) are deployed.
-
-:closed_lock_with_key:	[Creates Kubernetes secrets from encrypted EJSON](#deploying-kubernetes-secrets-from-ejson), which you can safely commit to your repository
-
-:running:	[Runs tasks at the beginning of the deploy](#deploy-time-tasks) using pods (example use case: Rails migrations)
 
 
 
@@ -60,7 +59,6 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * [License](#license)
 
 
-
 ----------
 
 
@@ -69,11 +67,11 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 
 * Your cluster must be running Kubernetes v1.6.0 or higher
 * Each app must have a deploy directory containing its Kubernetes templates (see [Templates](#templates))
-* You must remove the` kubectl.kubernetes.io/last-applied-configuration` annotation from any resources in the namespace that are not included in your deploy directory. If you do not, kubernetes-deploy will delete them.
-* Each app managed by `kubernetes-deploy` must have its own exclusive namespace. (This requirement can be bypassed with the `--no-prune` option, but it is not recommended.)
+* You must remove the` kubectl.kubernetes.io/last-applied-configuration` annotation from any resources in the namespace that are not included in your deploy directory. This annotation is added automatically when you create resources with `kubectl apply`. `kubernetes-deploy` will prune any resources that have this annotation and are not in the deploy directory.**
+* Each app managed by `kubernetes-deploy` must have its own exclusive Kubernetes namespace.**
 
 
-
+**This requirement can be bypassed with the `--no-prune` option, but it is not recommended.
 
 ## Installation
 
@@ -90,10 +88,10 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 
 *Environment variables:*
 
-- `ENV[REVISION]` **(required)**: the SHA of the commit you are deploying. Will be exposed to your ERB templates as `current_sha`.
-- `ENV['KUBECONFIG']`  **(required)**: points to a valid kubeconfig file that includes the context you want to deploy to
-- `ENV['ENVIRONMENT']`: used to set the deploy directory to `config/deploy/$ENVIRONMENT`. You can use the `--template-dir=DIR` option instead if you prefer (**one or the other is required**).
-- `ENV['GOOGLE_APPLICATION_CREDENTIALS']`: points to the credentials for an authenticated service account (required if your kubeconfig `user`'s auth provider is GCP)
+- `$REVISION` **(required)**: the SHA of the commit you are deploying. Will be exposed to your ERB templates as `current_sha`.
+- `$KUBECONFIG`  **(required)**: points to a valid kubeconfig file that includes the context you want to deploy to
+- `$ENVIRONMENT`: used to set the deploy directory to `config/deploy/$ENVIRONMENT`. You can use the `--template-dir=DIR` option instead if you prefer (**one or the other is required**).
+- `$GOOGLE_APPLICATION_CREDENTIALS`: points to the credentials for an authenticated service account (required if your kubeconfig `user`'s auth provider is GCP)
 
 
 *Options:*
@@ -114,7 +112,7 @@ Each app's templates are expected to be stored in a single directory. If this is
 
 All templates must be YAML formatted. You can also use ERB. The following local variables will be available to your ERB templates by default:
 
-* `current_sha`: The value of `ENV['REVISION']`
+* `current_sha`: The value of `$REVISION`
 * `deployment_id`:  A randomly generated identifier for the deploy. Useful for creating unique names for task-runner pods (e.g. a pod that runs rails migrations at the beginning of deploys).
 
 You can add additional variables using the `--bindings=BINDINGS` option. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size` in your templates.
@@ -123,12 +121,12 @@ You can add additional variables using the `--bindings=BINDINGS` option. For exa
 
 ### Running tasks at the beginning of a deploy
 
-To run a task in your cluster at the beginning of every deploy, simply include a `Pod` template in your deploy directory. `kubernetes-deploy` will first deploy any `ConfigMap` and `PersistentVolumeClaim` resources in your template set, followed by any such pods.
+To run a task in your cluster at the beginning of every deploy, simply include a `Pod` template in your deploy directory. `kubernetes-deploy` will first deploy any `ConfigMap` and `PersistentVolumeClaim` resources in your template set, followed by any such pods. If the command run by one of these pods fails (i.e. exits with a non-zero status), the overall deploy will fail at this step (no other resources will be deployed).
 
 *Requirements:*
 
 * The pod's name should include `<%= deployment_id %>` to ensure that a unique name will be used on every deploy (the deploy will fail if a pod with the same name already exists).
-* The pod's `spec.restartPolicy` must be set to `Never`
+* The pod's `spec.restartPolicy` must be set to `Never` so that it will be run exactly once. We'll fail the deploy if that run exits with a non-zero status.
 * The pod's `spec.activeDeadlineSeconds` should be set to a reasonable value for the performed task (not required, but highly recommended)
 
 A simple example can be found in the test fixtures: test/fixtures/hello-cloud/unmanaged-pod.yml.erb.
