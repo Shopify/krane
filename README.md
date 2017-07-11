@@ -18,7 +18,9 @@ Especially in a CI/CD environment, we need a clear, actionable pass/fail result 
 
 This repo also includes related tools for [running tasks](#kubernetes-run) and [restarting deployments](#kubernetes-restart).
 
-![success](screenshots/success.png)
+
+
+![demo-deploy.gif](screenshots/deploy-demo.gif)
 
 
 
@@ -96,11 +98,11 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 
 *Options:*
 
+Refer to `kubernetes-deploy --help` for the authoritative set of options.
+
+- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`.
 - `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size`.
-- `--verbose-log-prefix`: Prefixes each log line with `[#{context}][#{namespace}][#{severity}][#{datetime}]` instead of just `[#{severity}][#{datetime}]`. Useful if you're running multiple concurrent deploys in Shipit.
-- `--allow-protected-ns`: Enables you to deploy to `default`, `kube-system` or `kube-public` if you really know what you're doing. Must be used with `--no-prune` (pruning a protected namespace cannot be enabled).
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
-- `--skip-wait`: Verifies the result of predeployed resources only. Declares success immediately after the bulk `kubectl apply` operation. Not recommended, as it skips a huge part of the value of this tool.
 
 
 
