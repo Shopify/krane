@@ -102,6 +102,9 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       hits_to_complete
     end
 
+    def report_status_to_statsd(watch_time)
+    end
+
     private
 
     def hits_complete?

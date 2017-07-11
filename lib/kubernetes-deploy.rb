@@ -13,6 +13,8 @@ require 'colorized_string'
 require 'kubernetes-deploy/errors'
 require 'kubernetes-deploy/formatted_logger'
 require 'kubernetes-deploy/runner'
+require 'kubernetes-deploy/statsd'
 
 module KubernetesDeploy
+  KubernetesDeploy::StatsD.build
 end

@@ -39,6 +39,8 @@ module KubernetesDeploy
     private
 
     def report_what_just_happened(resources, watch_time)
+      resources.each { |r| r.report_status_to_statsd(watch_time) }
+
       new_successes, new_failures = resources.partition(&:deploy_succeeded?)
       new_failures.each do |resource|
         if resource.deploy_failed?

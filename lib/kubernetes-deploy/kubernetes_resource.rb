@@ -54,6 +54,7 @@ module KubernetesDeploy
       @context = context
       @logger = logger
       @definition = definition
+      @statsd_report_done = false
     end
 
     def id
@@ -182,6 +183,24 @@ module KubernetesDeploy
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
+    end
+
+    def report_status_to_statsd(watch_time)
+      unless @statsd_report_done
+        status = if deploy_failed?
+          "failure"
+        elsif deploy_timed_out?
+          "timeout"
+        elsif deploy_succeeded?
+          "success"
+        else
+          "unknown"
+        end
+        tags = %W(namespace:#{namespace} resource:#{id} type:#{type} sha:#{ENV['REVISION']} status:#{status})
+        ::StatsD.measure('resource.duration', watch_time * 1000, tags: tags)
+        ::StatsD.increment('resource.status', 1, tags: tags)
+        @statsd_report_done = true
+      end
     end
 
     class Event
