@@ -1,46 +1,143 @@
-# Kubernetes::Deploy
+# kubernetes-deploy [![Build status](https://badge.buildkite.com/0f2d4956d49fbc795f9c17b0a741a6aa9ea532738e5f872ac8.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy-gem)
 
-[![Build status](https://badge.buildkite.com/0f2d4956d49fbc795f9c17b0a741a6aa9ea532738e5f872ac8.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy-gem)
+`kubernetes-deploy` is a command line tool that helps you ship changes to a Kubernetes namespace and understand the result. At Shopify, we use it within our much-beloved, open-source [Shipit](https://github.com/Shopify/shipit-engine#kubernetes) deployment app.
 
-Deploy script used to manage a Kubernetes application's namespace with [Shipit](https://github.com/Shopify/shipit-engine).
+Why not just use the standard `kubectl apply` mechanism to deploy? It is indeed a fantastic tool; `kubernetes-deploy` uses it under the hood! However, it leaves its users with some burning questions: _What just happened?_ _Did it work?_
+
+Especially in a CI/CD environment, we need a clear, actionable pass/fail result for each deploy. Providing this was the foundational goal of `kubernetes-deploy`, which has grown to support the following core features:
+
+​:eyes:  Watches the changes you requested to make sure they roll out successfully.
+
+:interrobang: Provides debug information for changes that failed.
+
+:1234:  Predeploys certain types of resources (e.g. ConfigMap, PersistentVolumeClaim) to make sure the latest version will be available when resources that might consume them (e.g. Deployment) are deployed.
+
+:closed_lock_with_key:  [Creates Kubernetes secrets from encrypted EJSON](#deploying-kubernetes-secrets-from-ejson), which you can safely commit to your repository
+
+​:running: [Runs tasks at the beginning of the deploy](#deploy-time-tasks) using bare pods (example use case: Rails migrations)
+
+This repo also includes related tools for [running tasks](#kubernetes-run) and [restarting deployments](#kubernetes-restart).
+
+![success](screenshots/success.png)
+
+
+
+![missing-secret-fail](screenshots/missing-secret-fail.png)
+
+
+
+--------
+
+
+
+## Table of contents
+
+**KUBERNETES-DEPLOY**
+* [Prerequisites](#prerequisites)
+* [Installation](#installation)
+* [Usage](#usage)
+  * [Using templates and variables](#using-templates-and-variables)
+  * [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy)
+  * [Deploying Kubernetes secrets (from EJSON)](#deploying-kubernetes-secrets-from-ejson)
+
+**KUBERNETES-RESTART**
+* [Usage](#usage-1)
+
+**KUBERNETES-RUN**
+* [Prerequisites](#prerequisites-1)
+* [Usage](#usage-2)
+
+**DEVELOPMENT**
+* [Setup](#setup)
+* [Running the test suite locally](#running-the-test-suite-locally)
+* [Releasing a new version (Shopify employees)](#releasing-a-new-version-shopify-employees)
+* [CI (Shopify employees)](#ci-shopify-employees)
+* [CI (External contributors)](#ci-external-contributors)
+
+**CONTRIBUTING**
+* [Contributing](#contributing)
+* [License](#license)
+
+
+----------
+
+
+
+## Prerequisites
+
+* Your cluster must be running Kubernetes v1.6.0 or higher
+* Each app must have a deploy directory containing its Kubernetes templates (see [Templates](#templates))
+* You must remove the` kubectl.kubernetes.io/last-applied-configuration` annotation from any resources in the namespace that are not included in your deploy directory. This annotation is added automatically when you create resources with `kubectl apply`. `kubernetes-deploy` will prune any resources that have this annotation and are not in the deploy directory.**
+* Each app managed by `kubernetes-deploy` must have its own exclusive Kubernetes namespace.**
+
+
+**This requirement can be bypassed with the `--no-prune` option, but it is not recommended.
 
 ## Installation
 
-Add this line to your application's Gemfile:
+1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.6.0 or higher) and make sure it is available in your $PATH
+2. Set up your [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/) for access to your cluster(s).
+3. `gem install kubernetes-deploy`
 
-```ruby
-gem 'kubernetes-deploy'
-```
 
-And then execute:
 
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install kubernetes-deploy
 
 ## Usage
 
-`kubernetes-deploy <app's namespace> <kube context> --template-dir=DIR`
+`kubernetes-deploy <app's namespace> <kube context>`
 
-Requirements:
+*Environment variables:*
 
- - kubectl 1.6.0+ binary must be available in your path
- - `ENV['KUBECONFIG']` must point to a valid kubeconfig file that includes the context you want to deploy to
- - The target namespace must already exist in the target context
- - `ENV['GOOGLE_APPLICATION_CREDENTIALS']` must point to the credentials for an authenticated service account if your user's auth provider is GCP
- - `ENV['ENVIRONMENT']` must be set to use the default template path (`config/deploy/$ENVIRONMENT`) in the absence of the `--template-dir=DIR` option
+- `$REVISION` **(required)**: the SHA of the commit you are deploying. Will be exposed to your ERB templates as `current_sha`.
+- `$KUBECONFIG`  **(required)**: points to a valid kubeconfig file that includes the context you want to deploy to
+- `$ENVIRONMENT`: used to set the deploy directory to `config/deploy/$ENVIRONMENT`. You can use the `--template-dir=DIR` option instead if you prefer (**one or the other is required**).
+- `$GOOGLE_APPLICATION_CREDENTIALS`: points to the credentials for an authenticated service account (required if your kubeconfig `user`'s auth provider is GCP)
 
-The tool also provides a task for restarting all of the pods in one or more deployments.
-It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec.
-The rollout strategy defined for each deployment will be respected by the restart.
 
-The following command will restart all pods in the `web` and `jobs` deployments:
+*Options:*
 
-`kubernetes-restart <kube namespace> <kube context> --deployments=web,jobs`
+- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size`.
+- `--verbose-log-prefix`: Prefixes each log line with `[#{context}][#{namespace}][#{severity}][#{datetime}]` instead of just `[#{severity}][#{datetime}]`. Useful if you're running multiple concurrent deploys in Shipit.
+- `--allow-protected-ns`: Enables you to deploy to `default`, `kube-system` or `kube-public` if you really know what you're doing. Must be used with `--no-prune` (pruning a protected namespace cannot be enabled).
+- `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
+- `--skip-wait`: Verifies the result of predeployed resources only. Declares success immediately after the bulk `kubectl apply` operation. Not recommended, as it skips a huge part of the value of this tool.
 
-### Deploying Kubernetes secrets
+
+
+
+
+### Using templates and variables
+
+Each app's templates are expected to be stored in a single directory. If this is not the case, you can create a directory containing symlinks to the templates. The recommended location for app's deploy directory is `{app root}/config/deploy/{env}`, but this is completely configurable.
+
+All templates must be YAML formatted. You can also use ERB. The following local variables will be available to your ERB templates by default:
+
+* `current_sha`: The value of `$REVISION`
+* `deployment_id`:  A randomly generated identifier for the deploy. Useful for creating unique names for task-runner pods (e.g. a pod that runs rails migrations at the beginning of deploys).
+
+You can add additional variables using the `--bindings=BINDINGS` option. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size` in your templates.
+
+
+
+### Running tasks at the beginning of a deploy
+
+To run a task in your cluster at the beginning of every deploy, simply include a `Pod` template in your deploy directory. `kubernetes-deploy` will first deploy any `ConfigMap` and `PersistentVolumeClaim` resources in your template set, followed by any such pods. If the command run by one of these pods fails (i.e. exits with a non-zero status), the overall deploy will fail at this step (no other resources will be deployed).
+
+*Requirements:*
+
+* The pod's name should include `<%= deployment_id %>` to ensure that a unique name will be used on every deploy (the deploy will fail if a pod with the same name already exists).
+* The pod's `spec.restartPolicy` must be set to `Never` so that it will be run exactly once. We'll fail the deploy if that run exits with a non-zero status.
+* The pod's `spec.activeDeadlineSeconds` should be set to a reasonable value for the performed task (not required, but highly recommended)
+
+A simple example can be found in the test fixtures: test/fixtures/hello-cloud/unmanaged-pod.yml.erb.
+
+The logs of all pods run in this way will be printed inline.
+
+![migrate-logs](screenshots/migrate-logs.png)
+
+
+
+### Deploying Kubernetes secrets (from EJSON)
 
 **Note: If you're a Shopify employee using our cloud platform, this setup has already been done for you. Please consult the CloudPlatform User Guide for usage instructions.**
 
@@ -91,59 +188,130 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
   }
 ```
 
-### Running one off tasks
 
-To trigger a one-off job such as a rake task _outside_ of a deploy, use the following command:
+
+# kubernetes-restart
+
+`kubernetes-restart` is a tool for restarting all of the pods in one or more deployments. It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec. The rollout strategy defined for each deployment will be respected by the restart.
+
+
+
+## Usage
+
+The following command will restart all pods in the `web` and `jobs` deployments:
+
+`kubernetes-restart <kube namespace> <kube context> --deployments=web,jobs`
+
+
+
+# kubernetes-run
+
+`kubernetes-run` is a tool for triggering a one-off job, such as a rake task, _outside_ of a deploy.
+
+
+
+## Prerequisites
+
+* You've already deployed a [`PodTemplate`](https://kubernetes.io/docs/api-reference/v1.6/#podtemplate-v1-core) object with field `template` containing a `Pod` specification that does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
+* The `Pod` specification in that template has a container named `task-runner`.
+
+Based on this specification `kubernetes-run` will create a new pod with the entrypoint of the `task-runner ` container overridden with the supplied arguments.
+
+
+
+## Usage
 
 `kubernetes-run <kube namespace> <kube context> <arguments> --entrypoint=/bin/bash`
 
-This command assumes that you've already deployed a `PodTemplate` named `task-runner-template`, which contains a full pod specification in its `data`. The pod specification in turn must have a container named `task-runner`. Based on this specification `kubernetes-run` will create a new pod with the entrypoint of the task-runner container overriden with the supplied arguments.
+*Options:*
 
-#### Creating a PodTemplate
-
-The [`PodTemplate`](https://kubernetes.io/docs/api-reference/v1.6/#podtemplate-v1-core) object should have a field `template` containing a `Pod` specification which does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
-
-#### Providing multiple different task-runner configurations
-
-If your application requires task runner templates you can specify which template to use by using the `--template` option. All templates are expected to provide a container called `task-runner`.
-
-#### Specifying environment variables for the container
-
-If you also need to specify environment variables on top of the arguments, you can specify the `--env-vars` flag which accepts a comma separated list of environment variables like so: `--env-vars="ENV=VAL,ENV2=VAL"`
+* `--template=TEMPLATE`:  Specifies the name of the PodTemplate to use (default is `task-runner-template` if this option is not set).
+* `--env-vars=ENV_VARS`: Accepts a comma separated list of environment variables to be added to the pod template. For example, `--env-vars="ENV=VAL,ENV2=VAL2"` will make `ENV` and `ENV2` available to the container.
 
 
-## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. You currently need to [manually install kubectl version 1.6.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) as well if you don't already have it.
 
-To run the tests:
 
-* [Install minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation)
-* Start minikube (`minikube start [options]`)
-* Make sure you have a context named "minikube" in your kubeconfig. Minikube adds this context for you when you run `minikube start`; please do not rename it. You can check for it using `kubectl config get-contexts`.
-* Run `bundle exec rake test`
+# Development
+
+## Setup
+
+1. [Install kubectl version 1.6.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
+2. [Install minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (required to run the test suite)
+3. Check out the repo
+4. Run `bin/setup` to install dependencies
 
 To install this gem onto your local machine, run `bundle exec rake install`.
 
-To release a new version:
 
-* Update the version number in `version.rb`
-* Tag the version with `git tag vx.y.z && git push --tags`
-* A Shopify employee can use the [Shipit Stack](https://shipit.shopify.io/shopify/kubernetes-deploy/rubygems) to build the `.gem` file and upload to [rubygems.org](https://rubygems.org/gems/kubernetes-deploy).
 
-## CI
+## Running the test suite locally
 
-Buildkite will build branches as you're working on them, but as soon as you create a PR it will stop building new commits from that branch because we disabled PR builds for security reasons.
-As a Shopify employee, you can manually trigger the PR build from the Buildkite UI (just specify the branch, SHA is not required):
+1. Start [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (`minikube start [options]`)
+2. Make sure you have a context named "minikube" in your kubeconfig. Minikube adds this context for you when you run `minikube start`; please do not rename it. You can check for it using `kubectl config get-contexts`.
+3. Run `bundle exec rake test`
+
+
+
+To see the full-color output of a specific integration test, you can use `PRINT_LOGS=1 bundle exec ruby -I test test/integration/kubernetes_deploy_test.rb -n/test_name/`.
+
+
+
+![test-output](screenshots/test-output.png)
+
+
+
+## Releasing a new version (Shopify employees)
+
+1. Update the version number in `version.rb` and commit that change alone to master.
+2. Tag the version with `git tag vx.y.z && git push --tags`
+3. Use the [Shipit Stack](https://shipit.shopify.io/shopify/kubernetes-deploy/rubygems) to build the `.gem` file and upload to [rubygems.org](https://rubygems.org/gems/kubernetes-deploy).
+
+If Shipit fails with `You need to create the v0.7.9 tag first.` even though you're sure you've already pushed that tag, go to `Settings` > `Resynchronize this stack` > `Clear git cache`.
+
+
+
+## CI (Shopify employees)
+
+Buildkite will build branches as you're working on them, but as soon as you create a PR it will stop building new commits from that branch because we disabled PR builds for security reasons. You can manually trigger the PR build from the [Buildkite UI](https://buildkite.com/shopify/kubernetes-deploy-gem) (just specify the branch; SHA is not required).
 
 <img width="464" alt="screen shot 2017-02-21 at 10 55 33" src="https://cloud.githubusercontent.com/assets/522155/23172610/52771a3a-f824-11e6-8c8e-3d59c45e7ff8.png">
 
 
-## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/kubernetes-deploy.
+## CI (External contributors)
+
+Please make sure you run the tests locally before submitting your PR (see [Running the test suite locally](#running-the-test-suite-locally)). A Shopify employee will trigger CI for you after reviewing your PR.
 
 
-## License
+
+# Contributing
+
+Bug reports and pull requests are welcome on GitHub at https://github.com/Shopify/kubernetes-deploy.
+
+Contributions to help us support additional resource types or increase the sophistication of our success heuristics for an existing type are especially encouraged! (See tips below)
+
+
+
+### Contributing a new resource type
+
+The list of fully supported types is effectively the list of classes found in `lib/kubernetes-deploy/kubernetes_resource/`.
+
+This gem uses subclasses of `KubernetesResource` to implement custom success/failure detection logic for each resource type. If no subclass exists for a type you're deploying, the gem simply assumes `kubectl apply` succeeded (and prints a warning about this assumption). We're always looking to support more types! Here are the basic steps for contributing a new one:
+
+1. Create a the file for your type in `lib/kubernetes-deploy/kubernetes_resource/`
+2. Create a new class that inherits from `KubernetesResource`. Minimally, it should implement the following methods:
+    * `sync` -- gather/update the data you'll need to determine `deploy_succeeded?` and `deploy_failed?`
+    * `deploy_succeeded?`
+    * `deploy_failed?`
+    * `exists?`
+3. Adjust the `TIMEOUT` constant to an appropriate value for this type.
+4. Add the a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/kubernetes-deploy/blob/master/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
+5. Add tests for any edge cases you foresee.
+
+
+
+
+# License
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
