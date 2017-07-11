@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class Service < KubernetesResource
-    TIMEOUT = 5.minutes
+    TIMEOUT = 7.minutes
 
     def sync
       _, _err, st = kubectl.run("get", type, @name)

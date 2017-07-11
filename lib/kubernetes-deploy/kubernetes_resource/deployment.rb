@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class Deployment < KubernetesResource
-    TIMEOUT = 5.minutes
+    TIMEOUT = 7.minutes
 
     def sync
       raw_json, _err, st = kubectl.run("get", type, @name, "--output=json")
