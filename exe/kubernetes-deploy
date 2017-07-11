@@ -12,7 +12,7 @@ bindings = {}
 verbose_log_prefix = false
 
 ARGV.options do |opts|
-  opts.on("--bindings=BINDINGS", Array, "k1=v1,k2=v2") do |binds|
+  opts.on("--bindings=BINDINGS", Array, "Expose additional variables to ERB templates (format: k1=v1,k2=v2)") do |binds|
     bindings = binds.each_with_object({}) do |bind, acc|
       k, v = bind.split('=')
       raise "key for value #{v} is blank!" if k.blank?
@@ -21,11 +21,21 @@ ARGV.options do |opts|
     end
   end
 
-  opts.on("--skip-wait") { skip_wait = true }
-  opts.on("--allow-protected-ns") { allow_protected_ns = true }
-  opts.on("--no-prune") { prune = false }
-  opts.on("--template-dir=DIR") { |v| template_dir = v }
-  opts.on("--verbose-log-prefix") { verbose_log_prefix = true }
+  opts.on("--skip-wait", "Skip verification of non-priority-resource success (not recommended)") { skip_wait = true }
+  prot_ns = KubernetesDeploy::Runner::PROTECTED_NAMESPACES.join(', ')
+  opts.on("--allow-protected-ns", "Enable deploys to #{prot_ns}; requires --no-prune") { allow_protected_ns = true }
+  opts.on("--no-prune", "Disable deletion of resources that do not appear in the template dir") { prune = false }
+  opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
+  opts.on("--verbose-log-prefix", "Add [context][namespace] to the log prefix") { verbose_log_prefix = true }
+
+  opts.on_tail("-h", "--help", "Print this help") do
+    puts opts
+    exit
+  end
+  opts.on_tail("-v", "--version", "Show version") do
+    puts "v#{KubernetesDeploy::VERSION}"
+    exit
+  end
   opts.parse!
 end
 
