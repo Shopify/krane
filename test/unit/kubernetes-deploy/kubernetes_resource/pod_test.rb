@@ -64,6 +64,28 @@ class PodTest < KubernetesDeploy::TestCase
     assert_nil pod.failure_message
   end
 
+  def test_deploy_failed_is_true_for_image_pull_backoff
+    pod = build_pod(pod_spec)
+    fake_status = fake_status_with_container_state(
+      "state" => {
+        "waiting" => {
+          "message" => "Back-off pulling image 'docker.io/library/hello-world'",
+          "reason" => "ImagePullBackOff"
+        }
+      }
+    )
+
+    fake_pod_data = pod_spec.merge(fake_status)
+    pod.sync(fake_pod_data)
+    assert pod.deploy_failed?
+
+    expected_msg = <<-STRING.strip_heredoc
+      The following containers encountered errors:
+      > hello-cloud: Failed to pull image hello-world:latest. Did you wait for it to be built and pushed to the registry before deploying?
+    STRING
+    assert_equal expected_msg, pod.failure_message
+  end
+
   private
 
   def pod_spec

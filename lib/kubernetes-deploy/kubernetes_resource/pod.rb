@@ -184,7 +184,8 @@ module KubernetesDeploy
           "Failed to start (exit #{exit_code}): #{@status['lastState']['terminated']['message']}"
         elsif limbo_reason == "CrashLoopBackOff"
           "Crashing repeatedly (exit #{exit_code}). See logs for more information."
-        elsif %w(ImagePullBackOff ErrImagePull).include?(limbo_reason) && limbo_message.match("not found")
+        elsif %w(ImagePullBackOff ErrImagePull).include?(limbo_reason) &&
+          limbo_message.match(/(?:not found)|(?:back-off)/i)
           "Failed to pull image #{@image}. "\
           "Did you wait for it to be built and pushed to the registry before deploying?"
         elsif limbo_message == "Generate Container Config Failed"
