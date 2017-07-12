@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: crash-loop
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        name: web
+        app: crash-app
+    spec:
+      containers:
+      - name: crash-loop-back-off
+        image: nginx:alpine
+        command: ["/usr/sbin/nginx", "-s", "stop"]

@@ -1,0 +1,19 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cannot-run
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        name: web
+        app: crash-app
+    spec:
+      initContainers:
+      - name: successful-init
+        image: hello-world:latest
+      containers:
+      - name: container-cannot-run
+        image: busybox
+        command: ["/some/bad/path"]

@@ -124,7 +124,7 @@ module KubernetesDeploy
 
       events = fetch_events
       if events.present?
-        helpful_info << "  - Events:"
+        helpful_info << "  - Events (common success events excluded):"
         events.each do |identifier, event_hashes|
           event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
         end
@@ -139,6 +139,11 @@ module KubernetesDeploy
         else
           sorted_logs = container_logs.sort_by { |_, log_lines| log_lines.length }
           sorted_logs.each do |identifier, log_lines|
+            if log_lines.empty?
+              helpful_info << "  - Logs from container '#{identifier}': #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
+              next
+            end
+
             helpful_info << "  - Logs from container '#{identifier}' (last #{LOG_LINE_COUNT} lines shown):"
             log_lines.each do |line|
               helpful_info << "      #{line}"
@@ -209,7 +214,11 @@ module KubernetesDeploy
           %[(eq .involvedObject.kind "#{kind}")],
           %[(eq .involvedObject.name "#{name}")],
           '(ne .reason "Started")',
-          '(ne .reason "Created")'
+          '(ne .reason "Created")',
+          '(ne .reason "SuccessfulCreate")',
+          '(ne .reason "Scheduled")',
+          '(ne .reason "Pulling")',
+          '(ne .reason "Pulled")'
         ]
         condition_start = "{{if and #{and_conditions.join(' ')}}}"
         field_part = FIELDS.map { |f| "{{#{f}}}" }.join(%({{print "#{FIELD_SEPARATOR}"}}))
