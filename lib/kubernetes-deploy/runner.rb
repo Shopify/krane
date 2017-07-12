@@ -107,7 +107,7 @@ module KubernetesDeploy
         @logger.phase_heading("Predeploying priority resources")
         start_priority_resource = Time.now.utc
         predeploy_priority_resources(resources)
-        ::StatsD.measure('duration.priority_resources', (Time.now.utc - start_priority_resource), tags: statsd_tags)
+        ::StatsD.measure('priority_resources.duration', statsd_duration(start_priority_resource), tags: statsd_tags)
       end
 
       @logger.phase_heading("Deploying all resources")
@@ -118,7 +118,7 @@ module KubernetesDeploy
       if verify_result
         start_normal_resource = Time.now.utc
         deploy_resources(resources, prune: prune, verify: true)
-        ::StatsD.measure('duration.normal_resources', (Time.now.utc - start_normal_resource), tags: statsd_tags)
+        ::StatsD.measure('normal_resources.duration', statsd_duration(start_normal_resource), tags: statsd_tags)
         record_statuses(resources)
         success = resources.all?(&:deploy_succeeded?)
       else
@@ -137,8 +137,7 @@ module KubernetesDeploy
     ensure
       @logger.print_summary(success)
       status = success ? "success" : "failed"
-      ::StatsD.increment('status.all_resources', 1, tags: statsd_tags << "status:#{status}")
-      ::StatsD.measure('duration.all_resources', (Time.now.utc - start), tags: statsd_tags << "status:#{status}")
+      ::StatsD.measure('all_resources.duration', statsd_duration(start), tags: statsd_tags << "status:#{status}")
       success
     end
 
@@ -444,6 +443,10 @@ module KubernetesDeploy
 
     def statsd_tags
       %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context})
+    end
+
+    def statsd_duration(start_time)
+      (Time.now.utc - start_time).round(1)
     end
   end
 end
