@@ -257,6 +257,8 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 
 To see the full-color output of a specific integration test, you can use `PRINT_LOGS=1 bundle exec ruby -I test test/integration/kubernetes_deploy_test.rb -n/test_name/`.
 
+To make StatsD log what it would have emitted, run a test with `STATSD_DEV=1`.
+
 
 
 ![test-output](screenshots/test-output.png)
@@ -265,11 +267,12 @@ To see the full-color output of a specific integration test, you can use `PRINT_
 
 ## Releasing a new version (Shopify employees)
 
-1. Update the version number in `version.rb` and commit that change alone to master.
-2. Tag the version with `git tag vx.y.z && git push --tags`
-3. Use the [Shipit Stack](https://shipit.shopify.io/shopify/kubernetes-deploy/rubygems) to build the `.gem` file and upload to [rubygems.org](https://rubygems.org/gems/kubernetes-deploy).
+1. Update the version number in `version.rb` and commit that change with message "Version x.y.z". Don't push yet or you'll confuse Shipit.
+2. Tag the version with `git tag vx.y.z -a -m "Version x.y.z"`
+3. Push both your bump commit and its tag simultaneously with `git push origin master --follow-tags` (note that you can set `git config --global push.followTags true` to turn this flag on by default)
+4. Use the [Shipit Stack](https://shipit.shopify.io/shopify/kubernetes-deploy/rubygems) to build the `.gem` file and upload to [rubygems.org](https://rubygems.org/gems/kubernetes-deploy).
 
-If Shipit fails with `You need to create the v0.7.9 tag first.` even though you're sure you've already pushed that tag, go to `Settings` > `Resynchronize this stack` > `Clear git cache`.
+If you push your commit and the tag separately, Shipit usually fails with `You need to create the v0.7.9 tag first.`. To make it find your tag, go to `Settings` > `Resynchronize this stack` > `Clear git cache`.
 
 
 
