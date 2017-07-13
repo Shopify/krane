@@ -71,7 +71,7 @@ module KubernetesDeploy
       # Example:
       # # The resulting summary will begin with "Created 3 secrets and failed to deploy 2 resources"
       # @logger.summary.add_action("created 3 secrets")
-      # @logger.summary.add_cation("failed to deploy 2 resources")
+      # @logger.summary.add_action("failed to deploy 2 resources")
       def add_action(sentence_fragment)
         @actions_taken << sentence_fragment
       end

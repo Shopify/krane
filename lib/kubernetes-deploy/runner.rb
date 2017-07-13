@@ -417,7 +417,7 @@ module KubernetesDeploy
       return unless pruned.present?
 
       @logger.info("The following resources were pruned: #{pruned.join(', ')}")
-      @logger.summary.add_action("pruned #{pruned.length} resources")
+      @logger.summary.add_action("pruned #{pruned.length} #{'resource'.pluralize(pruned.length)}")
     end
 
     def confirm_context_exists
