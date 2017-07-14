@@ -14,6 +14,9 @@ module KubernetesDeploy
         @rollout_data = { "replicas" => 0 }.merge(deployment_data["status"]
           .slice("replicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"))
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
+        deployment_data["status"]["conditions"].each do |condition|
+          @progress = condition["type"] == 'Progressing' ? condition : nil
+        end
       else # reset
         @latest_rs = nil
         @rollout_data = { "replicas" => 0 }
@@ -54,11 +57,32 @@ module KubernetesDeploy
     end
 
     def deploy_timed_out?
-      super || @latest_rs && @latest_rs.deploy_timed_out?
+      if @progress
+        @progress["status"] == 'False'
+      else
+        super || @latest_rs && @latest_rs.deploy_timed_out?
+      end
     end
 
     def exists?
       @found
+    end
+
+    def timeout
+      raw_json, _err, st = kubectl.run("get", type, @name, "--output=json")
+      found = st.success?
+
+      if found
+        deployment_data = JSON.parse(raw_json)
+        time = if deployment_data["spec"]["progressDeadlineSeconds"]
+          deployment_data["spec"]["progressDeadlineSeconds"]
+        else
+          TIMEOUT
+        end
+        time
+      else
+        TIMEOUT
+      end
     end
 
     private

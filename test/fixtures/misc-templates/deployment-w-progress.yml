@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: web
+  annotations:
+    shipit.shopify.io/restart: "true"
+spec:
+  replicas: 10
+  progressDeadlineSeconds: 2
+  minReadySeconds: 1
+  template:
+    metadata:
+      labels:
+        name: web
+        app: hello-cloud
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: GITHUB_REV
+          value: <%= current_sha %>

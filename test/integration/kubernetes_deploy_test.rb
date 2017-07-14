@@ -294,6 +294,16 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ])
   end
 
+  def test_deployment_with_progress_times_out_for_short_duration
+    # The deployment adds a progressDealineSeconds of 1s and attepts to deploy 10 replicas
+    # This should timout as 1s between events is not enough
+    refute deploy_fixtures("misc-templates", subset: ["deployment-w-progress.yml"])
+
+    assert_logs_match_all([
+      'Deployment/web: TIMED OUT (limit: 2s)'
+    ])
+  end
+
   def test_wait_false_ignores_non_priority_resource_failures
     # web depends on configmap so will not succeed deployed alone
     assert deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], wait: false)
