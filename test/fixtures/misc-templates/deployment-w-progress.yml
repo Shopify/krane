@@ -5,7 +5,7 @@ metadata:
   annotations:
     shipit.shopify.io/restart: "true"
 spec:
-  replicas: 10
+  replicas: 2
   progressDeadlineSeconds: 2
   minReadySeconds: 1
   template:
@@ -16,7 +16,11 @@ spec:
     spec:
       containers:
       - name: app
-        image: nginx:alpine
+        image: karanthukral/sleep-box
+        readinessProbe:
+          exec:
+            command:
+            - ls
         ports:
         - containerPort: 80
           name: http
