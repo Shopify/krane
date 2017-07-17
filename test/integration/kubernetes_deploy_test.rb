@@ -295,8 +295,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_deployment_with_progress_times_out_for_short_duration
-    # The deployment adds a progressDealineSeconds of 1s and attepts to deploy 10 replicas
-    # This should timout as 1s between events is not enough
+    # The deployment adds a progressDealineSeconds of 2s and attepts to deploy a container
+    # which sleeps and cannot fulfill the readiness probe causing it to timeout
     refute deploy_fixtures("misc-templates", subset: ["deployment-w-progress.yml"])
 
     assert_logs_match_all([
