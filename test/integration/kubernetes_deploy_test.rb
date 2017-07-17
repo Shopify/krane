@@ -550,6 +550,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal true, success, "Failed to deploy deployment with dynamic replica count"
   end
 
+  def test_successful_service_account_deploy
+    assert deploy_fixtures("hello-cloud", subset: ["service-account.yml"])
+  end
+
   private
 
   def count_by_revisions(pods)
