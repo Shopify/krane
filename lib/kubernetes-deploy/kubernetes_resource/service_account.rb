@@ -1,24 +1,20 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class ServiceAccount < KubernetesResource
-    TIMEOUT = 1.minutes
+    TIMEOUT = 30.seconds
 
     def sync
-      raw_json, _err, st = kubectl.run("get", type, @name, "--output=json")
+      _, _err, st = kubectl.run("get", type, @name, "--output=json")
       @found = st.success?
     end
 
     def deploy_succeeded?
-        @found
+      exists?
     end
 
     def deploy_failed?
-      !@found
+      false
     end
-
-    # def failure_message
-    #   "Service Account failed"
-    # end
 
     def exists?
       @found

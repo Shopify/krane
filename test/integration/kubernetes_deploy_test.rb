@@ -11,7 +11,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
       "Hello from Docker!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 12 resources"
+      "Successfully deployed 13 resources"
     ], in_order: true)
 
     assert_logs_match_all([
@@ -548,10 +548,6 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       definition["spec"].delete("replicas")
     end
     assert_equal true, success, "Failed to deploy deployment with dynamic replica count"
-  end
-
-  def test_successful_service_account_deploy
-    assert deploy_fixtures("hello-cloud", subset: ["service-account.yml"])
   end
 
   private
