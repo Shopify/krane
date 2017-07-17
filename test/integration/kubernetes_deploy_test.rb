@@ -17,7 +17,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Service/web\s+Selects 1 pod}
+      %r{Service/web\s+Selects at least 1 pod}
     ])
   end
 
@@ -324,7 +324,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_long_running_deployment
     2.times do
       assert deploy_fixtures('long-running')
-      assert_logs_match(%r{Service/multi-replica\s+Selects 2 pods})
+      assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
     end
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=undying,app=fixtures')
@@ -332,7 +332,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     count = count_by_revisions(pods)
     assert_equal [2, 2], count.values
-    assert_logs_match(%r{Service/multi-replica\s+Selects 4 pods})
+    assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
   end
 
   def test_create_and_update_secrets_from_ejson

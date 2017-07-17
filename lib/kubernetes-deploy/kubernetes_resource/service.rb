@@ -7,10 +7,16 @@ module KubernetesDeploy
       _, _err, st = kubectl.run("get", type, @name)
       @found = st.success?
       @related_deployment_replicas = fetch_related_replica_count
-      @status = if @num_pods_selected = fetch_related_pod_count
-        "Selects #{@num_pods_selected} #{'pod'.pluralize(@num_pods_selected)}"
-      else
+      @num_pods_selected = fetch_related_pod_count
+    end
+
+    def status
+      if @num_pods_selected.blank?
         "Failed to count related pods"
+      elsif selects_some_pods?
+        "Selects at least 1 pod"
+      else
+        "Selects 0 pods"
       end
     end
 

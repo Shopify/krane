@@ -157,7 +157,6 @@ module KubernetesDeploy
 
       if success_count > 0
         @logger.summary.add_action("successfully deployed #{success_count} #{'resource'.pluralize(success_count)}")
-        successful_resources.map(&:sync) # make sure we're printing the latest on resources that succeeded early
         final_statuses = successful_resources.map(&:pretty_status).join("\n")
         @logger.summary.add_paragraph("#{ColorizedString.new('Successful resources').green}\n#{final_statuses}")
       end
@@ -417,7 +416,7 @@ module KubernetesDeploy
       return unless pruned.present?
 
       @logger.info("The following resources were pruned: #{pruned.join(', ')}")
-      @logger.summary.add_action("pruned #{pruned.length} resources")
+      @logger.summary.add_action("pruned #{pruned.length} #{'resource'.pluralize(pruned.length)}")
     end
 
     def confirm_context_exists
