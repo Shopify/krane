@@ -74,12 +74,11 @@ module KubernetesDeploy
 
       if found
         deployment_data = JSON.parse(raw_json)
-        time = if deployment_data["spec"]["progressDeadlineSeconds"]
+        if deployment_data["spec"]["progressDeadlineSeconds"]
           deployment_data["spec"]["progressDeadlineSeconds"]
         else
           TIMEOUT
         end
-        time
       else
         TIMEOUT
       end
