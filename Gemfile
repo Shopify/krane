@@ -8,3 +8,4 @@ gem 'pry-byebug'
 gem 'rubocop'
 gem 'timecop'
 gem 'byebug'
+gem 'codecov', require: false, group: :test
