@@ -11,13 +11,14 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
       "Hello from Docker!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 13 resources"
+      "Successfully deployed 14 resources"
     ], in_order: true)
 
     assert_logs_match_all([
       %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Service/web\s+Selects at least 1 pod}
+      %r{Service/web\s+Selects at least 1 pod},
+      %r{DaemonSet/nginx\s+1 currentNumberScheduled, 1 desiredNumberScheduled, 1 numberReady, 1 numberAvailable}
     ])
   end
 
@@ -49,9 +50,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'pod "unmanaged-pod-',
       'service "web"',
       'deployment "web"',
-      'ingress "web"'
+      'ingress "web"',
+      'daemonset "nginx"'
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 5 resources and successfully deployed 3 resources/]
+    expected_msgs = [/Pruned 6 resources and successfully deployed 3 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -630,6 +632,26 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
     assert_logs_match("Unmanaged pods like Pod/oops-it-is-static must have unique names on every deploy")
+  end
+
+  def test_bad_container_on_daemon_sets_fails
+    success = deploy_fixtures("hello-cloud", subset: ["daemon_set.yml"]) do |fixtures|
+      daemon_set = fixtures['daemon_set.yml']['DaemonSet'].first
+      container = daemon_set['spec']['template']['spec']['containers'].first
+      container["image"] = "busybox"
+      container["command"] = ["ls", "/not-a-dir"]
+    end
+
+    refute success
+    assert_logs_match_all([
+      "DaemonSet/nginx: FAILED",
+      "nginx: Crashing repeatedly (exit 1). See logs for more information.",
+      "Final status: 1 currentNumberScheduled, 1 desiredNumberScheduled, 0 numberReady",
+      "Events (common success events excluded):",
+      "BackOff: Back-off restarting failed container",
+      "Logs from container 'nginx' (last 250 lines shown):",
+      "ls: /not-a-dir: No such file or directory"
+    ], in_order: true)
   end
 
   private

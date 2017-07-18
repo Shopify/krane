@@ -20,6 +20,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   pod_disruption_budget
   replica_set
   service_account
+  daemon_set
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
