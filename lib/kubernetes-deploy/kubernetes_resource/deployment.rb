@@ -15,7 +15,9 @@ module KubernetesDeploy
           .slice("replicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"))
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
         deployment_data["status"]["conditions"].each do |condition|
-          @progress = condition["type"] == 'Progressing' ? condition : nil
+          next unless condition['type'] == 'Progressing'
+          @progress = condition
+          break
         end
       else # reset
         @latest_rs = nil
@@ -53,7 +55,12 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      @latest_rs.timeout_message
+      message = ''
+      progress_seconds = @definition['spec']['progressDeadlineSeconds']
+      if progress_seconds
+        message << "Deploy timed out due to progressDeadlineSeconds of #{progress_seconds} seconds. "
+      end
+      message << @latest_rs.timeout_message
     end
 
     def deploy_timed_out?
@@ -69,13 +76,9 @@ module KubernetesDeploy
     end
 
     def timeout
-      raw_json, _err, st = kubectl.run("get", type, @name, "--output=json")
-      found = st.success?
-
-      if found
-        deployment_data = JSON.parse(raw_json)
-        if deployment_data["spec"]["progressDeadlineSeconds"]
-          deployment_data["spec"]["progressDeadlineSeconds"]
+      if @definition
+        if @definition["spec"]["progressDeadlineSeconds"]
+          @definition["spec"]["progressDeadlineSeconds"]
         else
           TIMEOUT
         end

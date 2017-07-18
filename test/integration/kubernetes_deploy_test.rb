@@ -297,10 +297,17 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_deployment_with_progress_times_out_for_short_duration
     # The deployment adds a progressDealineSeconds of 2s and attepts to deploy a container
     # which sleeps and cannot fulfill the readiness probe causing it to timeout
-    refute deploy_fixtures("misc-templates", subset: ["deployment-w-progress.yml"])
+    success = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
+      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+      deployment['spec']['progressDeadlineSeconds'] = 2
+      container = deployment['spec']['template']['spec']['containers'].first
+      container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
+    end
+    refute success
 
     assert_logs_match_all([
-      'Deployment/web: TIMED OUT (limit: 2s)'
+      'Deployment/undying: TIMED OUT (limit: 2s)',
+      'Deploy timed out due to progressDeadlineSeconds of 2 seconds'
     ])
   end
 
