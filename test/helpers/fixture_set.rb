@@ -120,6 +120,15 @@ module FixtureSetAssertions
       assert_equal expected_data, secret_data
     end
 
+    def assert_service_account_present(name)
+      service_accounts = kubeclient.get_service_accounts(namespace: namespace)
+      found = false
+      service_accounts.each do |sa|
+        found = true if sa.metadata.name == name
+      end
+      assert found
+    end
+
     def assert_annotated(obj, annotation)
       annotations = obj.metadata.annotations.to_h.stringify_keys
       assert annotations.key?(annotation), "Expected secret to have annotation #{annotation}, but it did not"
