@@ -27,6 +27,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   statefulservice
   topic
   bucket
+  stateful_set
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end

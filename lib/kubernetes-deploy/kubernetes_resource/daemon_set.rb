@@ -1,7 +1,9 @@
 # frozen_string_literal: true
+require 'kubernetes-deploy/kubernetes_resource/pod_set_base'
 module KubernetesDeploy
-  class DaemonSet < KubernetesResource
+  class DaemonSet < PodSetBase
     TIMEOUT = 5.minutes
+    attr_reader :pods
 
     def sync
       raw_json, _err, st = kubectl.run("get", type, @name, "--output=json")
@@ -31,30 +33,7 @@ module KubernetesDeploy
     end
 
     def deploy_failed?
-      @pods.present? && @pods.any?(&:deploy_failed?)
-    end
-
-    def failure_message
-      @pods.map(&:failure_message).compact.uniq.join("\n")
-    end
-
-    def timeout_message
-      @pods.map(&:timeout_message).compact.uniq.join("\n")
-    end
-
-    def deploy_timed_out?
-      super || @pods.present? && @pods.any?(&:deploy_timed_out?)
-    end
-
-    def exists?
-      @found
-    end
-
-    def fetch_events
-      own_events = super
-      return own_events unless @pods.present?
-      most_useful_pod = @pods.find(&:deploy_failed?) || @pods.find(&:deploy_timed_out?) || @pods.first
-      own_events.merge(most_useful_pod.fetch_events)
+      pods.present? && pods.any?(&:deploy_failed?)
     end
 
     def fetch_logs
@@ -62,35 +41,16 @@ module KubernetesDeploy
       most_useful_pod.fetch_logs
     end
 
+    def exists?
+      @found
+    end
+
     private
 
-    def find_pods(ds_data)
-      label_string = ds_data["spec"]["selector"]["matchLabels"].map { |k, v| "#{k}=#{v}" }.join(",")
-      raw_json, _err, st = kubectl.run("get", "pods", "-a", "--output=json", "--selector=#{label_string}")
-      return [] unless st.success?
-
-      all_pods = JSON.parse(raw_json)["items"]
-      template_generation = ds_data["spec"]["templateGeneration"]
-
-      latest_pods = all_pods.find_all do |pod|
-        next unless owners = pod.dig("metadata", "ownerReferences")
-        owners.any? { |ref| ref["uid"] == ds_data["metadata"]["uid"] } &&
-        pod["metadata"]["labels"]["pod-template-generation"].to_i == template_generation.to_i
-      end
-      return [] unless latest_pods.present?
-
-      latest_pods.each_with_object([]) do |pod_data, relevant_pods|
-        pod = Pod.new(
-          namespace: namespace,
-          context: context,
-          definition: pod_data,
-          logger: @logger,
-          parent: "#{@name.capitalize} daemon set",
-          deploy_started: @deploy_started
-        )
-        pod.sync(pod_data)
-        relevant_pods << pod
-      end
+    def parent_of_pod?(set_data, pod_data)
+      return false unless pod_data.dig("metadata", "ownerReferences")
+      pod_data["metadata"]["ownerReferences"].any? { |ref| ref["uid"] == set_data["metadata"]["uid"] } &&
+      pod_data["metadata"]["labels"]["pod-template-generation"].to_i == set_data["spec"]["templateGeneration"].to_i
     end
   end
 end
