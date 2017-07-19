@@ -306,7 +306,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     refute success
 
     assert_logs_match_all([
-      'Deployment/undying: TIMED OUT (limit: 2s)',
+      'Deployment/undying: TIMED OUT (limit: 420s)',
       'Deploy timed out due to progressDeadlineSeconds of 2 seconds'
     ])
   end

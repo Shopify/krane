@@ -14,11 +14,7 @@ module KubernetesDeploy
         @rollout_data = { "replicas" => 0 }.merge(deployment_data["status"]
           .slice("replicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"))
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
-        deployment_data["status"]["conditions"].each do |condition|
-          next unless condition['type'] == 'Progressing'
-          @progress = condition
-          break
-        end
+        @progress = deployment_data["status"]["conditions"].find { |condition| condition['type'] == 'Progressing' }
       else # reset
         @latest_rs = nil
         @rollout_data = { "replicas" => 0 }
@@ -73,18 +69,6 @@ module KubernetesDeploy
 
     def exists?
       @found
-    end
-
-    def timeout
-      if @definition
-        if @definition["spec"]["progressDeadlineSeconds"]
-          @definition["spec"]["progressDeadlineSeconds"]
-        else
-          TIMEOUT
-        end
-      else
-        TIMEOUT
-      end
     end
 
     private
