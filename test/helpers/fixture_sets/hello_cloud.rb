@@ -14,6 +14,7 @@ module FixtureSetAssertions
       assert_podtemplate_runner_present
       assert_poddisruptionbudget
       assert_bare_replicaset_up
+      assert_all_service_accounts_up
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -78,6 +79,10 @@ module FixtureSetAssertions
     def assert_bare_replicaset_up
       assert_pod_status("bare-replica-set", "Running")
       assert assert_replica_set_up("bare-replica-set", replicas: 1)
+    end
+
+    def assert_all_service_accounts_up
+      assert_service_account_present("build-robot")
     end
   end
 end

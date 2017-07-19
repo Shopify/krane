@@ -11,7 +11,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
       "Hello from Docker!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 12 resources"
+      "Successfully deployed 13 resources"
     ], in_order: true)
 
     assert_logs_match_all([
