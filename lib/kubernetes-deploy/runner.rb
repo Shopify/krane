@@ -187,16 +187,11 @@ module KubernetesDeploy
 
     # Inspect the file referenced in the kubectl stderr
     # to make it easier for developer to understand what's going on
-    def find_bad_file_from_kubectl_output(stderr)
+    def find_bad_files_from_kubectl_output(stderr)
       # Output example:
       # Error from server (BadRequest): error when creating "/path/to/configmap-gqq5oh.yml20170411-33615-t0t3m":
-      match = stderr.match(%r{BadRequest.*"(?<path>\/\S+\.ya?ml\S*)"})
-      return unless match
-
-      path = match[:path]
-      if path.present? && File.file?(path)
-        File.read(path)
-      end
+      matches = stderr.scan(%r{"(?<path>\/\S+\.ya?ml\S*)"})
+      matches.flatten if matches
     end
 
     def deploy_has_priority_resources?(resources)
@@ -239,17 +234,8 @@ module KubernetesDeploy
       command = ["create", "-f", file_path, "--dry-run", "--output=name"]
       _, err, st = kubectl.run(*command, log_failure: false)
       return if st.success?
-
-      debug_msg = <<-DEBUG_MSG.strip_heredoc
-        This usually means template '#{original_filename}' is not a valid Kubernetes template.
-        Error from kubectl:
-          #{err}
-        Rendered template content:
-      DEBUG_MSG
-      debug_msg += File.read(file_path)
-      @logger.summary.add_paragraph(debug_msg)
-
-      raise FatalDeploymentError, "Kubectl dry run failed (command: #{Shellwords.join(command)})"
+      record_invalid_template(err, file_pathes: [file_path], original_filenames: [original_filename])
+      raise FatalDeploymentError, "Template validation failed (command: #{Shellwords.join(command)})"
     end
 
     def split_templates(filename)
@@ -270,18 +256,26 @@ module KubernetesDeploy
       raise FatalDeploymentError, "Template '#{filename}' cannot be parsed"
     end
 
-    def record_apply_failure(err)
-      file_content = find_bad_file_from_kubectl_output(err)
-      debug_msg = <<-HELPFUL_MESSAGE.strip_heredoc
-        This usually means one of your templates is invalid.
-        Error from kubectl:
-          #{err}
-      HELPFUL_MESSAGE
-      if file_content
-        debug_msg += "Rendered template content:\n#{file_content}"
+    def record_invalid_template(err, file_pathes:, original_filenames: nil)
+      template_names = Array(original_filenames)
+      file_content = Array(file_pathes).each_with_object([]) do |file_path, contents|
+        next unless File.file?(file_path)
+        contents << File.read(file_path)
+        template_names << File.basename(file_path) unless original_filenames
+      end.join("\n")
+      template_list = template_names.compact.join(", ").presence || "See error message"
+
+      debug_msg = ColorizedString.new("Invalid #{'template'.pluralize(template_names.length)}: #{template_list}\n").red
+      debug_msg += "> Error from kubectl:\n#{indent_four(err)}"
+      if file_content.present?
+        debug_msg += "\n> Rendered template content:\n#{indent_four(file_content)}"
       end
 
       @logger.summary.add_paragraph(debug_msg)
+    end
+
+    def indent_four(str)
+      "    " + str.gsub("\n", "\n    ")
     end
 
     def wait_for_completion(watched_resources, started_at)
@@ -407,7 +401,11 @@ module KubernetesDeploy
       if st.success?
         log_pruning(out) if prune
       else
-        record_apply_failure(err)
+        file_pathes = find_bad_files_from_kubectl_output(err)
+        warn_msg = "WARNING: Any resources not mentioned in the error below were likely created/updated. " \
+          "You may wish to roll back this deploy."
+        @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
+        record_invalid_template(err, file_pathes: file_pathes)
         raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
       end
     end

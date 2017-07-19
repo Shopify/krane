@@ -133,7 +133,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ])
   end
 
-  def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast
+  def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast_and_prints_template
     success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
       configmap = fixtures["configmap-data.yml"]["ConfigMap"].first
       configmap["metadata"]["myKey"] = "uhOh"
@@ -141,9 +141,13 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
 
     assert_logs_match_all([
-      /'configmap-data.yml' is not a valid Kubernetes template/,
-      /error validating data\: found invalid field myKey for v1.ObjectMeta/
-    ])
+      "Template validation failed (command: create -f",
+      "Invalid template: configmap-data.yml",
+      "> Error from kubectl:",
+      "error validating data: found invalid field myKey for v1.ObjectMeta",
+      "> Rendered template content:",
+      "      myKey: uhOh"
+    ], in_order: true)
   end
 
   def test_dynamic_erb_collection_works
@@ -154,9 +158,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal ["web-one", "web-three", "web-two"], deployments.map { |d| d.metadata.name }.sort
   end
 
-  # Reproduces k8s bug
+  # The next three tests reproduce a k8s bug - These problems should be caught during dry run
   # https://github.com/kubernetes/kubernetes/issues/42057
-  def test_invalid_k8s_spec_that_is_valid_yaml_fails_on_apply
+  def test_invalid_k8s_spec_that_is_valid_yaml_fails_on_apply_and_prints_template
     success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
       configmap = fixtures["configmap-data.yml"]["ConfigMap"].first
       configmap["metadata"]["labels"] = {
@@ -165,10 +169,51 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
     assert_logs_match_all([
-      /Command failed: apply -f/,
-      /Error from server \(BadRequest\): error when creating/,
-      /Rendered template content:/,
-      /not_a_name:/,
+      "Command failed: apply -f",
+      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
+      /Invalid template: ConfigMap-hello-cloud-configmap-data.*\.yml/,
+      "> Error from kubectl:",
+      "    Error from server (BadRequest): error when creating",
+      "> Rendered template content:",
+      "          not_a_name:",
+    ], in_order: true)
+  end
+
+  def test_multiple_invalid_k8s_specs_fails_on_apply_and_prints_template
+    success = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
+      bad_port_name = "http_test_is_really_long_and_invalid_chars"
+      svc = fixtures["web.yml.erb"]["Service"].first
+      svc["spec"]["ports"].first["targetPort"] = bad_port_name
+      deployment = fixtures["web.yml.erb"]["Deployment"].first
+      deployment["spec"]["template"]["spec"]["containers"].first["ports"].first["name"] = bad_port_name
+    end
+
+    assert_equal false, success, "Deploy succeeded when it was expected to fail"
+    assert_logs_match_all([
+      "Command failed: apply -f",
+      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
+      /Invalid templates: Service-web.*\.yml, Deployment-web.*\.yml/,
+      "Error from server (Invalid): error when creating",
+      "Error from server (Invalid): error when creating", # once for deployment, once for svc
+      "> Rendered template content:",
+      "        targetPort: http_test_is_really_long_and_invalid_chars", # error in svc template
+      "              name: http_test_is_really_long_and_invalid_chars" # error in deployment template
+    ], in_order: true)
+  end
+
+  def test_invalid_k8s_spec_that_is_valid_yaml_but_has_no_template_path_in_error_prints_helpful_message
+    success = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
+      svc = fixtures["web.yml.erb"]["Service"].first
+      svc["spec"]["ports"].first["targetPort"] = "http_test_is_really_long_and_invalid_chars"
+    end
+    assert_equal false, success, "Deploy succeeded when it was expected to fail"
+    assert_logs_match_all([
+      "Command failed: apply -f",
+      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
+      "Invalid templates: See error message",
+      "> Error from kubectl:",
+      '    The Service "web" is invalid:',
+      'spec.ports[0].targetPort: Invalid value: "http_test_is_really_long_and_invalid_chars"'
     ], in_order: true)
   end
 
@@ -508,9 +553,12 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal false, success
 
     assert_logs_match_all([
-      "one of your templates is invalid",
+      "Command failed: apply -f",
+      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
+      "Invalid templates: See error message",
+      "> Error from kubectl:",
       /The Deployment "web" is invalid.*`selector` does not match template `labels`/
-    ])
+    ], in_order: true)
   end
 
   def test_can_deploy_deployment_with_zero_replicas
