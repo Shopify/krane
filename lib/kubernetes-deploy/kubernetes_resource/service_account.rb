@@ -5,6 +5,7 @@ module KubernetesDeploy
 
     def sync
       _, _err, st = kubectl.run("get", type, @name, "--output=json")
+      @status = st.success? ? "Created" : "Unknown"
       @found = st.success?
     end
 

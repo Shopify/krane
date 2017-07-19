@@ -122,11 +122,8 @@ module FixtureSetAssertions
 
     def assert_service_account_present(name)
       service_accounts = kubeclient.get_service_accounts(namespace: namespace)
-      found = false
-      service_accounts.each do |sa|
-        found = true if sa.metadata.name == name
-      end
-      assert found
+      desired = service_accounts.find { |sa| sa.metadata.name == name }
+      assert desired.present?, "Service account #{name} does not exist"
     end
 
     def assert_annotated(obj, annotation)
