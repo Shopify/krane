@@ -14,6 +14,7 @@ module KubernetesDeploy
         @rollout_data = { "replicas" => 0 }.merge(deployment_data["status"]
           .slice("replicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"))
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
+        @progress = deployment_data["status"]["conditions"].find { |condition| condition['type'] == 'Progressing' }
       else # reset
         @latest_rs = nil
         @rollout_data = { "replicas" => 0 }
@@ -50,11 +51,20 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      @latest_rs.timeout_message
+      progress_seconds = @definition['spec']['progressDeadlineSeconds']
+      if progress_seconds
+        "Deploy timed out due to progressDeadlineSeconds of #{progress_seconds} seconds. #{@latest_rs.timeout_message}"
+      else
+        @latest_rs.timeout_message
+      end
     end
 
     def deploy_timed_out?
-      super || @latest_rs && @latest_rs.deploy_timed_out?
+      if @progress
+        @progress["status"] == 'False'
+      else
+        super || @latest_rs && @latest_rs.deploy_timed_out?
+      end
     end
 
     def exists?
