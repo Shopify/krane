@@ -14,7 +14,8 @@ module KubernetesDeploy
         @rollout_data = { "replicas" => 0 }.merge(deployment_data["status"]
           .slice("replicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"))
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
-        @progress = deployment_data["status"]["conditions"].find { |condition| condition['type'] == 'Progressing' }
+        conditions = deployment_data.fetch("status", {}).fetch("conditions", [])
+        @progress = conditions.find { |condition| condition['type'] == 'Progressing' }
       else # reset
         @latest_rs = nil
         @rollout_data = { "replicas" => 0 }
