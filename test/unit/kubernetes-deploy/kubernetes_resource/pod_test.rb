@@ -17,7 +17,7 @@ class PodTest < KubernetesDeploy::TestCase
     pod.sync(fake_pod_data)
     assert pod.deploy_failed?
 
-    expected_msg = <<-STRING.strip_heredoc
+    expected_msg = <<~STRING
       The following containers encountered errors:
       > hello-cloud: Failed to pull image hello-world:latest. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
@@ -40,7 +40,7 @@ class PodTest < KubernetesDeploy::TestCase
     pod.sync(fake_pod_data)
     assert pod.deploy_failed?
 
-    expected_msg = <<-STRING.strip_heredoc
+    expected_msg = <<~STRING
       The following containers encountered errors:
       > hello-cloud: Failed to pull image hello-world:latest. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
@@ -79,7 +79,7 @@ class PodTest < KubernetesDeploy::TestCase
     pod.sync(fake_pod_data)
     assert pod.deploy_failed?
 
-    expected_msg = <<-STRING.strip_heredoc
+    expected_msg = <<~STRING
       The following containers encountered errors:
       > hello-cloud: Failed to pull image hello-world:latest. Did you wait for it to be built and pushed to the registry before deploying?
     STRING

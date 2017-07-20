@@ -116,7 +116,7 @@ module KubernetesDeploy
       @logger.debug(out)
       raise EjsonSecretError, err unless st.success?
     ensure
-      file.unlink if file
+      file&.unlink
     end
 
     def generate_secret_yaml(secret_name, secret_type, data)

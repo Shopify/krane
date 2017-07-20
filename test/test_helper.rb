@@ -35,7 +35,7 @@ module KubernetesDeploy
 
       if ENV["PRINT_LOGS"]
         # Allows you to view the integration test output as a series of tophat scenarios
-        <<-MESSAGE.strip_heredoc.each_line { |l| $stderr.puts l }
+        <<~MESSAGE.each_line { |l| $stderr.puts l }
 
           \033[0;35m***************************************************************************
            Begin test: #{name}

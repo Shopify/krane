@@ -67,6 +67,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 
 ## Prerequisites
 
+* Ruby 2.3+
 * Your cluster must be running Kubernetes v1.6.0 or higher
 * Each app must have a deploy directory containing its Kubernetes templates (see [Templates](#templates))
 * You must remove the` kubectl.kubernetes.io/last-applied-configuration` annotation from any resources in the namespace that are not included in your deploy directory. This annotation is added automatically when you create resources with `kubectl apply`. `kubernetes-deploy` will prune any resources that have this annotation and are not in the deploy directory.**
