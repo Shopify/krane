@@ -14,3 +14,6 @@
 .byebug_history
 .ruby-version
 coverage/*
+dev/flamegraph.svg
+dev/profile
+dev/flamegraph.pl

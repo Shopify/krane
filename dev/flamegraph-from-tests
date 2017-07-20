@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+SVG_FILENAME="dev/flamegraph.svg"
+PROFILE_FILENAME="dev/profile"
+FLAMEGRAPH_PL="dev/flamegraph.pl"
+
+if [[ -z $1 ]]; then
+  echo "Usage: `basename "$0"` TEST_NAME_OR_REGEX"
+  exit 1
+fi
+
+if ! [[ -s $FLAMEGRAPH_PL ]]; then
+  echo "Downloading flamegraph.pl"
+  curl -Lo $FLAMEGRAPH_PL https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl
+fi
+
+if [[ -f $SVG_FILENAME ]]; then
+  rm $SVG_FILENAME
+fi
+
+if [[ -f $PROFILE_FILENAME ]]; then
+  rm $PROFILE_FILENAME
+fi
+
+echo "Running test(s) with profiling"
+PROFILE=1 bundle exec ruby -I test test/integration/kubernetes_deploy_test.rb -n /$1/ > /dev/null
+
+echo "Processing profile"
+cat $PROFILE_FILENAME | perl -w $FLAMEGRAPH_PL --countname=ms --width=1500 --title=$1 > $SVG_FILENAME
+
+if [[ -f $SVG_FILENAME ]]; then
+  echo "Done. Opening ${SVG_FILENAME}"
+  open $SVG_FILENAME
+else
+  echo "Done, but ${SVG_FILENAME} does not exist. Something went wrong."
+fi
