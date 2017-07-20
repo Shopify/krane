@@ -256,6 +256,8 @@ Based on this specification `kubernetes-run` will create a new pod with the entr
 
 ## Setup
 
+If you work for Shopify, just run `dev up`, but otherwise:
+
 1. [Install kubectl version 1.6.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
 2. [Install minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (required to run the test suite)
 3. Check out the repo
