@@ -88,9 +88,10 @@ module KubernetesDeploy
       confirm_context_exists
       confirm_namespace_exists
       resources = discover_resources
+      validate_definitions(resources)
 
       @logger.phase_heading("Checking initial resource statuses")
-      resources.each(&:sync)
+      KubernetesDeploy::Concurrency.split_across_threads(resources, &:sync)
       resources.each { |r| @logger.info(r.pretty_status) }
 
       ejson = EjsonSecretProvisioner.new(
@@ -191,7 +192,7 @@ module KubernetesDeploy
       # stderr often contains one or more lines like the following, from which we can extract the file path(s):
       # Error from server (TypeOfError): error when creating "/path/to/service-gqq5oh.yml": Service "web" is invalid:
       matches = stderr.scan(%r{"(/\S+\.ya?ml\S*)"})
-      matches.flatten if matches
+      matches&.flatten
     end
 
     def deploy_has_priority_resources?(resources)
@@ -214,28 +215,31 @@ module KubernetesDeploy
       end
     end
 
+    def validate_definitions(resources)
+      KubernetesDeploy::Concurrency.split_across_threads(resources, &:validate_definition)
+      failed_resources = resources.select(&:validation_failed?)
+      return unless failed_resources.present?
+
+      failed_resources.each do |r|
+        record_invalid_template(r.validation_error_msg, file_paths: [r.file_path])
+      end
+      raise FatalDeploymentError, "Template validation failed"
+    end
+
     def discover_resources
       resources = []
       @logger.info("Discovering templates:")
+
       Dir.foreach(@template_dir) do |filename|
         next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
 
         split_templates(filename) do |r_def|
           r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def)
-          validate_template_via_dry_run(r.file_path, filename)
           resources << r
           @logger.info "  - #{r.id}"
         end
       end
       resources
-    end
-
-    def validate_template_via_dry_run(file_path, original_filename)
-      command = ["create", "-f", file_path, "--dry-run", "--output=name"]
-      _, err, st = kubectl.run(*command, log_failure: false)
-      return if st.success?
-      record_invalid_template(err, file_paths: [file_path], original_filenames: [original_filename])
-      raise FatalDeploymentError, "Template validation failed (command: #{Shellwords.join(command)})"
     end
 
     def split_templates(filename)
@@ -270,7 +274,6 @@ module KubernetesDeploy
       if file_content.present?
         debug_msg += "\n> Rendered template content:\n#{indent_four(file_content)}"
       end
-
       @logger.summary.add_paragraph(debug_msg)
     end
 

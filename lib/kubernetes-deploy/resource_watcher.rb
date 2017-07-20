@@ -21,7 +21,7 @@ module KubernetesDeploy
         end
         delay_sync_until = Time.now.utc + delay_sync # don't pummel the API if the sync is fast
 
-        @resources.each(&:sync)
+        KubernetesDeploy::Concurrency.split_across_threads(@resources, &:sync)
         newly_finished_resources, @resources = @resources.partition(&:deploy_finished?)
 
         if newly_finished_resources.present?

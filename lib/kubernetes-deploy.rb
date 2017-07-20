@@ -15,6 +15,7 @@ require 'kubernetes-deploy/errors'
 require 'kubernetes-deploy/formatted_logger'
 require 'kubernetes-deploy/runner'
 require 'kubernetes-deploy/statsd'
+require 'kubernetes-deploy/concurrency'
 
 module KubernetesDeploy
   KubernetesDeploy::StatsD.build
