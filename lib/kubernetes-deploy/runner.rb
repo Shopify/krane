@@ -37,6 +37,8 @@ module KubernetesDeploy
       Redis
       Bugsnag
       ConfigMap
+      StorageClass
+      PersistentVolume
       PersistentVolumeClaim
       Pod
     )
