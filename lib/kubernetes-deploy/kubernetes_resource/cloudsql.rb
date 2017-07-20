@@ -54,7 +54,7 @@ module KubernetesDeploy
       if st.success?
         parsed = JSON.parse(service)
 
-        if parsed.fetch("spec", {}).fetch("clusterIP", "") != ""
+        if parsed.dig("spec", "clusterIP").present?
           # the service has an assigned cluster IP and is therefore functioning
           return true
         end
@@ -70,7 +70,7 @@ module KubernetesDeploy
       if st.success?
         parsed = JSON.parse(redis)
 
-        @cloudsql_resource_uuid = parsed.fetch("metadata", {}).fetch("uid", nil)
+        @cloudsql_resource_uuid = parsed.dig("metadata", "uid")
       end
     end
   end
