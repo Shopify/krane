@@ -188,8 +188,8 @@ module KubernetesDeploy
     # Inspect the file referenced in the kubectl stderr
     # to make it easier for developer to understand what's going on
     def find_bad_files_from_kubectl_output(stderr)
-      # Output example:
-      # Error from server (BadRequest): error when creating "/path/to/configmap-gqq5oh.yml20170411-33615-t0t3m":
+      # stderr often contains one or more lines like the following, from which we can extract the file path(es):
+      # Error from server (TypeOfError): error when creating "/path/to/service-gqq5oh.yml": Service "web" is invalid:
       matches = stderr.scan(%r{"(?<path>\/\S+\.ya?ml\S*)"})
       matches.flatten if matches
     end

@@ -158,7 +158,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal ["web-one", "web-three", "web-two"], deployments.map { |d| d.metadata.name }.sort
   end
 
-  # The next three tests reproduce a k8s bug - These problems should be caught during dry run
+  # The next three tests reproduce a k8s bug
+  # The dry run should catch these problems, but it does not. Instead, apply fails.
   # https://github.com/kubernetes/kubernetes/issues/42057
   def test_invalid_k8s_spec_that_is_valid_yaml_fails_on_apply_and_prints_template
     success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
