@@ -188,9 +188,9 @@ module KubernetesDeploy
     # Inspect the file referenced in the kubectl stderr
     # to make it easier for developer to understand what's going on
     def find_bad_files_from_kubectl_output(stderr)
-      # stderr often contains one or more lines like the following, from which we can extract the file path(es):
+      # stderr often contains one or more lines like the following, from which we can extract the file path(s):
       # Error from server (TypeOfError): error when creating "/path/to/service-gqq5oh.yml": Service "web" is invalid:
-      matches = stderr.scan(%r{"(?<path>\/\S+\.ya?ml\S*)"})
+      matches = stderr.scan(%r{"(/\S+\.ya?ml\S*)"})
       matches.flatten if matches
     end
 
@@ -234,7 +234,7 @@ module KubernetesDeploy
       command = ["create", "-f", file_path, "--dry-run", "--output=name"]
       _, err, st = kubectl.run(*command, log_failure: false)
       return if st.success?
-      record_invalid_template(err, file_pathes: [file_path], original_filenames: [original_filename])
+      record_invalid_template(err, file_paths: [file_path], original_filenames: [original_filename])
       raise FatalDeploymentError, "Template validation failed (command: #{Shellwords.join(command)})"
     end
 
@@ -256,9 +256,9 @@ module KubernetesDeploy
       raise FatalDeploymentError, "Template '#{filename}' cannot be parsed"
     end
 
-    def record_invalid_template(err, file_pathes:, original_filenames: nil)
+    def record_invalid_template(err, file_paths:, original_filenames: nil)
       template_names = Array(original_filenames)
-      file_content = Array(file_pathes).each_with_object([]) do |file_path, contents|
+      file_content = Array(file_paths).each_with_object([]) do |file_path, contents|
         next unless File.file?(file_path)
         contents << File.read(file_path)
         template_names << File.basename(file_path) unless original_filenames
@@ -401,11 +401,11 @@ module KubernetesDeploy
       if st.success?
         log_pruning(out) if prune
       else
-        file_pathes = find_bad_files_from_kubectl_output(err)
+        file_paths = find_bad_files_from_kubectl_output(err)
         warn_msg = "WARNING: Any resources not mentioned in the error below were likely created/updated. " \
           "You may wish to roll back this deploy."
         @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-        record_invalid_template(err, file_pathes: file_pathes)
+        record_invalid_template(err, file_paths: file_paths)
         raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
       end
     end
