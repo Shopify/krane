@@ -19,6 +19,7 @@ module KubernetesDeploy
       if pod_data.blank?
         raw_json, _err, st = kubectl.run("get", type, @name, "-a", "--output=json")
         pod_data = JSON.parse(raw_json) if st.success?
+        raise_predates_deploy_error if pod_data.present? && unmanaged? && !@deploy_started
       end
 
       if pod_data.present?
@@ -145,6 +146,19 @@ module KubernetesDeploy
       end
 
       @already_displayed = true
+    end
+
+    def raise_predates_deploy_error
+      example_color = :green
+      msg = <<-STRING.strip_heredoc
+        Unmanaged pods like #{id} must have unique names on every deploy in order to work as intended.
+        The recommended way to achieve this is to include "<%= deployment_id %>" in the pod's name, like this:
+          #{ColorizedString.new('kind: Pod').colorize(example_color)}
+          #{ColorizedString.new('metadata:').colorize(example_color)}
+            #{ColorizedString.new("name: #{@name}-<%= deployment_id %>").colorize(example_color)}
+      STRING
+      @logger.summary.add_paragraph(msg)
+      raise FatalDeploymentError, "#{id} existed before the deploy started"
     end
 
     class Container

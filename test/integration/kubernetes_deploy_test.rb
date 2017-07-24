@@ -567,6 +567,22 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal true, success, "Failed to deploy deployment with dynamic replica count"
   end
 
+  def test_output_when_unmanaged_pod_preexists
+    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
+      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+      pod["metadata"]["name"] = "oops-it-is-static"
+    end
+    assert_equal true, success, "Deploy failed when it was expected to succeed"
+
+    # Second deploy should fail because unmanaged pod already exists
+    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
+      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+      pod["metadata"]["name"] = "oops-it-is-static"
+    end
+    assert_equal false, success, "Deploy succeeded when it was expected to fail"
+    assert_logs_match("Unmanaged pods like Pod/oops-it-is-static must have unique names on every deploy")
+  end
+
   private
 
   def count_by_revisions(pods)
