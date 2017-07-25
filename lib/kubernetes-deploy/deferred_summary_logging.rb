@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module KubernetesDeploy
   # Adds the methods kubernetes-deploy requires to your logger class.
   # These methods include helpers for logging consistent headings, as well as facilities for

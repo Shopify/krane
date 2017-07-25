@@ -135,6 +135,6 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     deployment = v1beta1_kubeclient.get_deployment(deployment_name, @namespace)
     containers = deployment.spec.template.spec.containers
     app_container = containers.find { |c| c["name"] == "app" }
-    app_container && app_container.env.find { |n| n.name == "RESTARTED_AT" }
+    app_container&.env&.find { |n| n.name == "RESTARTED_AT" }
   end
 end

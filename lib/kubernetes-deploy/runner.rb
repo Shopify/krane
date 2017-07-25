@@ -125,7 +125,7 @@ module KubernetesDeploy
       else
         deploy_resources(resources, prune: prune, verify: false)
         @logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
-        warning = <<-MSG.strip_heredoc
+        warning = <<~MSG
           Deploy result verification is disabled for this deploy.
           This means the desired changes were communicated to Kubernetes, but the deploy did not make sure they actually succeeded.
         MSG
@@ -245,7 +245,7 @@ module KubernetesDeploy
         yield doc unless doc.blank?
       end
     rescue Psych::SyntaxError => e
-      debug_msg = <<-INFO.strip_heredoc
+      debug_msg = <<~INFO
         Error message: #{e}
 
         Template content:
@@ -372,7 +372,7 @@ module KubernetesDeploy
         _, err, create_st = kubectl.run("create", "-f", r.file_path, log_failure: false)
 
         next if create_st.success?
-        raise FatalDeploymentError, <<-MSG.strip_heredoc
+        raise FatalDeploymentError, <<~MSG
           Failed to replace or create resource: #{r.id}
           #{err}
         MSG

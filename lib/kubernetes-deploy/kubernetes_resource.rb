@@ -13,11 +13,11 @@ module KubernetesDeploy
     LOG_LINE_COUNT = 250
 
     DEBUG_RESOURCE_NOT_FOUND_MESSAGE = "None found. Please check your usual logging service (e.g. Splunk)."
-    UNUSUAL_FAILURE_MESSAGE = <<-MSG.strip_heredoc
+    UNUSUAL_FAILURE_MESSAGE = <<~MSG
       It is very unusual for this resource type to fail to deploy. Please try the deploy again.
       If that new deploy also fails, contact your cluster administrator.
       MSG
-    STANDARD_TIMEOUT_MESSAGE = <<-MSG.strip_heredoc
+    STANDARD_TIMEOUT_MESSAGE = <<~MSG
       Kubernetes will continue to attempt to deploy this resource in the cluster, but at this point it is considered unlikely that it will succeed.
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
@@ -44,7 +44,7 @@ module KubernetesDeploy
 
     def initialize(namespace:, context:, definition:, logger:)
       # subclasses must also set these if they define their own initializer
-      @name = definition.fetch("metadata", {})["name"]
+      @name = definition.dig("metadata", "name")
       unless @name.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
         raise FatalDeploymentError, "Template is missing required field metadata.name"
@@ -268,7 +268,7 @@ module KubernetesDeploy
       file.write(YAML.dump(@definition))
       file
     ensure
-      file.close if file
+      file&.close
     end
 
     def statsd_tags

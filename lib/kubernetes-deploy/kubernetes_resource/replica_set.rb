@@ -86,7 +86,7 @@ module KubernetesDeploy
 
     def container_names
       regular_containers = @definition["spec"]["template"]["spec"]["containers"].map { |c| c["name"] }
-      init_containers = @definition["spec"]["template"]["spec"].fetch("initContainers", {}).map { |c| c["name"] }
+      init_containers = @definition["spec"]["template"]["spec"].fetch("initContainers", []).map { |c| c["name"] }
       regular_containers + init_containers
     end
 

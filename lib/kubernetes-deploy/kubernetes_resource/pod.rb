@@ -162,25 +162,14 @@ module KubernetesDeploy
     end
 
     class Container
-      STATUS_SCAFFOLD = {
-        "state" => {
-          "running" => {},
-          "waiting" => {},
-          "terminated" => {},
-        },
-        "lastState" => {
-          "terminated" => {}
-        }
-      }.freeze
-
       attr_reader :name, :probe_location
 
       def initialize(definition, init_container: false)
         @init_container = init_container
         @name = definition["name"]
         @image = definition["image"]
-        @probe_location = definition.fetch("readinessProbe", {}).fetch("httpGet", {})["path"]
-        @status = STATUS_SCAFFOLD.dup
+        @probe_location = definition.dig("readinessProbe", "httpGet", "path")
+        @status = {}
       end
 
       def doomed?
@@ -188,14 +177,14 @@ module KubernetesDeploy
       end
 
       def doom_reason
-        exit_code = @status['lastState']['terminated']['exitCode']
-        last_terminated_reason = @status["lastState"]["terminated"]["reason"]
-        limbo_reason = @status["state"]["waiting"]["reason"]
-        limbo_message = @status["state"]["waiting"]["message"]
+        exit_code = @status.dig('lastState', 'terminated', 'exitCode')
+        last_terminated_reason = @status.dig("lastState", "terminated", "reason")
+        limbo_reason = @status.dig("state", "waiting", "reason")
+        limbo_message = @status.dig("state", "waiting", "message")
 
         if last_terminated_reason == "ContainerCannotRun"
           # ref: https://github.com/kubernetes/kubernetes/blob/562e721ece8a16e05c7e7d6bdd6334c910733ab2/pkg/kubelet/dockershim/docker_container.go#L353
-          "Failed to start (exit #{exit_code}): #{@status['lastState']['terminated']['message']}"
+          "Failed to start (exit #{exit_code}): #{@status.dig('lastState', 'terminated', 'message')}"
         elsif limbo_reason == "CrashLoopBackOff"
           "Crashing repeatedly (exit #{exit_code}). See logs for more information."
         elsif %w(ImagePullBackOff ErrImagePull).include?(limbo_reason) &&
@@ -218,11 +207,11 @@ module KubernetesDeploy
       end
 
       def update_status(data)
-        @status = STATUS_SCAFFOLD.deep_merge(data || {})
+        @status = data || {}
       end
 
       def reset_status
-        @status = STATUS_SCAFFOLD.dup
+        @status = {}
       end
     end
   end

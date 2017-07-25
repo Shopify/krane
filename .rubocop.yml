@@ -2,7 +2,4 @@ inherit_from:
   - http://shopify.github.io/ruby-style-guide/rubocop.yml
 
 AllCops:
-  TargetRubyVersion: 2.1
-
-Layout/IndentHeredoc:
-  EnforcedStyle: active_support
+  TargetRubyVersion: 2.3

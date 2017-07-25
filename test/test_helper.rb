@@ -35,7 +35,7 @@ module KubernetesDeploy
 
       if ENV["PRINT_LOGS"]
         # Allows you to view the integration test output as a series of tophat scenarios
-        <<-MESSAGE.strip_heredoc.each_line { |l| $stderr.puts l }
+        <<~MESSAGE.each_line { |l| $stderr.puts l }
 
           \033[0;35m***************************************************************************
            Begin test: #{name}
@@ -171,7 +171,7 @@ module KubernetesDeploy
     end
 
     def self.delete_namespace(namespace)
-      kubeclient.delete_namespace(namespace) if namespace && !namespace.empty?
+      kubeclient.delete_namespace(namespace) if namespace.present?
     rescue KubeException => e
       raise unless e.to_s.include?("not found")
     end

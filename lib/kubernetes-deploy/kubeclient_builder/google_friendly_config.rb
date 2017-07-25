@@ -5,7 +5,7 @@ module KubernetesDeploy
   module KubeclientBuilder
     class GoogleFriendlyConfig < Kubeclient::Config
       def fetch_user_auth_options(user)
-        if user['auth-provider'] && (user['auth-provider']['name'] == 'gcp')
+        if user.dig('auth-provider', 'name') == 'gcp'
           { bearer_token: new_token }
         else
           super

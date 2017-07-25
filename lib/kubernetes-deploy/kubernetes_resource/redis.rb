@@ -56,7 +56,7 @@ module KubernetesDeploy
       if st.success?
         parsed = JSON.parse(service)
 
-        if parsed.fetch("spec", {}).fetch("clusterIP", "") != ""
+        if parsed.dig("spec", "clusterIP").present?
           return true
         end
       end
@@ -71,7 +71,7 @@ module KubernetesDeploy
       if st.success?
         parsed = JSON.parse(redis)
 
-        @redis_resource_uuid = parsed.fetch("metadata", {}).fetch("uid", nil)
+        @redis_resource_uuid = parsed.dig("metadata", "uid")
       end
     end
   end
