@@ -126,13 +126,6 @@ module FixtureSetAssertions
       assert desired.present?, "Service account #{name} does not exist"
     end
 
-    def assert_daemon_set_present(name)
-      labels = "name=#{name},app=#{app_name}"
-      daemon_sets = v1beta1_kubeclient.get_daemon_sets(namespace: namespace, label_selector: labels)
-      desired = daemon_sets.find { |ds| ds.metadata.name == name }
-      assert desired.present?, "Daemon set #{name} does not exist"
-    end
-
     def assert_annotated(obj, annotation)
       annotations = obj.metadata.annotations.to_h.stringify_keys
       assert annotations.key?(annotation), "Expected secret to have annotation #{annotation}, but it did not"
