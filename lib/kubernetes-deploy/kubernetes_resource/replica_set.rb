@@ -47,7 +47,11 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      @pods.map(&:timeout_message).compact.uniq.join("\n")
+      if @pods.present?
+        @pods.map(&:timeout_message).compact.uniq.join("\n")
+      else
+        STANDARD_TIMEOUT_MESSAGE
+      end
     end
 
     def deploy_timed_out?

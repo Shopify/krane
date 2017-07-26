@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class DaemonSet < KubernetesResource
-    TIMEOUT = 7.minutes
+    TIMEOUT = 5.minutes
 
     def sync
       raw_json, _err, st = kubectl.run("get", type, @name, "--output=json")
@@ -39,8 +39,11 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      STANDARD_TIMEOUT_MESSAGE unless @pods.present?
-      @pods.map(&:timeout_message).compact.uniq.join("\n")
+      if @pods.present?
+        @pods.map(&:timeout_message).compact.uniq.join("\n")
+      else
+        STANDARD_TIMEOUT_MESSAGE
+      end
     end
 
     def deploy_timed_out?
