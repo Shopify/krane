@@ -12,7 +12,7 @@ module KubernetesDeploy
         @current_generation = daemonset_data["metadata"]["generation"]
         @observed_generation = daemonset_data["status"]["observedGeneration"]
         @rollout_data = daemonset_data["status"]
-          .slice("currentNumberScheduled", "desiredNumberScheduled", "numberReady", "numberAvailable")
+          .slice("currentNumberScheduled", "desiredNumberScheduled", "numberReady")
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas}" }.join(", ")
         @pods = find_pods(daemonset_data)
       else # reset
@@ -26,7 +26,7 @@ module KubernetesDeploy
 
     def deploy_succeeded?
       @rollout_data["desiredNumberScheduled"].to_i == @rollout_data["currentNumberScheduled"].to_i &&
-      @rollout_data["desiredNumberScheduled"].to_i == @rollout_data["numberAvailable"].to_i &&
+      @rollout_data["desiredNumberScheduled"].to_i == @rollout_data["numberReady"].to_i &&
       @current_generation == @observed_generation
     end
 
@@ -39,7 +39,11 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      @pods.map(&:timeout_message).compact.uniq.join("\n")
+      if @pods.present?
+        @pods.map(&:timeout_message).compact.uniq.join("\n")
+      else
+        STANDARD_TIMEOUT_MESSAGE
+      end
     end
 
     def deploy_timed_out?
