@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: nginx
+spec:
+  template:
+    metadata:
+      labels:
+        app: hello-cloud
+        name: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
