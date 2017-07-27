@@ -476,7 +476,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_deploy_result_logging_for_mixed_result_deploy
-    forced_timeout = 12 # failure often takes 8s, and want both
+    forced_timeout = 20 # failure can take 10+s, which makes this test flake with shorter hard timeouts
     KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(forced_timeout)
     refute deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"])
     # Debug info for bad probe timeout
