@@ -55,15 +55,10 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      return if unmanaged?
-      return unless @phase == "Running" && !@ready
-      pieces = ["Your pods are running, but the following containers seem to be failing their readiness probes:"]
-      @containers.each do |c|
-        next if c.init_container? || c.ready?
-        yellow_name = ColorizedString.new(c.name).yellow
-        pieces << "> #{yellow_name} must respond with a good status code at '#{c.probe_location}'"
-      end
-      pieces.join("\n") + "\n"
+      return STANDARD_TIMEOUT_MESSAGE unless readiness_probe_failure?
+      probe_failure_msgs = @containers.map(&:readiness_fail_reason).compact
+      header = "The following containers have not passed their readiness probes on at least one pod:\n"
+      header + probe_failure_msgs.join("\n") + "\n"
     end
 
     def failure_message
@@ -103,6 +98,12 @@ module KubernetesDeploy
     end
 
     private
+
+    def readiness_probe_failure?
+      return false if @ready || unmanaged?
+      return false if @phase != "Running"
+      @containers.any?(&:readiness_fail_reason)
+    end
 
     def ready?(status_data)
       ready_condition = status_data.fetch("conditions", []).find { |condition| condition["type"] == "Ready" }
@@ -162,13 +163,14 @@ module KubernetesDeploy
     end
 
     class Container
-      attr_reader :name, :probe_location
+      attr_reader :name
 
       def initialize(definition, init_container: false)
         @init_container = init_container
         @name = definition["name"]
         @image = definition["image"]
-        @probe_location = definition.dig("readinessProbe", "httpGet", "path")
+        @http_probe_location = definition.dig("readinessProbe", "httpGet", "path")
+        @exec_probe_command = definition.dig("readinessProbe", "exec", "command")
         @status = {}
       end
 
@@ -198,8 +200,20 @@ module KubernetesDeploy
         end
       end
 
+      def readiness_fail_reason
+        return if ready? || init_container?
+        return unless (@http_probe_location || @exec_probe_command).present?
+
+        yellow_name = ColorizedString.new(name).yellow
+        if @http_probe_location
+          "> #{yellow_name} must respond with a good status code at '#{@http_probe_location}'"
+        elsif @exec_probe_command
+          "> #{yellow_name} must exit 0 from the following command: '#{@exec_probe_command.join(' ')}'"
+        end
+      end
+
       def ready?
-        @status['ready'] == "true"
+        @status['ready'] == true
       end
 
       def init_container?

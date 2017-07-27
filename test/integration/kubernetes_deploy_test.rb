@@ -479,15 +479,16 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     forced_timeout = 12 # failure often takes 8s, and want both
     KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(forced_timeout)
     refute deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"])
-
     # Debug info for bad probe timeout
     assert_logs_match_all([
       "Deployment/bad-probe: TIMED OUT (limit: #{forced_timeout}s)",
-      "Your pods are running, but the following containers seem to be failing their readiness probes:",
-      "app must respond with a good status code at '/bad/ping/path'",
+      "The following containers have not passed their readiness probes on at least one pod:",
+      "http-probe must respond with a good status code at '/bad/ping/path'",
+      "exec-probe must exit 0 from the following command: 'ls /bad/path'",
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
       "Scaled up replica set bad-probe-", # event
     ], in_order: true)
+    refute_logs_match("sidecar must exit 0") # this container is ready
 
     # Debug info for missing volume timeout
     assert_logs_match_all([

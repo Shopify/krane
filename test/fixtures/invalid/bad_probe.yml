@@ -11,15 +11,36 @@ spec:
         app: crash-app
     spec:
       containers:
-      - name: app
+      - name: http-probe
         image: nginx:alpine
         ports:
-        - containerPort: 8000
-          name: http-alt
+        - containerPort: 80
+          name: http
         readinessProbe:
           httpGet:
             path: "/bad/ping/path"
-            port: 8000
+            port: 80
           initialDelaySeconds: 0
           timeoutSeconds: 1
-
+          failureThreshold: 1
+      - name: exec-probe
+        image: busybox
+        command: ["sleep", "8000"]
+        readinessProbe:
+          exec:
+            command:
+              - "ls"
+              - "/bad/path"
+          initialDelaySeconds: 0
+          timeoutSeconds: 1
+          failureThreshold: 1
+      - name: sidecar
+        image: busybox
+        command: ["sleep", "8000"]
+        readinessProbe:
+          exec:
+            command: ["ls", "/"]
+          initialDelaySeconds: 1
+          periodSeconds: 1
+          successThreshold: 1
+          failureThreshold: 100
