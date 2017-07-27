@@ -46,7 +46,7 @@ module KubernetesDeploy
       kube-public
     )
 
-    # Things removed from default prune whitelist:
+    # Things removed from default prune whitelist at https://github.com/kubernetes/kubernetes/blob/0dff56b4d88ec7551084bf89028dbeebf569620e/pkg/kubectl/cmd/apply.go#L411:
     # core/v1/Namespace -- not namespaced
     # core/v1/PersistentVolume -- not namespaced
     # core/v1/Endpoints -- managed by services
@@ -54,19 +54,18 @@ module KubernetesDeploy
     # core/v1/ReplicationController -- superseded by deployments/replicasets
     # extensions/v1beta1/ReplicaSet -- managed by deployments
     # core/v1/Secret -- should not committed / managed by shipit
-    BASE_PRUNE_WHITELIST = %w(
+    PRUNE_WHITELIST = %w(
       core/v1/ConfigMap
       core/v1/Pod
       core/v1/Service
       batch/v1/Job
       extensions/v1beta1/DaemonSet
       extensions/v1beta1/Deployment
+      apps/v1beta1/Deployment
       extensions/v1beta1/Ingress
       apps/v1beta1/StatefulSet
+      autoscaling/v1/HorizontalPodAutoscaler
     ).freeze
-
-    PRUNE_WHITELIST_V_1_5 = %w(extensions/v1beta1/HorizontalPodAutoscaler).freeze
-    PRUNE_WHITELIST_V_1_6 = %w(autoscaling/v1/HorizontalPodAutoscaler).freeze
 
     def initialize(namespace:, context:, current_sha:, template_dir:, logger:, bindings: {})
       @namespace = namespace
@@ -168,30 +167,13 @@ module KubernetesDeploy
       end
     end
 
-    def versioned_prune_whitelist
-      if server_major_version == "1.5"
-        BASE_PRUNE_WHITELIST + PRUNE_WHITELIST_V_1_5
-      else
-        BASE_PRUNE_WHITELIST + PRUNE_WHITELIST_V_1_6
-      end
-    end
-
-    def server_major_version
-      @server_major_version ||= begin
-        out, _, _ = kubectl.run('version', '--short')
-        matchdata = /Server Version: v(?<version>\d\.\d)/.match(out)
-        raise "Could not determine server version" unless matchdata[:version]
-        matchdata[:version]
-      end
-    end
-
     # Inspect the file referenced in the kubectl stderr
     # to make it easier for developer to understand what's going on
     def find_bad_files_from_kubectl_output(stderr)
       # stderr often contains one or more lines like the following, from which we can extract the file path(s):
       # Error from server (TypeOfError): error when creating "/path/to/service-gqq5oh.yml": Service "web" is invalid:
       matches = stderr.scan(%r{"(/\S+\.ya?ml\S*)"})
-      matches.flatten if matches
+      matches&.flatten
     end
 
     def deploy_has_priority_resources?(resources)
@@ -394,7 +376,7 @@ module KubernetesDeploy
 
       if prune
         command.push("--prune", "--all")
-        versioned_prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
+        PRUNE_WHITELIST.each { |type| command.push("--prune-whitelist=#{type}") }
       end
 
       out, err, st = kubectl.run(*command, log_failure: false)
