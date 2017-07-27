@@ -130,5 +130,11 @@ module FixtureSetAssertions
       annotations = obj.metadata.annotations.to_h.stringify_keys
       assert annotations.key?(annotation), "Expected secret to have annotation #{annotation}, but it did not"
     end
+
+    def assert_daemon_set_present(name)
+      daemon_sets = v1beta1_kubeclient.get_daemon_sets(namespace: namespace)
+      desired = daemon_sets.find { |ds| ds.metadata.name == name }
+      assert desired.present?, "Daemon set #{name} does not exist"
+    end
   end
 end
