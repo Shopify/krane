@@ -25,10 +25,6 @@ module KubernetesDeploy
       false
     end
 
-    def tpr?
-      true
-    end
-
     def exists?
       @found
     end
