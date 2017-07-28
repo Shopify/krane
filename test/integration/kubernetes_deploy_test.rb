@@ -141,8 +141,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_equal false, success, "Deploy succeeded when it was expected to fail"
 
     assert_logs_match_all([
-      "Template validation failed (command: create -f",
-      "Invalid template: configmap-data.yml",
+      "Template validation failed",
+      /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
       "> Error from kubectl:",
       "error validating data: found invalid field myKey for v1.ObjectMeta",
       "> Rendered template content:",

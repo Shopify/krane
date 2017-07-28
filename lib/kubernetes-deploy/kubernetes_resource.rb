@@ -6,7 +6,7 @@ require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class KubernetesResource
-    attr_reader :name, :namespace, :file, :context
+    attr_reader :name, :namespace, :file, :context, :validation_error_msg
     attr_writer :type, :deploy_started
 
     TIMEOUT = 5.minutes
@@ -55,6 +55,20 @@ module KubernetesDeploy
       @logger = logger
       @definition = definition
       @statsd_report_done = false
+      @validation_error_msg = nil
+    end
+
+    def validate_definition
+      @validation_error_msg = nil
+      command = ["create", "-f", file_path, "--dry-run", "--output=name"]
+      _, err, st = kubectl.run(*command, log_failure: false)
+      return true if st.success?
+      @validation_error_msg = err
+      false
+    end
+
+    def validation_failed?
+      @validation_error_msg.present?
     end
 
     def id
