@@ -97,7 +97,8 @@ module KubernetesDeploy
 
       all_pods = JSON.parse(raw_json)["items"]
       all_pods.each_with_object([]) do |pod_data, relevant_pods|
-        next unless pod_data["metadata"]["ownerReferences"].any? { |ref| ref["uid"] == rs_data["metadata"]["uid"] }
+        next unless owners = pod_data.dig("metadata", "ownerReferences")
+        next unless owners.any? { |ref| ref["uid"] == rs_data["metadata"]["uid"] }
         pod = Pod.new(
           namespace: namespace,
           context: context,
