@@ -3,6 +3,7 @@ require 'json'
 require 'open3'
 require 'shellwords'
 require 'kubernetes-deploy/kubectl'
+require 'kubernetes-deploy/validator'
 
 module KubernetesDeploy
   class KubernetesResource

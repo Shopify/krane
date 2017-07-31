@@ -20,5 +20,42 @@ module KubernetesDeploy
     def exists?
       @found
     end
+
+    def validate_definition
+      validator = KubernetesDeploy::Validator.new(ingress_validation_spec)
+      result = super && validator.validate!
+      if validator.errors
+        if @validation_error_msg
+          @validation_error_msg << validator.errors
+        else
+          @validation_error_msg = validator.errors
+        end
+      end
+      result
+    end
+
+    private
+
+    def ingress_validation_spec
+      {
+        metadata: {
+          type: Hash,
+          required: true,
+          spec: {
+            annotations: {
+              type: Array,
+              required: true,
+              spec: {
+                'kubernetes.io/ingress.class' => {
+                  type: String,
+                  required: true,
+                  included: %w(nginx gce)
+                }
+              }
+            }
+          }
+        }
+      }
+    end
   end
 end
