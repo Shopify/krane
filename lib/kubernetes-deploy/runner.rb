@@ -143,6 +143,14 @@ module KubernetesDeploy
       success
     end
 
+    def run_validations
+      @logger.reset
+
+      @logger.phase_heading("Validaying templates")
+      resources = discover_resources
+      validate_definitions(resources)
+    end
+
     def template_variables
       {
         'current_sha' => @current_sha,
