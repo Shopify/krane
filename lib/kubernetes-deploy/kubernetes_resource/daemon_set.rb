@@ -72,9 +72,10 @@ module KubernetesDeploy
       all_pods = JSON.parse(raw_json)["items"]
       template_generation = ds_data["spec"]["templateGeneration"]
 
-      latest_pods = all_pods.find_all do |pods|
-        pods["metadata"]["ownerReferences"].any? { |ref| ref["uid"] == ds_data["metadata"]["uid"] } &&
-        pods["metadata"]["labels"]["pod-template-generation"].to_i == template_generation.to_i
+      latest_pods = all_pods.find_all do |pod|
+        next unless owners = pod.dig("metadata", "ownerReferences")
+        owners.any? { |ref| ref["uid"] == ds_data["metadata"]["uid"] } &&
+        pod["metadata"]["labels"]["pod-template-generation"].to_i == template_generation.to_i
       end
       return unless latest_pods.present?
 
