@@ -45,10 +45,7 @@ module FixtureDeployHelper
     deploy_dir(fixture_path(set), wait: wait, bindings: bindings)
   end
 
-  # Deploys all fixtures in the given directory via KubernetesDeploy::Runner
-  # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
-  # for example because it contains an intentional syntax error
-  def deploy_dir(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {})
+  def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {})
     runner = KubernetesDeploy::Runner.new(
       namespace: @namespace,
       current_sha: SecureRandom.hex(6),
@@ -62,6 +59,22 @@ module FixtureDeployHelper
       allow_protected_ns: allow_protected_ns,
       prune: prune
     )
+  end
+
+  # Deploys all fixtures in the given directory via KubernetesDeploy::Runner
+  # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
+  # for example because it contains an intentional syntax error
+  def deploy_dir(*args)
+    if ENV["PROFILE"]
+      deploy_result = nil
+      result = RubyProf.profile { deploy_result = deploy_dir_without_profiling(*args) }
+      printer = RubyProf::FlameGraphPrinter.new(result)
+      filename = File.expand_path("../../../dev/profile", __FILE__)
+      printer.print(File.new(filename, "a+"), {})
+      deploy_result
+    else
+      deploy_dir_without_profiling(*args)
+    end
   end
 
   private

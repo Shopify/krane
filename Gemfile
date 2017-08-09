@@ -9,4 +9,6 @@ gem 'pry-byebug'
 gem 'rubocop'
 gem 'timecop'
 gem 'byebug'
-gem 'codecov', require: false, group: :test
+gem 'codecov', require: false
+gem 'ruby-prof', require: false
+gem 'ruby-prof-flamegraph', require: false

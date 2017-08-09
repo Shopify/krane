@@ -11,6 +11,11 @@ if ENV["COVERAGE"]
   end
 end
 
+if ENV["PROFILE"]
+  require 'ruby-prof'
+  require 'ruby-prof-flamegraph'
+end
+
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'kubernetes-deploy'
 require 'kubeclient'
