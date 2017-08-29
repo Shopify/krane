@@ -77,7 +77,7 @@ module KubernetesDeploy
         owners.any? { |ref| ref["uid"] == ds_data["metadata"]["uid"] } &&
         pod["metadata"]["labels"]["pod-template-generation"].to_i == template_generation.to_i
       end
-      return unless latest_pods.present?
+      return [] unless latest_pods.present?
 
       latest_pods.each_with_object([]) do |pod_data, relevant_pods|
         pod = Pod.new(
