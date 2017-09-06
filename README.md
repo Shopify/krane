@@ -201,11 +201,29 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
 
 ## Usage
 
+**Option 1: Specify the deployments you want to restart**
+
 The following command will restart all pods in the `web` and `jobs` deployments:
 
 `kubernetes-restart <kube namespace> <kube context> --deployments=web,jobs`
 
 
+**Option 2: Annotate the deployments you want to restart**
+
+Add the annotation `shipit.shopify.io/restart` to all the deployments you want to target, like this:
+
+```yaml
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: web
+  annotations:
+    shipit.shopify.io/restart: "true"
+```
+
+With this done, you can use the following command to restart all of them:
+
+`kubernetes-restart <kube namespace> <kube context>`
 
 # kubernetes-run
 
