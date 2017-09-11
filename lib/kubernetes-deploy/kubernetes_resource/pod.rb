@@ -179,15 +179,18 @@ module KubernetesDeploy
       end
 
       def doom_reason
-        exit_code = @status.dig('lastState', 'terminated', 'exitCode')
-        last_terminated_reason = @status.dig("lastState", "terminated", "reason")
         limbo_reason = @status.dig("state", "waiting", "reason")
         limbo_message = @status.dig("state", "waiting", "message")
 
-        if last_terminated_reason == "ContainerCannotRun"
+        if @status.dig("lastState", "terminated", "reason") == "ContainerCannotRun"
           # ref: https://github.com/kubernetes/kubernetes/blob/562e721ece8a16e05c7e7d6bdd6334c910733ab2/pkg/kubelet/dockershim/docker_container.go#L353
+          exit_code = @status.dig('lastState', 'terminated', 'exitCode')
           "Failed to start (exit #{exit_code}): #{@status.dig('lastState', 'terminated', 'message')}"
+        elsif @status.dig("state", "terminated", "reason") == "ContainerCannotRun"
+          exit_code = @status.dig('state', 'terminated', 'exitCode')
+          "Failed to start (exit #{exit_code}): #{@status.dig('state', 'terminated', 'message')}"
         elsif limbo_reason == "CrashLoopBackOff"
+          exit_code = @status.dig('lastState', 'terminated', 'exitCode')
           "Crashing repeatedly (exit #{exit_code}). See logs for more information."
         elsif %w(ImagePullBackOff ErrImagePull).include?(limbo_reason) &&
           limbo_message.match(/(?:not found)|(?:back-off)/i)
