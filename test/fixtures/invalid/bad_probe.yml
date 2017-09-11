@@ -25,6 +25,7 @@ spec:
           failureThreshold: 1
       - name: exec-probe
         image: busybox
+        imagePullPolicy: IfNotPresent
         command: ["sleep", "8000"]
         readinessProbe:
           exec:
@@ -36,6 +37,7 @@ spec:
           failureThreshold: 1
       - name: sidecar
         image: busybox
+        imagePullPolicy: IfNotPresent
         command: ["sleep", "8000"]
         readinessProbe:
           exec:

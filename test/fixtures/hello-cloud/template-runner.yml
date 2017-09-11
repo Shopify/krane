@@ -15,6 +15,7 @@ template:
     containers:
     - name: task-runner
       image: hello-world:latest
+      imagePullPolicy: IfNotPresent
       env:
       - name: CONFIG
         valueFrom:

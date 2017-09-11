@@ -13,7 +13,9 @@ spec:
       initContainers:
       - name: successful-init
         image: hello-world:latest
+        imagePullPolicy: IfNotPresent
       containers:
       - name: container-cannot-run
         image: busybox
+        imagePullPolicy: IfNotPresent
         command: ["/some/bad/path"]

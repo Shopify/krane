@@ -60,4 +60,5 @@ spec:
               key: datapoint1
       - name: sidecar
         image: busybox
+        imagePullPolicy: IfNotPresent
         command: ["sleep", "8000"]

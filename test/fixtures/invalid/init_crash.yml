@@ -13,6 +13,7 @@ spec:
       initContainers:
       - name: init-crash-loop-back-off
         image: busybox
+        imagePullPolicy: IfNotPresent
         command: ["ls", "/not-a-dir"]
       containers:
       - name: app
