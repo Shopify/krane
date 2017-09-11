@@ -221,29 +221,6 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   end
 
-  def test_dead_pods_in_old_replicaset_are_ignored
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"], wait: false) do |fixtures|
-      deployment = fixtures["web.yml.erb"]["Deployment"].first
-      # web pods will get killed after one second and will not be cleaned up
-      deployment["spec"]["template"]["spec"]["activeDeadlineSeconds"] = 1
-    end
-    assert_deploy_status(:success, result)
-
-    initial_failed_pod_count = 0
-    while initial_failed_pod_count < 1
-      pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=web,app=hello-cloud")
-      initial_failed_pod_count = pods.count { |pod| pod.status.phase == "Failed" }
-    end
-
-    assert_deploy_status(:success, deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "configmap-data.yml"]))
-    pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=web,app=hello-cloud")
-    running_pod_count = pods.count { |pod| pod.status.phase == "Running" }
-    final_failed_pod_count = pods.count { |pod| pod.status.phase == "Failed" }
-
-    assert_equal 1, running_pod_count
-    assert final_failed_pod_count >= initial_failed_pod_count # failed pods not cleaned up
-  end
-
   def test_bad_container_image_on_run_once_halts_and_fails_deploy
     result = deploy_fixtures("hello-cloud") do |fixtures|
       pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
