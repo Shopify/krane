@@ -64,17 +64,17 @@ module KubernetesDeploy
       @logger_stream.close
     end
 
-    def assert_deploy_status(desired_status, result)
-      expected = case desired_status
-      when :failure then false
-      when :success then true
-      else raise "#{desired_status} is not a valid option for this test helper"
-      end
-
+    def assert_deploy_failure(result)
       logging_assertion do |logs|
-        assert_equal expected, result, "Unexpected deploy result (wanted #{desired_status}). Logs:\n#{logs}"
-        expected_msg = expected ? "Result: SUCCESS" : "Result: FAILURE"
-        assert_match Regexp.new(expected_msg), logs, "'#{expected_msg}' not found in the following logs:\n#{logs}"
+        assert_equal false, result, "Deploy succeeded when it was expected to fail. Logs:\n#{logs}"
+        assert_match Regexp.new("Result: FAILURE"), logs, "'Result: FAILURE' not found in the following logs:\n#{logs}"
+      end
+    end
+
+    def assert_deploy_success(result)
+      logging_assertion do |logs|
+        assert_equal true, result, "Deploy failed when it was expected to succeed. Logs:\n#{logs}"
+        assert_match Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}"
       end
     end
 
