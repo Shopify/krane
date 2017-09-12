@@ -4,6 +4,10 @@ require 'logger'
 
 module KubernetesDeploy
   class StatsD
+    def self.duration(start_time)
+      (Time.now.utc - start_time).round(1)
+    end
+
     def self.build
       ::StatsD.default_sample_rate = 1.0
       ::StatsD.prefix = "KubernetesDeploy"

@@ -5,7 +5,7 @@ module KubernetesDeploy
 
   class NamespaceNotFoundError < FatalDeploymentError
     def initialize(name, context)
-      super("Namespace `#{name}` not found in context `#{context}`. Aborting the task.")
+      super("Namespace `#{name}` not found in context `#{context}`")
     end
   end
 end

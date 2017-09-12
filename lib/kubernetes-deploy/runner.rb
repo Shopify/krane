@@ -109,7 +109,7 @@ module KubernetesDeploy
         @logger.phase_heading("Predeploying priority resources")
         start_priority_resource = Time.now.utc
         predeploy_priority_resources(resources)
-        ::StatsD.measure('priority_resources.duration', statsd_duration(start_priority_resource), tags: statsd_tags)
+        ::StatsD.measure('priority_resources.duration', StatsD.duration(start_priority_resource), tags: statsd_tags)
       end
 
       @logger.phase_heading("Deploying all resources")
@@ -120,8 +120,7 @@ module KubernetesDeploy
       if verify_result
         start_normal_resource = Time.now.utc
         deploy_resources(resources, prune: prune, verify: true)
-        ::StatsD.measure('normal_resources.duration', statsd_duration(start_normal_resource), tags: statsd_tags)
-        record_statuses(resources)
+        ::StatsD.measure('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
         success = resources.all?(&:deploy_succeeded?)
       else
         deploy_resources(resources, prune: prune, verify: false)
@@ -139,7 +138,7 @@ module KubernetesDeploy
     ensure
       @logger.print_summary(success)
       status = success ? "success" : "failed"
-      ::StatsD.measure('all_resources.duration', statsd_duration(start), tags: statsd_tags << "status:#{status}")
+      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:#{status}")
       success
     end
 
@@ -151,23 +150,6 @@ module KubernetesDeploy
     end
 
     private
-
-    def record_statuses(resources)
-      successful_resources, failed_resources = resources.partition(&:deploy_succeeded?)
-      fail_count = failed_resources.length
-      success_count = successful_resources.length
-
-      if success_count > 0
-        @logger.summary.add_action("successfully deployed #{success_count} #{'resource'.pluralize(success_count)}")
-        final_statuses = successful_resources.map(&:pretty_status).join("\n")
-        @logger.summary.add_paragraph("#{ColorizedString.new('Successful resources').green}\n#{final_statuses}")
-      end
-
-      if fail_count > 0
-        @logger.summary.add_action("failed to deploy #{fail_count} #{'resource'.pluralize(fail_count)}")
-        failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
-      end
-    end
 
     # Inspect the file referenced in the kubectl stderr
     # to make it easier for developer to understand what's going on
@@ -186,7 +168,7 @@ module KubernetesDeploy
       PREDEPLOY_SEQUENCE.each do |resource_type|
         matching_resources = resource_list.select { |r| r.type == resource_type }
         next if matching_resources.empty?
-        deploy_resources(matching_resources, verify: true)
+        deploy_resources(matching_resources, verify: true, record_summary: false)
 
         failed_resources = matching_resources.reject(&:deploy_succeeded?)
         fail_count = failed_resources.length
@@ -264,11 +246,6 @@ module KubernetesDeploy
       "    " + str.gsub("\n", "\n    ")
     end
 
-    def wait_for_completion(watched_resources, started_at)
-      watcher = ResourceWatcher.new(watched_resources, logger: @logger, deploy_started_at: started_at)
-      watcher.run
-    end
-
     def render_template(filename, raw_template)
       return raw_template unless File.extname(filename) == ".erb"
 
@@ -326,7 +303,7 @@ module KubernetesDeploy
       @logger.info("All required parameters and files are present")
     end
 
-    def deploy_resources(resources, prune: false, verify:)
+    def deploy_resources(resources, prune: false, verify:, record_summary: true)
       return if resources.empty?
       deploy_started_at = Time.now.utc
 
@@ -365,7 +342,11 @@ module KubernetesDeploy
       end
 
       apply_all(applyables, prune)
-      wait_for_completion(resources, deploy_started_at) if verify
+
+      if verify
+        watcher = ResourceWatcher.new(resources, logger: @logger, deploy_started_at: deploy_started_at)
+        watcher.run(record_summary: record_summary)
+      end
     end
 
     def apply_all(resources, prune)
@@ -428,10 +409,6 @@ module KubernetesDeploy
 
     def statsd_tags
       %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context})
-    end
-
-    def statsd_duration(start_time)
-      (Time.now.utc - start_time).round(1)
     end
   end
 end
