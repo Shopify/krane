@@ -32,6 +32,7 @@ spec:
       containers:
       - name: app
         image: busybox
+        imagePullPolicy: IfNotPresent
         command: ["sleep", "40"]
         env:
         - name: GITHUB_REV
