@@ -11,7 +11,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
       "Hello from Docker!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 14 resources"
+      "Successfully deployed 13 resources"
     ], in_order: true)
 
     assert_logs_match_all([
@@ -158,7 +158,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_dynamic_erb_collection_works
-    assert deploy_raw_fixtures("collection-with-erb", bindings: { binding_test_a: 'foo', binding_test_b: 'bar' })
+    assert_deploy_success(deploy_raw_fixtures("collection-with-erb",
+      bindings: { binding_test_a: 'foo', binding_test_b: 'bar' }))
 
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
     assert_equal 3, deployments.size
@@ -305,8 +306,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Deployment/cannot-run: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
-      "container-cannot-run: Failed to start (exit 127):",
-      "Container command '/some/bad/path' not found or does not exist."
+      %r{container-cannot-run: Failed to start \(exit 127\): .*/some/bad/path},
+      "Logs from container 'container-cannot-run'",
+      "no such file or directory",
+      "Hello from Docker!" # logs from successful init container
     ], in_order: true)
   end
 
@@ -370,16 +373,17 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_long_running_deployment
-    2.times do
-      assert_deploy_success(deploy_fixtures('long-running'))
+    2.times do |n|
+      assert_deploy_success(deploy_fixtures('long-running', sha: "deploy#{n}"))
       assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
     end
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=undying,app=fixtures')
-    assert_equal 4, pods.size
-
-    count = count_by_revisions(pods)
-    assert_equal [2, 2], count.values
+    by_revision = pods.group_by { |pod| pod.spec.containers.first.env.find { |var| var.name == "GITHUB_REV" }.value }
+    by_revision.each do |rev, rev_pods|
+      statuses = rev_pods.map { |pod| pod.status.to_h }
+      assert_equal 2, rev_pods.length, "#{rev} had #{rev_pods.length} pods (wanted 2). Statuses:\n#{statuses}"
+    end
     assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
   end
 
@@ -463,6 +467,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(forced_timeout)
     result = deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"])
     assert_deploy_failure(result)
+
     # Debug info for bad probe timeout
     assert_logs_match_all([
       "Deployment/bad-probe: TIMED OUT (limit: #{forced_timeout}s)",
@@ -516,8 +521,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      "hello-cloud: Failed to start (exit 127): Container command '/some/bad/path' not found or does not exist.",
+      %r{hello-cloud: Failed to start \(exit 127\): .*/some/bad/path},
       "Error response from daemon", # from an event
+      "Logs from container 'hello-cloud' (last 250 lines shown):",
       "no such file or directory" # from logs
     ], in_order: true)
     refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary
@@ -660,17 +666,5 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     rq = rqs[0]
     assert_equal "resource-quotas", rq["metadata"]["name"]
     assert rq["spec"].present?
-  end
-
-  private
-
-  def count_by_revisions(pods)
-    revisions = {}
-    pods.each do |pod|
-      rev = pod.spec.containers.first.env.find { |var| var.name == "GITHUB_REV" }.value
-      revisions[rev] ||= 0
-      revisions[rev] += 1
-    end
-    revisions
   end
 end
