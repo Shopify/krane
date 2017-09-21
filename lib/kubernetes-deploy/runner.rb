@@ -34,6 +34,7 @@ module KubernetesDeploy
     include KubeclientBuilder
 
     PREDEPLOY_SEQUENCE = %w(
+      ResourceQuota
       Cloudsql
       Redis
       Bugsnag
