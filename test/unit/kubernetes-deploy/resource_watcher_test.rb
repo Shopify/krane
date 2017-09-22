@@ -11,13 +11,30 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     KubernetesDeploy::ResourceWatcher.new([], logger: logger)
   end
 
-  def test_success_with_mock_resource
+  def test_success_with_mock_resource_and_summary_recording_enabled
     resource = build_mock_resource
 
     watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
     watcher.run(delay_sync: 0.1)
+    logger.print_summary(true)
+
+    assert_logs_match_all([
+      /Successfully deployed in \d.\ds: web-pod/,
+      "Successfully deployed 1 resource",
+      /web-pod\s+success \(1 hits\)/
+    ], in_order: true)
+  end
+
+  def test_success_with_mock_resource_and_summary_recording_disabled
+    resource = build_mock_resource
+
+    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
+    watcher.run(delay_sync: 0.1, record_summary: false)
+    logger.print_summary(true)
 
     assert_logs_match(/Successfully deployed in \d.\ds: web-pod/)
+    refute_logs_match("Successfully deployed 1 resource")
+    refute_logs_match(/web-pod.*success/)
   end
 
   def test_failure_with_mock_resource
@@ -35,7 +52,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
     watcher.run(delay_sync: 0.1)
 
-    assert_logs_match(/web-pod deployment timed out/)
+    assert_logs_match(/web-pod rollout timed out/)
   end
 
   def test_wait_logging_when_resources_do_not_finish_together
@@ -50,7 +67,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     assert_logs_match_all([
       /Successfully deployed in \d.\ds: first/,
       /Continuing to wait for: second, third, fourth/,
-      /second deployment timed out/,
+      /second rollout timed out/,
       /Continuing to wait for: third, fourth/,
       /third failed to deploy after \d.\ds/,
       /Continuing to wait for: fourth/,
@@ -100,6 +117,14 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
     def timeout
       hits_to_complete
+    end
+
+    def debug_message
+      "Something went wrong"
+    end
+
+    def pretty_status
+      "#{id}  #{status} (#{@hits} hits)"
     end
 
     def report_status_to_statsd(watch_time)

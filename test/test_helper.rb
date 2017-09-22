@@ -65,18 +65,30 @@ module KubernetesDeploy
     end
 
     def assert_deploy_failure(result)
+      if ENV["PRINT_LOGS"]
+        assert_equal false, result, "Deploy succeeded when it was expected to fail"
+        return
+      end
+
       logging_assertion do |logs|
         assert_equal false, result, "Deploy succeeded when it was expected to fail. Logs:\n#{logs}"
         assert_match Regexp.new("Result: FAILURE"), logs, "'Result: FAILURE' not found in the following logs:\n#{logs}"
       end
     end
+    alias_method :assert_restart_failure, :assert_deploy_failure
 
     def assert_deploy_success(result)
+      if ENV["PRINT_LOGS"]
+        assert_equal true, result, "Deploy failed when it was expected to succeed"
+        return
+      end
+
       logging_assertion do |logs|
         assert_equal true, result, "Deploy failed when it was expected to succeed. Logs:\n#{logs}"
         assert_match Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}"
       end
     end
+    alias_method :assert_restart_success, :assert_deploy_success
 
     def assert_logs_match(regexp, times = nil)
       logging_assertion do |logs|

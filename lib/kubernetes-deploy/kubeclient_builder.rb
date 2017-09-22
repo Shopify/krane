@@ -6,8 +6,7 @@ module KubernetesDeploy
   module KubeclientBuilder
     class ContextMissingError < FatalDeploymentError
       def initialize(context_name)
-        super("`#{context_name}` context must be configured in your KUBECONFIG (#{ENV['KUBECONFIG']}). " \
-          "Please see the README.")
+        super("`#{context_name}` context must be configured in your KUBECONFIG (#{ENV['KUBECONFIG']}).")
       end
     end
 

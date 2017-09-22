@@ -20,6 +20,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Service/web\s+Selects at least 1 pod},
       %r{DaemonSet/nginx\s+1 currentNumberScheduled, 1 desiredNumberScheduled, 1 numberReady}
     ])
+
+    # Verify that success section isn't duplicated for predeployed resources
+    assert_logs_match("Successful resources", 1)
+    assert_logs_match(%r{ConfigMap/hello-cloud-configmap-data\s+Available}, 1)
   end
 
   def test_partial_deploy_followed_by_full_deploy

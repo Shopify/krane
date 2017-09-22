@@ -6,13 +6,9 @@ module KubernetesDeploy
   class RestartTask
     include KubernetesDeploy::KubeclientBuilder
 
-    class DeploymentNotFoundError < FatalDeploymentError
-      def initialize(name, namespace)
-        super("Deployment `#{name}` not found in namespace `#{namespace}`. Aborting the task.")
-      end
-    end
+    class FatalRestartError < FatalDeploymentError; end
 
-    class RestartError < FatalDeploymentError
+    class RestartAPIError < FatalRestartError
       def initialize(deployment_name, response)
         super("Failed to restart #{deployment_name}. " \
             "API returned non-200 response code (#{response.code})\n" \
@@ -27,58 +23,71 @@ module KubernetesDeploy
       @context = context
       @namespace = namespace
       @logger = logger
-      @kubeclient = build_v1_kubeclient(context)
-      @v1beta1_kubeclient = build_v1beta1_kubeclient(context)
-      @policy_v1beta1_kubeclient = build_policy_v1beta1_kubeclient(context)
     end
 
     def perform(deployments_names = nil)
+      start = Time.now.utc
       @logger.reset
+
+      @logger.phase_heading("Initializing restart")
       verify_namespace
-
-      if deployments_names
-        deployments = fetch_deployments(deployments_names.uniq)
-
-        if deployments.none?
-          raise ArgumentError, "no deployments with names #{deployments_names} found in namespace #{@namespace}"
-        end
-      else
-        deployments = @v1beta1_kubeclient
-          .get_deployments(namespace: @namespace)
-          .select { |d| d.metadata.annotations[ANNOTATION] }
-
-        if deployments.none?
-          raise ArgumentError, "no deployments found in namespace #{@namespace} with #{ANNOTATION} annotation available"
-        end
-      end
+      deployments = identify_target_deployments(deployments_names)
 
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
 
       @logger.phase_heading("Waiting for rollout")
-      wait_for_rollout(deployments)
-
-      names = deployments.map { |d| "`#{d.metadata.name}`" }
-      @logger.info "Restart of #{names.sort.join(', ')} deployments succeeded"
-      true
+      resources = build_watchables(deployments, start)
+      ResourceWatcher.new(resources, logger: @logger, operation_name: "restart").run
+      success = resources.all?(&:deploy_succeeded?)
     rescue FatalDeploymentError => error
-      @logger.fatal "#{error.class}: #{error.message}"
-      false
+      @logger.summary.add_action(error.message)
+      success = false
+    ensure
+      @logger.print_summary(success)
+      status = success ? "success" : "failed"
+      tags = %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags)
     end
 
     private
 
-    def wait_for_rollout(kubeclient_resources)
-      resources = kubeclient_resources.map do |d|
-        definition = d.to_h.deep_stringify_keys
-        Deployment.new(namespace: @namespace, context: @context, definition: definition, logger: @logger)
+    def identify_target_deployments(deployment_names)
+      if deployment_names.nil?
+        @logger.info("Configured to restart all deployments with the `#{ANNOTATION}` annotation")
+        deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
+          .select { |d| d.metadata.annotations[ANNOTATION] }
+
+        if deployments.none?
+          raise FatalRestartError, "no deployments with the `#{ANNOTATION}` annotation found in namespace #{@namespace}"
+        end
+      elsif deployment_names.empty?
+        raise FatalRestartError, "Configured to restart deployments by name, but list of names was blank"
+      else
+        deployment_names = deployment_names.uniq
+        list = deployment_names.join(', ')
+        @logger.info("Configured to restart deployments by name: #{list}")
+
+        deployments = fetch_deployments(deployment_names)
+        if deployments.none?
+          raise FatalRestartError, "no deployments with names #{list} found in namespace #{@namespace}"
+        end
       end
-      watcher = ResourceWatcher.new(resources, logger: @logger)
-      watcher.run
+      deployments
+    end
+
+    def build_watchables(kubeclient_resources, started)
+      kubeclient_resources.map do |d|
+        definition = d.to_h.deep_stringify_keys
+        r = Deployment.new(namespace: @namespace, context: @context, definition: definition, logger: @logger)
+        r.deploy_started = started # we don't care what happened to the resource before the restart cmd ran
+        r
+      end
     end
 
     def verify_namespace
-      @kubeclient.get_namespace(@namespace)
+      kubeclient.get_namespace(@namespace)
+      @logger.info("Namespace #{@namespace} found in context #{@context}")
     rescue KubeException => error
       if error.error_code == 404
         raise NamespaceNotFoundError.new(@namespace, @context)
@@ -88,7 +97,7 @@ module KubernetesDeploy
     end
 
     def patch_deployment_with_restart(record)
-      @v1beta1_kubeclient.patch_deployment(
+      v1beta1_kubeclient.patch_deployment(
         record.metadata.name,
         build_patch_payload(record),
         @namespace
@@ -101,7 +110,7 @@ module KubernetesDeploy
         if HTTP_OK_RANGE.cover?(response.code)
           @logger.info "Triggered `#{record.metadata.name}` restart"
         else
-          raise RestartError.new(record.metadata.name, response)
+          raise RestartAPIError.new(record.metadata.name, response)
         end
       end
     end
@@ -110,10 +119,10 @@ module KubernetesDeploy
       list.map do |name|
         record = nil
         begin
-          record = @v1beta1_kubeclient.get_deployment(name, @namespace)
+          record = v1beta1_kubeclient.get_deployment(name, @namespace)
         rescue KubeException => error
           if error.error_code == 404
-            raise DeploymentNotFoundError.new(name, @namespace)
+            raise FatalRestartError, "Deployment `#{name}` not found in namespace `#{@namespace}`"
           else
             raise
           end
@@ -138,6 +147,14 @@ module KubernetesDeploy
           }
         }
       }
+    end
+
+    def kubeclient
+      @kubeclient ||= build_v1_kubeclient(@context)
+    end
+
+    def v1beta1_kubeclient
+      @v1beta1_kubeclient ||= build_v1beta1_kubeclient(@context)
     end
   end
 end
