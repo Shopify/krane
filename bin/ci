@@ -1,13 +1,19 @@
 #!/bin/bash
-set -eox pipefail
+set -euo pipefail
 
-KUBERNETES_VER=1.6.0
+if [[ -n "${DEBUG:+set}" ]]; then
+  set -x
+fi
 
-echo "--- Installing dependencies"
-bundle install --jobs 4
-
-echo "--- Starting minikube"
-minikube start --cpus 2 --memory 2048 --disk-size=2gb --kubernetes-version=$KUBERNETES_VER --logtostderr
-
-echo "--- Running tests"
-bundle exec rake test
+docker run --rm \
+	--net=host \
+	-v "$HOME/.kube":/"$HOME/.kube" \
+    -v "$HOME/.minikube":/"$HOME/.minikube" \
+    -v "$PWD":/usr/src/app \
+    -v "/usr/local/google-cloud-sdk/bin/kubectl":"/usr/bin/kubectl" \
+    -e CI=1 \
+    -e CODECOV_TOKEN=$CODECOV_TOKEN \
+    -e COVERAGE=1 \
+    -w /usr/src/app \
+    ruby:2.3 \
+    bin/test

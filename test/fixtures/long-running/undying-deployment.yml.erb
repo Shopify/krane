@@ -34,6 +34,10 @@ spec:
         image: busybox
         imagePullPolicy: IfNotPresent
         command: ["sleep", "40"]
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sleep", "40"]
         env:
         - name: GITHUB_REV
           value: <%= current_sha %>

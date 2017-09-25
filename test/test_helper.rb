@@ -26,7 +26,7 @@ require 'minitest/stub/const'
 require 'webmock/minitest'
 require 'mocha/mini_test'
 
-Dir.glob(File.expand_path("../helpers/**/*.rb", __FILE__)).each { |file| require file }
+Dir.glob(File.expand_path("../helpers/*.rb", __FILE__)).each { |file| require file }
 ENV["KUBECONFIG"] ||= "#{Dir.home}/.kube/config"
 
 Mocha::Configuration.prevent(:stubbing_method_unnecessarily)

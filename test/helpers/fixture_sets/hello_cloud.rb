@@ -74,7 +74,7 @@ module FixtureSetAssertions
     def assert_poddisruptionbudget
       budgets = policy_v1beta1_kubeclient.get_pod_disruption_budgets(namespace: namespace)
       assert_equal 1, budgets.size, "Expected 1 PodDisruptionBudget"
-      assert_equal 2, budgets[0].spec.minAvailable, "Expected PodDisruptionBudget to be overridden"
+      assert_equal 2, budgets[0].spec.minAvailable, "Unexpected value in PodDisruptionBudget spec"
     end
 
     def assert_bare_replicaset_up

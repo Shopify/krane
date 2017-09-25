@@ -138,3 +138,5 @@ module FixtureSetAssertions
     end
   end
 end
+
+Dir.glob(File.expand_path("../fixture_sets/*.rb", __FILE__)).each { |file| require file }
