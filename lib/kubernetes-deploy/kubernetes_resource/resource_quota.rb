@@ -15,7 +15,7 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      @rollout_data["spec"]["hard"] == @rollout_data["status"]["hard"]
+      @rollout_data.dig("spec", "hard") == @rollout_data.dig("status", "hard")
     end
 
     def deploy_failed?
