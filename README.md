@@ -53,7 +53,6 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * [Setup](#setup)
 * [Running the test suite locally](#running-the-test-suite-locally)
 * [Releasing a new version (Shopify employees)](#releasing-a-new-version-shopify-employees)
-* [CI (Shopify employees)](#ci-shopify-employees)
 * [CI (External contributors)](#ci-external-contributors)
 
 **CONTRIBUTING**
@@ -294,20 +293,11 @@ To make StatsD log what it would have emitted, run a test with `STATSD_DEV=1`.
 If you push your commit and the tag separately, Shipit usually fails with `You need to create the v0.7.9 tag first.`. To make it find your tag, go to `Settings` > `Resynchronize this stack` > `Clear git cache`.
 
 
-
-## CI (Shopify employees)
-
-Buildkite will build branches as you're working on them, but as soon as you create a PR it will stop building new commits from that branch because we disabled PR builds for security reasons. You can manually trigger the PR build from the [Buildkite UI](https://buildkite.com/shopify/kubernetes-deploy-gem) (just specify the branch; SHA is not required).
-
-<img width="464" alt="screen shot 2017-02-21 at 10 55 33" src="https://cloud.githubusercontent.com/assets/522155/23172610/52771a3a-f824-11e6-8c8e-3d59c45e7ff8.png">
-
-
-
 ## CI (External contributors)
 
-Please make sure you run the tests locally before submitting your PR (see [Running the test suite locally](#running-the-test-suite-locally)). A Shopify employee will trigger CI for you after reviewing your PR.
+Please make sure you run the tests locally before submitting your PR (see [Running the test suite locally](#running-the-test-suite-locally)). After reviewing your PR, a Shopify employee will trigger CI for you from the [Buildkite UI](https://buildkite.com/shopify/kubernetes-deploy-gem) (just specify the branch; SHA is not required).
 
-
+<img width="464" alt="screen shot 2017-02-21 at 10 55 33" src="https://cloud.githubusercontent.com/assets/522155/23172610/52771a3a-f824-11e6-8c8e-3d59c45e7ff8.png">
 
 # Contributing
 
