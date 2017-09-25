@@ -4,13 +4,18 @@ module KubernetesDeploy
     TIMEOUT = 30.seconds
 
     def sync
-      _, _err, st = kubectl.run("get", type, @name)
+      raw_json, _err, st = kubectl.run("get", type, @name, "--output=json")
       @status = st.success? ? "Available" : "Unknown"
       @found = st.success?
+      @rollout_data = if @found
+        JSON.parse(raw_json)
+      else
+        {}
+      end
     end
 
     def deploy_succeeded?
-      exists?
+      @rollout_data["spec"]["hard"] == @rollout_data["status"]["hard"]
     end
 
     def deploy_failed?

@@ -643,9 +643,19 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Predeploying priority resources",
       "Deploying ResourceQuota/resource-quotas (timeout: 30s)",
-      "Deploying all resources",
-      "Deployment/web deployment timed out"
+      "Deployment/web deployment timed out",
+      "Successful resources",
+      "ResourceQuota/resource-quotas",
+      "Deployment/web: TIMED OUT (limit: 10s)",
+      "failed quota: resource-quotas"
     ], in_order: true)
+
+    rqs = kubeclient.get_resource_quotas(namespace: @namespace)
+    assert_equal 1, rqs.length
+
+    rq = rqs[0]
+    assert_equal "resource-quotas", rq["metadata"]["name"]
+    assert rq["spec"].present?
   end
 
   private
