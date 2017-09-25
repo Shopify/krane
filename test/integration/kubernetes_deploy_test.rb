@@ -639,6 +639,29 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   end
 
+  def test_resource_quotas_are_deployed_first
+    forced_timeout = 10
+    KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(forced_timeout)
+    result = deploy_fixtures("resource-quota")
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      "Predeploying priority resources",
+      "Deploying ResourceQuota/resource-quotas (timeout: 30s)",
+      "Deployment/web deployment timed out",
+      "Successful resources",
+      "ResourceQuota/resource-quotas",
+      "Deployment/web: TIMED OUT (limit: 10s)",
+      "failed quota: resource-quotas"
+    ], in_order: true)
+
+    rqs = kubeclient.get_resource_quotas(namespace: @namespace)
+    assert_equal 1, rqs.length
+
+    rq = rqs[0]
+    assert_equal "resource-quotas", rq["metadata"]["name"]
+    assert rq["spec"].present?
+  end
+
   private
 
   def count_by_revisions(pods)

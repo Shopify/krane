@@ -21,6 +21,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   replica_set
   service_account
   daemon_set
+  resource_quota
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -34,6 +35,7 @@ module KubernetesDeploy
     include KubeclientBuilder
 
     PREDEPLOY_SEQUENCE = %w(
+      ResourceQuota
       Cloudsql
       Redis
       Bugsnag

@@ -1,0 +1,31 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: web
+  annotations:
+    shipit.shopify.io/restart: "true"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: web
+        app: hello-cloud
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: 1
+            memory: 1Gi
+          limits:
+            cpu: 1
+            memory: 1Gi
+        ports:
+        - containerPort: 80
+          name: http
+      - name: sidecar
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["sleep", "8000"]
