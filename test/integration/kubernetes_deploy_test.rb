@@ -647,7 +647,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Predeploying priority resources",
       "Deploying ResourceQuota/resource-quotas (timeout: 30s)",
-      "Deployment/web deployment timed out",
+      "Deployment/web rollout timed out",
       "Successful resources",
       "ResourceQuota/resource-quotas",
       "Deployment/web: TIMED OUT (limit: 10s)",
