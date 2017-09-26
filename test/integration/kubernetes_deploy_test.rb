@@ -307,10 +307,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Deployment/cannot-run: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
       %r{container-cannot-run: Failed to start \(exit 127\): .*/some/bad/path},
-      "Logs from container 'container-cannot-run'",
-      "no such file or directory",
+      "Logs from container 'successful-init'",
       "Hello from Docker!" # logs from successful init container
     ], in_order: true)
+    assert_logs_match("no such file or directory")
   end
 
   def test_wait_false_still_waits_for_priority_resources
