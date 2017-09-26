@@ -66,6 +66,7 @@ module KubernetesDeploy
     end
 
     def fetch_logs
+      return {} unless @pods.present? # the kubectl command times out if no pods exist
       container_names.each_with_object({}) do |container_name, container_logs|
         out, _err, _st = kubectl.run(
           "logs",
