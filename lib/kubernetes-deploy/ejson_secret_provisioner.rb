@@ -17,11 +17,12 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, template_dir:, logger:)
+    def initialize(namespace:, context:, template_dir:, logger:, prune: true)
       @namespace = namespace
       @context = context
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
       @logger = logger
+      @prune = prune
       @kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
     end
 
@@ -31,7 +32,7 @@ module KubernetesDeploy
 
     def run
       create_secrets
-      prune_managed_secrets
+      prune_managed_secrets if @prune
     end
 
     private
