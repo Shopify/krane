@@ -668,7 +668,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert rq["spec"].present?
   end
 
-  def test_ejson_secrets_respect_no_prune_flag
+  def test_ejson_secrets_respects_no_prune_flag
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
@@ -678,6 +678,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       fixtures["secrets.ejson"]["kubernetes_secrets"].delete("unused-secret")
     end
     assert_deploy_success(result)
+
+    assert_logs_match(/no secrets were pruned/)
 
     # The removed secret was not pruned
     ejson_cloud.assert_secret_present('unused-secret', managed: true)
