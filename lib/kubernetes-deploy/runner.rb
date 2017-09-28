@@ -100,7 +100,8 @@ module KubernetesDeploy
         namespace: @namespace,
         context: @context,
         template_dir: @template_dir,
-        logger: @logger
+        logger: @logger,
+        prune: prune,
       )
       if ejson.secret_changes_required?
         @logger.phase_heading("Deploying kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}")
