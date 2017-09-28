@@ -10,7 +10,7 @@ module KubernetesDeploy
       @deployment_exists = memcached_deployment_exists?
       @service_exists = memcached_service_exists?
       @secret_exists = memcached_secret_exists?
-      
+
       @status = if @deployment_exists && @service_exists && @secret_exists
         "Provisioned"
       else
