@@ -14,6 +14,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   persistent_volume_claim
   pod
   redis
+  memcached
   service
   pod_template
   bugsnag
@@ -38,6 +39,7 @@ module KubernetesDeploy
       ResourceQuota
       Cloudsql
       Redis
+      Memcached
       Bugsnag
       ConfigMap
       PersistentVolumeClaim

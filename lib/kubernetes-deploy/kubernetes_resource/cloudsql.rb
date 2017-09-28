@@ -62,9 +62,9 @@ module KubernetesDeploy
     def cloudsql_resource_uuid
       return @cloudsql_resource_uuid if defined?(@cloudsql_resource_uuid) && @cloudsql_resource_uuid
 
-      redis, _err, st = kubectl.run("get", "cloudsqls", @name, "-o=json")
+      cloudsql, _err, st = kubectl.run("get", "cloudsqls", @name, "-o=json")
       if st.success?
-        parsed = JSON.parse(redis)
+        parsed = JSON.parse(cloudsql)
 
         @cloudsql_resource_uuid = parsed.dig("metadata", "uid")
       end
