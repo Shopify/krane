@@ -32,11 +32,7 @@ module KubernetesDeploy
 
     def run
       create_secrets
-      if @prune
-        prune_managed_secrets
-      else
-        @logger.summary.add_action("no secrets were pruned")
-      end
+      prune_managed_secrets if @prune
     end
 
     private

@@ -679,8 +679,6 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_deploy_success(result)
 
-    assert_logs_match(/no secrets were pruned/)
-
     # The removed secret was not pruned
     ejson_cloud.assert_secret_present('unused-secret', managed: true)
     # The remaining secrets also exist
