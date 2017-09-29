@@ -34,45 +34,22 @@ module KubernetesDeploy
 
     def memcached_deployment_exists?
       deployment, _err, st = kubectl.run("get", "deployments", "-l \"name=#{@name}\"", "-o=json")
-
-      if st.success?
-        parsed = JSON.parse(deployment)
-
-        if parsed.fetch("status", {}).fetch("availableReplicas", -1) == parsed.fetch("status", {}).fetch("replicas", 0)
-          # all memcached pods are running
-          return true
-        end
-      end
-
-      false
+      return false unless st.success?
+      parsed = JSON.parse(deployment)
+      parsed.fetch("status", {}).fetch("availableReplicas", -1) == parsed.fetch("status", {}).fetch("replicas", 0)
     end
 
     def memcached_service_exists?
       service, _err, st = kubectl.run("get", "services", "-l \"name=#{@name}\"", "-o=json")
-
-      if st.success?
-        parsed = JSON.parse(service)
-
-        if parsed.dig("spec", "clusterIP").present?
-          return true
-        end
-      end
-
-      false
+      return false unless st.success?
+      parsed = JSON.parse(service)
+      parsed.dig("spec", "clusterIP").present?
     end
 
     def memcached_secret_exists?
       secret, _err, st = kubectl.run("get", "secrets", SECRET_NAME, "-o=json")
-
-      if st.success?
-        parsed = JSON.parse(secret)
-
-        if parsed.dig("data", @name).present?
-          return true
-        end
-      end
-
-      false
-    end
+      return false unless st.success?
+      parsed = JSON.parse(secret)
+      parsed.dig("data", @name).present?
   end
 end
