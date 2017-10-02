@@ -38,7 +38,8 @@ module KubernetesDeploy
       parsed = JSON.parse(deployments)
       return false if parsed.fetch("items", []).count == 0
       deployment = parsed.fetch("items", []).first
-      deployment.fetch("status", {}).fetch("availableReplicas", -1) == deployment.fetch("status", {}).fetch("replicas", 0)
+      status = deployment.fetch("status", {})
+      status.fetch("availableReplicas", -1) == status.fetch("replicas", 0)
     end
 
     def memcached_service_exists?
