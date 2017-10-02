@@ -51,5 +51,6 @@ module KubernetesDeploy
       return false unless st.success?
       parsed = JSON.parse(secret)
       parsed.dig("data", @name).present?
+    end
   end
 end
