@@ -6,7 +6,7 @@ require 'shellwords'
 module KubernetesDeploy
   class KubernetesResource
     attr_reader :name, :namespace, :context
-    attr_writer :type, :deploy_started_at
+    attr_writer :deploy_started_at
 
     TIMEOUT = 5.minutes
     LOG_LINE_COUNT = 250
@@ -27,29 +27,56 @@ module KubernetesDeploy
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
 
-    class << self
-      def build(namespace:, context:, definition:, logger:, statsd_tags:)
-        opts = { namespace: namespace, context: context, definition: definition, logger: logger,
-                 statsd_tags: statsd_tags }
-        if definition["kind"].blank?
-          raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
-        elsif KubernetesDeploy.const_defined?(definition["kind"])
-          klass = KubernetesDeploy.const_get(definition["kind"])
-          klass.new(**opts)
-        else
-          inst = new(**opts)
-          inst.type = definition["kind"]
-          inst
-        end
-      end
+    def self.inherited(child_class)
+      KubernetesResource.child_classes.add(child_class)
+    end
 
-      def timeout
-        self::TIMEOUT
-      end
+    def self.child_classes
+      @child_classes ||= Set.new
+    end
 
-      def kind
-        name.demodulize
-      end
+    def self.all
+      child_classes.dup
+    end
+
+    def self.prunable?
+      self::PRUNABLE if defined? self::PRUNABLE
+    end
+
+    def self.predeploy?
+      self::PREDEPLOY if defined? self::PREDEPLOY
+    end
+
+    def self.predeploy_dependencies
+      self::PREDEPLOY_DEPENDENCIES if defined? self::PREDEPLOY_DEPENDENCIES
+    end
+
+    def self.group
+      self::GROUP
+    end
+
+    def self.version
+      self::VERSION
+    end
+
+    def self.kind
+      name.demodulize
+    end
+
+    def self.qualified_kind
+      "#{group}/#{version}/#{kind}"
+    end
+
+    def kind
+      self.class.kind
+    end
+
+    def id
+      "#{kind}/#{name}"
+    end
+
+    def self.timeout
+      self::TIMEOUT
     end
 
     def timeout
@@ -105,16 +132,12 @@ module KubernetesDeploy
       @validation_errors.present?
     end
 
-    def id
-      "#{type}/#{name}"
-    end
-
     def file_path
       file.path
     end
 
     def sync(mediator)
-      @instance_data = mediator.get_instance(type, name)
+      @instance_data = mediator.get_instance(kind, name)
     end
 
     def deploy_failed?
@@ -128,7 +151,7 @@ module KubernetesDeploy
     def deploy_succeeded?
       return false unless deploy_started?
       unless @success_assumption_warning_shown
-        @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
+        @logger.warn("Don't know how to monitor resources of type #{kind}. Assuming #{id} deployed successfully.")
         @success_assumption_warning_shown = true
       end
       true
@@ -140,10 +163,6 @@ module KubernetesDeploy
 
     def status
       exists? ? "Exists" : "Unknown"
-    end
-
-    def type
-      @type || self.class.kind
     end
 
     def deploy_timed_out?
@@ -226,7 +245,7 @@ module KubernetesDeploy
     # }
     def fetch_events(kubectl)
       return {} unless exists?
-      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}",
+      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(kind, name)}",
         log_failure: false)
       return {} unless st.success?
 
@@ -339,7 +358,7 @@ module KubernetesDeploy
     end
 
     def create_definition_tempfile
-      file = Tempfile.new(["#{type}-#{name}", ".yml"])
+      file = Tempfile.new(["#{kind}-#{name}", ".yml"])
       file.write(YAML.dump(@definition))
       file
     ensure
@@ -361,7 +380,8 @@ module KubernetesDeploy
         "unknown"
       end
       tags = %W(context:#{context} namespace:#{namespace} resource:#{id}
-                type:#{type} sha:#{ENV['REVISION']} status:#{status})
+                type:#{kind} sha:#{ENV['REVISION']} status:#{status}
+                sha:#{ENV['REVISION']} status:#{status})
       tags | @optional_statsd_tags
     end
   end

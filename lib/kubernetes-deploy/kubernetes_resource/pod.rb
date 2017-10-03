@@ -2,7 +2,9 @@
 module KubernetesDeploy
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
-
+    PREDEPLOY = true
+    PREDEPLOY_DEPENDENCIES = %w(ResourceQuota ServiceAccount ConfigMap PersistentVolumeClaim)
+    PRUNABLE = true
     FAILED_PHASE_NAME = "Failed"
 
     def initialize(namespace:, context:, definition:, logger:,

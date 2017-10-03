@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class Service < KubernetesResource
+    PRUNABLE = true
     TIMEOUT = 7.minutes
 
     SYNC_DEPENDENCIES = %w(Pod Deployment)

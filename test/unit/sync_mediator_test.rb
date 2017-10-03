@@ -56,7 +56,7 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
 
     # Neither the main code path nor the selector-based code path should cause error results to be cached
     assert_equal [], mediator.get_all('FakeConfigMap')
-    assert_equal [], mediator.get_all('FakeConfigMap', "fake" => "false", "type" => "fakeconfigmap")
+    assert_equal [], mediator.get_all('FakeConfigMap', "fake" => "false", "kind" => "fakeconfigmap")
     assert_equal @fake_cm.kubectl_response, mediator.get_instance('FakeConfigMap', @fake_cm.name)
   end
 
@@ -68,10 +68,10 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
     assert_equal 1, maps.length
     assert_equal @fake_cm2.kubectl_response, maps.first
 
-    maps = mediator.get_all('FakeConfigMap', "fake" => "true", "type" => "fakeconfigmap")
+    maps = mediator.get_all('FakeConfigMap', "fake" => "true", "kind" => "fakeconfigmap")
     assert_equal 2, maps.length
 
-    maps = mediator.get_all('FakeConfigMap', "fake" => "false", "type" => "fakeconfigmap")
+    maps = mediator.get_all('FakeConfigMap', "fake" => "false", "kind" => "fakeconfigmap")
     assert_equal 0, maps.length
   end
 
@@ -151,7 +151,7 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
     def sync(*)
     end
 
-    def type
+    def kind
       self.class.name.demodulize
     end
 
@@ -162,7 +162,7 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
           "labels" => {
             "name" => @name,
             "fake" => "true",
-            "type" => type.downcase
+            "kind" => kind.downcase
           }
         }
       }

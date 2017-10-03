@@ -1,12 +1,8 @@
 # frozen_string_literal: true
 module KubernetesDeploy
-  class ServiceAccount < KubernetesResource
-    TIMEOUT = 30.seconds
+  class CustomResourceDefinition < KubernetesResource
+    TIMEOUT = 10.seconds
     PREDEPLOY = true
-
-    def status
-      exists? ? "Created" : "Unknown"
-    end
 
     def deploy_succeeded?
       exists?

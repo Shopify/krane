@@ -1,0 +1,6 @@
+---
+apiVersion: "api.foobar.com/v1"
+kind: Widget
+metadata:
+  name: my-first-widget
+status: "ok"

@@ -133,7 +133,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       @hits += 1
     end
 
-    def type
+    def kind
       "MockResource"
     end
 

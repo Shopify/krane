@@ -57,7 +57,7 @@ module KubernetesDeploy
           context: context,
           definition: pod_data,
           logger: @logger,
-          parent: "#{name.capitalize} #{type}",
+          parent: "#{name.capitalize} #{kind}",
           deploy_started_at: @deploy_started_at
         )
         pod.sync(mediator)

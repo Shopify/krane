@@ -5,6 +5,7 @@ module KubernetesDeploy
     REQUIRED_ROLLOUT_ANNOTATION = 'kubernetes-deploy.shopify.io/required-rollout'
     REQUIRED_ROLLOUT_TYPES = %w(maxUnavailable full none).freeze
     DEFAULT_REQUIRED_ROLLOUT = 'full'
+    PRUNABLE = true
 
     SYNC_DEPENDENCIES = %w(Pod ReplicaSet)
     def sync(mediator)
@@ -63,7 +64,7 @@ module KubernetesDeploy
       reason_msg = if progress_condition.present?
         "Timeout reason: #{progress_condition['reason']}"
       else
-        "Timeout reason: hard deadline for #{type}"
+        "Timeout reason: hard deadline for #{kind}"
       end
       return reason_msg unless @latest_rs.present?
       "#{reason_msg}\nLatest ReplicaSet: #{@latest_rs.name}\n\n#{@latest_rs.timeout_message}"

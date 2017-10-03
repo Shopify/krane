@@ -5,6 +5,7 @@ up:
   - bundler
   - homebrew:
     - Caskroom/cask/minikube
+    - jq
   - custom:
       name: Minikube Cluster
       met?: test $(minikube status | grep Running | wc -l) -eq 2 && $(minikube status | grep -q 'Correctly Configured')

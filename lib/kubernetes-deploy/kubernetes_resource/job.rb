@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 module KubernetesDeploy
-  class Ingress < KubernetesResource
-    TIMEOUT = 30.seconds
+  class Job < KubernetesResource
     PRUNABLE = true
-
-    def status
-      exists? ? "Created" : "Unknown"
-    end
+    TIMEOUT = 30.seconds
 
     def deploy_succeeded?
       exists?
     end
 
     def deploy_failed?
-      false
+      !exists?
+    end
+
+    def timeout_message
+      UNUSUAL_FAILURE_MESSAGE
     end
   end
 end

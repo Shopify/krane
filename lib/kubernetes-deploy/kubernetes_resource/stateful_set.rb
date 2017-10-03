@@ -3,6 +3,7 @@ require 'kubernetes-deploy/kubernetes_resource/pod_set_base'
 module KubernetesDeploy
   class StatefulSet < PodSetBase
     TIMEOUT = 10.minutes
+    PRUNABLE = true
     ONDELETE = 'OnDelete'
     attr_reader :pods
 
