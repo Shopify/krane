@@ -70,6 +70,8 @@ module KubernetesDeploy
       extensions/v1beta1/Ingress
       apps/v1beta1/StatefulSet
       autoscaling/v1/HorizontalPodAutoscaler
+      stable.shopify.io/v1/Redis
+      stable.shopify.io/v1/Cloudsql
     ).freeze
 
     def initialize(namespace:, context:, current_sha:, template_dir:, logger:, bindings: {})
