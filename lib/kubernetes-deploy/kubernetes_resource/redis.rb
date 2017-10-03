@@ -2,7 +2,10 @@
 module KubernetesDeploy
   class Redis < KubernetesResource
     TIMEOUT = 5.minutes
+    PREDEPLOY = true
     UUID_ANNOTATION = "redis.stable.shopify.io/owner_uid"
+    GROUP = 'stable.shopify.io'
+    VERSION = 'v1'
 
     SYNC_DEPENDENCIES = %w(Deployment Service)
     def sync(mediator)

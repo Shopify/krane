@@ -3,12 +3,13 @@ require 'kubernetes-deploy/kubernetes_resource/pod_set_base'
 module KubernetesDeploy
   class StatefulSet < PodSetBase
     TIMEOUT = 10.minutes
+    PRUNABLE = true
     ONDELETE = 'OnDelete'
     attr_reader :pods
 
     SYNC_DEPENDENCIES = %w(Pod)
     def sync(mediator)
-      super
+      raw_json, _err, st = kubectl.run("get", kind, @name, "--output=json")
       @pods = exists? ? find_pods(mediator) : []
       @server_version ||= mediator.kubectl.server_version
     end

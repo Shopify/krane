@@ -52,7 +52,15 @@ module KubernetesDeploy
       )
     end
 
-    def _build_kubeclient(api_version:, context:, endpoint_path: nil)
+    def build_apiextensions_v1beta1_kubeclient(context)
+      _build_kubeclient(
+        api_version: "v1beta1",
+        context: context,
+        endpoint_path: "/apis/apiextensions.k8s.io"
+      )
+    end
+
+    def _build_kubeclient(api_version:, context:, endpoint_path: nil, discover: true)
       # Find a context defined in kube conf files that matches the input context by name
       friendly_configs = config_files.map { |f| GoogleFriendlyConfig.read(f) }
       config = friendly_configs.find { |c| c.contexts.include?(context) }
@@ -67,7 +75,7 @@ module KubernetesDeploy
         ssl_options: kube_context.ssl_options,
         auth_options: kube_context.auth_options
       )
-      client.discover
+      client.discover if discover
       client
     end
 

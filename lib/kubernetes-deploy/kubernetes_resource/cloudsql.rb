@@ -2,6 +2,9 @@
 module KubernetesDeploy
   class Cloudsql < KubernetesResource
     TIMEOUT = 10.minutes
+    PREDEPLOY = true
+    GROUP = 'stable.shopify.io'
+    VERSION = 'v1'
 
     SYNC_DEPENDENCIES = %w(Deployment Service)
     def sync(mediator)

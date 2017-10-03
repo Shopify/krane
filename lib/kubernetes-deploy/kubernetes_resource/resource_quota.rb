@@ -2,8 +2,10 @@
 module KubernetesDeploy
   class ResourceQuota < KubernetesResource
     TIMEOUT = 30.seconds
+    PREDEPLOY = true
 
     def status
+      raw_json, _err, st = kubectl.run("get", kind, @name, "--output=json")
       exists? ? "In effect" : "Unknown"
     end
 

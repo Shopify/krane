@@ -2,6 +2,7 @@
 module KubernetesDeploy
   class Ingress < KubernetesResource
     TIMEOUT = 30.seconds
+    PRUNABLE = true
 
     def status
       exists? ? "Created" : "Unknown"

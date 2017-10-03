@@ -28,8 +28,13 @@ if [[ ${PARALLELISM:=0} -lt 1 ]]; then
 fi
 
 if [[ ${CI:="0"} == "1" ]]; then
+  echo "--- :linux: Install jq"
+  wget -qP /usr/local/bin http://stedolan.github.io/jq/download/linux64/jq && chmod a+x /usr/local/bin/jq
+fi
+
+if [[ ${CI:="0"} == "1" ]]; then
   echo "--- :ruby: Bundle Install"
-  bundle install --jobs 4
+  bundle install --jobs 4 || exit 1
 fi
 
 print_header "Run Unit Tests"

@@ -2,6 +2,7 @@
 module KubernetesDeploy
   class PersistentVolumeClaim < KubernetesResource
     TIMEOUT = 5.minutes
+    PREDEPLOY = true
 
     def status
       exists? ? @instance_data["status"]["phase"] : "Unknown"

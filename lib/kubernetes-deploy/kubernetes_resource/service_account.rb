@@ -2,6 +2,7 @@
 module KubernetesDeploy
   class ServiceAccount < KubernetesResource
     TIMEOUT = 30.seconds
+    PREDEPLOY = true
 
     def status
       exists? ? "Created" : "Unknown"

@@ -2,6 +2,8 @@
 module KubernetesDeploy
   class ConfigMap < KubernetesResource
     TIMEOUT = 30.seconds
+    PREDEPLOY = true
+    PRUNABLE = true
 
     def deploy_succeeded?
       exists?

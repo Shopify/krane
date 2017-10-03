@@ -4,7 +4,11 @@ require 'yaml'
 require 'shellwords'
 require 'tempfile'
 require 'fileutils'
+require 'rgl/adjacency'
+require 'rgl/topsort'
+require 'kubernetes-deploy/discoverable_resource'
 require 'kubernetes-deploy/kubernetes_resource'
+
 %w(
   cloudsql
   config_map
@@ -27,6 +31,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   bucket
   stateful_set
   cron_job
+  customresourcedefinition
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -40,16 +45,6 @@ module KubernetesDeploy
   class DeployTask
     include KubeclientBuilder
 
-    PREDEPLOY_SEQUENCE = %w(
-      ResourceQuota
-      Cloudsql
-      Redis
-      Memcached
-      ConfigMap
-      PersistentVolumeClaim
-      ServiceAccount
-      Pod
-    )
     PROTECTED_NAMESPACES = %w(
       default
       kube-system
@@ -64,23 +59,48 @@ module KubernetesDeploy
     # extensions/v1beta1/ReplicaSet -- managed by deployments
     # core/v1/Secret -- should not committed / managed by shipit
     def prune_whitelist
-      wl = %w(
-        core/v1/ConfigMap
-        core/v1/Pod
-        core/v1/Service
-        core/v1/ResourceQuota
-        batch/v1/Job
-        extensions/v1beta1/DaemonSet
-        extensions/v1beta1/Deployment
-        apps/v1beta1/Deployment
-        extensions/v1beta1/Ingress
-        apps/v1beta1/StatefulSet
-        autoscaling/v1/HorizontalPodAutoscaler
-      )
-      if server_version >= Gem::Version.new('1.8.0')
-        wl << "batch/v1beta1/CronJob"
+      @prune_whitelist ||= _build_prune_whitelist
+    end
+
+    def _build_prune_whitelist
+      prunable_resources = all_resources.select(&:prunable?)
+      prunable_resources.map(&:qualified_kind)
+    end
+
+    def predeploy_sequence
+      @predeploy_sequence ||= _build_predeploy_sequence
+    end
+
+    def _build_predeploy_sequence
+      # Express dependencies as DAG
+      graph = RGL::DirectedAdjacencyGraph.new
+      graph.add_vertex(:ROOT_NODE)
+
+      # This is a partially ordered set, so we must make sure everything is reachable:
+      predeploy_resources = all_resources.select(&:predeploy?)
+      predeploy_resources.each { |res| graph.add_edge(:ROOT_NODE, res.kind) }
+
+      # Find resources that have explicit predeploy (inter-)dependencies:
+      predeploy_res_with_deps = all_resources.select(&:predeploy_dependencies)
+      predeploy_res_with_deps.each do |res|
+        # Edge [A,B] means B requires A to be deployed first
+        res.predeploy_dependencies.each { |dep| graph.add_edge(dep, res.kind) }
       end
-      wl
+
+      raise FatalDeploymentError, "Cyclic predeploy requirements: #{graph.cycles.flatten}" unless graph.cycles.empty?
+
+      # Topological sort is not unique, but will respect the requirements
+      predeploy_order = graph.topsort_iterator.to_a
+      predeploy_order.delete(:ROOT_NODE)
+      predeploy_order
+    end
+
+    def all_resources
+      resources = DiscoverableResource.all + KubernetesResource.all
+      # Omit unqualified kinds (they are unsupported on this cluster, or discovery hasn't been performed yet)
+      resources.select do |res|
+        res.constants.include?(:GROUP) && res.constants.include?(:VERSION)
+      end
     end
 
     def server_version
@@ -124,7 +144,8 @@ module KubernetesDeploy
       confirm_context_exists
       confirm_namespace_exists
       @namespace_tags |= tags_from_namespace_labels
-      resources = discover_resources
+      discover_resources
+      resources = load_resource_from_file
       validate_definitions(resources)
 
       @logger.phase_heading("Checking initial resource statuses")
@@ -190,12 +211,12 @@ module KubernetesDeploy
     private
 
     def deploy_has_priority_resources?(resources)
-      resources.any? { |r| PREDEPLOY_SEQUENCE.include?(r.type) }
+      resources.any? { |r| predeploy_sequence.include?(r.kind) }
     end
 
     def predeploy_priority_resources(resource_list)
-      PREDEPLOY_SEQUENCE.each do |resource_type|
-        matching_resources = resource_list.select { |r| r.type == resource_type }
+      predeploy_sequence.each do |resource_kind|
+        matching_resources = resource_list.select { |r| r.kind == resource_kind }
         next if matching_resources.empty?
         deploy_resources(matching_resources, verify: true, record_summary: false)
 
@@ -225,6 +246,13 @@ module KubernetesDeploy
     end
 
     def discover_resources
+      # (Lazily) rebuild these lists after discovery if they were present.
+      @predeploy_sequence = nil
+      @prune_whitelist = nil
+      DiscoverableResource.discover(context: @context, logger: @logger, server_version: server_version)
+    end
+
+    def load_resource_from_file
       resources = []
       @logger.info("Discovering templates:")
 
@@ -232,7 +260,7 @@ module KubernetesDeploy
         next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
 
         split_templates(filename) do |r_def|
-          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
+          r = DiscoverableResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def)
                                        definition: r_def, statsd_tags: @namespace_tags)
           resources << r
           @logger.info "  - #{r.id}"
@@ -385,7 +413,7 @@ module KubernetesDeploy
 
         if prune
           command.push("--prune", "--all")
-          prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
+          prune_whitelist.each { |kind| command.push("--prune-whitelist=#{kind}") }
         end
 
         out, err, st = kubectl.run(*command, log_failure: false)

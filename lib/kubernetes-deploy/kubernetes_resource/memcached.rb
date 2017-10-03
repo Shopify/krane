@@ -2,7 +2,10 @@
 module KubernetesDeploy
   class Memcached < KubernetesResource
     TIMEOUT = 5.minutes
+    PREDEPLOY = true
     CONFIGMAP_NAME = "memcached-url"
+    GROUP = 'stable.shopify.io'
+    VERSION = 'v1'
 
     SYNC_DEPENDENCIES = %w(Deployment Service ConfigMap)
     def sync(mediator)
