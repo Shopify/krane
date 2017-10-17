@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/resource_watcher'
+require 'kubernetes-deploy/validate_version'
 
 module KubernetesDeploy
   class RestartTask
@@ -31,6 +32,7 @@ module KubernetesDeploy
 
       @logger.phase_heading("Initializing restart")
       verify_namespace
+      KubernetesDeploy::ValidateVersion.confirm_version(kubectl)
       deployments = identify_target_deployments(deployments_names)
 
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
@@ -147,6 +149,10 @@ module KubernetesDeploy
           }
         }
       }
+    end
+
+    def kubectl
+      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
     end
 
     def kubeclient

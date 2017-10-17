@@ -3,6 +3,7 @@ require 'tempfile'
 
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/kubectl'
+require 'kubernetes-deploy/validate_version'
 
 module KubernetesDeploy
   class RunnerTask
@@ -34,6 +35,7 @@ module KubernetesDeploy
       @logger.reset
       @logger.phase_heading("Validating configuration")
       validate_configuration(task_template, args)
+      KubernetesDeploy::ValidateVersion.confirm_version(kubectl)
 
       @logger.phase_heading("Fetching task template")
       raw_template = get_template(task_template)
@@ -120,6 +122,10 @@ module KubernetesDeploy
       rendered_template.metadata.namespace = @namespace
 
       rendered_template
+    end
+
+    def kubectl
+      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
     end
 
     def validate_pod_spec(pod)
