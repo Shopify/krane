@@ -53,6 +53,7 @@ module FixtureDeployHelper
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       template_dir: dir,
       logger: logger,
+      kubectl_instance: build_kubectl,
       bindings: bindings
     )
     runner.run(
@@ -106,5 +107,10 @@ module FixtureDeployHelper
       data_str = filename == EJSON_FILENAME ? file_data.to_json : YAML.dump_stream(*file_data.values.flatten)
       File.write(File.join(target_dir, filename), data_str)
     end
+  end
+
+  def build_kubectl(log_failure_by_default: true)
+    KubernetesDeploy::Kubectl.new(namespace: @namespace, context: KubeclientHelper::MINIKUBE_CONTEXT, logger: logger,
+      log_failure_by_default: log_failure_by_default, default_timeout: '5s')
   end
 end

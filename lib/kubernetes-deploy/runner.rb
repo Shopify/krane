@@ -72,12 +72,15 @@ module KubernetesDeploy
       autoscaling/v1/HorizontalPodAutoscaler
     ).freeze
 
-    def initialize(namespace:, context:, current_sha:, template_dir:, logger:, bindings: {})
+    NOT_FOUND_ERROR = 'NotFound'
+
+    def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {})
       @namespace = namespace
       @context = context
       @current_sha = current_sha
       @template_dir = File.expand_path(template_dir)
       @logger = logger
+      @kubectl = kubectl_instance
       @bindings = bindings
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
@@ -401,12 +404,27 @@ module KubernetesDeploy
       elsif !available_contexts.include?(@context)
         raise FatalDeploymentError, "Context #{@context} is not available. Valid contexts: #{available_contexts}"
       end
+      confirm_cluster_reachable
       @logger.info("Context #{@context} found")
     end
 
+    def confirm_cluster_reachable
+      success = false
+      with_retries(2) do
+        _, _, st = kubectl.run("version", use_namespace: false, log_failure: true)
+        success = st.success?
+      end
+
+      raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
+    end
+
     def confirm_namespace_exists
-      _, _, st = kubectl.run("get", "namespace", @namespace, use_namespace: false, log_failure: false)
-      raise FatalDeploymentError, "Namespace #{@namespace} not found" unless st.success?
+      st, err = nil
+      with_retries(2) do
+        _, err, st = kubectl.run("get", "namespace", @namespace, use_namespace: false, log_failure: true)
+        st.success? || err.include?(NOT_FOUND_ERROR)
+      end
+      raise FatalDeploymentError, "Failed to find namespace. #{err}" unless st.success?
       @logger.info("Namespace #{@namespace} found")
     end
 
@@ -416,6 +434,15 @@ module KubernetesDeploy
 
     def statsd_tags
       %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context})
+    end
+
+    def with_retries(limit)
+      retried = 0
+      while retried <= limit
+        success = yield
+        break if success
+        retried += 1
+      end
     end
   end
 end

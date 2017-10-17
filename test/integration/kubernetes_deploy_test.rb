@@ -506,7 +506,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     original_ns = @namespace
     @namespace = 'this-certainly-should-not-exist'
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml']))
-    assert_logs_match(/Result: FAILURE.*Namespace this-certainly-should-not-exist not found/m)
+    assert_logs_match(/Result: FAILURE.*namespaces "this-certainly-should-not-exist" not found/m)
   ensure
     @namespace = original_ns
   end
@@ -685,5 +685,24 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ejson_cloud.assert_secret_present('monitoring-token', managed: true)
     ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', managed: true)
     ejson_cloud.assert_secret_present('ejson-keys', managed: false)
+  end
+
+  def test_invalid_context
+    old_config = ENV['KUBECONFIG']
+    begin
+      ENV['KUBECONFIG'] = File.join(__dir__, '../fixtures/invalid_config.yml')
+      result = deploy_fixtures('hello-cloud')
+      assert_deploy_failure(result)
+      assert_logs_match_all([
+        'The following command failed: kubectl version',
+        'Unable to connect to the server',
+        'Unable to connect to the server',
+        'Unable to connect to the server',
+        'Result: FAILURE',
+        'Failed to reach server for minikube',
+      ], in_order: true)
+    ensure
+      ENV['KUBECONFIG'] = old_config
+    end
   end
 end
