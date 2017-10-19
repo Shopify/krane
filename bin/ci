@@ -10,7 +10,7 @@ docker run --rm \
 	-v "$HOME/.kube":/"$HOME/.kube" \
     -v "$HOME/.minikube":/"$HOME/.minikube" \
     -v "$PWD":/usr/src/app \
-    -v "/usr/local/google-cloud-sdk/bin/kubectl":"/usr/bin/kubectl" \
+    -v "/usr/bin/minikube/kubectl":"/usr/bin/kubectl" \
     -e CI=1 \
     -e CODECOV_TOKEN=$CODECOV_TOKEN \
     -e COVERAGE=1 \
