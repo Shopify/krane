@@ -50,10 +50,6 @@ module KubernetesDeploy
       @pods.map(&:timeout_message).compact.uniq.join("\n")
     end
 
-    def deploy_timed_out?
-      super || @pods.present? && @pods.all?(&:deploy_timed_out?)
-    end
-
     def exists?
       @found
     end

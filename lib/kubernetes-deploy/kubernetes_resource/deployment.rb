@@ -61,11 +61,7 @@ module KubernetesDeploy
     end
 
     def deploy_timed_out?
-      if @progress
-        @progress["status"] == 'False'
-      else
-        super || @latest_rs && @latest_rs.deploy_timed_out?
-      end
+      @progress ? @progress["status"] == 'False' : super
     end
 
     def exists?
