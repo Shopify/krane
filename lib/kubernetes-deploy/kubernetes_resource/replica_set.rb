@@ -46,10 +46,6 @@ module KubernetesDeploy
       @pods.map(&:failure_message).compact.uniq.join("\n")
     end
 
-    def timeout_message
-      @pods.map(&:timeout_message).compact.uniq.join("\n")
-    end
-
     def exists?
       @found
     end
