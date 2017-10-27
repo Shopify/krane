@@ -55,7 +55,8 @@ module KubernetesDeploy
       progress_seconds = @definition['spec']['progressDeadlineSeconds']
       if progress_seconds
         "Deploy timed out due to progressDeadlineSeconds of #{progress_seconds} seconds, "\
-        " reason: #{@progress['reason']} #{@latest_rs&.timeout_message}"
+        " reason: #{@progress['reason']}\n"\
+        "#{@latest_rs&.timeout_message}"
       else
         @latest_rs&.timeout_message
       end
