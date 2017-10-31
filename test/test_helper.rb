@@ -180,6 +180,13 @@ module KubernetesDeploy
       TestProvisioner.delete_namespace(@namespace)
       WebMock.disable_net_connect!
     end
+
+    logger = KubernetesDeploy::FormattedLogger.build("default", MINIKUBE_CONTEXT, $stderr)
+    kubectl = KubernetesDeploy::Kubectl.new(namespace: "default", context: MINIKUBE_CONTEXT, logger: logger,
+                                            log_failure_by_default: true, default_timeout: '5s')
+
+    KUBE_CLIENT_VERSION = kubectl.client_version
+    KUBE_SERVER_VERSION = kubectl.server_version
   end
 
   module TestProvisioner

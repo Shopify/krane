@@ -31,5 +31,25 @@ module KubernetesDeploy
       end
       [out.chomp, err.chomp, st]
     end
+
+    def version_info
+      @version_info ||=
+        begin
+          response, _, status = run("version", "--output=yaml", use_namespace: false, log_failure: true)
+          raise "Could not retrieve kubectl client info" unless status.success?
+          YAML.load(response)
+        rescue => e
+          raise "Could not load kubectl client info: #{e}"
+        end
+    end
+
+    def client_version
+      version_info["clientVersion"]["gitVersion"]
+    end
+
+    def server_version
+      version_info["serverVersion"]["gitVersion"]
+    end
+
   end
 end
