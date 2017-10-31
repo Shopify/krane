@@ -120,7 +120,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def dummy_secret_hash(name: SecureRandom.hex(4), data: {}, managed: true)
     encoded_data = data.each_with_object({}) do |(key, value), encoded|
-      encoded[key] = Base64.encode64(value)
+      encoded[key] = Base64.strict_encode64(value)
     end
 
     secret = {
