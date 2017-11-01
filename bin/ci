@@ -6,11 +6,11 @@ if [[ -n "${DEBUG:+set}" ]]; then
 fi
 
 docker run --rm \
-	--net=host \
-	-v "$HOME/.kube":/"$HOME/.kube" \
-    -v "$HOME/.minikube":/"$HOME/.minikube" \
+    --net=host \
+    -v "$HOME/.kube":"/root/.kube" \
+    -v "$HOME/.minikube":"$HOME/.minikube" \
     -v "$PWD":/usr/src/app \
-    -v "/usr/bin/minikube/kubectl":"/usr/bin/kubectl" \
+    -v "/usr/bin/kubectl":"/usr/bin/kubectl" \
     -e CI=1 \
     -e CODECOV_TOKEN=$CODECOV_TOKEN \
     -e COVERAGE=1 \
