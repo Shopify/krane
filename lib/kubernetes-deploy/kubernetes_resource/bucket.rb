@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 module KubernetesDeploy
-  class Statefulservice < KubernetesResource
+  class Bucket < KubernetesResource
     def sync
       _, _err, st = kubectl.run("get", type, @name)
       @found = st.success?

@@ -26,6 +26,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   elasticsearch
   statefulservice
   topic
+  bucket
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
