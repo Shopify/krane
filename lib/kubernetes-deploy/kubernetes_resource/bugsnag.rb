@@ -25,5 +25,9 @@ module KubernetesDeploy
     def exists?
       @found
     end
+
+    def deploy_method
+      :replace
+    end
   end
 end

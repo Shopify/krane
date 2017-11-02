@@ -30,6 +30,10 @@ module KubernetesDeploy
       @found
     end
 
+    def deploy_method
+      :replace
+    end
+
     private
 
     def memcached_deployment_exists?

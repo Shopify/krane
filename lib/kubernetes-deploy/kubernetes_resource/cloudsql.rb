@@ -27,6 +27,10 @@ module KubernetesDeploy
       @found
     end
 
+    def deploy_method
+      :replace
+    end
+
     private
 
     def cloudsql_proxy_deployment_exists?

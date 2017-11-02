@@ -29,6 +29,10 @@ module KubernetesDeploy
       @found
     end
 
+    def deploy_method
+      :replace
+    end
+
     private
 
     def redis_deployment_exists?
