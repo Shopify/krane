@@ -23,6 +23,10 @@ require 'kubernetes-deploy/kubernetes_resource'
   service_account
   daemon_set
   resource_quota
+  elasticsearch
+  statefulservice
+  topic
+  bucket
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
