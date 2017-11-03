@@ -410,12 +410,23 @@ module KubernetesDeploy
 
     def confirm_cluster_reachable
       success = false
+      response = nil
       with_retries(2) do
-        _, _, st = kubectl.run("version", use_namespace: false, log_failure: true)
+        response, _, st = kubectl.run("version", "--output=yaml", use_namespace: false, log_failure: true)
         success = st.success?
       end
 
       raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
+
+      begin
+        @kubectl_version_info = YAML.load(response)
+      rescue => e
+        raise FatalDeploymentError, "Could not load kubectl client info: #{e}"
+      end
+    end
+
+    def kubectl_version_info
+      @kubectl_version_info ||= confirm_cluster_reachable
     end
 
     def confirm_namespace_exists
