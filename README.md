@@ -298,9 +298,13 @@ If you push your commit and the tag separately, Shipit usually fails with `You n
 
 ## CI (External contributors)
 
-Please make sure you run the tests locally before submitting your PR (see [Running the test suite locally](#running-the-test-suite-locally)). After reviewing your PR, a Shopify employee will trigger CI for you from the [Buildkite UI](https://buildkite.com/shopify/kubernetes-deploy-gem) (just specify the branch; SHA is not required).
+Please make sure you run the tests locally before submitting your PR (see [Running the test suite locally](#running-the-test-suite-locally)). After reviewing your PR, a Shopify employee will trigger CI for you from the [Buildkite UI](https://buildkite.com/shopify/kubernetes-deploy-gem).
 
-<img width="464" alt="screen shot 2017-02-21 at 10 55 33" src="https://cloud.githubusercontent.com/assets/522155/23172610/52771a3a-f824-11e6-8c8e-3d59c45e7ff8.png">
+#### Employees: Triggering CI for a contributed PR
+
+Use branch `master` and add `BUILDKITE_REFSPEC="refs/pull/${PR_NUM}/head"` and `BUILDKITE_COMMIT=${SHA}` in the Environment Variables section.
+
+<img width="350" alt="build external contrib PR" src="https://screenshot.click/2017-10-31--162431_2y8rn-0axc4.png">
 
 # Contributing
 
