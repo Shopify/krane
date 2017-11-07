@@ -44,11 +44,11 @@ module KubernetesDeploy
     end
 
     def client_version
-      version_info["clientVersion"]["gitVersion"]
+      Gem::Version.new(version_info["clientVersion"]["gitVersion"].sub(/^v/, ''))
     end
 
     def server_version
-      version_info["serverVersion"]["gitVersion"]
+      Gem::Version.new(version_info["serverVersion"]["gitVersion"].sub(/^v/, ''))
     end
 
   end

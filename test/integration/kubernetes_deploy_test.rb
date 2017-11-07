@@ -147,7 +147,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_deploy_failure(result)
 
-    if KUBE_CLIENT_VERSION < "v1.8.0"
+    if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
       assert_logs_match_all([
         "Template validation failed",
         /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
@@ -188,7 +188,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       }
     end
     assert_deploy_failure(result)
-    if KUBE_CLIENT_VERSION < "v1.8.0"
+    if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
       assert_logs_match_all([
         "Command failed: apply -f",
         "WARNING: Any resources not mentioned in the error below were likely created/updated.",
@@ -265,7 +265,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.refute_web_resources_exist
   end
 
-  if KUBE_SERVER_VERSION < "v1.8.0"
+  if KUBE_SERVER_VERSION < Gem::Version.new("1.8.0")
     # behavior in 1.8 has changed: kubernetes now times out instead of failing quickly
     def test_deployment_container_mounting_secret_that_does_not_exist_as_env_var_fails_quickly
       result = deploy_fixtures("ejson-cloud", subset: ["web.yaml"]) do |fixtures| # exclude secret ejson
