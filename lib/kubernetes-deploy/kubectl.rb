@@ -36,10 +36,8 @@ module KubernetesDeploy
       @version_info ||=
         begin
           response, _, status = run("version", "--output=yaml", use_namespace: false, log_failure: true)
-          raise "Could not retrieve kubectl client info" unless status.success?
+          raise KubectlError, "Could not retrieve kubectl version info" unless status.success?
           YAML.load(response)
-        rescue => e
-          raise "Could not load kubectl client info: #{e}"
         end
     end
 
