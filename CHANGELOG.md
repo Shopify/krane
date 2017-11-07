@@ -1,3 +1,7 @@
+### 0.12.11
+*Bug Fixes*
+- Stop appending newlines to the base64-encoded values of secrets created from ejson. These extra newlines were preventing the ejson->k8s secret feature from working with v1.8 (https://github.com/Shopify/kubernetes-deploy/pull/196).
+
 ### 0.12.10
 *Enhancement*
 - Log reason if deploy times out due to `progressDeadlineSeconds` being exceeded

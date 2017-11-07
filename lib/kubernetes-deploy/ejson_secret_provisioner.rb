@@ -128,7 +128,7 @@ module KubernetesDeploy
         # Leading underscores in ejson keys are used to skip encryption of the associated value
         # To support this ejson feature, we need to exclude these leading underscores from the secret's keys
         secret_key = key.sub(/\A_/, '')
-        encoded[secret_key] = Base64.encode64(value)
+        encoded[secret_key] = Base64.strict_encode64(value)
       end
 
       secret = {
