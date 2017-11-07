@@ -15,7 +15,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       "Configured to restart deployments by name: web",
       "Triggered `web` restart",
       "Waiting for rollout",
-      %r{Successfully restarted in \d\.\ds: Deployment/web},
+      %r{Successfully restarted in \d+\.\d+s: Deployment/web},
       "Result: SUCCESS",
       "Successfully restarted 1 resource",
       %r{Deployment/web.*1 availableReplica}
