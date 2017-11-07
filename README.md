@@ -302,9 +302,9 @@ Please make sure you run the tests locally before submitting your PR (see [Runni
 
 #### Employees: Triggering CI for a contributed PR
 
-Use branch `master` and add `BUILDKITE_REFSPEC="refs/pull/${PR_NUM}/head"` and `BUILDKITE_COMMIT=${SHA}` in the Environment Variables section.
+Use branch `external_contrib_ci` and the specific sha of the commit you want to build. Add `BUILDKITE_REFSPEC="refs/pull/${PR_NUM}/head"` in the Environment Variables section.
 
-<img width="350" alt="build external contrib PR" src="https://screenshot.click/2017-10-31--162431_2y8rn-0axc4.png">
+<img width="350" alt="build external contrib PR" src="https://screenshot.click/2017-11-07--163728_7ovek-wrpwq.png">
 
 # Contributing
 
