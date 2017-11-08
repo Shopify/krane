@@ -147,14 +147,26 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_deploy_failure(result)
 
-    assert_logs_match_all([
-      "Template validation failed",
-      /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
-      "> Error from kubectl:",
-      "error validating data: found invalid field myKey for v1.ObjectMeta",
-      "> Rendered template content:",
-      "      myKey: uhOh"
-    ], in_order: true)
+    if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
+      assert_logs_match_all([
+        "Template validation failed",
+        /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
+        "> Error from kubectl:",
+        "error validating data: found invalid field myKey for v1.ObjectMeta",
+        "> Rendered template content:",
+        "      myKey: uhOh"
+      ], in_order: true)
+    else
+      assert_logs_match_all([
+        "Template validation failed",
+        /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
+        "> Error from kubectl:",
+        "error validating data: ValidationError(ConfigMap.metadata): \
+unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
+        "> Rendered template content:",
+        "      myKey: uhOh"
+      ], in_order: true)
+    end
   end
 
   def test_dynamic_erb_collection_works
@@ -177,15 +189,27 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       }
     end
     assert_deploy_failure(result)
-    assert_logs_match_all([
-      "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      /Invalid template: ConfigMap-hello-cloud-configmap-data.*\.yml/,
-      "> Error from kubectl:",
-      "    Error from server (BadRequest): error when creating",
-      "> Rendered template content:",
-      "          not_a_name:",
-    ], in_order: true)
+    if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
+      assert_logs_match_all([
+        "Command failed: apply -f",
+        "WARNING: Any resources not mentioned in the error below were likely created/updated.",
+        /Invalid template: ConfigMap-hello-cloud-configmap-data.*\.yml/,
+        "> Error from kubectl:",
+        "    Error from server (BadRequest): error when creating",
+        "> Rendered template content:",
+        "          not_a_name:",
+      ], in_order: true)
+    else
+      assert_logs_match_all([
+        "Template validation failed",
+        /Invalid template: ConfigMap-hello-cloud-configmap-data.*\.yml/,
+        "> Error from kubectl:",
+        "error validating data: ValidationError(ConfigMap.metadata.labels.name): \
+invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
+        "> Rendered template content:",
+        "          not_a_name:",
+      ], in_order: true)
+    end
   end
 
   def test_multiple_invalid_k8s_specs_fails_on_apply_and_prints_template
@@ -243,25 +267,28 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.refute_web_resources_exist
   end
 
-  def test_deployment_container_mounting_secret_that_does_not_exist_as_env_var_fails_quickly
-    result = deploy_fixtures("ejson-cloud", subset: ["web.yaml"]) do |fixtures| # exclude secret ejson
-      # Remove the volumes. Right now Kubernetes does not expose a useful status when mounting fails. :(
-      deploy = fixtures["web.yaml"]["Deployment"].first
-      deploy["spec"]["replicas"] = 3
-      pod_spec = deploy["spec"]["template"]["spec"]
-      pod_spec["volumes"] = []
-      pod_spec["containers"].first["volumeMounts"] = []
+  if KUBE_SERVER_VERSION < Gem::Version.new("1.8.0")
+    # behavior in 1.8 has changed: kubernetes now times out instead of failing quickly
+    def test_deployment_container_mounting_secret_that_does_not_exist_as_env_var_fails_quickly
+      result = deploy_fixtures("ejson-cloud", subset: ["web.yaml"]) do |fixtures| # exclude secret ejson
+        # Remove the volumes. Right now Kubernetes does not expose a useful status when mounting fails. :(
+        deploy = fixtures["web.yaml"]["Deployment"].first
+        deploy["spec"]["replicas"] = 3
+        pod_spec = deploy["spec"]["template"]["spec"]
+        pod_spec["volumes"] = []
+        pod_spec["containers"].first["volumeMounts"] = []
+      end
+      assert_deploy_failure(result)
+
+      assert_logs_match_all([
+        "Deployment/web: FAILED",
+        "The following containers are in a state that is unlikely to be recoverable:",
+        "app: Failed to generate container configuration: secrets \"monitoring-token\" not found",
+        "Final status: 3 replicas, 3 updatedReplicas, 3 unavailableReplicas"
+      ], in_order: true)
+
+      assert_logs_match("The following containers are in a state that is unlikely to be recoverable", 1) # no duplicates
     end
-    assert_deploy_failure(result)
-
-    assert_logs_match_all([
-      "Deployment/web: FAILED",
-      "The following containers are in a state that is unlikely to be recoverable:",
-      "app: Failed to generate container configuration: secrets \"monitoring-token\" not found",
-      "Final status: 3 replicas, 3 updatedReplicas, 3 unavailableReplicas"
-    ], in_order: true)
-
-    assert_logs_match("The following containers are in a state that is unlikely to be recoverable", 1) # no duplicates
   end
 
   def test_bad_container_image_on_deployment_pod_fails_quickly

@@ -31,5 +31,35 @@ module KubernetesDeploy
       end
       [out.chomp, err.chomp, st]
     end
+
+    def version_info
+      @version_info ||=
+        begin
+          response, _, status = run("version", use_namespace: false, log_failure: true)
+          raise KubectlError, "Could not retrieve kubectl version info" unless status.success?
+          extract_version_info_from_kubectl_response(response)
+        end
+    end
+
+    def client_version
+      version_info[:client]
+    end
+
+    def server_version
+      version_info[:server]
+    end
+
+    private
+
+    def extract_version_info_from_kubectl_response(response)
+      info = {}
+      response.each_line do |l|
+        match = l.match(/^(?<kind>Client|Server).* GitVersion:"v(?<version>[0-9\.]+)"/)
+        if match
+          info[match[:kind].downcase.to_sym] = Gem::Version.new(match[:version])
+        end
+      end
+      info
+    end
   end
 end
