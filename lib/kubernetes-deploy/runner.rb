@@ -414,6 +414,7 @@ module KubernetesDeploy
         begin
           success = kubectl.version_info
         rescue KubectlError
+          success = false
         end
       end
       raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
