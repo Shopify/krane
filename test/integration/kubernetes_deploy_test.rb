@@ -161,7 +161,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
         "Template validation failed",
         /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
         "> Error from kubectl:",
-        "error validating data: ValidationError(ConfigMap.metadata): unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
+        "error validating data: ValidationError(ConfigMap.metadata): \
+unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
         "> Rendered template content:",
         "      myKey: uhOh"
       ], in_order: true)
@@ -203,7 +204,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
         "Template validation failed",
         /Invalid template: ConfigMap-hello-cloud-configmap-data.*\.yml/,
         "> Error from kubectl:",
-        "error validating data: ValidationError(ConfigMap.metadata.labels.name): invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
+        "error validating data: ValidationError(ConfigMap.metadata.labels.name): \
+invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
         "> Rendered template content:",
         "          not_a_name:",
       ], in_order: true)
