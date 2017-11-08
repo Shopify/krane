@@ -411,7 +411,10 @@ module KubernetesDeploy
     def confirm_cluster_reachable
       success = false
       with_retries(2) do
-        success = kubectl.version_info rescue false
+        begin
+          success = kubectl.version_info
+        rescue KubectlError
+        end
       end
       raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
     end
