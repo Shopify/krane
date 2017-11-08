@@ -54,7 +54,7 @@ module KubernetesDeploy
     def extract_version_info_from_kubectl_response(response)
       info = {}
       response.each_line do |l|
-        match = l.match(/^(?<kind>Client|Server).* GitVersion:"v(?<version>[0-9\.]+)"/)
+        match = l.match(/^(?<kind>Client|Server).* GitVersion:"v(?<version>\d+\.\d+\.\d+)/)
         if match
           info[match[:kind].downcase.to_sym] = Gem::Version.new(match[:version])
         end

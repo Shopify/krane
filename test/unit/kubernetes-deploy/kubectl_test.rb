@@ -92,7 +92,67 @@ class KubectlTest < KubernetesDeploy::TestCase
     assert_logs_match("[WARN]", 2)
   end
 
+  def test_version_info_returns_the_correct_hash
+    stub_version_request(server: version_info(1, 7, 8), client: version_info(1, 7, 10))
+    kubectl = build_kubectl
+    expected_version_info = { server: Gem::Version.new('1.7.8'), client: Gem::Version.new('1.7.10') }
+    assert_equal expected_version_info, kubectl.version_info
+  end
+
+  def test_client_version_and_server_version_return_the_correct_result
+    stub_version_request(server: version_info(1, 7, 8), client: version_info(1, 7, 10))
+
+    kubectl = build_kubectl
+    assert_equal "1.7.10", kubectl.client_version.to_s
+    assert_equal "1.7.8", kubectl.server_version.to_s
+  end
+
+  def test_version_comparisons_are_accurate
+    stub_version_request(server: version_info(1, 7, 8), client: version_info(1, 7, 8))
+    kubectl = build_kubectl
+    assert_equal kubectl.server_version, kubectl.client_version
+    assert kubectl.server_version < Gem::Version.new('1.7.10')
+    assert kubectl.server_version > Gem::Version.new('1.7.1')
+    assert kubectl.server_version < Gem::Version.new('1.8.0')
+  end
+
+  def test_version_methods_work_with_gke_versions
+    stub_version_request(
+      client: version_info(1, 7, 10),
+      server: version_info(1, '7+', 6, git: 'v1.7.6-gke.1')
+    )
+
+    kubectl = build_kubectl
+    expected_version_info = { client: Gem::Version.new('1.7.10'), server: Gem::Version.new('1.7.6') }
+    assert_equal expected_version_info, kubectl.version_info
+    assert_equal "1.7.10", kubectl.client_version.to_s
+    assert_equal "1.7.6", kubectl.server_version.to_s
+  end
+
+  def test_version_info_raises_if_command_fails
+    stub_open3(%w(kubectl version --context=testc --request-timeout=30s), resp: '', err: 'bad', success: false)
+    assert_raises_message(KubernetesDeploy::KubectlError, "Could not retrieve kubectl version info") do
+      build_kubectl.version_info
+    end
+  end
+
   private
+
+  def stub_version_request(client:, server:)
+    stub_open3(%w(kubectl version --context=testc --request-timeout=30s), resp:
+      <<~STRING
+        Client Version: #{client}
+        Server Version: #{server}
+      STRING
+    )
+  end
+
+  def version_info(maj, min, patch, git: nil)
+    git ||= "v#{maj}.#{min}.#{patch}"
+    <<~STRING
+      version.Info{Major:"#{maj}", Minor:"#{min}", GitVersion:"#{git}", GitCommit:"somecommit", GitTreeState:"clean", BuildDate:"2017-09-27T21:21:34Z", GoVersion:"go1.8.3", Compiler:"gc", Platform:"linux/amd64"}
+    STRING
+  end
 
   def build_kubectl(log_failure_by_default: true)
     KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: logger,
