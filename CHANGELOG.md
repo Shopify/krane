@@ -1,3 +1,10 @@
+### 0.13.0 [UNRELEASED]
+*Bug Fixes*
+- Explicitly require the minimum rest-client version required by kubeclient ([#202](https://github.com/Shopify/kubernetes-deploy/pull/202))
+
+*Enhancements*
+- Begin official support for Kubernetes v1.8 ([#198](https://github.com/Shopify/kubernetes-deploy/pull/198), [#200](https://github.com/Shopify/kubernetes-deploy/pull/200))
+
 ### 0.12.12
 *Bug Fixes*
 - Fix an issue deploying Shopify's internal custom resources.
