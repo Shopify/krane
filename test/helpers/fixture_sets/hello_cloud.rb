@@ -16,6 +16,7 @@ module FixtureSetAssertions
       assert_bare_replicaset_up
       assert_all_service_accounts_up
       assert_daemon_set_up
+      assert_stateful_set_up
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -88,6 +89,10 @@ module FixtureSetAssertions
 
     def assert_daemon_set_up
       assert_daemon_set_present("nginx")
+    end
+
+    def assert_stateful_set_up
+      assert_stateful_set_present("nginx-ss")
     end
   end
 end

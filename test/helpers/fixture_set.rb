@@ -136,6 +136,13 @@ module FixtureSetAssertions
       desired = daemon_sets.find { |ds| ds.metadata.name == name }
       assert desired.present?, "Daemon set #{name} does not exist"
     end
+
+    def assert_stateful_set_present(name)
+      labels = "name=#{name},app=#{app_name}"
+      stateful_sets = apps_v1beta1_kubeclient.get_stateful_sets(namespace: namespace, label_selector: labels)
+      desired = stateful_sets.find { |ss| ss.metadata.name == name }
+      assert desired.present?, "Stateful set #{name} does not exist"
+    end
   end
 end
 

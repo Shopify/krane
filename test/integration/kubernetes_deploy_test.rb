@@ -11,14 +11,15 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
       "Hello from Docker!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 13 resources"
+      "Successfully deployed 14 resources"
     ], in_order: true)
 
     assert_logs_match_all([
       %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
       %r{Service/web\s+Selects at least 1 pod},
-      %r{DaemonSet/nginx\s+1 currentNumberScheduled, 1 desiredNumberScheduled, 1 numberReady}
+      %r{DaemonSet/nginx\s+1 currentNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
+      %r{StatefulSet/nginx-ss}
     ])
 
     # Verify that success section isn't duplicated for predeployed resources
@@ -55,9 +56,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'service "web"',
       'deployment "web"',
       'ingress "web"',
-      'daemonset "nginx"'
+      'daemonset "nginx"',
+      'statefulset "nginx-ss"'
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 6 resources and successfully deployed 3 resources/]
+    expected_msgs = [/Pruned 7 resources and successfully deployed 3 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -669,6 +671,53 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "BackOff: Back-off restarting failed container",
       "Logs from container 'nginx' (last 250 lines shown):",
       "ls: /not-a-dir: No such file or directory"
+    ], in_order: true)
+  end
+
+  def test_bad_container_on_stateful_sets_fails_with_rolling_update
+    skip if KUBE_CLIENT_VERSION < Gem::Version.new("1.7.0")
+    result = deploy_fixtures("hello-cloud", subset: ["stateful_set.yml"]) do |fixtures|
+      stateful_set = fixtures['stateful_set.yml']['StatefulSet'].first
+      stateful_set['spec']['updateStrategy'] = { 'type' => 'RollingUpdate' }
+      container = stateful_set['spec']['template']['spec']['containers'].first
+      container["image"] = "busybox"
+      container["command"] = ["ls", "/not-a-dir"]
+    end
+
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      "StatefulSet/nginx-ss: FAILED",
+      "nginx: Crashing repeatedly (exit 1). See logs for more information.",
+      "Events (common success events excluded):",
+      "[Pod/nginx-ss-0]	FailedSync: Error syncing pod",
+      "Logs from container 'nginx' (last 250 lines shown):",
+      "ls: /not-a-dir: No such file or directory"
+    ], in_order: true)
+  end
+
+  def test_on_delete_stateful_sets_are_not_monitored
+    result = deploy_fixtures("hello-cloud", subset: ["stateful_set.yml"])
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "WARNING: Your StatefulSet's updateStrategy is set to OnDelete",
+      "Successful resources",
+      "StatefulSet/nginx-ss"
+    ], in_order: true)
+  end
+
+  def test_rolling_update_stateful_sets_are_monitored
+    skip if KUBE_CLIENT_VERSION < Gem::Version.new("1.7.0")
+    result = deploy_fixtures("hello-cloud", subset: ["stateful_set.yml"]) do |fixtures|
+      stateful_set = fixtures['stateful_set.yml']['StatefulSet'].first
+      stateful_set['spec']['updateStrategy'] = { 'type' => 'RollingUpdate' }
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Successfully deployed",
+      "Successful resources",
+      %r{StatefulSet/nginx-ss\s+2 replicas, 2 readyReplicas, 2 currentReplicas}
     ], in_order: true)
   end
 
