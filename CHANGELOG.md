@@ -1,4 +1,7 @@
-### 0.13.0 [UNRELEASED]
+### 0.13.0
+*Features*
+- Added support for StatefulSets for kubernetes 1.7+ using RollingUpdate
+
 *Bug Fixes*
 - Explicitly require the minimum rest-client version required by kubeclient ([#202](https://github.com/Shopify/kubernetes-deploy/pull/202))
 
