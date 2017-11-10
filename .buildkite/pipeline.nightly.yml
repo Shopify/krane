@@ -1,0 +1,24 @@
+  - name: 'Run Test Suite (:kubernetes: 1.9-latest)'
+    command: bin/ci
+    agents:
+      queue: minikube-v1.9-latest
+    env:
+      LOGGING_LEVEL: 4
+  - name: 'Run Test Suite (:kubernetes: 1.8-latest)'
+    command: bin/ci
+    agents:
+      queue: minikube-v1.8-latest
+    env:
+      LOGGING_LEVEL: 4
+  - name: 'Run Test Suite (:kubernetes: 1.7-latest)'
+    command: bin/ci
+    agents:
+      queue: minikube-v1.7-latest
+    env:
+      LOGGING_LEVEL: 4
+  - name: 'Run Test Suite (:kubernetes: 1.6.4)'
+    command: bin/ci
+    agents:
+      queue: minikube-v1.6.4
+    env:
+      LOGGING_LEVEL: 4
