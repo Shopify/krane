@@ -28,6 +28,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   topic
   bucket
   stateful_set
+  cron_job
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end

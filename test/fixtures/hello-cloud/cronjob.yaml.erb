@@ -1,0 +1,22 @@
+apiVersion: "<%= kube_client_version < Gem::Version.new('1.8.0') ? 'batch/v2alpha1' : 'batch/v1beta1' %>"
+kind: CronJob
+metadata:
+  name: hello-cloud-cronjob
+  labels:
+    name: hello-cloud-cronjob
+    app: hello-cloud
+spec:
+  schedule: "0 0 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: hello-cloud-cronjob
+            image: busybox
+            imagePullPolicy: IfNotPresent
+            args: ["echo", "hello", "cloud"]
+          restartPolicy: OnFailure

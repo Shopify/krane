@@ -47,6 +47,10 @@ module FixtureDeployHelper
 
   def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {}, sha: nil)
     current_sha = sha || SecureRandom.hex(6)
+    version_info = {
+      kube_client_version: KubernetesDeploy::IntegrationTest::KUBE_CLIENT_VERSION,
+      kube_server_version: KubernetesDeploy::IntegrationTest::KUBE_SERVER_VERSION
+    }
     runner = KubernetesDeploy::Runner.new(
       namespace: @namespace,
       current_sha: current_sha,
@@ -54,7 +58,7 @@ module FixtureDeployHelper
       template_dir: dir,
       logger: logger,
       kubectl_instance: build_kubectl,
-      bindings: bindings
+      bindings: version_info.merge(bindings)
     )
     runner.run(
       verify_result: wait,

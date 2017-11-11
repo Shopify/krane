@@ -11,6 +11,7 @@ module FixtureSetAssertions
       assert_all_web_resources_up
       assert_all_redis_resources_up
       assert_configmap_data_present
+      assert_cronjob_present
       assert_podtemplate_runner_present
       assert_poddisruptionbudget
       assert_bare_replicaset_up
@@ -36,6 +37,10 @@ module FixtureSetAssertions
 
     def refute_configmap_data_exists
       refute_resource_exists("config_map", "hello-cloud-configmap-data")
+    end
+
+    def assert_cronjob_present
+      assert_cronjob_exists("hello-cloud-cronjob", "hello-cloud")
     end
 
     def assert_all_web_resources_up
