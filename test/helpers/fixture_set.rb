@@ -100,9 +100,15 @@ module FixtureSetAssertions
     def assert_cronjob_exists(job_name, app_name)
       cronjobs =
         if KubernetesDeploy::IntegrationTest::KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
-          batch_v2alpha1_kubeclient.get_cron_jobs(namespace: namespace, label_selector: "name=#{job_name},app=#{app_name}")
+          batch_v2alpha1_kubeclient.get_cron_jobs(
+            namespace: namespace,
+            label_selector: "name=#{job_name},app=#{app_name}"
+          )
         else
-          batch_v1beta1_kubeclient.get_cron_jobs(namespace: namespace, label_selector: "name=#{job_name},app=#{app_name}")
+          batch_v1beta1_kubeclient.get_cron_jobs(
+            namespace: namespace,
+            label_selector: "name=#{job_name},app=#{app_name}"
+          )
         end
       assert_equal 1, cronjobs.size, "Expected 1 cronjob, got #{cronjobs.size}"
     end
