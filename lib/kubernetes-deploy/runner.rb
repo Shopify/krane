@@ -35,6 +35,7 @@ require 'kubernetes-deploy/resource_watcher'
 require 'kubernetes-deploy/kubectl'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
+require 'kubernetes-deploy/validate_version'
 
 module KubernetesDeploy
   class Runner
@@ -97,6 +98,7 @@ module KubernetesDeploy
 
       @logger.phase_heading("Initializing deploy")
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
+      KubernetesDeploy::ValidateVersion.confirm_version(kubectl)
       confirm_context_exists
       confirm_namespace_exists
       resources = discover_resources
