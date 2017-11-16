@@ -1,0 +1,37 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: web
+  annotations:
+    shipit.shopify.io/restart: "true"
+    kubernetes-deploy.shopify.io/required-rollout: maxUnavailable
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        name: web
+        app: slow-cloud
+    spec:
+      containers:
+      - name: app
+        readinessProbe:
+          exec:
+            command:
+              - sleep
+              - '7'
+          timeoutSeconds: 10
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: GITHUB_REV
+          value: <%= current_sha %>

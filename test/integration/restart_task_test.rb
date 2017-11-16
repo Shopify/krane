@@ -206,6 +206,30 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       in_order: true)
   end
 
+  def test_restart_successful_with_partial_availability
+    result = deploy_fixtures("slow-cloud") do |fixtures|
+      web = fixtures["web.yml.erb"]["Deployment"].first
+      web["spec"]["strategy"]['rollingUpdate']['maxUnavailable'] = '34%'
+    end
+    assert_deploy_success(result)
+
+    restart = build_restart_task
+    assert_restart_success(restart.perform(["web"]))
+
+    assert_logs_match_all([
+      "Configured to restart deployments by name: web",
+      "Triggered `web` restart",
+      "Waiting for rollout",
+      %r{Successfully restarted in \d+\.\d+s: Deployment/web},
+      "Result: SUCCESS",
+      "Successfully restarted 1 resource",
+      %r{Deployment\/web\s+[34] replicas, 3 updatedReplicas, 2 availableReplicas, [12] unavailableReplica}
+    ],
+      in_order: true)
+
+    assert fetch_restarted_at("web"), "RESTARTED_AT is present after the restart"
+  end
+
   private
 
   def build_restart_task
