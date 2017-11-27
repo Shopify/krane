@@ -417,6 +417,9 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
   end
 
   def test_create_and_update_secrets_from_ejson
+    logger.level = ::Logger::DEBUG # for assertions that we don't log secret data
+
+    # Create secrets
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
@@ -427,6 +430,11 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       /Creating secret monitoring-token/
     ])
 
+    refute_logs_match(ejson_cloud.test_private_key)
+    refute_logs_match(ejson_cloud.test_public_key)
+    refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
+
+    # Update secrets
     result = deploy_fixtures("ejson-cloud") do |fixtures|
       fixtures["secrets.ejson"]["kubernetes_secrets"]["unused-secret"]["data"] = { "_test" => "a" }
     end
@@ -434,6 +442,10 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     ejson_cloud.assert_secret_present('unused-secret', { "test" => "a" }, managed: true)
     ejson_cloud.assert_web_resources_up
     assert_logs_match(/Updating secret unused-secret/)
+
+    refute_logs_match(ejson_cloud.test_private_key)
+    refute_logs_match(ejson_cloud.test_public_key)
+    refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
   end
 
   def test_create_ejson_secrets_with_malformed_secret_data

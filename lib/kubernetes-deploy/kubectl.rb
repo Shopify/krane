@@ -2,12 +2,14 @@
 
 module KubernetesDeploy
   class Kubectl
-    def initialize(namespace:, context:, logger:, log_failure_by_default:, default_timeout: '30s')
+    def initialize(namespace:, context:, logger:, log_failure_by_default:, default_timeout: '30s',
+      output_is_sensitive: false)
       @namespace = namespace
       @context = context
       @logger = logger
       @log_failure_by_default = log_failure_by_default
       @default_timeout = default_timeout
+      @output_is_sensitive = output_is_sensitive
 
       raise ArgumentError, "namespace is required" if namespace.blank?
       raise ArgumentError, "context is required" if context.blank?
@@ -23,11 +25,11 @@ module KubernetesDeploy
 
       @logger.debug Shellwords.join(args)
       out, err, st = Open3.capture3(*args)
-      @logger.debug(out.shellescape)
+      @logger.debug(out.shellescape) unless output_is_sensitive?
 
       if !st.success? && log_failure
         @logger.warn("The following command failed: #{Shellwords.join(args)}")
-        @logger.warn(err)
+        @logger.warn(err) unless output_is_sensitive?
       end
       [out.chomp, err.chomp, st]
     end
@@ -50,6 +52,10 @@ module KubernetesDeploy
     end
 
     private
+
+    def output_is_sensitive?
+      @output_is_sensitive
+    end
 
     def extract_version_info_from_kubectl_response(response)
       info = {}

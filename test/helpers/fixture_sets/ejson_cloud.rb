@@ -17,17 +17,26 @@ module FixtureSetAssertions
         namespace: namespace,
         labels: { name: 'ejson-keys' }
       }
-      encoded_data = {
-        "65f79806388144edf800bf9fa683c98d3bc9484768448a275a35d398729c892a" =>
-          "ZmVkY2M5NTEzMmU5YjM5OWVlMWY0MDQzNjRmZGJjODFiZGJlNGZlYjViODI5MmIwNjFmMTAyMjQ4MTE1N2Q1YQ=="
-      }
+      encoded_data = { test_public_key => test_private_key }
       secret = Kubeclient::Secret.new(type: 'Opaque', metadata: metadata, data: encoded_data)
       kubeclient.create_secret(secret)
     end
 
+    def test_private_key
+      "ZmVkY2M5NTEzMmU5YjM5OWVlMWY0MDQzNjRmZGJjODFiZGJlNGZlYjViODI5MmIwNjFmMTAyMjQ4MTE1N2Q1YQ=="
+    end
+
+    def test_public_key
+      "65f79806388144edf800bf9fa683c98d3bc9484768448a275a35d398729c892a"
+    end
+
+    def catphotoscom_key_value
+      "this-is-the-key"
+    end
+
     def assert_all_secrets_present
       assert_secret_present("ejson-keys")
-      cert_data = { "tls.crt" => "this-is-the-certificate", "tls.key" => "this-is-the-key" }
+      cert_data = { "tls.crt" => "this-is-the-certificate", "tls.key" => catphotoscom_key_value }
       assert_secret_present("catphotoscom", cert_data, type: "kubernetes.io/tls", managed: true)
 
       token_data = { "api-token" => "this-is-the-api-token", "service" => "Datadog" } # Impt: it isn't _service: Datadog

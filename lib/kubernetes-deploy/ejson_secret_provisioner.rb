@@ -23,7 +23,13 @@ module KubernetesDeploy
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
       @logger = logger
       @prune = prune
-      @kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
+      @kubectl = Kubectl.new(
+        namespace: @namespace,
+        context: @context,
+        logger: @logger,
+        log_failure_by_default: false,
+        output_is_sensitive: true # output may contain ejson secrets
+      )
     end
 
     def secret_changes_required?
