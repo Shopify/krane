@@ -171,13 +171,14 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_failure
-    KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(12)
-
     success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
+      deployment["spec"]["progressDeadlineSeconds"] = 8
       container = deployment["spec"]["template"]["spec"]["containers"].first
       container["readinessProbe"] = {
         "failureThreshold" => 1,
+        "periodSeconds" => 1,
+        "initialDelaySeconds" => 0,
         "exec" => {
           "command" => [
             "/bin/sh",
@@ -196,10 +197,10 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       "Deployment/web rollout timed out",
       "Result: FAILURE",
       "Failed to restart 1 resource",
-      %r{Deployment/web: TIMED OUT \(limit: \d+s\)},
+      "Deployment/web: TIMED OUT",
       "The following containers have not passed their readiness probes",
       "app must exit 0 from the following command",
-      "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
+      "Final status: 2 replicas, 1 updatedReplica, 1 availableReplica, 1 unavailableReplica",
       # "Unhealthy: Readiness probe failed" # from an event not produced by v1.6.4--add back when we drop 1.6 CI
     ],
       in_order: true)

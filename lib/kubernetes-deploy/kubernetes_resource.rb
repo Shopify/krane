@@ -42,6 +42,10 @@ module KubernetesDeploy
       self.class.timeout
     end
 
+    def pretty_timeout_type
+      "timeout: #{timeout}s"
+    end
+
     def initialize(namespace:, context:, definition:, logger:)
       # subclasses must also set these if they define their own initializer
       @name = definition.dig("metadata", "name")
@@ -126,7 +130,7 @@ module KubernetesDeploy
         helpful_info << ColorizedString.new("#{id}: FAILED").red
         helpful_info << failure_message if failure_message.present?
       elsif deploy_timed_out?
-        helpful_info << ColorizedString.new("#{id}: TIMED OUT").yellow + " (limit: #{timeout}s)"
+        helpful_info << ColorizedString.new("#{id}: TIMED OUT (#{pretty_timeout_type})").yellow
         helpful_info << timeout_message if timeout_message.present?
       else
         # Arriving in debug_message when we neither failed nor timed out is very unexpected. Dump all available info.

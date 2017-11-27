@@ -4,6 +4,7 @@ metadata:
   name: cannot-run
 spec:
   replicas: 3
+  progressDeadlineSeconds: 15
   template:
     metadata:
       labels:

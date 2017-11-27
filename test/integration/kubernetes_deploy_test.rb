@@ -252,21 +252,40 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     ], in_order: true)
   end
 
-  def test_bad_container_image_on_run_once_halts_and_fails_deploy
+  def test_bad_container_image_on_unmanaged_pod_halts_and_fails_deploy
     result = deploy_fixtures("hello-cloud") do |fixtures|
       pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
-      pod["spec"]["activeDeadlineSeconds"] = 1
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
     assert_deploy_failure(result)
-    assert_logs_match("Failed to deploy 1 priority resource")
-    assert_logs_match(%r{Pod\/unmanaged-pod-\w+-\w+: FAILED})
+    assert_logs_match_all([
+      "Failed to deploy 1 priority resource",
+      %r{Pod\/unmanaged-pod-\w+-\w+: FAILED},
+      "hello-cloud: Failed to pull image"
+    ], in_order: true)
 
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-    hello_cloud.assert_unmanaged_pod_statuses("Failed")
+    hello_cloud.assert_unmanaged_pod_statuses("Pending")
     hello_cloud.assert_configmap_data_present # priority resource
     hello_cloud.refute_redis_resources_exist(expect_pvc: true) # pvc is priority resource
     hello_cloud.refute_web_resources_exist
+  end
+
+  def test_output_of_failed_unmanaged_pod
+    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod.yml.erb", "configmap-data.yml"]) do |fixtures|
+      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+      pod["spec"]["containers"].first["command"] = ["/not/a/command"]
+    end
+    assert_deploy_failure(result)
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_unmanaged_pod_statuses("Failed")
+    hello_cloud.refute_web_resources_exist
+
+    assert_logs_match_all([
+      "Failed to deploy 1 priority resource",
+      "Pod status: Failed. The following containers encountered errors:",
+      "> hello-cloud: Failed to start (exit 127):"
+    ], in_order: true)
   end
 
   if KUBE_SERVER_VERSION < Gem::Version.new("1.8.0")
@@ -357,7 +376,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
   end
 
   def test_deployment_with_progress_times_out_for_short_duration
-    # The deployment adds a progressDealineSeconds of 2s and attepts to deploy a container
+    # The deployment adds a progressDeadlineSeconds of 2s and attepts to deploy a container
     # which sleeps and cannot fulfill the readiness probe causing it to timeout
     result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
@@ -368,8 +387,8 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     assert_deploy_failure(result)
 
     assert_logs_match_all([
-      'Deployment/undying: TIMED OUT (limit: 420s)',
-      'Deploy timed out due to progressDeadlineSeconds of 2 seconds'
+      'Deployment/undying: TIMED OUT (progress deadline: 2s)',
+      'Timeout reason: ProgressDeadlineExceeded'
     ])
   end
 
@@ -504,14 +523,15 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
   end
 
   def test_deploy_result_logging_for_mixed_result_deploy
-    forced_timeout = 20 # failure can take 10+s, which makes this test flake with shorter hard timeouts
-    KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(forced_timeout)
+    KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(10)
     result = deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"])
     assert_deploy_failure(result)
 
     # Debug info for bad probe timeout
     assert_logs_match_all([
-      "Deployment/bad-probe: TIMED OUT (limit: #{forced_timeout}s)",
+      "Deployment/bad-probe: TIMED OUT (timeout: 10s)",
+      "Timeout reason: hard deadline for Deployment",
+      /Latest ReplicaSet: bad-probe-\w+/,
       "The following containers have not passed their readiness probes on at least one pod:",
       "http-probe must respond with a good status code at '/bad/ping/path'",
       "exec-probe must exit 0 from the following command: 'ls /bad/path'",
@@ -522,7 +542,9 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
 
     # Debug info for missing volume timeout
     assert_logs_match_all([
-      "Deployment/missing-volumes: TIMED OUT (limit: #{forced_timeout}s)",
+      "Deployment/missing-volumes: TIMED OUT (progress deadline: 10s)",
+      "Timeout reason: ProgressDeadlineExceeded",
+      /Latest ReplicaSet: missing-volumes-\w+/,
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
       /FailedMount.*secrets "catphotoscom" not found/, # event
     ], in_order: true)
@@ -530,6 +552,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     # Debug info for failure
     assert_logs_match_all([
       "Deployment/init-crash: FAILED",
+      /Latest ReplicaSet: init-crash-\w+/,
       "The following containers are in a state that is unlikely to be recoverable:",
       "init-crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
       "Final status: 2 replicas, 2 updatedReplicas, 2 unavailableReplicas",
@@ -667,22 +690,15 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
   end
 
   def test_bad_container_on_daemon_sets_fails
-    result = deploy_fixtures("hello-cloud", subset: ["daemon_set.yml"]) do |fixtures|
-      daemon_set = fixtures['daemon_set.yml']['DaemonSet'].first
-      container = daemon_set['spec']['template']['spec']['containers'].first
-      container["image"] = "busybox"
-      container["command"] = ["ls", "/not-a-dir"]
-    end
-
-    assert_deploy_failure(result)
+    assert_deploy_failure(deploy_fixtures("invalid", subset: ["crash_loop_daemon_set.yml"]))
     assert_logs_match_all([
-      "DaemonSet/nginx: FAILED",
-      "nginx: Crashing repeatedly (exit 1). See logs for more information.",
+      "DaemonSet/crash-loop: FAILED",
+      "crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
       "Final status: 1 currentNumberScheduled, 1 desiredNumberScheduled, 0 numberReady",
       "Events (common success events excluded):",
       "BackOff: Back-off restarting failed container",
-      "Logs from container 'nginx' (last 250 lines shown):",
-      "ls: /not-a-dir: No such file or directory"
+      "Logs from container 'crash-loop-back-off' (last 250 lines shown):",
+      "nginx: [error]"
     ], in_order: true)
   end
 
@@ -734,8 +750,6 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
   end
 
   def test_resource_quotas_are_deployed_first
-    forced_timeout = 10
-    KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(forced_timeout)
     result = deploy_fixtures("resource-quota")
     assert_deploy_failure(result)
     assert_logs_match_all([
@@ -744,8 +758,9 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "Deployment/web rollout timed out",
       "Successful resources",
       "ResourceQuota/resource-quotas",
-      "Deployment/web: TIMED OUT (limit: 10s)",
-      "failed quota: resource-quotas"
+      "Deployment/web: TIMED OUT (progress deadline: 10s)",
+      "Timeout reason: ProgressDeadlineExceeded",
+      "failed quota: resource-quotas" # from an event
     ], in_order: true)
 
     rqs = kubeclient.get_resource_quotas(namespace: @namespace)
@@ -791,6 +806,46 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       ], in_order: true)
     ensure
       ENV['KUBECONFIG'] = old_config
+    end
+  end
+
+  def test_roll_back_a_bad_deploy
+    result = deploy_fixtures("invalid", subset: ["cannot_run.yml"], sha: "REVA") do |fixtures|
+      container = fixtures["cannot_run.yml"]["Deployment"].first["spec"]["template"]["spec"]["containers"].first
+      container["command"] = %w(sleep 8000)
+    end
+    assert_deploy_success(result)
+    original_rs = v1beta1_kubeclient.get_replica_sets(namespace: @namespace).first
+    original_rs_uid = original_rs["metadata"]["uid"]
+    assert original_rs_uid.present?
+    assert_equal 3, original_rs["status"]["availableReplicas"]
+
+    # Bad deploy
+    assert_deploy_failure(deploy_fixtures("invalid", subset: ["cannot_run.yml"], sha: "REVB"))
+
+    # Rollback
+    result = deploy_fixtures("invalid", subset: ["cannot_run.yml"], sha: "REVA") do |fixtures|
+      container = fixtures["cannot_run.yml"]["Deployment"].first["spec"]["template"]["spec"]["containers"].first
+      container["command"] = %w(sleep 8000)
+    end
+    assert_deploy_success(result)
+
+    all_rs = v1beta1_kubeclient.get_replica_sets(namespace: @namespace)
+    assert_equal 2, all_rs.length, "Test premise failure: Rollback created a new RS"
+    original_rs = all_rs.find { |rs| rs["metadata"]["uid"] == original_rs_uid }
+    assert_equal 3, original_rs["status"]["availableReplicas"]
+  end
+
+  def test_deployment_with_recreate_strategy
+    2.times do
+      result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+        deployment = fixtures["web.yml.erb"]["Deployment"].first
+        deployment["spec"]["strategy"] = { "type" => "Recreate" }
+        deployment["spec"]["template"]["spec"]["containers"].first["lifecycle"] = {
+          "preStop" => { "exec" => { "command" => %w(sleep 5) } } # simulate app shutdown time
+        }
+      end
+      assert_deploy_success(result)
     end
   end
 end

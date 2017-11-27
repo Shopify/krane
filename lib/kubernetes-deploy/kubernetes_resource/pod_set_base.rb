@@ -2,12 +2,10 @@
 module KubernetesDeploy
   class PodSetBase < KubernetesResource
     def failure_message
-      "Pods in #{name} #{self.class.name.demodulize} are failing. " +
       pods.map(&:failure_message).compact.uniq.join("\n")
     end
 
     def timeout_message
-      "Pods in #{name} #{self.class.name.demodulize} have timed out. " +
       pods.map(&:timeout_message).compact.uniq.join("\n")
     end
 
@@ -61,7 +59,7 @@ module KubernetesDeploy
           context: context,
           definition: pod_data,
           logger: @logger,
-          parent: "#{name.capitalize} #{self.class.name.demodulize}",
+          parent: "#{name.capitalize} #{type}",
           deploy_started_at: @deploy_started_at
         )
         pod.sync(pod_data)

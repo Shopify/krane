@@ -79,7 +79,7 @@ module KubernetesDeploy
           container_problems += "> #{red_name}: #{c.doom_reason}\n"
         end
       end
-      "#{phase_problem}#{container_problems}"
+      "#{phase_problem}#{container_problems}".presence
     end
 
     # Returns a hash in the following format:

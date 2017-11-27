@@ -4,6 +4,7 @@ metadata:
   name: init-crash
 spec:
   replicas: 2
+  progressDeadlineSeconds: 15
   template:
     metadata:
       labels:

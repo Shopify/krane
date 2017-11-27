@@ -326,14 +326,14 @@ module KubernetesDeploy
         @logger.info("Deploying resources:")
       else
         resource = resources.first
-        @logger.info("Deploying #{resource.id} (timeout: #{resource.timeout}s)")
+        @logger.info("Deploying #{resource.id} (#{resource.pretty_timeout_type})")
       end
 
       # Apply can be done in one large batch, the rest have to be done individually
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
 
       individuals.each do |r|
-        @logger.info("- #{r.id} (timeout: #{r.timeout}s)") if resources.length > 1
+        @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1
         r.deploy_started_at = Time.now.utc
         case r.deploy_method
         when :replace
@@ -369,7 +369,7 @@ module KubernetesDeploy
 
       command = ["apply"]
       resources.each do |r|
-        @logger.info("- #{r.id} (timeout: #{r.timeout}s)") if resources.length > 1
+        @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1
         command.push("-f", r.file_path)
         r.deploy_started_at = Time.now.utc
       end

@@ -5,6 +5,7 @@ metadata:
   name: <%= "web-#{name}" %>
 spec:
   replicas: 1
+  progressDeadlineSeconds: 15
   template:
     metadata:
       labels:
