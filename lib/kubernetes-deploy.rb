@@ -13,7 +13,7 @@ require 'colorized_string'
 require 'kubernetes-deploy/version'
 require 'kubernetes-deploy/errors'
 require 'kubernetes-deploy/formatted_logger'
-require 'kubernetes-deploy/runner'
+require 'kubernetes-deploy/deploy_task'
 require 'kubernetes-deploy/statsd'
 require 'kubernetes-deploy/concurrency'
 

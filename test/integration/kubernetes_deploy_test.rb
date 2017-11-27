@@ -77,7 +77,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_deploying_to_protected_namespace_with_override_does_not_prune
-    KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
+    KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
       assert_deploy_success(deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: false))
       hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
       hello_cloud.assert_all_up
@@ -93,14 +93,14 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_refuses_deploy_to_protected_namespace_with_override_if_pruning_enabled
-    KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
+    KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
       assert_deploy_failure(deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: true))
     end
     assert_logs_match(/Refusing to deploy to protected namespace .* pruning enabled/)
   end
 
   def test_refuses_deploy_to_protected_namespace_without_override
-    KubernetesDeploy::Runner.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
+    KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
       assert_deploy_failure(deploy_fixtures("hello-cloud", prune: false))
     end
     assert_logs_match(/Refusing to deploy to protected namespace/)

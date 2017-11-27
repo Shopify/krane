@@ -22,7 +22,7 @@ ARGV.options do |opts|
   end
 
   opts.on("--skip-wait", "Skip verification of non-priority-resource success (not recommended)") { skip_wait = true }
-  prot_ns = KubernetesDeploy::Runner::PROTECTED_NAMESPACES.join(', ')
+  prot_ns = KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES.join(', ')
   opts.on("--allow-protected-ns", "Enable deploys to #{prot_ns}; requires --no-prune") { allow_protected_ns = true }
   opts.on("--no-prune", "Disable deletion of resources that do not appear in the template dir") { prune = false }
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
@@ -58,7 +58,7 @@ namespace = ARGV[0]
 context = ARGV[1]
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
 
-runner = KubernetesDeploy::Runner.new(
+runner = KubernetesDeploy::DeployTask.new(
   namespace: namespace,
   context: context,
   current_sha: revision,

@@ -37,7 +37,7 @@ require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
 
 module KubernetesDeploy
-  class Runner
+  class DeployTask
     include KubeclientBuilder
 
     PREDEPLOY_SEQUENCE = %w(
