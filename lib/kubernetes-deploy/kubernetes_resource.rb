@@ -6,7 +6,7 @@ require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class KubernetesResource
-    attr_reader :name, :namespace, :file, :context, :validation_error_msg
+    attr_reader :name, :namespace, :context, :validation_error_msg
     attr_writer :type, :deploy_started_at
 
     TIMEOUT = 5.minutes

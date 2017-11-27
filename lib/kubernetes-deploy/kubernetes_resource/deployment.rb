@@ -44,7 +44,7 @@ module KubernetesDeploy
     end
 
     def deploy_failed?
-      @latest_rs && @latest_rs.deploy_failed?
+      @latest_rs&.deploy_failed?
     end
 
     def failure_message
