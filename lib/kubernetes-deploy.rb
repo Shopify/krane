@@ -19,6 +19,7 @@ require 'kubernetes-deploy/statsd'
 require 'kubernetes-deploy/concurrency'
 require 'kubernetes-deploy/bindings_parser'
 require 'kubernetes-deploy/duration_parser'
+require 'kubernetes-deploy/docker_registry'
 
 module KubernetesDeploy
   MIN_KUBE_VERSION = '1.7.0'

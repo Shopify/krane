@@ -68,6 +68,10 @@ module KubernetesDeploy
       raise InvalidPartialError, "Template '#{partial_path}' cannot be rendered"
     end
 
+    def image_with_digest(image)
+      @image_digests[image] ||= KubernetesDeploy::DockerRegistry.image_with_digest(image)
+    end
+
     private
 
     def template_variables
@@ -110,6 +114,10 @@ module KubernetesDeploy
 
       def partial(partial, locals = {})
         @_renderer.render_partial(partial, locals)
+      end
+
+      def image_with_digest(image)
+        @_renderer.image_with_digest(image)
       end
     end
   end
