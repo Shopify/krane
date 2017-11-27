@@ -3,9 +3,9 @@ module KubernetesDeploy
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
 
-    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started: nil)
+    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started_at: nil)
       @parent = parent
-      @deploy_started = deploy_started
+      @deploy_started_at = deploy_started_at
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
@@ -19,7 +19,7 @@ module KubernetesDeploy
       if pod_data.blank?
         raw_json, _err, st = kubectl.run("get", type, @name, "-a", "--output=json")
         pod_data = JSON.parse(raw_json) if st.success?
-        raise_predates_deploy_error if pod_data.present? && unmanaged? && !@deploy_started
+        raise_predates_deploy_error if pod_data.present? && unmanaged? && !deploy_started?
       end
 
       if pod_data.present?
@@ -89,7 +89,7 @@ module KubernetesDeploy
           "logs",
           @name,
           "--container=#{container.name}",
-          "--since-time=#{@deploy_started.to_datetime.rfc3339}",
+          "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
         out, _err, _st = kubectl.run(*cmd)

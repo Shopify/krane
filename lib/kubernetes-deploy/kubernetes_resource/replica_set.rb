@@ -5,9 +5,9 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     attr_reader :desired_replicas, :pods
 
-    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started: nil)
+    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started_at: nil)
       @parent = parent
-      @deploy_started = deploy_started
+      @deploy_started_at = deploy_started_at
       @rollout_data = { "replicas" => 0 }
       @pods = []
       super(namespace: namespace, context: context, definition: definition, logger: logger)

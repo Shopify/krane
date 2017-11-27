@@ -92,7 +92,7 @@ module KubernetesDeploy
         definition: latest_rs_data,
         logger: @logger,
         parent: "#{@name.capitalize} deployment",
-        deploy_started: @deploy_started
+        deploy_started_at: @deploy_started_at
       )
       rs.sync(latest_rs_data)
       rs

@@ -7,7 +7,7 @@ require 'kubernetes-deploy/kubectl'
 module KubernetesDeploy
   class KubernetesResource
     attr_reader :name, :namespace, :file, :context, :validation_error_msg
-    attr_writer :type, :deploy_started
+    attr_writer :type, :deploy_started_at
 
     TIMEOUT = 5.minutes
     LOG_LINE_COUNT = 250
@@ -86,8 +86,12 @@ module KubernetesDeploy
       false
     end
 
+    def deploy_started?
+      @deploy_started_at.present?
+    end
+
     def deploy_succeeded?
-      if @deploy_started && !@success_assumption_warning_shown
+      if deploy_started? && !@success_assumption_warning_shown
         @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
         @success_assumption_warning_shown = true
       end
@@ -111,8 +115,8 @@ module KubernetesDeploy
     end
 
     def deploy_timed_out?
-      return false unless @deploy_started
-      !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started > timeout)
+      return false unless deploy_started?
+      !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started_at > timeout)
     end
 
     # Expected values: :apply, :replace, :replace_force
@@ -178,7 +182,7 @@ module KubernetesDeploy
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
       Event.extract_all_from_go_template_blob(out).each_with_object(event_collector) do |candidate, events|
-        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started - 5.seconds)
+        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started_at - 5.seconds)
       end
     end
 

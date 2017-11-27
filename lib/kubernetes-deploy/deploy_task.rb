@@ -334,7 +334,7 @@ module KubernetesDeploy
 
       individuals.each do |r|
         @logger.info("- #{r.id} (timeout: #{r.timeout}s)") if resources.length > 1
-        r.deploy_started = Time.now.utc
+        r.deploy_started_at = Time.now.utc
         case r.deploy_method
         when :replace
           _, _, replace_st = kubectl.run("replace", "-f", r.file_path, log_failure: false)
@@ -371,7 +371,7 @@ module KubernetesDeploy
       resources.each do |r|
         @logger.info("- #{r.id} (timeout: #{r.timeout}s)") if resources.length > 1
         command.push("-f", r.file_path)
-        r.deploy_started = Time.now.utc
+        r.deploy_started_at = Time.now.utc
       end
 
       if prune
