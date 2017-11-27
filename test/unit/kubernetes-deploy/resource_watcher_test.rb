@@ -99,10 +99,6 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       @hits += 1
     end
 
-    def deploy_finished?
-      deploy_succeeded? || deploy_failed? || deploy_timed_out?
-    end
-
     def deploy_succeeded?
       status == "success" && hits_complete?
     end

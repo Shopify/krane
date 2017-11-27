@@ -107,11 +107,7 @@ module KubernetesDeploy
     end
 
     def type
-      @type || self.class.name.split('::').last
-    end
-
-    def deploy_finished?
-      deploy_failed? || deploy_succeeded? || deploy_timed_out?
+      @type || self.class.name.demodulize
     end
 
     def deploy_timed_out?
@@ -129,9 +125,14 @@ module KubernetesDeploy
       if deploy_failed?
         helpful_info << ColorizedString.new("#{id}: FAILED").red
         helpful_info << failure_message if failure_message.present?
-      else
+      elsif deploy_timed_out?
         helpful_info << ColorizedString.new("#{id}: TIMED OUT").yellow + " (limit: #{timeout}s)"
         helpful_info << timeout_message if timeout_message.present?
+      else
+        # Arriving in debug_message when we neither failed nor timed out is very unexpected. Dump all available info.
+        helpful_info << ColorizedString.new("#{id}: MONITORING ERROR").red
+        helpful_info << failure_message if failure_message.present?
+        helpful_info << timeout_message if timeout_message.present? && timeout_message != STANDARD_TIMEOUT_MESSAGE
       end
       helpful_info << "  - Final status: #{status}"
 
