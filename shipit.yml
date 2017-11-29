@@ -1,0 +1,4 @@
+ci:
+  hide:
+    -  buildkite/kubernetes-deploy-gem-nightly
+
