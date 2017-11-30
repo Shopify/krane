@@ -1,3 +1,13 @@
+### 0.14.0
+*Bug Fixes*
+- Fix incorrect timeouts occasionally observed on deployments using progressDeadlineSeconds in Kubernetes <1.7.7
+
+*Enhancements*
+- Renamed `KubernetesDeploy::Runner` (which powers `exe/kubernetes-deploy`) to `KubernetesDeploy::DeployTask`. This increases consistency between our primary class names and avoids confusion with `KubernetesDeploy::RunnerTask` (which powers `exe/kubernetes-run`).
+- Improved output related to timeouts. For deployments, both failure and timeout output now mentions the referenced replica set.
+- Small improvements to the reliability of the success polling.
+- EjsonSecretProvisioner no longer logs kubectl command output (which may contain secret data) when debug-level logging is enabled.
+
 ### 0.13.0
 *Features*
 - Added support for StatefulSets for kubernetes 1.7+ using RollingUpdate
