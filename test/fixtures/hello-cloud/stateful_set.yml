@@ -11,9 +11,9 @@ spec:
         app: hello-cloud
         name: nginx-ss
     spec:
+      terminationGracePeriodSeconds: 0
       containers:
       - name: nginx
-        image: gcr.io/google_containers/nginx-slim:0.8
-        command: ["sleep", "40"]
+        image: nginx:alpine
         ports:
         - containerPort: 80
