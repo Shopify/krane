@@ -80,7 +80,7 @@ module KubernetesDeploy
       kubeclient_resources.map do |d|
         definition = d.to_h.deep_stringify_keys
         r = Deployment.new(namespace: @namespace, context: @context, definition: definition, logger: @logger)
-        r.deploy_started = started # we don't care what happened to the resource before the restart cmd ran
+        r.deploy_started_at = started # we don't care what happened to the resource before the restart cmd ran
         r
       end
     end

@@ -24,11 +24,12 @@ module KubernetesDeploy
         delay_sync_until = Time.now.utc + delay_sync # don't pummel the API if the sync is fast
 
         KubernetesDeploy::Concurrency.split_across_threads(remainder, &:sync)
-        newly_finished_resources, remainder = remainder.partition(&:deploy_finished?)
+        new_successes, remainder = remainder.partition(&:deploy_succeeded?)
+        new_failures, remainder = remainder.partition(&:deploy_failed?)
+        new_timeouts, remainder = remainder.partition(&:deploy_timed_out?)
 
-        if newly_finished_resources.present?
-          watch_time = (Time.now.utc - @deploy_started_at).round(1)
-          report_what_just_happened(newly_finished_resources, watch_time)
+        if new_successes.present? || new_failures.present? || new_timeouts.present?
+          report_what_just_happened(new_successes, new_failures, new_timeouts)
           report_what_is_left(remainder, reminder: false)
           last_message_logged_at = Time.now.utc
         elsif due_for_reminder?(last_message_logged_at, reminder_interval)
@@ -41,19 +42,20 @@ module KubernetesDeploy
 
     private
 
-    def report_what_just_happened(resources, watch_time)
-      resources.each { |r| r.report_status_to_statsd(watch_time) }
-
-      new_successes, new_failures = resources.partition(&:deploy_succeeded?)
+    def report_what_just_happened(new_successes, new_failures, new_timeouts)
+      watch_time = (Time.now.utc - @deploy_started_at).round(1)
       new_failures.each do |resource|
-        if resource.deploy_failed?
-          @logger.error("#{resource.id} failed to #{@operation_name} after #{watch_time}s")
-        else
-          @logger.error("#{resource.id} rollout timed out")
-        end
+        resource.report_status_to_statsd(watch_time)
+        @logger.error("#{resource.id} failed to #{@operation_name} after #{watch_time}s")
+      end
+
+      new_timeouts.each do |resource|
+        resource.report_status_to_statsd(watch_time)
+        @logger.error("#{resource.id} rollout timed out after #{watch_time}s")
       end
 
       if new_successes.present?
+        new_successes.each { |r| r.report_status_to_statsd(watch_time) }
         success_string = ColorizedString.new("Successfully #{@operation_name}ed in #{watch_time}s:").green
         @logger.info("#{success_string} #{new_successes.map(&:id).join(', ')}")
       end

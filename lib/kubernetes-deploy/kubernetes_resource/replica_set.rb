@@ -5,10 +5,11 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     attr_reader :desired_replicas, :pods
 
-    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started: nil)
+    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started_at: nil)
       @parent = parent
-      @deploy_started = deploy_started
+      @deploy_started_at = deploy_started_at
       @rollout_data = { "replicas" => 0 }
+      @desired_replicas = -1
       @pods = []
       super(namespace: namespace, context: context, definition: definition, logger: logger)
     end
@@ -22,8 +23,9 @@ module KubernetesDeploy
       if rs_data.present?
         @found = true
         @desired_replicas = rs_data["spec"]["replicas"].to_i
-        @rollout_data = { "replicas" => 0 }.merge(rs_data["status"]
-          .slice("replicas", "availableReplicas", "readyReplicas"))
+        @rollout_data = { "replicas" => 0 }.merge(
+          rs_data["status"].slice("replicas", "availableReplicas", "readyReplicas")
+        )
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
         @pods = find_pods(rs_data)
       else # reset
@@ -31,6 +33,7 @@ module KubernetesDeploy
         @rollout_data = { "replicas" => 0 }
         @status = nil
         @pods = []
+        @desired_replicas = -1
       end
     end
 

@@ -1,9 +1,10 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: init-crash
 spec:
   replicas: 2
+  progressDeadlineSeconds: 20
   template:
     metadata:
       labels:

@@ -1,9 +1,10 @@
-apiVersion: extensions/v1beta1
+apiVersion: extensions/v1beta1 # keep as long as this group is valid
 kind: Deployment
 metadata:
   name: bad-probe
 spec:
   replicas: 1
+  # progressDeadlineSeconds: 10 -- do not add: this is used to test the hard deadline
   template:
     metadata:
       labels:
@@ -21,6 +22,7 @@ spec:
             path: "/bad/ping/path"
             port: 80
           initialDelaySeconds: 0
+          periodSeconds: 1
           timeoutSeconds: 1
           failureThreshold: 1
       - name: exec-probe
@@ -33,6 +35,7 @@ spec:
               - "ls"
               - "/bad/path"
           initialDelaySeconds: 0
+          periodSeconds: 1
           timeoutSeconds: 1
           failureThreshold: 1
       - name: sidecar

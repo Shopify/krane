@@ -114,7 +114,7 @@ class PodTest < KubernetesDeploy::TestCase
       context: 'minikube',
       definition: spec,
       logger: @logger,
-      deploy_started: Time.now.utc
+      deploy_started_at: Time.now.utc
     )
   end
 end

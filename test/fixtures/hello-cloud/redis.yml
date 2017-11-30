@@ -26,12 +26,13 @@ spec:
     requests:
       storage: 100M
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: redis
 spec:
   replicas: 1
+  progressDeadlineSeconds: 20
   template:
     metadata:
       labels:

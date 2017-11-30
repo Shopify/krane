@@ -22,7 +22,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_fetch_events_parses_tricky_events_correctly
     start_time = Time.now.utc - 10.seconds
     dummy = DummyResource.new
-    dummy.deploy_started = start_time
+    dummy.deploy_started_at = start_time
 
     tricky_events = dummy_events(start_time)
     assert tricky_events.first[:message].count("\n") > 1, "Sanity check failed: inadequate newlines in test events"
@@ -35,7 +35,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_fetch_events_excludes_events_from_previous_deploys
     start_time = Time.now.utc - 10.seconds
     dummy = DummyResource.new
-    dummy.deploy_started = start_time
+    dummy.deploy_started_at = start_time
     mixed_time_events = dummy_events(start_time)
     mixed_time_events.first[:last_seen] = 1.hour.ago
 
@@ -46,7 +46,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_fetch_events_returns_empty_hash_when_kubectl_results_empty
     dummy = DummyResource.new
-    dummy.deploy_started = Time.now.utc - 10.seconds
+    dummy.deploy_started_at = Time.now.utc - 10.seconds
 
     stub_kubectl_response("get", "events", anything, resp: "", json: false)
     events = dummy.fetch_events

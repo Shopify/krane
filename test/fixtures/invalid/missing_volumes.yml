@@ -1,9 +1,10 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: missing-volumes
 spec:
   replicas: 1
+  progressDeadlineSeconds: 10
   template:
     metadata:
       labels:
