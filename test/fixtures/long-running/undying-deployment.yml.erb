@@ -34,7 +34,7 @@ spec:
       - name: app
         image: busybox
         imagePullPolicy: IfNotPresent
-        command: ["sleep", "40"]
+        command: ["tail", "-f", "/dev/null"]
         lifecycle:
           preStop:
             exec:

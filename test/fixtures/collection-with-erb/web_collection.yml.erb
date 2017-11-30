@@ -13,7 +13,9 @@ spec:
     spec:
       containers:
       - name: app
-        image: nginx:alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         ports:
         - containerPort: 80
           name: http

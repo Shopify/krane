@@ -47,7 +47,9 @@ spec:
     spec:
       containers:
       - name: app
-        image: nginx:alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         ports:
         - containerPort: 80
           name: http
@@ -62,4 +64,4 @@ spec:
       - name: sidecar
         image: busybox
         imagePullPolicy: IfNotPresent
-        command: ["sleep", "8000"]
+        command: ["tail", "-f", "/dev/null"]

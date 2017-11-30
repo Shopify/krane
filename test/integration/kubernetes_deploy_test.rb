@@ -9,7 +9,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
-      "Hello from Docker!", # unmanaged pod logs
+      "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
       "Successfully deployed 14 resources"
     ], in_order: true)
@@ -18,8 +18,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
       %r{Service/web\s+Selects at least 1 pod},
-      %r{DaemonSet/nginx\s+1 currentNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
-      %r{StatefulSet/nginx-ss}
+      %r{DaemonSet/ds-app\s+1 currentNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
+      %r{StatefulSet/stateful-busybox}
     ])
 
     # Verify that success section isn't duplicated for predeployed resources
@@ -56,8 +56,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'service "web"',
       'deployment "web"',
       'ingress "web"',
-      'daemonset "nginx"',
-      'statefulset "nginx-ss"'
+      'daemonset "ds-app"',
+      'statefulset "stateful-busybox"'
     ] # not necessarily listed in this order
     expected_msgs = [/Pruned 7 resources and successfully deployed 3 resources/]
     expected_pruned.map do |resource|
@@ -333,7 +333,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "Deployment/init-crash: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
       "init-crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
-      "ls: /not-a-dir: No such file or directory" # logs
+      "this is a log from the crashing init container"
     ], in_order: true)
   end
 
@@ -344,7 +344,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "Deployment/crash-loop: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
       "crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
-      'nginx: [error] open() "/var/run/nginx.pid" failed (2: No such file or directory)' # Logs
+      "this is a log from the crashing container"
     ], in_order: true)
   end
 
@@ -356,7 +356,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "The following containers are in a state that is unlikely to be recoverable:",
       %r{container-cannot-run: Failed to start \(exit 127\): .*/some/bad/path},
       "Logs from container 'successful-init'",
-      "Hello from Docker!" # logs from successful init container
+      "Log from successful init container"
     ], in_order: true)
     assert_logs_match("no such file or directory")
   end
@@ -534,7 +534,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       /Latest ReplicaSet: bad-probe-\w+/,
       "The following containers have not passed their readiness probes on at least one pod:",
       "http-probe must respond with a good status code at '/bad/ping/path'",
-      "exec-probe must exit 0 from the following command: 'ls /bad/path'",
+      "exec-probe must exit 0 from the following command: 'test 0 -eq 1'",
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
       "Scaled up replica set bad-probe-", # event
     ], in_order: true)
@@ -557,7 +557,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "init-crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
       "Final status: 2 replicas, 2 updatedReplicas, 2 unavailableReplicas",
       "Scaled up replica set init-crash-", # event
-      "ls: /not-a-dir: No such file or directory" # log
+      "this is a log from the crashing init container"
     ], in_order: true)
 
     # Excludes noisy events
@@ -698,7 +698,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "Events (common success events excluded):",
       "BackOff: Back-off restarting failed container",
       "Logs from container 'crash-loop-back-off' (last 250 lines shown):",
-      "nginx: [error]"
+      "this is a log from the crashing container"
     ], in_order: true)
   end
 
@@ -714,11 +714,11 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
 
     assert_deploy_failure(result)
     assert_logs_match_all([
-      "StatefulSet/nginx-ss: FAILED",
-      "nginx: Crashing repeatedly (exit 1). See logs for more information.",
+      "StatefulSet/stateful-busybox: FAILED",
+      "app: Crashing repeatedly (exit 1). See logs for more information.",
       "Events (common success events excluded):",
-      "[Pod/nginx-ss-0]	FailedSync: Error syncing pod",
-      "Logs from container 'nginx' (last 250 lines shown):",
+      "[Pod/stateful-busybox-0]	FailedSync: Error syncing pod",
+      "Logs from container 'app' (last 250 lines shown):",
       "ls: /not-a-dir: No such file or directory"
     ], in_order: true)
   end
@@ -730,7 +730,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     assert_logs_match_all([
       "WARNING: Your StatefulSet's updateStrategy is set to OnDelete",
       "Successful resources",
-      "StatefulSet/nginx-ss"
+      "StatefulSet/stateful-busybox"
     ], in_order: true)
   end
 
@@ -745,7 +745,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     assert_logs_match_all([
       "Successfully deployed",
       "Successful resources",
-      %r{StatefulSet/nginx-ss\s+2 replicas, 2 readyReplicas, 2 currentReplicas}
+      %r{StatefulSet/stateful-busybox\s+2 replicas, 2 readyReplicas, 2 currentReplicas}
     ], in_order: true)
   end
 

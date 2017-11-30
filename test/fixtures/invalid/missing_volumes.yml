@@ -13,7 +13,9 @@ spec:
     spec:
       containers:
       - name: mounts-missing-volumes
-        image: nginx:alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         volumeMounts:
         - mountPath: /server-cert
           name: server-cert

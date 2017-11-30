@@ -19,8 +19,10 @@ spec:
         name: bare-replica-set
     spec:
       containers:
-      - image: nginx:alpine
-        name: app
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         ports:
         - containerPort: 80
           name: http

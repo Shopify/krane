@@ -41,7 +41,9 @@ spec:
     spec:
       containers:
       - name: master
-        image: redis:3.2.6-alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         ports:
         - containerPort: 6379
           name: redis

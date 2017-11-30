@@ -11,12 +11,13 @@ spec:
     spec:
       containers:
       - name: crash-loop-back-off
-        image: nginx:alpine
-        command: ["/usr/sbin/nginx", "-s", "stop"]
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "echo 'this is a log from the crashing container' && test 0 -eq 1"]
         readinessProbe:
           exec:
             command:
-            - "test -d /etc/nginx/nginx.conf" # it isn't a directory
+            - "test -d /not/a/directory"
           initialDelaySeconds: 0
           periodSeconds: 1
           timeoutSeconds: 1

@@ -15,7 +15,9 @@ spec:
     spec:
       containers:
       - name: app
-        image: nginx:alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         resources:
           requests:
             cpu: 1
@@ -29,4 +31,4 @@ spec:
       - name: sidecar
         image: busybox
         imagePullPolicy: IfNotPresent
-        command: ["sleep", "8000"]
+        command: ["tail", "-f", "/dev/null"]
