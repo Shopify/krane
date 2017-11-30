@@ -5,7 +5,7 @@ metadata:
   name: web
 spec:
   replicas: 1
-  progressDeadlineSeconds: 15
+  progressDeadlineSeconds: 20
   template:
     metadata:
       labels:

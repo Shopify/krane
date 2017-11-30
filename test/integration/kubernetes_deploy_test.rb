@@ -542,7 +542,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
 
     # Debug info for missing volume timeout
     assert_logs_match_all([
-      "Deployment/missing-volumes: TIMED OUT (progress deadline: 10s)",
+      %r{Deployment/missing-volumes: TIMED OUT \(progress deadline: \d+s\)},
       "Timeout reason: ProgressDeadlineExceeded",
       /Latest ReplicaSet: missing-volumes-\w+/,
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
@@ -758,7 +758,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "Deployment/web rollout timed out",
       "Successful resources",
       "ResourceQuota/resource-quotas",
-      "Deployment/web: TIMED OUT (progress deadline: 10s)",
+      %r{Deployment/web: TIMED OUT \(progress deadline: \d+s\)},
       "Timeout reason: ProgressDeadlineExceeded",
       "failed quota: resource-quotas" # from an event
     ], in_order: true)
