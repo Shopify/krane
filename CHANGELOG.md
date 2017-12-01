@@ -1,3 +1,7 @@
+### Unreleased
+*Bug Fixes*
+- Make deployments whose pods crash because of CreateContainerConfigError fail fast in 1.8+ too (they would previously time out).
+
 ### 0.14.0
 *Bug Fixes*
 - Fix incorrect timeouts occasionally observed on deployments using progressDeadlineSeconds in Kubernetes <1.7.7
