@@ -1,16 +1,18 @@
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: nginx
+  name: ds-app
 spec:
   template:
     metadata:
       labels:
         app: hello-cloud
-        name: nginx
+        name: ds-app
     spec:
       containers:
-      - name: nginx
-        image: nginx:alpine
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         ports:
         - containerPort: 80

@@ -15,7 +15,9 @@ spec:
       - name: init-crash-loop-back-off
         image: busybox
         imagePullPolicy: IfNotPresent
-        command: ["ls", "/not-a-dir"]
+        command: ["sh", "-c", "echo 'this is a log from the crashing init container' && test 0 -eq 1"]
       containers:
       - name: app
-        image: nginx:alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]

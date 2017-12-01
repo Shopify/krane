@@ -11,8 +11,9 @@ spec:
   restartPolicy: Never
   containers:
     - name: hello-cloud
-      image: hello-world:latest
+      image: busybox
       imagePullPolicy: IfNotPresent
+      command: ["sh", "-c", "echo 'Hello from the command runner!' && test 1 -eq 1"]
       env:
       - name: CONFIG
         valueFrom:
