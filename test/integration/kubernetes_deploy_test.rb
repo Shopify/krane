@@ -27,6 +27,51 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match(%r{ConfigMap/hello-cloud-configmap-data\s+Available}, 1)
   end
 
+  def test_service_account_predeployed_before_unmanaged_pod
+    # Add an undefined service account in unmanaged pod
+    service_account_name = "unknown-service-account"
+    result = deploy_fixtures("hello-cloud",
+      subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
+      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+      pod["spec"]["serviceAccountName"] = service_account_name
+      pod["spec"]["automountServiceAccountToken"] = false
+    end
+    # Expect deploying the unmanaged pod fails due to missing service account
+    assert_deploy_failure(result)
+    # if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
+    assert_logs_match_all([
+      "Command failed: apply -f",
+      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
+      /Invalid template: Pod-unmanaged-pod.*\.yml/,
+      "> Error from kubectl:",
+      "Error from server (Forbidden): error when creating",
+      "service account #{@namespace}/#{service_account_name} was not found, retry after the "\
+      "service account is created",
+      "> Rendered template content:",
+      "serviceAccountName: #{service_account_name}",
+      "automountServiceAccountToken: false"
+    ], in_order: true)
+
+    # Add a valid service account in unmanaged pod
+    service_account_name = "build-robot"
+    result = deploy_fixtures("hello-cloud",
+      subset: ["configmap-data.yml", "unmanaged-pod.yml.erb", "service-account.yml"]) do |fixtures|
+      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+      pod["spec"]["serviceAccountName"] = service_account_name
+      pod["spec"]["automountServiceAccountToken"] = false
+    end
+    # Expect the service account is deployed before the unmanaged pod
+    assert_deploy_success(result)
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_configmap_data_present
+    hello_cloud.assert_all_service_accounts_up
+    hello_cloud.assert_unmanaged_pod_statuses("Succeeded")
+    assert_logs_match_all([
+      %r{Successfully deployed in \d.\ds: ServiceAccount/build-robot},
+      %r{Successfully deployed in \d.\ds: Pod/unmanaged-pod-.*}
+    ], in_order: true)
+  end
+
   def test_partial_deploy_followed_by_full_deploy
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "redis.yml"]))
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
@@ -443,7 +488,8 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     assert_logs_match_all([
       /Creating secret catphotoscom/,
       /Creating secret unused-secret/,
-      /Creating secret monitoring-token/
+      /Creating secret monitoring-token/,
+      /Creating secret image-pull-secret/
     ])
 
     refute_logs_match(ejson_cloud.test_private_key)
