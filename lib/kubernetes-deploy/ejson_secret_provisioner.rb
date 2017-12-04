@@ -116,6 +116,7 @@ module KubernetesDeploy
 
       secret_yaml = generate_secret_yaml(secret_name, secret_type, data)
       file = Tempfile.new(secret_name)
+
       file.write(secret_yaml)
       file.close
 

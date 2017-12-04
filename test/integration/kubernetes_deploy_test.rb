@@ -28,9 +28,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_service_account_predeployed_before_unmanaged_pod
-    # Add an undefined service account in unmanaged pod 
+    # Add an undefined service account in unmanaged pod
     service_account_name = "unknown-service-account"
-    result = deploy_fixtures("hello-cloud", 
+    result = deploy_fixtures("hello-cloud",
       subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
       pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
       pod["spec"]["serviceAccountName"] = service_account_name
@@ -38,11 +38,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     # Expect deploying the unmanaged pod fails due to missing service account
     assert_deploy_failure(result)
-    #if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
+    # if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
     assert_logs_match_all([
       "Command failed: apply -f",
       "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      %r{Invalid template: Pod-unmanaged-pod.*\.yml},
+      /Invalid template: Pod-unmanaged-pod.*\.yml/,
       "> Error from kubectl:",
       "Error from server (Forbidden): error when creating",
       "service account #{@namespace}/#{service_account_name} was not found, retry after the "\
@@ -52,9 +52,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "automountServiceAccountToken: false"
     ], in_order: true)
 
-    # Add a valid service account in unmanaged pod 
+    # Add a valid service account in unmanaged pod
     service_account_name = "build-robot"
-    result = deploy_fixtures("hello-cloud", 
+    result = deploy_fixtures("hello-cloud",
       subset: ["configmap-data.yml", "unmanaged-pod.yml.erb", "service-account.yml"]) do |fixtures|
       pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
       pod["spec"]["serviceAccountName"] = service_account_name
@@ -488,7 +488,8 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     assert_logs_match_all([
       /Creating secret catphotoscom/,
       /Creating secret unused-secret/,
-      /Creating secret monitoring-token/
+      /Creating secret monitoring-token/,
+      /Creating secret image-pull-secret/
     ])
 
     refute_logs_match(ejson_cloud.test_private_key)
