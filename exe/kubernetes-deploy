@@ -12,13 +12,8 @@ bindings = {}
 verbose_log_prefix = false
 
 ARGV.options do |opts|
-  opts.on("--bindings=BINDINGS", Array, "Expose additional variables to ERB templates (format: k1=v1,k2=v2)") do |binds|
-    bindings = binds.each_with_object({}) do |bind, acc|
-      k, v = bind.split('=')
-      raise "key for value #{v} is blank!" if k.blank?
-      raise "value for key #{k} is blank!" if v.blank?
-      acc[k] = v
-    end
+  opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates (format: k1=v1,k2=v2 or JSON)") do |binds|
+    bindings = KubernetesDeploy::BindingsParser.parse(binds)
   end
 
   opts.on("--skip-wait", "Skip verification of non-priority-resource success (not recommended)") { skip_wait = true }

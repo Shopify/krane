@@ -16,6 +16,7 @@ require 'kubernetes-deploy/formatted_logger'
 require 'kubernetes-deploy/deploy_task'
 require 'kubernetes-deploy/statsd'
 require 'kubernetes-deploy/concurrency'
+require 'kubernetes-deploy/bindings_parser'
 
 module KubernetesDeploy
   KubernetesDeploy::StatsD.build
