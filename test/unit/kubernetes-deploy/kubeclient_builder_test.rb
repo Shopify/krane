@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'test_helper'
 require 'kubernetes-deploy/kubeclient_builder'
 
@@ -16,15 +17,16 @@ class KubeClientBuilder < KubernetesDeploy::TestCase
       valid_config = File.join(__dir__, '../../fixtures/kube-config/valid_config.yml')
       ENV['KUBECONFIG'] = "#{old_config}:#{valid_config}"
       # Build kubeclient for an unknown context fails
-      context_name = "unknown_context"#KubeclientHelper::MINIKUBE_CONTEXT;
-      assert_raises_message(ContextMissingError, 
-      	"`#{context_name}` context must be configured in one of your kube config files in " \
-          "KUBECONFIG (#{ENV['KUBECONFIG']}).") do
-      	build_v1_kubeclient(context_name)
+      context_name = "unknown_context"
+      assert_raises_message(ContextMissingError,
+        "`#{context_name}` context must be configured in one of your kube config files in " \
+        "KUBECONFIG (#{ENV['KUBECONFIG']}).") do
+        build_v1_kubeclient(context_name)
       end
       # Build kubeclient for an existing context success
       context_name = KubeclientHelper::MINIKUBE_CONTEXT
-      assert build_v1_kubeclient(context_name) != nil, "Expected Kubeclient is built for context " \
+      client = build_v1_kubeclient(context_name)
+      assert !client.nil?, "Expected Kubeclient is built for context " \
       	"#{context_name} with success."
     ensure
       ENV['KUBECONFIG'] = old_config
