@@ -91,7 +91,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 *Environment variables:*
 
 - `$REVISION` **(required)**: the SHA of the commit you are deploying. Will be exposed to your ERB templates as `current_sha`.
-- `$KUBECONFIG`  **(required)**: points to a valid kubeconfig file that includes the context you want to deploy to
+- `$KUBECONFIG`  **(required)**: points to one or multiple valid kubeconfig files that include the context you want to deploy to. File names are separated by colon for Linux and Mac, and semi-colon for Windows.
 - `$ENVIRONMENT`: used to set the deploy directory to `config/deploy/$ENVIRONMENT`. You can use the `--template-dir=DIR` option instead if you prefer (**one or the other is required**).
 - `$GOOGLE_APPLICATION_CREDENTIALS`: points to the credentials for an authenticated service account (required if your kubeconfig `user`'s auth provider is GCP)
 

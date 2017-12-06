@@ -6,7 +6,8 @@ module KubernetesDeploy
   module KubeclientBuilder
     class ContextMissingError < FatalDeploymentError
       def initialize(context_name)
-        super("`#{context_name}` context must be configured in your KUBECONFIG (#{ENV['KUBECONFIG']}).")
+        super("`#{context_name}` context must be configured in one of your kube config files in " \
+          "KUBECONFIG (#{ENV['KUBECONFIG']}).")
       end
     end
 
@@ -44,11 +45,19 @@ module KubernetesDeploy
     end
 
     def _build_kubeclient(api_version:, context:, endpoint_path: nil)
-      config = GoogleFriendlyConfig.read(ENV.fetch("KUBECONFIG"))
-      unless config.contexts.include?(context)
+      # Find a context defined in kube conf files that matches the input context by name
+      kube_context = nil
+      # Split the list by colon for Linux and Mac, and semicolon for Windows. 
+      ENV.fetch("KUBECONFIG").tr(":;"," ").split.each do |f|
+        config = GoogleFriendlyConfig.read(f)
+        if config.contexts.include?(context)
+          kube_context = config.context(context)
+          break
+        end
+      end
+      unless kube_context
         raise ContextMissingError, context
       end
-      kube_context = config.context(context)
 
       client = Kubeclient::Client.new(
         "#{kube_context.api_endpoint}#{endpoint_path}",
