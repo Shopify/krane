@@ -11,15 +11,21 @@ module KubernetesDeploy
         deployment_data = JSON.parse(raw_json)
         @desired_replicas = deployment_data["spec"]["replicas"].to_i
         @latest_rs = find_latest_rs(deployment_data)
+
         @rollout_data = { "replicas" => 0 }.merge(deployment_data["status"]
           .slice("replicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"))
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
+
         conditions = deployment_data.fetch("status", {}).fetch("conditions", [])
-        @progress = conditions.find { |condition| condition['type'] == 'Progressing' }
+        @progress_condition = conditions.find { |condition| condition['type'] == 'Progressing' }
+        @progress_deadline = deployment_data['spec']['progressDeadlineSeconds']
       else # reset
         @latest_rs = nil
         @rollout_data = { "replicas" => 0 }
         @status = nil
+        @progress_condition = nil
+        @progress_deadline = @definition['spec']['progressDeadlineSeconds']
+        @desired_replicas = -1
       end
     end
 
@@ -35,7 +41,7 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      return false unless @latest_rs
+      return false unless @latest_rs.present?
 
       @latest_rs.deploy_succeeded? &&
       @latest_rs.desired_replicas == @desired_replicas && # latest RS fully scaled up
@@ -44,26 +50,31 @@ module KubernetesDeploy
     end
 
     def deploy_failed?
-      @latest_rs && @latest_rs.deploy_failed?
+      @latest_rs&.deploy_failed?
     end
 
     def failure_message
-      @latest_rs&.failure_message
+      return unless @latest_rs.present?
+      "Latest ReplicaSet: #{@latest_rs.name}\n\n#{@latest_rs.failure_message}"
     end
 
     def timeout_message
-      progress_seconds = @definition['spec']['progressDeadlineSeconds']
-      if progress_seconds
-        "Deploy timed out due to progressDeadlineSeconds of #{progress_seconds} seconds, "\
-        " reason: #{@progress['reason']}\n"\
-        "#{@latest_rs&.timeout_message}"
+      reason_msg = if @progress_condition.present?
+        "Timeout reason: #{@progress_condition['reason']}"
       else
-        @latest_rs&.timeout_message
+        "Timeout reason: hard deadline for #{type}"
       end
+      return reason_msg unless @latest_rs.present?
+      "#{reason_msg}\nLatest ReplicaSet: #{@latest_rs.name}\n\n#{@latest_rs.timeout_message}"
+    end
+
+    def pretty_timeout_type
+      @progress_deadline.present? ? "progress deadline: #{@progress_deadline}s" : super
     end
 
     def deploy_timed_out?
-      @progress ? @progress["status"] == 'False' : super
+      # Do not use the hard timeout if progress deadline is set
+      @progress_condition.present? ? deploy_failing_to_progress? : super
     end
 
     def exists?
@@ -71,6 +82,21 @@ module KubernetesDeploy
     end
 
     private
+
+    def deploy_failing_to_progress?
+      return false unless @progress_condition.present?
+
+      if kubectl.server_version < Gem::Version.new("1.7.7")
+        # Deployments were being updated prematurely with incorrect progress information
+        # https://github.com/kubernetes/kubernetes/issues/49637
+        return false unless Time.now.utc - @deploy_started_at >= @progress_deadline.to_i
+      else
+        return false unless deploy_started?
+      end
+
+      @progress_condition["status"] == 'False' &&
+      Time.parse(@progress_condition["lastUpdateTime"]).to_i >= (@deploy_started_at - 5.seconds).to_i
+    end
 
     def find_latest_rs(deployment_data)
       label_string = deployment_data["spec"]["selector"]["matchLabels"].map { |k, v| "#{k}=#{v}" }.join(",")
@@ -92,7 +118,7 @@ module KubernetesDeploy
         definition: latest_rs_data,
         logger: @logger,
         parent: "#{@name.capitalize} deployment",
-        deploy_started: @deploy_started
+        deploy_started_at: @deploy_started_at
       )
       rs.sync(latest_rs_data)
       rs

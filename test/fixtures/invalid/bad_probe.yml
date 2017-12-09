@@ -1,9 +1,10 @@
-apiVersion: extensions/v1beta1
+apiVersion: extensions/v1beta1 # keep as long as this group is valid
 kind: Deployment
 metadata:
   name: bad-probe
 spec:
   replicas: 1
+  # progressDeadlineSeconds: 10 -- do not add: this is used to test the hard deadline
   template:
     metadata:
       labels:
@@ -12,7 +13,9 @@ spec:
     spec:
       containers:
       - name: http-probe
-        image: nginx:alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         ports:
         - containerPort: 80
           name: http
@@ -21,27 +24,27 @@ spec:
             path: "/bad/ping/path"
             port: 80
           initialDelaySeconds: 0
+          periodSeconds: 1
           timeoutSeconds: 1
           failureThreshold: 1
       - name: exec-probe
         image: busybox
         imagePullPolicy: IfNotPresent
-        command: ["sleep", "8000"]
+        command: ["tail", "-f", "/dev/null"]
         readinessProbe:
           exec:
-            command:
-              - "ls"
-              - "/bad/path"
+            command: ["test", "0", "-eq", "1"]
           initialDelaySeconds: 0
+          periodSeconds: 1
           timeoutSeconds: 1
           failureThreshold: 1
       - name: sidecar
         image: busybox
         imagePullPolicy: IfNotPresent
-        command: ["sleep", "8000"]
+        command: ["tail", "-f", "/dev/null"]
         readinessProbe:
           exec:
-            command: ["ls", "/"]
+            command: ["test", "0", "-eq", "0"]
           initialDelaySeconds: 1
           periodSeconds: 1
           successThreshold: 1

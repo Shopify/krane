@@ -3,7 +3,7 @@ require 'securerandom'
 module FixtureDeployHelper
   EJSON_FILENAME = KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE
 
-  # Deploys the specified set of fixtures via KubernetesDeploy::Runner.
+  # Deploys the specified set of fixtures via KubernetesDeploy::DeployTask.
   #
   # Optionally takes an array of filenames belonging to the fixture, and deploys that subset only.
   # Example:
@@ -51,7 +51,7 @@ module FixtureDeployHelper
       kube_client_version: KubernetesDeploy::IntegrationTest::KUBE_CLIENT_VERSION,
       kube_server_version: KubernetesDeploy::IntegrationTest::KUBE_SERVER_VERSION
     }
-    runner = KubernetesDeploy::Runner.new(
+    deploy = KubernetesDeploy::DeployTask.new(
       namespace: @namespace,
       current_sha: current_sha,
       context: KubeclientHelper::MINIKUBE_CONTEXT,
@@ -60,14 +60,14 @@ module FixtureDeployHelper
       kubectl_instance: build_kubectl,
       bindings: version_info.merge(bindings)
     )
-    runner.run(
+    deploy.run(
       verify_result: wait,
       allow_protected_ns: allow_protected_ns,
       prune: prune
     )
   end
 
-  # Deploys all fixtures in the given directory via KubernetesDeploy::Runner
+  # Deploys all fixtures in the given directory via KubernetesDeploy::DeployTask
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
   def deploy_dir(*args)

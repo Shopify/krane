@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: crash-loop
+spec:
+  template:
+    metadata:
+      labels:
+        name: web
+        app: crash-app
+    spec:
+      containers:
+      - name: crash-loop-back-off
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "echo 'this is a log from the crashing container' && test 0 -eq 1"]
+        readinessProbe:
+          exec:
+            command:
+            - "test -d /not/a/directory"
+          initialDelaySeconds: 0
+          periodSeconds: 1
+          timeoutSeconds: 1
+          failureThreshold: 1

@@ -1,9 +1,10 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: missing-volumes
 spec:
   replicas: 1
+  progressDeadlineSeconds: 10
   template:
     metadata:
       labels:
@@ -12,7 +13,9 @@ spec:
     spec:
       containers:
       - name: mounts-missing-volumes
-        image: nginx:alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         volumeMounts:
         - mountPath: /server-cert
           name: server-cert

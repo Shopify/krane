@@ -26,12 +26,13 @@ spec:
     requests:
       storage: 100M
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: redis
 spec:
   replicas: 1
+  progressDeadlineSeconds: 20
   template:
     metadata:
       labels:
@@ -40,7 +41,9 @@ spec:
     spec:
       containers:
       - name: master
-        image: redis:3.2.6-alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         ports:
         - containerPort: 6379
           name: redis

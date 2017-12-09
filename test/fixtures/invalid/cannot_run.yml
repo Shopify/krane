@@ -1,9 +1,10 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: cannot-run
 spec:
   replicas: 3
+  progressDeadlineSeconds: 20
   template:
     metadata:
       labels:
@@ -12,8 +13,9 @@ spec:
     spec:
       initContainers:
       - name: successful-init
-        image: hello-world:latest
+        image: busybox
         imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "echo 'Log from successful init container' && test 1 -eq 1"]
       containers:
       - name: container-cannot-run
         image: busybox

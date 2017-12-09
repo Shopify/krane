@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: web
@@ -6,6 +6,7 @@ metadata:
     shipit.shopify.io/restart: "true"
 spec:
   replicas: 1
+  progressDeadlineSeconds: 20
   template:
     metadata:
       labels:
@@ -14,7 +15,9 @@ spec:
     spec:
       containers:
       - name: app
-        image: nginx:alpine
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         resources:
           requests:
             cpu: 1
@@ -28,4 +31,4 @@ spec:
       - name: sidecar
         image: busybox
         imagePullPolicy: IfNotPresent
-        command: ["sleep", "8000"]
+        command: ["tail", "-f", "/dev/null"]

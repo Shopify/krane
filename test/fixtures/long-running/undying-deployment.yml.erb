@@ -11,12 +11,13 @@ spec:
     name: undying
     app: fixtures
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: undying
 spec:
   replicas: 2
+  progressDeadlineSeconds: 20
   revisionHistoryLimit: 1
   strategy:
     type: RollingUpdate
@@ -33,7 +34,7 @@ spec:
       - name: app
         image: busybox
         imagePullPolicy: IfNotPresent
-        command: ["sleep", "40"]
+        command: ["tail", "-f", "/dev/null"]
         lifecycle:
           preStop:
             exec:

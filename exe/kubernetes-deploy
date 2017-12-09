@@ -12,17 +12,12 @@ bindings = {}
 verbose_log_prefix = false
 
 ARGV.options do |opts|
-  opts.on("--bindings=BINDINGS", Array, "Expose additional variables to ERB templates (format: k1=v1,k2=v2)") do |binds|
-    bindings = binds.each_with_object({}) do |bind, acc|
-      k, v = bind.split('=')
-      raise "key for value #{v} is blank!" if k.blank?
-      raise "value for key #{k} is blank!" if v.blank?
-      acc[k] = v
-    end
+  opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates (format: k1=v1,k2=v2 or JSON)") do |binds|
+    bindings = KubernetesDeploy::BindingsParser.parse(binds)
   end
 
   opts.on("--skip-wait", "Skip verification of non-priority-resource success (not recommended)") { skip_wait = true }
-  prot_ns = KubernetesDeploy::Runner::PROTECTED_NAMESPACES.join(', ')
+  prot_ns = KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES.join(', ')
   opts.on("--allow-protected-ns", "Enable deploys to #{prot_ns}; requires --no-prune") { allow_protected_ns = true }
   opts.on("--no-prune", "Disable deletion of resources that do not appear in the template dir") { prune = false }
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
@@ -58,7 +53,7 @@ namespace = ARGV[0]
 context = ARGV[1]
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
 
-runner = KubernetesDeploy::Runner.new(
+runner = KubernetesDeploy::DeployTask.new(
   namespace: namespace,
   context: context,
   current_sha: revision,

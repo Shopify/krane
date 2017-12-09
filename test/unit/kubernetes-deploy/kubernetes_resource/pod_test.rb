@@ -19,7 +19,7 @@ class PodTest < KubernetesDeploy::TestCase
 
     expected_msg = <<~STRING
       The following containers encountered errors:
-      > hello-cloud: Failed to pull image hello-world:latest. Did you wait for it to be built and pushed to the registry before deploying?
+      > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
     assert_equal expected_msg, pod.failure_message
   end
@@ -42,7 +42,7 @@ class PodTest < KubernetesDeploy::TestCase
 
     expected_msg = <<~STRING
       The following containers encountered errors:
-      > hello-cloud: Failed to pull image hello-world:latest. Did you wait for it to be built and pushed to the registry before deploying?
+      > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
     assert_equal expected_msg, pod.failure_message
   end
@@ -81,7 +81,7 @@ class PodTest < KubernetesDeploy::TestCase
 
     expected_msg = <<~STRING
       The following containers encountered errors:
-      > hello-cloud: Failed to pull image hello-world:latest. Did you wait for it to be built and pushed to the registry before deploying?
+      > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
     assert_equal expected_msg, pod.failure_message
   end
@@ -114,7 +114,7 @@ class PodTest < KubernetesDeploy::TestCase
       context: 'minikube',
       definition: spec,
       logger: @logger,
-      deploy_started: Time.now.utc
+      deploy_started_at: Time.now.utc
     )
   end
 end

@@ -7,7 +7,7 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      return false unless @deploy_started
+      return false unless deploy_started?
 
       unless @success_assumption_warning_shown
         @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")

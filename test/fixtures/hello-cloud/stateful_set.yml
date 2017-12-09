@@ -1,19 +1,21 @@
 apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
-  name: nginx-ss
+  name: stateful-busybox
 spec:
-  serviceName: "nginx-ss"
+  serviceName: "stateful-busybox"
   replicas: 2
   template:
     metadata:
       labels:
         app: hello-cloud
-        name: nginx-ss
+        name: stateful-busybox
     spec:
+      terminationGracePeriodSeconds: 0
       containers:
-      - name: nginx
-        image: gcr.io/google_containers/nginx-slim:0.8
-        command: ["sleep", "40"]
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
         ports:
         - containerPort: 80

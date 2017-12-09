@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class RunnerTest < KubernetesDeploy::TestCase
+class DeployTaskTest < KubernetesDeploy::TestCase
   def test_that_it_has_a_version_number
     refute_nil ::KubernetesDeploy::VERSION
   end
@@ -29,19 +29,19 @@ class RunnerTest < KubernetesDeploy::TestCase
   private
 
   def runner_with_env(value)
-    # TODO: Switch to --kubeconfig for kubectl shell out and pass env var as arg to Runner init
+    # TODO: Switch to --kubeconfig for kubectl shell out and pass env var as arg to DeployTask init
     # Then fix this crappy env manipulation
     original_env = ENV["KUBECONFIG"]
     ENV["KUBECONFIG"] = value
 
-    runner = KubernetesDeploy::Runner.new(
+    deploy = KubernetesDeploy::DeployTask.new(
       namespace: "",
       context: "",
       logger: logger,
       current_sha: "",
       template_dir: "unknown",
     )
-    runner.run
+    deploy.run
   ensure
     ENV["KUBECONFIG"] = original_env
   end

@@ -3,9 +3,11 @@ module KubernetesDeploy
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
 
-    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started: nil)
+    FAILED_PHASE_NAME = "Failed"
+
+    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started_at: nil)
       @parent = parent
-      @deploy_started = deploy_started
+      @deploy_started_at = deploy_started_at
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
@@ -19,7 +21,7 @@ module KubernetesDeploy
       if pod_data.blank?
         raw_json, _err, st = kubectl.run("get", type, @name, "-a", "--output=json")
         pod_data = JSON.parse(raw_json) if st.success?
-        raise_predates_deploy_error if pod_data.present? && unmanaged? && !@deploy_started
+        raise_predates_deploy_error if pod_data.present? && unmanaged? && !deploy_started?
       end
 
       if pod_data.present?
@@ -46,8 +48,7 @@ module KubernetesDeploy
     end
 
     def deploy_failed?
-      return true if @phase == "Failed"
-      @containers.any?(&:doomed?)
+      failure_message.present?
     end
 
     def exists?
@@ -62,19 +63,23 @@ module KubernetesDeploy
     end
 
     def failure_message
-      doomed_containers = @containers.select(&:doomed?)
-      return unless doomed_containers.present?
-      container_messages = doomed_containers.map do |c|
-        red_name = ColorizedString.new(c.name).red
-        "> #{red_name}: #{c.doom_reason}"
+      if @phase == FAILED_PHASE_NAME
+        phase_problem = "Pod status: #{@status}. "
       end
 
-      intro = if unmanaged?
-        "The following containers encountered errors:"
-      else
-        "The following containers are in a state that is unlikely to be recoverable:"
+      doomed_containers = @containers.select(&:doomed?)
+      if doomed_containers.present?
+        container_problems = if unmanaged?
+          "The following containers encountered errors:\n"
+        else
+          "The following containers are in a state that is unlikely to be recoverable:\n"
+        end
+        doomed_containers.each do |c|
+          red_name = ColorizedString.new(c.name).red
+          container_problems += "> #{red_name}: #{c.doom_reason}\n"
+        end
       end
-      intro + "\n" + container_messages.join("\n") + "\n"
+      "#{phase_problem}#{container_problems}".presence
     end
 
     # Returns a hash in the following format:
@@ -89,7 +94,7 @@ module KubernetesDeploy
           "logs",
           @name,
           "--container=#{container.name}",
-          "--since-time=#{@deploy_started.to_datetime.rfc3339}",
+          "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
         out, _err, _st = kubectl.run(*cmd)
@@ -197,9 +202,11 @@ module KubernetesDeploy
           "Failed to pull image #{@image}. "\
           "Did you wait for it to be built and pushed to the registry before deploying?"
         elsif limbo_message == "Generate Container Config Failed"
-          # reason/message are backwards
-          # Flip this after https://github.com/kubernetes/kubernetes/commit/df41787b1a3f51b73fb6db8a2203f0a7c7c92931
+          # reason/message are backwards in <1.8.0 (next condition used by 1.8.0+)
+          # Fixed by https://github.com/kubernetes/kubernetes/commit/df41787b1a3f51b73fb6db8a2203f0a7c7c92931
           "Failed to generate container configuration: #{limbo_reason}"
+        elsif limbo_reason == "CreateContainerConfigError"
+          "Failed to generate container configuration: #{limbo_message}"
         end
       end
 

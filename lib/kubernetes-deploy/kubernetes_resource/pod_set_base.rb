@@ -23,7 +23,7 @@ module KubernetesDeploy
           "logs",
           id,
           "--container=#{container_name}",
-          "--since-time=#{@deploy_started.to_datetime.rfc3339}",
+          "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
           "--tail=#{LOG_LINE_COUNT}"
         )
         container_logs[container_name] = out.split("\n")
@@ -59,8 +59,8 @@ module KubernetesDeploy
           context: context,
           definition: pod_data,
           logger: @logger,
-          parent: "#{name.capitalize} #{self.class.name}",
-          deploy_started: @deploy_started
+          parent: "#{name.capitalize} #{type}",
+          deploy_started_at: @deploy_started_at
         )
         pod.sync(pod_data)
         relevant_pods << pod

@@ -1,4 +1,4 @@
-# rubocop:disable Style/FileName
+# rubocop:disable Naming/FileName
 # frozen_string_literal: true
 
 require 'active_support/core_ext/object/blank'
@@ -13,9 +13,10 @@ require 'colorized_string'
 require 'kubernetes-deploy/version'
 require 'kubernetes-deploy/errors'
 require 'kubernetes-deploy/formatted_logger'
-require 'kubernetes-deploy/runner'
+require 'kubernetes-deploy/deploy_task'
 require 'kubernetes-deploy/statsd'
 require 'kubernetes-deploy/concurrency'
+require 'kubernetes-deploy/bindings_parser'
 
 module KubernetesDeploy
   KubernetesDeploy::StatsD.build
