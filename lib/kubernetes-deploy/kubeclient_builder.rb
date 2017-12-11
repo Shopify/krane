@@ -47,7 +47,7 @@ module KubernetesDeploy
     def _build_kubeclient(api_version:, context:, endpoint_path: nil)
       # Find a context defined in kube conf files that matches the input context by name
       kube_context = nil
-      configFiles.each do |f|
+      config_files.each do |f|
         config = GoogleFriendlyConfig.read(f)
         if config.contexts.include?(context)
           kube_context = config.context(context)
@@ -68,7 +68,7 @@ module KubernetesDeploy
       client
     end
 
-    def configFiles
+    def config_files
       # Split the list by colon for Linux and Mac, and semicolon for Windows.
       ENV.fetch("KUBECONFIG").tr(":;", " ").split
     end
