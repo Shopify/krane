@@ -19,8 +19,8 @@ class KubeClientBuilder < KubernetesDeploy::TestCase
       # Build kubeclient for an unknown context fails
       context_name = "unknown_context"
       assert_raises_message(ContextMissingError,
-        "`#{context_name}` context must be configured in one of your kube config files in " \
-        "KUBECONFIG (#{ENV['KUBECONFIG']}).") do
+        "`#{context_name}` context must be configured in your KUBECONFIG file(s) " \
+        "(#{ENV['KUBECONFIG']}).") do
         build_v1_kubeclient(context_name)
       end
       # Build kubeclient for an existing context success

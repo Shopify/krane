@@ -151,7 +151,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_restart_failure(restart.perform(["web"]))
     assert_logs_match_all([
       "Result: FAILURE",
-      "`walrus` context must be configured in your kubeconfig"
+      "`walrus` context must be configured in your kubeconfig file(s)"
     ],
       in_order: true)
   end
