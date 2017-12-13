@@ -617,6 +617,39 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     ], in_order: true)
   end
 
+  def test_scale_existing_deployment_down_to_zero
+    pod_name = nil
+    pod_status = "Running"
+    # Create a deployement with 1 pod
+    source = 1
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+      web = fixtures["web.yml.erb"]["Deployment"].first
+      web["spec"]["replicas"] = source
+      # Disable grace period in deleting pods to speed up test
+      web["spec"]["template"]["spec"]["terminationGracePeriodSeconds"] = 0
+      pod_name = web["spec"]["template"]["metadata"]["labels"]["name"]
+    end
+    assert_deploy_success(result)
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_pod_status(pod_name, pod_status, source)
+    # Scale down to 0 pod
+    target = 0
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+      web = fixtures["web.yml.erb"]["Deployment"].first
+      web["spec"]["replicas"] = target
+      web["spec"]["template"]["spec"]["terminationGracePeriodSeconds"] = 0
+    end
+    assert_deploy_success(result)
+    hello_cloud.assert_pod_status(pod_name, pod_status, target)
+
+    assert_logs_match_all([
+      %r{Service/web\s+Selects at least 1 pod},
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Service/web\s+Selects 0 pods},
+      %r{Deployment/web\s+0 replicas}
+    ], in_order: true)
+  end
+
   def test_can_deploy_deployment_with_zero_replicas
     result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
       web = fixtures["web.yml.erb"]["Deployment"].first
