@@ -825,7 +825,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       assert_logs_match_all([
         'Result: FAILURE',
         'Configuration invalid',
-        "Kube config file names not set in $KUBECONFIG"
+        "Kube config file name(s) not set in $KUBECONFIG"
       ], in_order: true)
 
       ENV['KUBECONFIG'] = nil

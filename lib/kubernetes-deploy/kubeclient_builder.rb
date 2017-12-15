@@ -46,17 +46,12 @@ module KubernetesDeploy
 
     def _build_kubeclient(api_version:, context:, endpoint_path: nil)
       # Find a context defined in kube conf files that matches the input context by name
-      kube_context = nil
-      config_files.each do |f|
-        config = GoogleFriendlyConfig.read(f)
-        if config.contexts.include?(context)
-          kube_context = config.context(context)
-          break
-        end
-      end
-      unless kube_context
-        raise ContextMissingError, context
-      end
+      friendly_configs = config_files.map { |f| GoogleFriendlyConfig.read(f) }
+      config = friendly_configs.each.lazy.find { |c| c.contexts.include?(context) }
+
+      raise ContextMissingError, context unless config
+
+      kube_context = config.context(context)
 
       client = Kubeclient::Client.new(
         "#{kube_context.api_endpoint}#{endpoint_path}",
@@ -70,7 +65,7 @@ module KubernetesDeploy
 
     def config_files
       # Split the list by colon for Linux and Mac, and semicolon for Windows.
-      ENV.fetch("KUBECONFIG").tr(":;", " ").split
+      ENV.fetch("KUBECONFIG").split(/[:;]/).map!(&:strip).reject(&:empty?)
     end
   end
 end

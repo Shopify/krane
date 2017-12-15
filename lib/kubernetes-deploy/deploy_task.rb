@@ -278,7 +278,7 @@ module KubernetesDeploy
       if ENV["KUBECONFIG"].blank?
         errors << "$KUBECONFIG not set"
       elsif config_files.empty?
-        errors << "Kube config file names not set in $KUBECONFIG"
+        errors << "Kube config file name(s) not set in $KUBECONFIG"
       else
         config_files.each do |f|
           unless File.file?(f)
