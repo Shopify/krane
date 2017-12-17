@@ -12,6 +12,17 @@ spec:
   selector:
     name: redis
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-external
+  labels:
+    name: redis-external
+    app: hello-cloud
+spec:
+  externalName: external-redis.shopify
+  type: ExternalName
+---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:

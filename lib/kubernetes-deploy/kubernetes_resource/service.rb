@@ -11,16 +11,19 @@ module KubernetesDeploy
     end
 
     def status
-      if @num_pods_selected.blank?
+      if !requires_endpoints?
+        "Doesn't require any endpoint"
+      elsif @num_pods_selected.blank?
         "Failed to count related pods"
       elsif selects_some_pods?
         "Selects at least 1 pod"
       else
-        "Selects 0 pods"
+        "Unknown"
       end
     end
 
     def deploy_succeeded?
+      return exists? unless requires_endpoints?
       # We can't use endpoints if we want the service to be able to fail fast when the pods are down
       exposes_zero_replica_deployment? || selects_some_pods?
     end
@@ -44,28 +47,39 @@ module KubernetesDeploy
       @related_deployment_replicas == 0
     end
 
+    def requires_endpoints?
+      return false if external_name_svc? || @related_deployment_replicas.blank?
+      @related_deployment_replicas > 0
+    end
+
     def selects_some_pods?
       return false unless @num_pods_selected
       @num_pods_selected > 0
     end
 
     def selector
-      @selector ||= @definition["spec"]["selector"].map { |k, v| "#{k}=#{v}" }.join(",")
+      @selector ||= @definition["spec"].fetch("selector", []).map { |k, v| "#{k}=#{v}" }.join(",")
     end
 
     def fetch_related_pod_count
+      return 0 unless selector.present?
       raw_json, _err, st = kubectl.run("get", "pods", "--selector=#{selector}", "--output=json")
       return unless st.success?
       JSON.parse(raw_json)["items"].length
     end
 
     def fetch_related_replica_count
+      return 0 unless selector.present?
       raw_json, _err, st = kubectl.run("get", "deployments", "--selector=#{selector}", "--output=json")
       return unless st.success?
 
       deployments = JSON.parse(raw_json)["items"]
       return unless deployments.length == 1
       deployments.first["spec"]["replicas"].to_i
+    end
+
+    def external_name_svc?
+      @definition["spec"]["type"] == "ExternalName"
     end
   end
 end

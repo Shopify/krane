@@ -11,7 +11,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 14 resources"
+      "Successfully deployed 15 resources"
     ], in_order: true)
 
     assert_logs_match_all([
@@ -59,7 +59,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'daemonset "ds-app"',
       'statefulset "stateful-busybox"'
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 7 resources and successfully deployed 3 resources/]
+    expected_msgs = [/Pruned 7 resources and successfully deployed 4 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -627,7 +627,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     assert_equal 0, pods.length, "Pods were running from zero-replica deployment"
 
     assert_logs_match_all([
-      %r{Service/web\s+Selects 0 pods},
+      %r{Service/web\s+Doesn't require any endpoint},
       %r{Deployment/web\s+0 replicas}
     ])
   end
