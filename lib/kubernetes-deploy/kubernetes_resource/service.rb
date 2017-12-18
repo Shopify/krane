@@ -48,7 +48,12 @@ module KubernetesDeploy
     end
 
     def requires_endpoints?
-      return false if external_name_svc? || @related_deployment_replicas.blank?
+      # Service of type External don't have endpoints
+      return false if external_name_svc?
+
+      # problem counting replicas - by default, assume endpoints are required
+      return true if @related_deployment_replicas.blank?
+
       @related_deployment_replicas > 0
     end
 
