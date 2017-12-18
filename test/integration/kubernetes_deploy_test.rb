@@ -11,7 +11,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 15 resources"
+      "Successfully deployed 17 resources"
     ], in_order: true)
 
     assert_logs_match_all([
@@ -60,7 +60,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'daemonset "ds-app"',
       'statefulset "stateful-busybox"'
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 7 resources and successfully deployed 4 resources/]
+    expected_msgs = [/Pruned 7 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
