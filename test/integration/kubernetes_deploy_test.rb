@@ -818,6 +818,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
         'Configuration invalid',
         "Kube config not found at #{config_file}"
       ], in_order: true)
+      reset_logger
 
       ENV['KUBECONFIG'] = " : "
       result = deploy_fixtures('hello-cloud')
@@ -827,6 +828,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
         'Configuration invalid',
         "Kube config file name(s) not set in $KUBECONFIG"
       ], in_order: true)
+      reset_logger
 
       ENV['KUBECONFIG'] = nil
       result = deploy_fixtures('hello-cloud')
@@ -836,10 +838,11 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
         'Configuration invalid',
         "$KUBECONFIG not set"
       ], in_order: true)
+      reset_logger
 
       valid_config = File.join(__dir__, '../fixtures/kube-config/valid_config.yml')
       ENV['KUBECONFIG'] = "#{old_config}:#{valid_config}"
-      result = deploy_fixtures('hello-cloud')
+      result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
       assert_deploy_success(result)
     ensure
       ENV['KUBECONFIG'] = old_config

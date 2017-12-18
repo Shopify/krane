@@ -47,7 +47,7 @@ module KubernetesDeploy
     def _build_kubeclient(api_version:, context:, endpoint_path: nil)
       # Find a context defined in kube conf files that matches the input context by name
       friendly_configs = config_files.map { |f| GoogleFriendlyConfig.read(f) }
-      config = friendly_configs.each.lazy.find { |c| c.contexts.include?(context) }
+      config = friendly_configs.each.find { |c| c.contexts.include?(context) }
 
       raise ContextMissingError, context unless config
 

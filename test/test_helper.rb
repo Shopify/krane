@@ -64,6 +64,14 @@ module KubernetesDeploy
       @logger_stream.close
     end
 
+    def reset_logger
+      # Flush StringIO buffer if not closed
+      unless @logger_stream.closed?
+        @logger_stream.truncate(0)
+        @logger_stream.rewind
+      end
+    end
+
     def assert_deploy_failure(result)
       if ENV["PRINT_LOGS"]
         assert_equal false, result, "Deploy succeeded when it was expected to fail"

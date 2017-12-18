@@ -2,7 +2,7 @@
 require 'test_helper'
 require 'kubernetes-deploy/kubeclient_builder'
 
-class KubeClientBuilder < KubernetesDeploy::TestCase
+class KubeClientBuilderTest < KubernetesDeploy::TestCase
   include KubernetesDeploy::KubeclientBuilder
 
   def setup
