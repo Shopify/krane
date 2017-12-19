@@ -34,18 +34,6 @@ module FixtureSetAssertions
       "this-is-the-key"
     end
 
-    def image_pull_secret_key_value
-      {
-        "sample.docker.com":
-        {
-          "username": "johndoe",
-          "password": "foo",
-          "email": "johndoe@sample.com",
-          "auth": "am9obmRvZTpmb28="
-        }
-      }.to_json
-    end
-
     def assert_all_secrets_present
       assert_secret_present("ejson-keys")
       cert_data = { "tls.crt" => "this-is-the-certificate", "tls.key" => catphotoscom_key_value }
@@ -55,10 +43,6 @@ module FixtureSetAssertions
       assert_secret_present("monitoring-token", token_data, managed: true)
 
       assert_secret_present("unused-secret", { "this-is-for-testing-deletion" => "true" }, managed: true)
-
-      assert_secret_present("image-pull-secret",
-        { ".dockerconfigjson" => image_pull_secret_key_value },
-        type: "kubernetes.io/dockerconfigjson", managed: true)
     end
 
     def assert_web_resources_up

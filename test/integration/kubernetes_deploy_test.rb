@@ -464,8 +464,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     assert_logs_match_all([
       /Creating secret catphotoscom/,
       /Creating secret unused-secret/,
-      /Creating secret monitoring-token/,
-      /Creating secret image-pull-secret/
+      /Creating secret monitoring-token/
     ])
 
     refute_logs_match(ejson_cloud.test_private_key)
@@ -807,32 +806,6 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     ejson_cloud.assert_secret_present('monitoring-token', managed: true)
     ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', managed: true)
     ejson_cloud.assert_secret_present('ejson-keys', managed: false)
-  end
-
-  def test_pod_get_image_pull_secret_from_service_account
-    # Verify that if a pod does not contain any ImagePullSecrets,
-    # then ImagePullSecrets of the ServiceAccount should be added to the pod.
-    service_account = "build-robot"
-    image_pull_secret = "image-pull-secret"
-    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
-    ejson_cloud.create_ejson_keys_secret
-    result = deploy_fixtures("ejson-cloud") do |fixtures|
-      deploy = fixtures["web.yaml"]["Deployment"].first
-      pod_spec = deploy["spec"]["template"]["spec"]
-      pod_spec["serviceAccountName"] = service_account
-      pod_spec["automountServiceAccountToken"] = false
-    end
-    assert_deploy_success(result)
-    ejson_cloud.assert_secret_present(image_pull_secret, type: "kubernetes.io/dockerconfigjson",
-      managed: true)
-    ejson_cloud.assert_service_account_present(service_account)
-    pods = kubeclient.get_pods(namespace: @namespace)
-    refute pods.empty?
-    pods.each do |pod|
-      s = pod.spec.imagePullSecrets
-      assert_equal s.first["name"], image_pull_secret
-      assert_equal pod.spec.serviceAccount, service_account
-    end
   end
 
   def test_invalid_context
