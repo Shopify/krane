@@ -645,7 +645,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     assert_logs_match_all([
       %r{Service/web\s+Selects at least 1 pod},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Service/web\s+Selects 0 pods},
+      %r{Service/web\s+Doesn't require any endpoint},
       %r{Deployment/web\s+0 replicas}
     ], in_order: true)
   end
