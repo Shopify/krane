@@ -1,0 +1,58 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'kubernetes-deploy'
+require 'optparse'
+
+template_dir = nil
+bindings = {}
+
+ARGV.options do |opts|
+  opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
+    "(format: k1=v1,k2=v2 or JSON)") do |binds|
+    bindings = KubernetesDeploy::BindingsParser.parse(binds)
+  end
+
+  opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
+
+  opts.on_tail("-h", "--help", "Print this help") do
+    puts opts
+    exit
+  end
+  opts.on_tail("-v", "--version", "Show version") do
+    puts "v#{KubernetesDeploy::VERSION}"
+    exit
+  end
+  opts.parse!
+end
+
+if !template_dir && ENV.key?("ENVIRONMENT")
+  template_dir = "config/deploy/#{ENV['ENVIRONMENT']}"
+end
+
+if !template_dir || template_dir.empty?
+  puts "Template directory is unknown. " \
+    "Either specify --template-dir argument or set $ENVIRONMENT to use config/deploy/$ENVIRONMENT as a default path."
+  exit 1
+end
+
+revision = ENV.fetch('REVISION') do
+  puts "ENV['REVISION'] is missing. Please specify the commit SHA"
+  exit 1
+end
+
+logger = KubernetesDeploy::FormattedLogger.build(nil, nil)
+
+renderer = KubernetesDeploy::Renderer.new(
+  current_sha: revision,
+  template_dir: template_dir,
+  bindings: bindings,
+  logger: logger
+)
+
+Dir.foreach(template_dir) do |filename|
+  next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
+
+  file_content = File.read(File.join(template_dir, filename))
+  puts renderer.render_template(filename, file_content)
+end
