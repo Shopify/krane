@@ -18,7 +18,7 @@ module KubernetesDeploy
       elsif selects_some_pods?
         "Selects at least 1 pod"
       else
-        "Unknown"
+        "Selects 0 pods"
       end
     end
 
@@ -48,7 +48,7 @@ module KubernetesDeploy
     end
 
     def requires_endpoints?
-      # Service of type External don't have endpoints
+      # service of type External don't have endpoints
       return false if external_name_svc?
 
       # problem counting replicas - by default, assume endpoints are required
