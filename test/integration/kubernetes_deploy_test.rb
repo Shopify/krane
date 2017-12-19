@@ -28,30 +28,6 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_service_account_predeployed_before_unmanaged_pod
-    # Add an undefined service account in unmanaged pod
-    service_account_name = "unknown-service-account"
-    result = deploy_fixtures("hello-cloud",
-      subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
-      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
-      pod["spec"]["serviceAccountName"] = service_account_name
-      pod["spec"]["automountServiceAccountToken"] = false
-    end
-    # Expect deploying the unmanaged pod fails due to missing service account
-    assert_deploy_failure(result)
-    # if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
-    assert_logs_match_all([
-      "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      /Invalid template: Pod-unmanaged-pod.*\.yml/,
-      "> Error from kubectl:",
-      "Error from server (Forbidden): error when creating",
-      "service account #{@namespace}/#{service_account_name} was not found, retry after the "\
-      "service account is created",
-      "> Rendered template content:",
-      "serviceAccountName: #{service_account_name}",
-      "automountServiceAccountToken: false"
-    ], in_order: true)
-
     # Add a valid service account in unmanaged pod
     service_account_name = "build-robot"
     result = deploy_fixtures("hello-cloud",
@@ -831,6 +807,32 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     ejson_cloud.assert_secret_present('monitoring-token', managed: true)
     ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', managed: true)
     ejson_cloud.assert_secret_present('ejson-keys', managed: false)
+  end
+
+  def test_pod_get_image_pull_secret_from_service_account
+    # Verify that if a pod does not contain any ImagePullSecrets,
+    # then ImagePullSecrets of the ServiceAccount should be added to the pod.
+    service_account = "build-robot"
+    image_pull_secret = "image-pull-secret"
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    result = deploy_fixtures("ejson-cloud") do |fixtures|
+      deploy = fixtures["web.yaml"]["Deployment"].first
+      pod_spec = deploy["spec"]["template"]["spec"]
+      pod_spec["serviceAccountName"] = service_account
+      pod_spec["automountServiceAccountToken"] = false
+    end
+    assert_deploy_success(result)
+    ejson_cloud.assert_secret_present(image_pull_secret, type: "kubernetes.io/dockerconfigjson",
+      managed: true)
+    ejson_cloud.assert_service_account_present(service_account)
+    pods = kubeclient.get_pods(namespace: @namespace)
+    refute pods.empty?
+    pods.each do |pod|
+      s = pod.spec.imagePullSecrets
+      assert_equal s.first["name"], image_pull_secret
+      assert_equal pod.spec.serviceAccount, service_account
+    end
   end
 
   def test_invalid_context
