@@ -1,6 +1,12 @@
-### Unreleased
+### 0.14.1
 *Bug Fixes*
 - Make deployments whose pods crash because of CreateContainerConfigError fail fast in 1.8+ too (they would previously time out).
+- Fix crashes when deploying ExternalName services or services without selectors ([#211](https://github.com/Shopify/kubernetes-deploy/pull/211))
+- Predeploy ServiceAccount resources ([#221](https://github.com/Shopify/kubernetes-deploy/pull/221))
+
+*Enhancements*
+- Make it possible to pass bindings (via the --bindings flag) for which the value contains commas or is a JSON encoded hash ([#219](https://github.com/Shopify/kubernetes-deploy/pull/219))
+- Support KUBECONFIG referencing multiple files ([#222](https://github.com/Shopify/kubernetes-deploy/pull/222))
 
 ### 0.14.0
 *Bug Fixes*
