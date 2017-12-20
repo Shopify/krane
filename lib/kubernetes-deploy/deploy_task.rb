@@ -48,6 +48,7 @@ module KubernetesDeploy
       Bugsnag
       ConfigMap
       PersistentVolumeClaim
+      ServiceAccount
       Pod
     )
     PROTECTED_NAMESPACES = %w(
