@@ -277,8 +277,14 @@ module KubernetesDeploy
       errors = []
       if ENV["KUBECONFIG"].blank?
         errors << "$KUBECONFIG not set"
-      elsif !File.file?(ENV["KUBECONFIG"])
-        errors << "Kube config not found at #{ENV['KUBECONFIG']}"
+      elsif config_files.empty?
+        errors << "Kube config file name(s) not set in $KUBECONFIG"
+      else
+        config_files.each do |f|
+          unless File.file?(f)
+            errors << "Kube config not found at #{f}"
+          end
+        end
       end
 
       if @current_sha.blank?

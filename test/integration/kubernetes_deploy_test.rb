@@ -824,7 +824,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
   def test_invalid_context
     old_config = ENV['KUBECONFIG']
     begin
-      ENV['KUBECONFIG'] = File.join(__dir__, '../fixtures/invalid_config.yml')
+      ENV['KUBECONFIG'] = File.join(__dir__, '../fixtures/kube-config/invalid_config.yml')
       result = deploy_fixtures('hello-cloud')
       assert_deploy_failure(result)
       assert_logs_match_all([
@@ -838,6 +838,47 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     ensure
       ENV['KUBECONFIG'] = old_config
     end
+  end
+
+  def test_multiple_configuration_files
+    old_config = ENV['KUBECONFIG']
+    config_file = File.join(__dir__, '../fixtures/kube-config/unknown_config.yml')
+    ENV['KUBECONFIG'] = config_file
+    result = deploy_fixtures('hello-cloud')
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Result: FAILURE',
+      'Configuration invalid',
+      "Kube config not found at #{config_file}"
+    ], in_order: true)
+    reset_logger
+
+    ENV['KUBECONFIG'] = " : "
+    result = deploy_fixtures('hello-cloud')
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Result: FAILURE',
+      'Configuration invalid',
+      "Kube config file name(s) not set in $KUBECONFIG"
+    ], in_order: true)
+    reset_logger
+
+    ENV['KUBECONFIG'] = nil
+    result = deploy_fixtures('hello-cloud')
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Result: FAILURE',
+      'Configuration invalid',
+      "$KUBECONFIG not set"
+    ], in_order: true)
+    reset_logger
+
+    valid_config = File.join(__dir__, '../fixtures/kube-config/valid_config.yml')
+    ENV['KUBECONFIG'] = "#{old_config}:#{valid_config}"
+    result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
+    assert_deploy_success(result)
+  ensure
+    ENV['KUBECONFIG'] = old_config
   end
 
   def test_roll_back_a_bad_deploy
