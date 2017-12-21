@@ -70,6 +70,7 @@ module KubernetesDeploy
       core/v1/Pod
       core/v1/Service
       batch/v1/Job
+      batch/v1beta1/CronJob
       extensions/v1beta1/DaemonSet
       extensions/v1beta1/Deployment
       apps/v1beta1/Deployment
