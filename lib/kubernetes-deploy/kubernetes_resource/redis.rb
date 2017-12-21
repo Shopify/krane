@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class Redis < KubernetesResource
-    TIMEOUT = 5.minutes
+    TIMEOUT = 15.minutes
     UUID_ANNOTATION = "redis.stable.shopify.io/owner_uid"
 
     def sync
