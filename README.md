@@ -39,6 +39,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * [Installation](#installation)
 * [Usage](#usage)
   * [Using templates and variables](#using-templates-and-variables)
+  * [Customizing behaviour with annotations](#customizing-behaviour-with-annotations)
   * [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy)
   * [Deploying Kubernetes secrets (from EJSON)](#deploying-kubernetes-secrets-from-ejson)
 
@@ -120,6 +121,9 @@ All templates must be YAML formatted. You can also use ERB. The following local 
 You can add additional variables using the `--bindings=BINDINGS` option. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size` in your templates.
 
 
+### Customizing behaviour with annotations
+
+- `kubernetes-deploy.shopify.io/timeout-override-seconds` (any resource): Override the tool's hard timeout for one specific resource. Value must be a positive number of seconds (digits only).
 
 ### Running tasks at the beginning of a deploy
 

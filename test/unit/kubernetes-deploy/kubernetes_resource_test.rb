@@ -3,13 +3,17 @@ require 'test_helper'
 
 class KubernetesResourceTest < KubernetesDeploy::TestCase
   class DummyResource < KubernetesDeploy::KubernetesResource
-    def initialize(*)
-      definition = { "kind" => "DummyResource", "metadata" => { "name" => "test" } }
+    def initialize(definition_extras: {})
+      definition = { "kind" => "DummyResource", "metadata" => { "name" => "test" } }.merge(definition_extras)
       super(namespace: 'test', context: 'test', definition: definition, logger: @logger)
     end
 
     def exists?
       true
+    end
+
+    def file_path
+      "/tmp/foo/bar"
     end
   end
 
@@ -53,7 +57,87 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     assert_operator events, :empty?
   end
 
+  def test_can_override_hardcoded_timeout_via_an_annotation
+    basic_resource = DummyResource.new
+    assert_equal 5.minutes, basic_resource.timeout
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("60"))
+    assert_equal 60, customized_resource.timeout
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata(" 60  "))
+    assert_equal 60, customized_resource.timeout
+  end
+
+  def test_blank_timeout_annotation_is_ignored
+    stub_kubectl_response("create", "-f", "/tmp/foo/bar", "--dry-run", "--output=name", anything, resp: "{}")
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata(""))
+    customized_resource.validate_definition
+    refute customized_resource.validation_failed?, "Blank annotation with was invalid"
+    assert_equal 5.minutes, customized_resource.timeout
+  end
+
+  def test_validation_of_timeout_annotation
+    expected_cmd = ["create", "-f", "/tmp/foo/bar", "--dry-run", "--output=name", anything]
+    error_msg = "kubernetes-deploy.shopify.io/timeout-override-seconds annotation " \
+      "must contain digits only and must be > 0"
+
+    stub_kubectl_response(*expected_cmd, resp: "{}")
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("sixty"))
+    customized_resource.validate_definition
+    assert customized_resource.validation_failed?, "Annotation with 'sixty' was valid"
+    assert_equal error_msg, customized_resource.validation_error_msg
+
+    stub_kubectl_response(*expected_cmd, resp: "{}")
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("-1"))
+    customized_resource.validate_definition
+    assert customized_resource.validation_failed?, "Annotation with '-1' was valid"
+    assert_equal error_msg, customized_resource.validation_error_msg
+
+    stub_kubectl_response(*expected_cmd, resp: "{}")
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("0"))
+    customized_resource.validate_definition
+    assert customized_resource.validation_failed?, "Annotation with '0' was valid"
+    assert_equal error_msg, customized_resource.validation_error_msg
+
+    stub_kubectl_response(*expected_cmd, resp: "{}")
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("10m"))
+    customized_resource.validate_definition
+    assert customized_resource.validation_failed?, "Annotation with '10m' was valid"
+    assert_equal error_msg, customized_resource.validation_error_msg
+  end
+
+  def test_annotation_and_kubectl_error_messages_are_combined
+    stub_kubectl_response(
+      "create", "-f", "/tmp/foo/bar", "--dry-run", "--output=name", anything,
+      resp: "{}",
+      err: "Error from kubectl: Something else in this template was not valid",
+      success: false
+    )
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("bad"))
+    customized_resource.validate_definition
+    assert customized_resource.validation_failed?, "Expected resource to be invalid"
+
+    expected = <<~STRING.strip
+      kubernetes-deploy.shopify.io/timeout-override-seconds annotation must contain digits only and must be > 0
+      Error from kubectl: Something else in this template was not valid
+    STRING
+    assert_equal expected, customized_resource.validation_error_msg
+  end
+
   private
+
+  def build_timeout_metadata(value)
+    {
+      "metadata" => {
+        "name" => "customized",
+        "annotations" => {
+          KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => value
+        }
+      }
+    }
+  end
 
   def assert_includes_dummy_events(events, first:, second:)
     unless first || second

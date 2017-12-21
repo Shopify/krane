@@ -6,7 +6,7 @@ require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class KubernetesResource
-    attr_reader :name, :namespace, :context, :validation_error_msg
+    attr_reader :name, :namespace, :context
     attr_writer :type, :deploy_started_at
 
     TIMEOUT = 5.minutes
@@ -21,6 +21,8 @@ module KubernetesDeploy
       Kubernetes will continue to attempt to deploy this resource in the cluster, but at this point it is considered unlikely that it will succeed.
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
+
+    TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override-seconds"
 
     def self.build(namespace:, context:, definition:, logger:)
       opts = { namespace: namespace, context: context, definition: definition, logger: logger }
@@ -39,7 +41,12 @@ module KubernetesDeploy
     end
 
     def timeout
+      return timeout_override.to_i if timeout_override.present?
       self.class.timeout
+    end
+
+    def timeout_override
+      @definition.dig("metadata", "annotations", TIMEOUT_OVERRIDE_ANNOTATION)
     end
 
     def pretty_timeout_type
@@ -59,20 +66,26 @@ module KubernetesDeploy
       @logger = logger
       @definition = definition
       @statsd_report_done = false
-      @validation_error_msg = nil
+      @validation_errors = []
     end
 
     def validate_definition
-      @validation_error_msg = nil
+      @validation_errors = []
+      validate_annotations
+
       command = ["create", "-f", file_path, "--dry-run", "--output=name"]
       _, err, st = kubectl.run(*command, log_failure: false)
       return true if st.success?
-      @validation_error_msg = err
+      @validation_errors << err
       false
     end
 
+    def validation_error_msg
+      @validation_errors.join("\n")
+    end
+
     def validation_failed?
-      @validation_error_msg.present?
+      @validation_errors.present?
     end
 
     def id
@@ -276,6 +289,12 @@ module KubernetesDeploy
     end
 
     private
+
+    def validate_annotations
+      return unless timeout_override.present?
+      return if timeout_override.strip.match(/\A\d+\z/) && timeout_override.to_i > 0
+      @validation_errors << "#{TIMEOUT_OVERRIDE_ANNOTATION} annotation must contain digits only and must be > 0"
+    end
 
     def file
       @file ||= create_definition_tempfile
