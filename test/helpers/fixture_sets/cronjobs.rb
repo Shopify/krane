@@ -7,7 +7,7 @@ module FixtureSetAssertions
     end
 
     def assert_cronjob_present(job_name)
-      assert_cronjob_exists(job_name, @app_name)
+      assert_cronjob_exists(job_name)
     end
   end
 end

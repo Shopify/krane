@@ -97,7 +97,7 @@ module FixtureSetAssertions
       assert_equal expected_data, configmaps.first["data"].to_h
     end
 
-    def assert_cronjob_exists(job_name, app_name)
+    def assert_cronjob_exists(job_name)
       cronjobs = batch_v1beta1_kubeclient.get_cron_jobs(
             namespace: namespace,
             label_selector: "name=#{job_name},app=#{app_name}"
