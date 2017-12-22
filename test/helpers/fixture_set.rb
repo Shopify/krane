@@ -99,9 +99,9 @@ module FixtureSetAssertions
 
     def assert_cronjob_exists(job_name)
       cronjobs = batch_v1beta1_kubeclient.get_cron_jobs(
-            namespace: namespace,
-            label_selector: "name=#{job_name},app=#{app_name}"
-          )
+        namespace: namespace,
+        label_selector: "name=#{job_name},app=#{app_name}"
+      )
       assert_equal 1, cronjobs.size, "Expected 1 cronjob, got #{cronjobs.size}"
     end
 
