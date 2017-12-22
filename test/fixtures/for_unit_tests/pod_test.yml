@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: unmanaged-pod-1
+  labels:
+    type: unmanaged-pod
+    name: unmanaged-pod-1
+    app: hello-cloud
+spec:
+  activeDeadlineSeconds: 20
+  restartPolicy: Never
+  containers:
+    - name: hello-cloud
+      image: busybox
+      imagePullPolicy: IfNotPresent
+      command: ["sh", "-c", "echo 'Hello from the command runner!' && test 1 -eq 1"]

@@ -3,12 +3,12 @@ kind: Deployment
 metadata:
   name: cannot-run
 spec:
-  replicas: 3
-  progressDeadlineSeconds: 20
+  replicas: 2
+  progressDeadlineSeconds: 60
   template:
     metadata:
       labels:
-        name: web
+        name: cannot-run
         app: crash-app
     spec:
       initContainers:

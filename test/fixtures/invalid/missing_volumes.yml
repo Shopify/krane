@@ -4,11 +4,11 @@ metadata:
   name: missing-volumes
 spec:
   replicas: 1
-  progressDeadlineSeconds: 10
+  progressDeadlineSeconds: 15
   template:
     metadata:
       labels:
-        name: web
+        name: missing-volumes
         app: crash-app
     spec:
       containers:

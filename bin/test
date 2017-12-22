@@ -2,6 +2,13 @@
 set -euo pipefail
 
 echo "--- :ruby: Bundle Install"
-bundle install --jobs 4 
-echo "+++ :kubernetes: Run Tests"
-bundle exec rake test TESTOPTS='-v'
+bundle install --jobs 4
+
+echo "+++ :kubernetes: Run Unit Tests"
+bundle exec rake unit_test
+
+echo "+++ :kubernetes: Run Non-Parallel Integration Tests"
+bundle exec rake serial_integration_test
+
+echo "+++ :kubernetes: Run Parallel Integration Tests"
+PARALLELIZE_ME=1 N=7 bundle exec rake integration_test

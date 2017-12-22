@@ -26,7 +26,7 @@ module FixtureDeployHelper
   #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end
-  def deploy_fixtures(set, subset: nil, wait: true, allow_protected_ns: false, prune: true, bindings: {}, sha: nil)
+  def deploy_fixtures(set, subset: nil, **args) # extra args are passed through to deploy_dir_without_profiling
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
 
@@ -35,8 +35,7 @@ module FixtureDeployHelper
     success = false
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
-      success = deploy_dir(target_dir, wait: wait, allow_protected_ns: allow_protected_ns,
-        prune: prune, bindings: bindings, sha: sha)
+      success = deploy_dir(target_dir, args)
     end
     success
   end
@@ -45,15 +44,18 @@ module FixtureDeployHelper
     deploy_dir(fixture_path(set), wait: wait, bindings: bindings)
   end
 
-  def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {}, sha: nil)
-    current_sha = sha || SecureRandom.hex(6)
+  def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {},
+    sha: nil, kubectl_instance: nil)
+    current_sha = sha || "k#{SecureRandom.hex(6)}"
+    kubectl_instance ||= build_kubectl
+
     deploy = KubernetesDeploy::DeployTask.new(
       namespace: @namespace,
       current_sha: current_sha,
       context: KubeclientHelper::MINIKUBE_CONTEXT,
       template_dir: dir,
       logger: logger,
-      kubectl_instance: build_kubectl,
+      kubectl_instance: kubectl_instance,
       bindings: bindings
     )
     deploy.run(
@@ -66,16 +68,16 @@ module FixtureDeployHelper
   # Deploys all fixtures in the given directory via KubernetesDeploy::DeployTask
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
-  def deploy_dir(*args)
+  def deploy_dir(dir, **args)
     if ENV["PROFILE"]
       deploy_result = nil
-      result = RubyProf.profile { deploy_result = deploy_dir_without_profiling(*args) }
+      result = RubyProf.profile { deploy_result = deploy_dir_without_profiling(dir, args) }
       printer = RubyProf::FlameGraphPrinter.new(result)
       filename = File.expand_path("../../../dev/profile", __FILE__)
       printer.print(File.new(filename, "a+"), {})
       deploy_result
     else
-      deploy_dir_without_profiling(*args)
+      deploy_dir_without_profiling(dir, args)
     end
   end
 
@@ -109,8 +111,8 @@ module FixtureDeployHelper
     end
   end
 
-  def build_kubectl(log_failure_by_default: true)
+  def build_kubectl(log_failure_by_default: true, timeout: '5s')
     KubernetesDeploy::Kubectl.new(namespace: @namespace, context: KubeclientHelper::MINIKUBE_CONTEXT, logger: logger,
-      log_failure_by_default: log_failure_by_default, default_timeout: '5s')
+      log_failure_by_default: log_failure_by_default, default_timeout: timeout)
   end
 end
