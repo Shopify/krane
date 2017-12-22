@@ -25,5 +25,4 @@ module KubeclientHelper
   def batch_v1beta1_kubeclient
     @batch_v1beta1_kubeclient ||= build_batch_v1beta1_kubeclient(MINIKUBE_CONTEXT)
   end
-
 end
