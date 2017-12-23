@@ -8,6 +8,7 @@ require 'active_support/core_ext/string/inflections'
 require 'active_support/core_ext/string/strip'
 require 'active_support/core_ext/hash/keys'
 require 'active_support/core_ext/array/conversions'
+require 'active_support/duration'
 require 'colorized_string'
 
 require 'kubernetes-deploy/version'
@@ -17,6 +18,7 @@ require 'kubernetes-deploy/deploy_task'
 require 'kubernetes-deploy/statsd'
 require 'kubernetes-deploy/concurrency'
 require 'kubernetes-deploy/bindings_parser'
+require 'kubernetes-deploy/duration_parser'
 
 module KubernetesDeploy
   KubernetesDeploy::StatsD.build

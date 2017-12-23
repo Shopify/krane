@@ -22,7 +22,7 @@ module KubernetesDeploy
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
 
-    TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override-seconds"
+    TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
 
     def self.build(namespace:, context:, definition:, logger:)
       opts = { namespace: namespace, context: context, definition: definition, logger: logger }
@@ -41,12 +41,15 @@ module KubernetesDeploy
     end
 
     def timeout
-      return timeout_override.to_i if timeout_override.present?
+      return timeout_override if timeout_override.present?
       self.class.timeout
     end
 
     def timeout_override
-      @definition.dig("metadata", "annotations", TIMEOUT_OVERRIDE_ANNOTATION)
+      return @timeout_override if defined?(@timeout_override)
+      @timeout_override = DurationParser.new(timeout_annotation).parse!.to_i
+    rescue DurationParser::ParsingError
+      @timeout_override = nil
     end
 
     def pretty_timeout_type
@@ -71,7 +74,7 @@ module KubernetesDeploy
 
     def validate_definition
       @validation_errors = []
-      validate_annotations
+      validate_timeout_annotation
 
       command = ["create", "-f", file_path, "--dry-run", "--output=name"]
       _, err, st = kubectl.run(*command, log_failure: false)
@@ -290,10 +293,21 @@ module KubernetesDeploy
 
     private
 
-    def validate_annotations
-      return unless timeout_override.present?
-      return if timeout_override.strip.match(/\A\d+\z/) && timeout_override.to_i > 0
-      @validation_errors << "#{TIMEOUT_OVERRIDE_ANNOTATION} annotation must contain digits only and must be > 0"
+    def validate_timeout_annotation
+      return if timeout_annotation.nil?
+
+      override = DurationParser.new(timeout_annotation).parse!
+      if override <= 0
+        @validation_errors << "#{TIMEOUT_OVERRIDE_ANNOTATION} annotation is invalid: Value must be greater than 0"
+      elsif override > 24.hours
+        @validation_errors << "#{TIMEOUT_OVERRIDE_ANNOTATION} annotation is invalid: Value must be less than 24h"
+      end
+    rescue DurationParser::ParsingError => e
+      @validation_errors << "#{TIMEOUT_OVERRIDE_ANNOTATION} annotation is invalid: #{e}"
+    end
+
+    def timeout_annotation
+      @definition.dig("metadata", "annotations", TIMEOUT_OVERRIDE_ANNOTATION)
     end
 
     def file

@@ -123,7 +123,7 @@ You can add additional variables using the `--bindings=BINDINGS` option. For exa
 
 ### Customizing behaviour with annotations
 
-- `kubernetes-deploy.shopify.io/timeout-override-seconds` (any resource): Override the tool's hard timeout for one specific resource. Value must be a positive number of seconds (digits only).
+- `kubernetes-deploy.shopify.io/timeout-override` (any resource): Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours. Example values: 45s / 3m / 1h / PT0.25H
 
 ### Running tasks at the beginning of a deploy
 
