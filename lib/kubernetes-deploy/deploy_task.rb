@@ -65,19 +65,33 @@ module KubernetesDeploy
     # core/v1/ReplicationController -- superseded by deployments/replicasets
     # extensions/v1beta1/ReplicaSet -- managed by deployments
     # core/v1/Secret -- should not committed / managed by shipit
-    PRUNE_WHITELIST = %w(
-      core/v1/ConfigMap
-      core/v1/Pod
-      core/v1/Service
-      batch/v1/Job
-      batch/v1beta1/CronJob
-      extensions/v1beta1/DaemonSet
-      extensions/v1beta1/Deployment
-      apps/v1beta1/Deployment
-      extensions/v1beta1/Ingress
-      apps/v1beta1/StatefulSet
-      autoscaling/v1/HorizontalPodAutoscaler
-    ).freeze
+    def prune_whitelist
+      wl = %w(
+        core/v1/ConfigMap
+        core/v1/Pod
+        core/v1/Service
+        batch/v1/Job
+        extensions/v1beta1/DaemonSet
+        extensions/v1beta1/Deployment
+        apps/v1beta1/Deployment
+        extensions/v1beta1/Ingress
+        apps/v1beta1/StatefulSet
+        autoscaling/v1/HorizontalPodAutoscaler
+      )
+      if server_version >= Gem::Version.new('1.8.0')
+        wl.concat(%w(
+          apps/v1beta2/DaemonSet
+          apps/v1beta2/Deployment
+          apps/v1beta2/StatefulSet
+          batch/v1beta1/CronJob
+        ))
+      end
+      wl
+    end
+
+    def server_version
+      @sever_version ||= kubectl.server_version
+    end
 
     NOT_FOUND_ERROR = 'NotFound'
 
@@ -378,7 +392,7 @@ module KubernetesDeploy
 
       if prune
         command.push("--prune", "--all")
-        PRUNE_WHITELIST.each { |type| command.push("--prune-whitelist=#{type}") }
+        prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
       end
 
       out, err, st = kubectl.run(*command, log_failure: false)
