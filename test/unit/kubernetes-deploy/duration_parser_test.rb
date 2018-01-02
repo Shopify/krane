@@ -19,11 +19,14 @@ class DurationParserTest < KubernetesDeploy::TestCase
   def test_parse_is_case_insensitive
     assert_equal 30, new_parser("30S").parse!
     assert_equal 30, new_parser("30s").parse!
+    assert_equal 30, new_parser("pt30s").parse!
+    assert_equal 110839937, new_parser("p3y6M4dT12H30M5s").parse!
   end
 
   def test_parse_raises_expected_error_for_blank_values
     ["", "   ", nil].each do |blank_value|
-      assert_raises_message(KubernetesDeploy::DurationParser::ParsingError, "Cannot parse blank value") do
+      expected_msg = 'Invalid ISO 8601 duration: "" is empty duration'
+      assert_raises_message(KubernetesDeploy::DurationParser::ParsingError, expected_msg) do
         new_parser(blank_value).parse!
       end
     end

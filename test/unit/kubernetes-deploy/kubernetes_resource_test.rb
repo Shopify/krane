@@ -92,7 +92,8 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata(""))
     customized_resource.validate_definition
     assert customized_resource.validation_failed?, "Blank annotation was valid"
-    assert_equal "#{timeout_override_err_prefix}: Cannot parse blank value", customized_resource.validation_error_msg
+    assert_equal "#{timeout_override_err_prefix}: Invalid ISO 8601 duration: \"\" is empty duration",
+      customized_resource.validation_error_msg
   end
 
   def test_lack_of_timeout_annotation_does_not_fail_validation
@@ -123,7 +124,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_timeout_override_upper_bound_validation
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H1S"))
     customized_resource.validate_definition
-    assert customized_resource.validation_failed?, "Annotation with '0' was valid"
+    assert customized_resource.validation_failed?, "Annotation with '24H1S' was valid"
     assert_equal "#{timeout_override_err_prefix}: Value must be less than 24h", customized_resource.validation_error_msg
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H"))

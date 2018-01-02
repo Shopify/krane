@@ -15,24 +15,12 @@ module KubernetesDeploy
     end
 
     def parse!
-      if @iso8601_str.blank?
-        raise ParsingError, "Cannot parse blank value"
-      end
-
-      parser = ActiveSupport::Duration::ISO8601Parser.new(@iso8601_str)
-      parser.mode = :time unless @iso8601_str.start_with?("P")
-      parts = parser.parse!
-      ActiveSupport::Duration.new(calculate_total_seconds(parts), parts)
-    rescue ActiveSupport::Duration::ISO8601Parser::ParsingError => e
-      raise ParsingError, e.message
-    end
-
-    private
-
-    # https://github.com/rails/rails/blob/19c450d5d99275924254b2041b6ad470fdaa1f93/activesupport/lib/active_support/duration.rb#L79-L83
-    def calculate_total_seconds(parts)
-      parts.inject(0) do |total, (part, value)|
-        total + value * ActiveSupport::Duration::PARTS_IN_SECONDS[part]
+      ActiveSupport::Duration.parse("PT#{@iso8601_str}") # By default assume it is just a time component
+    rescue ActiveSupport::Duration::ISO8601Parser::ParsingError
+      begin
+        ActiveSupport::Duration.parse(@iso8601_str)
+      rescue ActiveSupport::Duration::ISO8601Parser::ParsingError => e
+        raise ParsingError, e.message
       end
     end
   end
