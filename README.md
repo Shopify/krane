@@ -123,7 +123,9 @@ You can add additional variables using the `--bindings=BINDINGS` option. For exa
 
 ### Customizing behaviour with annotations
 
-- `kubernetes-deploy.shopify.io/timeout-override` (any resource): Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours. Example values: 45s / 3m / 1h / PT0.25H
+- `kubernetes-deploy.shopify.io/timeout-override`: Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours.
+  - _Example values_: 45s / 3m / 1h / PT0.25H
+  - _Compatibility_: all resource types (Note: `Deployment` timeouts are based on `spec.progressDeadlineSeconds` if present, and that field has a default value as of the `apps/v1beta1` group version. Using this annotation will have no effect on `Deployment`s that time out with "Timeout reason: ProgressDeadlineExceeded".)
 
 ### Running tasks at the beginning of a deploy
 
