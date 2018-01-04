@@ -90,7 +90,7 @@ module KubernetesDeploy
     end
 
     def server_version
-      @sever_version ||= kubectl.server_version
+      kubectl.server_version
     end
 
     NOT_FOUND_ERROR = 'NotFound'
