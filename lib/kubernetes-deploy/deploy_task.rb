@@ -79,12 +79,7 @@ module KubernetesDeploy
         autoscaling/v1/HorizontalPodAutoscaler
       )
       if server_version >= Gem::Version.new('1.8.0')
-        wl.concat(%w(
-          apps/v1beta2/DaemonSet
-          apps/v1beta2/Deployment
-          apps/v1beta2/StatefulSet
-          batch/v1beta1/CronJob
-        ))
+        wl << "batch/v1beta1/CronJob"
       end
       wl
     end
