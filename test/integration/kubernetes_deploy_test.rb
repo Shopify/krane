@@ -120,6 +120,69 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.assert_poddisruptionbudget
   end
 
+  def test_selector
+    # Deploy the same thing twice with a different selector
+    assert_deploy_success(deploy_fixtures("branched",
+      bindings: { "branch" => "master" },
+      selector: { "branch" => "master" }))
+    assert_deploy_success(deploy_fixtures("branched",
+      bindings: { "branch" => "staging" },
+      selector: { "branch" => "staging" }))
+    deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
+
+    assert_equal(2, deployments.size)
+    assert_equal(%w(master staging), deployments.map { |d| d.metadata.labels.branch }.sort)
+
+    # Run again without selector to verify pruning works
+    assert_deploy_success(deploy_fixtures("branched", bindings: { "branch" => "master" }))
+    deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
+    # Filter out pruned resources pending deletion
+    deployments.select! { |deployment| deployment.metadata.deletionTimestamp.nil? }
+
+    assert_equal(1, deployments.size)
+    assert_equal("master", deployments.first.metadata.labels.branch)
+  end
+
+  def test_mismatched_selector
+    assert_deploy_failure(deploy_fixtures("branched",
+      bindings: { "branch" => "master" },
+      selector: { "branch" => "staging" }))
+    assert_logs_match_all([
+      /Template validation failed/,
+      /Invalid template: Deployment/,
+      /selector branch=staging does not match labels app=branched,branch=master/,
+      /> Template content:/,
+    ], in_order: true)
+  end
+
+  def test_mismatched_selector_on_replace_resource_without_labels
+    assert_deploy_failure(deploy_fixtures("hello-cloud",
+      subset: %w(disruption-budgets.yml),
+      selector: { "branch" => "staging" }))
+    assert_logs_match_all([
+      /Template validation failed/,
+      /Invalid template: PodDisruptionBudget/,
+      /selector branch=staging passed in, but no labels were defined/,
+      /> Template content:/,
+    ], in_order: true)
+  end
+
+  def test_deploying_to_protected_namespace_with_override_does_not_prune
+    KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
+      assert_deploy_success(deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: false))
+      hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+      hello_cloud.assert_all_up
+      assert_logs_match_all([
+        /cannot be pruned/,
+        /Please do not deploy to #{@namespace} unless you really know what you are doing/,
+      ])
+
+      result = deploy_fixtures("hello-cloud", subset: ["redis.yml"], allow_protected_ns: true, prune: false)
+      assert_deploy_success(result)
+      hello_cloud.assert_all_up
+    end
+  end
+
   def test_refuses_deploy_to_protected_namespace_with_override_if_pruning_enabled
     generated_ns = @namespace
     @namespace = 'default'

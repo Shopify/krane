@@ -61,7 +61,7 @@ module FixtureDeployHelper
   end
 
   def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {},
-    sha: nil, kubectl_instance: nil, max_watch_seconds: nil)
+    sha: nil, kubectl_instance: nil, max_watch_seconds: nil, selector: nil)
     current_sha = sha || "k#{SecureRandom.hex(6)}"
     kubectl_instance ||= build_kubectl
 
@@ -73,7 +73,8 @@ module FixtureDeployHelper
       logger: logger,
       kubectl_instance: kubectl_instance,
       bindings: bindings,
-      max_watch_seconds: max_watch_seconds
+      max_watch_seconds: max_watch_seconds,
+      selector: selector,
     )
     deploy.run(
       verify_result: wait,

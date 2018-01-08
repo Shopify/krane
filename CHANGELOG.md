@@ -5,6 +5,7 @@
   * If you previously used this gem to deploy secrets from EJSON and the first time commit you deploy using this version removes one or more of them, they will not be pruned.
   * If you previously manually `kubectl apply`'d secrets that are not passed to kubernetes-deploy, your first deploy using this version is going to delete them.
   * If you previously passed secrets manifests to kubernetes-deploy and they are no longer in the set you pass to the first deploy using this version, it will delete them.
+- Support for specifying a `--selector`, a label with which all deployed resources are expected to have, and by which prunable resources will be filtered. This permits sharing a namespace with resources managed by third-parties, including other kubernetes-deploy deployments.
 
 *Bug fixes*
 - Attempting to deploy from a directory that only contains `secrets.ejson` will no longer fail deploy ([#416](https://github.com/Shopify/kubernetes-deploy/pull/416))

@@ -4,6 +4,8 @@ require 'open3'
 require 'shellwords'
 
 require 'kubernetes-deploy/remote_logs'
+require 'kubernetes-deploy/kubectl'
+require 'kubernetes-deploy/utils'
 
 module KubernetesDeploy
   class KubernetesResource
@@ -106,8 +108,9 @@ module KubernetesDeploy
       Kubeclient::Resource.new(@definition)
     end
 
-    def validate_definition(kubectl)
+    def validate_definition(kubectl, selector: nil)
       @validation_errors = []
+      validate_selector(selector) if selector
       validate_timeout_annotation
 
       command = ["create", "-f", file_path, "--dry-run", "--output=name"]
@@ -391,6 +394,25 @@ module KubernetesDeploy
 
     def timeout_annotation
       @definition.dig("metadata", "annotations", TIMEOUT_OVERRIDE_ANNOTATION)
+    end
+
+    def validate_selector(selector)
+      selector_string = Utils.selector_to_string(selector)
+
+      if labels.nil?
+        @validation_errors << "selector #{selector_string} passed in, but no labels were defined"
+        return
+      end
+
+      unless selector <= labels
+        label_name = 'label'.pluralize(labels.size)
+        label_string = Utils.selector_to_string(labels)
+        @validation_errors << "selector #{selector_string} does not match #{label_name} #{label_string}"
+      end
+    end
+
+    def labels
+      @definition.dig("metadata", "labels")
     end
 
     def file
