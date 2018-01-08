@@ -66,7 +66,7 @@ module KubernetesDeploy
       @rollout_conditions = nil
     end
 
-    def validate_definition(_)
+    def validate_definition(*)
       super
 
       validate_rollout_conditions
