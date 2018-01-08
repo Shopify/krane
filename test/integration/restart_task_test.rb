@@ -3,6 +3,28 @@ require 'test_helper'
 require 'kubernetes-deploy/restart_task'
 
 class RestartTaskTest < KubernetesDeploy::IntegrationTest
+  def test_restart
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]))
+
+    refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
+
+    restart = build_restart_task
+    assert_restart_success(restart.perform(deployments: ["web"]))
+
+    assert_logs_match_all([
+      "Configured to restart deployments by name: web",
+      "Triggered `web` restart",
+      "Waiting for rollout",
+      %r{Successfully restarted in \d+\.\d+s: Deployment/web},
+      "Result: SUCCESS",
+      "Successfully restarted 1 resource",
+      %r{Deployment/web.*1 availableReplica}
+    ],
+      in_order: true)
+
+    assert fetch_restarted_at("web"), "RESTARTED_AT is present after the restart"
+  end
+
   def test_restart_by_annotation
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]))
 
@@ -27,6 +49,35 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     refute fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment"
   end
 
+  def test_restart_by_selector
+    assert_deploy_success(deploy_fixtures("branched",
+      bindings: { "branch" => "master" },
+      selector: { "branch" => "master" }))
+    assert_deploy_success(deploy_fixtures("branched",
+      bindings: { "branch" => "staging" },
+      selector: { "branch" => "staging" }))
+
+    refute fetch_restarted_at("master-web"), "no RESTARTED_AT env on fresh deployment"
+    refute fetch_restarted_at("staging-web"), "no RESTARTED_AT env on fresh deployment"
+
+    restart = build_restart_task
+    assert_restart_success(restart.perform(selector: {name: 'web', branch: 'staging'}))
+
+    assert_logs_match_all([
+      "Configured to restart all deployments with the `shipit.shopify.io/restart` annotation and name=web,branch=staging selector",
+      "Triggered `staging-web` restart",
+      "Waiting for rollout",
+      %r{Successfully restarted in \d\.\ds: Deployment/staging-web},
+      "Result: SUCCESS",
+      "Successfully restarted 1 resource",
+      %r{Deployment/staging-web.*1 availableReplica}
+    ],
+      in_order: true)
+
+    assert fetch_restarted_at("staging-web"), "RESTARTED_AT is present after the restart"
+    refute fetch_restarted_at("master-web"), "no RESTARTED_AT env on fresh deployment"
+  end
+
   def test_restart_by_annotation_none_found
     restart = build_restart_task
     assert_restart_failure(restart.perform)
@@ -44,7 +95,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
 
     restart = build_restart_task
-    assert_restart_success(restart.perform(["web"]))
+    assert_restart_success(restart.perform(deployments: ["web"]))
 
     assert_logs_match_all([
       "Configured to restart deployments by name: web",
@@ -61,7 +112,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert first_restarted_at, "RESTARTED_AT is present after first restart"
 
     Timecop.freeze(1.second.from_now) do
-      assert_restart_success(restart.perform(["web"]))
+      assert_restart_success(restart.perform(deployments: ["web"]))
     end
 
     second_restarted_at = fetch_restarted_at("web")
@@ -75,7 +126,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
 
     restart = build_restart_task
-    assert_restart_success(restart.perform(%w(web web)))
+    assert_restart_success(restart.perform(deployments: %w(web web)))
 
     assert_logs_match_all([
       "Configured to restart deployments by name: web",
@@ -91,7 +142,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
   def test_restart_not_existing_deployment
     restart = build_restart_task
-    assert_restart_failure(restart.perform(["web"]))
+    assert_restart_failure(restart.perform(deployments: ["web"]))
     assert_logs_match_all([
       "Configured to restart deployments by name: web",
       "Result: FAILURE",
@@ -104,7 +155,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
 
     restart = build_restart_task
-    assert_restart_failure(restart.perform(%w(walrus web)))
+    assert_restart_failure(restart.perform(deployments: %w(walrus web)))
 
     refute fetch_restarted_at("web"), "no RESTARTED_AT env after failed restart task"
     assert_logs_match_all([
@@ -117,10 +168,20 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
   def test_restart_none
     restart = build_restart_task
-    assert_restart_failure(restart.perform([]))
+    assert_restart_failure(restart.perform(deployments: []))
     assert_logs_match_all([
       "Result: FAILURE",
       "Configured to restart deployments by name, but list of names was blank"
+    ],
+      in_order: true)
+  end
+
+  def test_restart_deployments_and_selector
+    restart = build_restart_task
+    assert_restart_failure(restart.perform(deployments: ["web"], selector: {app: 'web'}))
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Can't specify deployment names and selector at the same time"
     ],
       in_order: true)
   end
@@ -131,7 +192,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       namespace: @namespace,
       logger: logger
     )
-    assert_restart_failure(restart.perform(["web"]))
+    assert_restart_failure(restart.perform(deployments: ["web"]))
     assert_logs_match_all([
       "Result: FAILURE",
       "`walrus` context must be configured in your kubeconfig file(s)"
@@ -145,7 +206,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       namespace: "walrus",
       logger: logger
     )
-    assert_restart_failure(restart.perform(["web"]))
+    assert_restart_failure(restart.perform(deployments: ["web"]))
     assert_logs_match_all([
       "Result: FAILURE",
       "Namespace `walrus` not found in context `minikube`"
@@ -174,7 +235,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(success)
 
     restart = build_restart_task
-    assert_restart_failure(restart.perform(%w(web)))
+    assert_restart_failure(restart.perform(deployments: %w(web)))
     assert_logs_match_all([
       "Triggered `web` restart",
       "Deployment/web rollout timed out",

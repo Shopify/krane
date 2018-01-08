@@ -36,6 +36,7 @@ require 'kubernetes-deploy/resource_watcher'
 require 'kubernetes-deploy/kubectl'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
+require 'kubernetes-deploy/utils'
 
 module KubernetesDeploy
   class DeployTask
@@ -91,7 +92,8 @@ module KubernetesDeploy
 
     NOT_FOUND_ERROR = 'NotFound'
 
-    def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {})
+    def initialize(namespace:, context:, current_sha:, template_dir:, logger:,
+      kubectl_instance: nil, bindings: {}, selector: nil)
       @namespace = namespace
       @context = context
       @current_sha = current_sha
@@ -99,6 +101,7 @@ module KubernetesDeploy
       @logger = logger
       @kubectl = kubectl_instance
       @bindings = bindings
+      @selector = selector
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
     end
@@ -124,6 +127,7 @@ module KubernetesDeploy
         template_dir: @template_dir,
         logger: @logger,
         prune: prune,
+        selector: @selector,
       )
       if ejson.secret_changes_required?
         @logger.phase_heading("Deploying kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}")
@@ -206,7 +210,9 @@ module KubernetesDeploy
     end
 
     def validate_definitions(resources)
-      KubernetesDeploy::Concurrency.split_across_threads(resources, &:validate_definition)
+      KubernetesDeploy::Concurrency.split_across_threads(resources) do |resource|
+        resource.validate_definition(@selector)
+      end
       failed_resources = resources.select(&:validation_failed?)
       return unless failed_resources.present?
 
@@ -260,7 +266,7 @@ module KubernetesDeploy
       template_list = template_names.compact.join(", ").presence || "See error message"
 
       debug_msg = ColorizedString.new("Invalid #{'template'.pluralize(template_names.length)}: #{template_list}\n").red
-      debug_msg += "> Error from kubectl:\n#{indent_four(err)}"
+      debug_msg += "> Error:\n#{indent_four(err)}"
       if file_content.present?
         debug_msg += "\n> Rendered template content:\n#{indent_four(file_content)}"
       end
@@ -393,7 +399,12 @@ module KubernetesDeploy
       end
 
       if prune
-        command.push("--prune", "--all")
+        command.push("--prune")
+        if @selector
+          command.push("--selector", Utils.selector_to_string(@selector))
+        else
+          command.push("--all")
+        end
         prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
       end
 
