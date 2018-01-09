@@ -63,8 +63,7 @@ module KubernetesDeploy
         @latest_rs.ready_replicas >= minimum_needed &&
         @latest_rs.available_replicas >= minimum_needed
       else
-        raise "#{REQUIRED_ROLLOUT_ANNOTATION}:#{required_rollout} is invalid "\
-        " Acceptable options: #{REQUIRED_ROLLOUT_TYPES.join(',')}"
+        raise FatalDeploymentError, rollout_annotation_err_msg
       end
     end
 
@@ -104,20 +103,24 @@ module KubernetesDeploy
       super
 
       unless REQUIRED_ROLLOUT_TYPES.include?(required_rollout)
-        @validation_errors << "#{REQUIRED_ROLLOUT_ANNOTATION}:#{required_rollout} is invalid "\
-        "Acceptable options: #{REQUIRED_ROLLOUT_TYPES.join(',')}"
+        @validation_errors << rollout_annotation_err_msg
       end
 
-      if required_rollout.downcase == 'maxunavailable' && @definition.dig('spec', 'strategy').respond_to?(:downcase) &&
-        @definition.dig('spec', 'strategy').downcase == 'recreate'
-        @validation_errors << "#{REQUIRED_ROLLOUT_ANNOTATION}:#{required_rollout} is invalid "\
-        "with strategy 'rollingUpdate'"
+      strategy = @definition.dig('spec', 'strategy', 'type').to_s
+      if required_rollout.downcase == 'maxunavailable' && strategy.downcase != 'rollingupdate'
+        @validation_errors << "'#{REQUIRED_ROLLOUT_ANNOTATION}: #{required_rollout}' is incompatible "\
+        "with strategy '#{strategy}'"
       end
 
       @validation_errors.empty?
     end
 
     private
+
+    def rollout_annotation_err_msg
+      "'#{REQUIRED_ROLLOUT_ANNOTATION}: #{required_rollout}' is invalid. "\
+        "Acceptable values: #{REQUIRED_ROLLOUT_TYPES.join(', ')}"
+    end
 
     def deploy_failing_to_progress?
       return false unless @progress_condition.present?

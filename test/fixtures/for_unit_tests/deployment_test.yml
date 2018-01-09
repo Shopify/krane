@@ -1,0 +1,62 @@
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: web
+  uid: foobar
+  annotations:
+    "deployment.kubernetes.io/revision": "1"
+spec:
+  replicas: 3
+  progressDeadlineSeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      name: web
+      app: hello-cloud
+  template:
+    metadata:
+      labels:
+        name: web
+        app: hello-cloud
+    spec:
+      containers:
+      - name: app
+        image: busybox
+status:
+  replicas: 3
+  conditions:
+  - type: Progressing
+    status: True
+    lastUpdateTime: "2018-01-09 22:56:45 UTC"
+
+---
+apiVersion: apps/v1beta1
+kind: ReplicaSet
+metadata:
+  name: web-1
+  annotations:
+    "deployment.kubernetes.io/revision": "1"
+  ownerReferences:
+    - uid: foobar
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: web
+      app: hello-cloud
+  template:
+    metadata:
+      labels:
+        name: web
+        app: hello-cloud
+    spec:
+      containers:
+      - name: app
+        image: busybox
+status:
+  replicas: 3
