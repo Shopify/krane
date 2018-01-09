@@ -39,6 +39,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * [Installation](#installation)
 * [Usage](#usage)
   * [Using templates and variables](#using-templates-and-variables)
+  * [Customizing behaviour with annotations](#customizing-behaviour-with-annotations)
   * [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy)
   * [Deploying Kubernetes secrets (from EJSON)](#deploying-kubernetes-secrets-from-ejson)
 
@@ -120,6 +121,11 @@ All templates must be YAML formatted. You can also use ERB. The following local 
 You can add additional variables using the `--bindings=BINDINGS` option. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size` in your templates.
 
 
+### Customizing behaviour with annotations
+
+- `kubernetes-deploy.shopify.io/timeout-override`: Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours.
+  - _Example values_: 45s / 3m / 1h / PT0.25H
+  - _Compatibility_: all resource types (Note: `Deployment` timeouts are based on `spec.progressDeadlineSeconds` if present, and that field has a default value as of the `apps/v1beta1` group version. Using this annotation will have no effect on `Deployment`s that time out with "Timeout reason: ProgressDeadlineExceeded".)
 
 ### Running tasks at the beginning of a deploy
 

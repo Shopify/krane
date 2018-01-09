@@ -9,6 +9,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
+      %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 42s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
       "Successfully deployed 17 resources"

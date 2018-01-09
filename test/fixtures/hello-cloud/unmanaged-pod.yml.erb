@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: unmanaged-pod-<%= deployment_id %>
+  annotations:
+    kubernetes-deploy.shopify.io/timeout-override: "42s"
   labels:
     type: unmanaged-pod
     name: unmanaged-pod-<%= deployment_id %>
