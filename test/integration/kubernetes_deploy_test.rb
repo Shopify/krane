@@ -941,4 +941,11 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       assert_deploy_success(result)
     end
   end
+
+  def test_cronjobs_can_be_deployed
+    skip if KUBE_SERVER_VERSION < Gem::Version.new('1.8.0')
+    assert_deploy_success(deploy_fixtures("cronjobs"))
+    cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
+    cronjobs.assert_cronjob_present("my-cronjob")
+  end
 end

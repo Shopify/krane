@@ -28,6 +28,14 @@ module KubernetesDeploy
       )
     end
 
+    def build_batch_v1beta1_kubeclient(context)
+      _build_kubeclient(
+        api_version: "v1beta1",
+        context: context,
+        endpoint_path: "/apis/batch/"
+      )
+    end
+
     def build_policy_v1beta1_kubeclient(context)
       _build_kubeclient(
         api_version: "v1beta1",
