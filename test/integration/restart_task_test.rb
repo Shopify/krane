@@ -222,7 +222,9 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_restart_success(restart.perform(["web"]))
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=slow-cloud')
-    new_pods = pods.select { |pod| pod.spec.containers.select { |c| c["name"] == "app" && c.env&.find { |n| n.name == "RESTARTED_AT" } } }
+    new_pods = pods.select do |pod|
+      pod.spec.containers.select { |c| c["name"] == "app" && c.env&.find { |n| n.name == "RESTARTED_AT" } }
+    ebd
     assert new_pods.length >= 1, "Expected at least one new pod, saw #{new_pods.length}"
 
     new_ready_pods = new_pods.select do |pod|
