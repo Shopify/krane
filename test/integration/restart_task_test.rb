@@ -209,7 +209,12 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_successful_with_partial_availability
     result = deploy_fixtures("slow-cloud") do |fixtures|
       web = fixtures["web.yml.erb"]["Deployment"].first
-      web["spec"]["strategy"]['rollingUpdate']['maxUnavailable'] = '34%'
+      web["spec"]["strategy"]['rollingUpdate']['maxUnavailable'] = '50%'
+      container = web["spec"]["template"]["spec"]["containers"].first
+      container["readinessProbe"] = {
+        "exec" => { "command" => %w(sleep 5) },
+        "timeoutSeconds" => 6
+      }
     end
     assert_deploy_success(result)
 
@@ -223,7 +228,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       %r{Successfully restarted in \d+\.\d+s: Deployment/web},
       "Result: SUCCESS",
       "Successfully restarted 1 resource",
-      %r{Deployment\/web\s+[34] replicas, 3 updatedReplicas, 2 availableReplicas, [12] unavailableReplica}
+      %r{Deployment\/web\s+2 replicas, [12] updatedReplicas?, [12] availableReplicas?, 1 unavailableReplica}
     ],
       in_order: true)
 
