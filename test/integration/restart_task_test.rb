@@ -223,14 +223,13 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=slow-cloud')
     new_pods = pods.select do |pod|
-      pod.spec.containers.select { |c| c["name"] == "app" && c.env&.find { |n| n.name == "RESTARTED_AT" } }
-    ebd
+      pod.spec.containers.any? { |c| c["name"] == "app" && c.env&.find { |n| n.name == "RESTARTED_AT" } }
+    end
     assert new_pods.length >= 1, "Expected at least one new pod, saw #{new_pods.length}"
 
     new_ready_pods = new_pods.select do |pod|
       pod.status.phase == "Running" &&
-      pod.status.conditions.any? { |condition| condition["type"] == "Ready" && condition["status"] == "True" } &&
-      pod.spec.containers.detect { |c| c["name"] == "app" && c.env&.find { |n| n.name == "RESTARTED_AT" } }
+      pod.status.conditions.any? { |condition| condition["type"] == "Ready" && condition["status"] == "True" }
     end
     assert_equal 1, new_ready_pods.length, "Expected exactly one new pod to be ready, saw #{new_ready_pods.length}"
 

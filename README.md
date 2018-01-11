@@ -128,9 +128,9 @@ You can add additional variables using the `--bindings=BINDINGS` option. For exa
 - `kubernetes-deploy.shopify.io/required-rollout`: Modifies how much of the rollout needs to finish
 before the deployment is considered successful.
   - _Compatibility_: Deployment
-  - `full`: The deploy is successful when all pods in the new ReplicaSet are ready.
-  - `none`: The deploy is successful as soon as the new `replicaSet` is created for the deploy
-  - `maxUnavailable`: The deploy is successful when minimum availability is reached in the new ReplicaSet.
+  - `full`: The deployment is successful when all pods in the new `replicaSet` are ready.
+  - `none`: The deployment is successful as soon as the new `replicaSet` is created for the deployment.
+  - `maxUnavailable`: The deploy is successful when minimum availability is reached in the new `replicaSet`.
   In other words, the number of new pods that must be ready is equal to `spec.replicas` - `strategy.RollingUpdate.maxUnavailable`
   (converted from percentages by rounding up, if applicable). This option is only valid for deployments
   that use the `RollingUpdate` strategy.
