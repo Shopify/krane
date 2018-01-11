@@ -3,13 +3,15 @@ require 'kubernetes-deploy/kubernetes_resource/pod_set_base'
 module KubernetesDeploy
   class ReplicaSet < PodSetBase
     TIMEOUT = 5.minutes
-    attr_reader :desired_replicas, :pods
+    attr_reader :desired_replicas, :ready_replicas, :available_replicas, :pods
 
     def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started_at: nil)
       @parent = parent
       @deploy_started_at = deploy_started_at
       @rollout_data = { "replicas" => 0 }
       @desired_replicas = -1
+      @ready_replicas = -1
+      @available_replicas = -1
       @pods = []
       super(namespace: namespace, context: context, definition: definition, logger: logger)
     end
@@ -26,6 +28,8 @@ module KubernetesDeploy
         @rollout_data = { "replicas" => 0 }.merge(
           rs_data["status"].slice("replicas", "availableReplicas", "readyReplicas")
         )
+        @ready_replicas = @rollout_data['readyReplicas'].to_i
+        @available_replicas = @rollout_data["availableReplicas"].to_i
         @status = @rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
         @pods = find_pods(rs_data)
       else # reset
@@ -34,6 +38,8 @@ module KubernetesDeploy
         @status = nil
         @pods = []
         @desired_replicas = -1
+        @ready_replicas = -1
+        @available_replicas = -1
       end
     end
 

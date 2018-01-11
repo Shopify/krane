@@ -2,6 +2,9 @@
 module KubernetesDeploy
   class Deployment < KubernetesResource
     TIMEOUT = 7.minutes
+    REQUIRED_ROLLOUT_ANNOTATION = 'kubernetes-deploy.shopify.io/required-rollout'
+    REQUIRED_ROLLOUT_TYPES = %w(maxUnavailable full none).freeze
+    DEFAULT_REQUIRED_ROLLOUT = 'full'
 
     def sync
       raw_json, _err, st = kubectl.run("get", type, @name, "--output=json")
@@ -19,6 +22,7 @@ module KubernetesDeploy
         conditions = deployment_data.fetch("status", {}).fetch("conditions", [])
         @progress_condition = conditions.find { |condition| condition['type'] == 'Progressing' }
         @progress_deadline = deployment_data['spec']['progressDeadlineSeconds']
+        @max_unavailable = deployment_data.dig('spec', 'strategy', 'rollingUpdate', 'maxUnavailable')
       else # reset
         @latest_rs = nil
         @rollout_data = { "replicas" => 0 }
@@ -26,6 +30,7 @@ module KubernetesDeploy
         @progress_condition = nil
         @progress_deadline = @definition['spec']['progressDeadlineSeconds']
         @desired_replicas = -1
+        @max_unavailable = @definition.dig('spec', 'strategy', 'rollingUpdate', 'maxUnavailable')
       end
     end
 
@@ -43,10 +48,23 @@ module KubernetesDeploy
     def deploy_succeeded?
       return false unless @latest_rs.present?
 
-      @latest_rs.deploy_succeeded? &&
-      @latest_rs.desired_replicas == @desired_replicas && # latest RS fully scaled up
-      @rollout_data["updatedReplicas"].to_i == @desired_replicas &&
-      @rollout_data["updatedReplicas"].to_i == @rollout_data["availableReplicas"].to_i
+      case required_rollout
+      when 'full'
+        @latest_rs.deploy_succeeded? &&
+        @latest_rs.desired_replicas == @desired_replicas && # latest RS fully scaled up
+        @rollout_data["updatedReplicas"].to_i == @desired_replicas &&
+        @rollout_data["updatedReplicas"].to_i == @rollout_data["availableReplicas"].to_i
+      when 'none'
+        true
+      when 'maxUnavailable'
+        minimum_needed = min_available_replicas
+
+        @latest_rs.desired_replicas >= minimum_needed &&
+        @latest_rs.ready_replicas >= minimum_needed &&
+        @latest_rs.available_replicas >= minimum_needed
+      else
+        raise FatalDeploymentError, rollout_annotation_err_msg
+      end
     end
 
     def deploy_failed?
@@ -81,7 +99,28 @@ module KubernetesDeploy
       @found
     end
 
+    def validate_definition
+      super
+
+      unless REQUIRED_ROLLOUT_TYPES.include?(required_rollout)
+        @validation_errors << rollout_annotation_err_msg
+      end
+
+      strategy = @definition.dig('spec', 'strategy', 'type').to_s
+      if required_rollout.downcase == 'maxunavailable' && strategy.downcase != 'rollingupdate'
+        @validation_errors << "'#{REQUIRED_ROLLOUT_ANNOTATION}: #{required_rollout}' is incompatible "\
+        "with strategy '#{strategy}'"
+      end
+
+      @validation_errors.empty?
+    end
+
     private
+
+    def rollout_annotation_err_msg
+      "'#{REQUIRED_ROLLOUT_ANNOTATION}: #{required_rollout}' is invalid. "\
+        "Acceptable values: #{REQUIRED_ROLLOUT_TYPES.join(', ')}"
+    end
 
     def deploy_failing_to_progress?
       return false unless @progress_condition.present?
@@ -98,18 +137,22 @@ module KubernetesDeploy
       Time.parse(@progress_condition["lastUpdateTime"]).to_i >= (@deploy_started_at - 5.seconds).to_i
     end
 
-    def find_latest_rs(deployment_data)
-      label_string = deployment_data["spec"]["selector"]["matchLabels"].map { |k, v| "#{k}=#{v}" }.join(",")
+    def all_rs_data(match_labels)
+      label_string = match_labels.map { |k, v| "#{k}=#{v}" }.join(",")
       raw_json, _err, st = kubectl.run("get", "replicasets", "--output=json", "--selector=#{label_string}")
-      return unless st.success?
+      return {} unless st.success?
 
-      all_rs_data = JSON.parse(raw_json)["items"]
+      JSON.parse(raw_json)["items"]
+    end
+
+    def find_latest_rs(deployment_data)
       current_revision = deployment_data["metadata"]["annotations"]["deployment.kubernetes.io/revision"]
 
-      latest_rs_data = all_rs_data.find do |rs|
+      latest_rs_data = all_rs_data(deployment_data["spec"]["selector"]["matchLabels"]).find do |rs|
         rs["metadata"]["ownerReferences"].any? { |ref| ref["uid"] == deployment_data["metadata"]["uid"] } &&
         rs["metadata"]["annotations"]["deployment.kubernetes.io/revision"] == current_revision
       end
+
       return unless latest_rs_data.present?
 
       rs = ReplicaSet.new(
@@ -122,6 +165,19 @@ module KubernetesDeploy
       )
       rs.sync(latest_rs_data)
       rs
+    end
+
+    def min_available_replicas
+      if @max_unavailable =~ /%/
+        (@desired_replicas * (100 - @max_unavailable.to_i) / 100.0).ceil
+      else
+        @desired_replicas - @max_unavailable.to_i
+      end
+    end
+
+    def required_rollout
+      @definition.dig('metadata', 'annotations', REQUIRED_ROLLOUT_ANNOTATION).presence ||
+      DEFAULT_REQUIRED_ROLLOUT
     end
   end
 end

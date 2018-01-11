@@ -206,6 +206,36 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       in_order: true)
   end
 
+  def test_restart_successful_with_partial_availability
+    result = deploy_fixtures("slow-cloud") do |fixtures|
+      web = fixtures["web.yml.erb"]["Deployment"].first
+      web["spec"]["strategy"]['rollingUpdate']['maxUnavailable'] = '50%'
+      container = web["spec"]["template"]["spec"]["containers"].first
+      container["readinessProbe"] = {
+        "exec" => { "command" => %w(sleep 5) },
+        "timeoutSeconds" => 6
+      }
+    end
+    assert_deploy_success(result)
+
+    restart = build_restart_task
+    assert_restart_success(restart.perform(["web"]))
+
+    pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=slow-cloud')
+    new_pods = pods.select do |pod|
+      pod.spec.containers.any? { |c| c["name"] == "app" && c.env&.find { |n| n.name == "RESTARTED_AT" } }
+    end
+    assert new_pods.length >= 1, "Expected at least one new pod, saw #{new_pods.length}"
+
+    new_ready_pods = new_pods.select do |pod|
+      pod.status.phase == "Running" &&
+      pod.status.conditions.any? { |condition| condition["type"] == "Ready" && condition["status"] == "True" }
+    end
+    assert_equal 1, new_ready_pods.length, "Expected exactly one new pod to be ready, saw #{new_ready_pods.length}"
+
+    assert fetch_restarted_at("web"), "RESTARTED_AT is present after the restart"
+  end
+
   private
 
   def build_restart_task
