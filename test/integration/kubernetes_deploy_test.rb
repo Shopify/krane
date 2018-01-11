@@ -689,27 +689,27 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
   end
 
   def test_deploy_successful_with_partial_availability
-      result = deploy_fixtures("slow-cloud", sha: "deploy1")
-      assert_deploy_success(result)
+    result = deploy_fixtures("slow-cloud", sha: "deploy1")
+    assert_deploy_success(result)
 
-      result = deploy_fixtures("slow-cloud", sha: "deploy2") do |fixtures|
-        dep = fixtures["web.yml.erb"]["Deployment"].first
-        container = dep["spec"]["template"]["spec"]["containers"].first
-        container["readinessProbe"] = {
-          "exec" => { "command" => %w(sleep 5) },
-          "timeoutSeconds" => 6
-        }
-      end
-      assert_deploy_success(result)
+    result = deploy_fixtures("slow-cloud", sha: "deploy2") do |fixtures|
+      dep = fixtures["web.yml.erb"]["Deployment"].first
+      container = dep["spec"]["template"]["spec"]["containers"].first
+      container["readinessProbe"] = {
+        "exec" => { "command" => %w(sleep 5) },
+        "timeoutSeconds" => 6
+      }
+    end
+    assert_deploy_success(result)
 
-      new_pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=slow-cloud,sha=deploy2')
-      assert new_pods.length >= 1, "Expected at least one new pod, saw #{new_pods.length}"
+    new_pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=slow-cloud,sha=deploy2')
+    assert new_pods.length >= 1, "Expected at least one new pod, saw #{new_pods.length}"
 
-      new_ready_pods = new_pods.select do |pod|
-        pod.status.phase == "Running" &&
-        pod.status.conditions.any? { |condition| condition["type"] == "Ready" && condition["status"] == "True" }
-      end
-      assert_equal 1, new_ready_pods.length, "Expected exactly one new pod to be ready, saw #{new_ready_pods.length}"
+    new_ready_pods = new_pods.select do |pod|
+      pod.status.phase == "Running" &&
+      pod.status.conditions.any? { |condition| condition["type"] == "Ready" && condition["status"] == "True" }
+    end
+    assert_equal 1, new_ready_pods.length, "Expected exactly one new pod to be ready, saw #{new_ready_pods.length}"
   end
 
   def test_deploy_aborts_immediately_if_metadata_name_missing

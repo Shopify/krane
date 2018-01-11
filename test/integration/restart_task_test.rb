@@ -221,16 +221,16 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     restart = build_restart_task
     assert_restart_success(restart.perform(["web"]))
 
-    assert_logs_match_all([
-      "Configured to restart deployments by name: web",
-      "Triggered `web` restart",
-      "Waiting for rollout",
-      %r{Successfully restarted in \d+\.\d+s: Deployment/web},
-      "Result: SUCCESS",
-      "Successfully restarted 1 resource",
-      %r{Deployment\/web\s+2 replicas, [12] updatedReplicas?, [12] availableReplicas?, 1 unavailableReplica}
-    ],
-      in_order: true)
+    pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=slow-cloud')
+    new_pods = pods.select { |pod| pod.spec.containers.select { |c| c["name"] == "app" && c.env&.find { |n| n.name == "RESTARTED_AT" } } }
+    assert new_pods.length >= 1, "Expected at least one new pod, saw #{new_pods.length}"
+
+    new_ready_pods = new_pods.select do |pod|
+      pod.status.phase == "Running" &&
+      pod.status.conditions.any? { |condition| condition["type"] == "Ready" && condition["status"] == "True" } &&
+      pod.spec.containers.detect { |c| c["name"] == "app" && c.env&.find { |n| n.name == "RESTARTED_AT" } }
+    end
+    assert_equal 1, new_ready_pods.length, "Expected exactly one new pod to be ready, saw #{new_ready_pods.length}"
 
     assert fetch_restarted_at("web"), "RESTARTED_AT is present after the restart"
   end
