@@ -1,3 +1,14 @@
+### 0.15.0
+*Bug Fixes*
+- None
+
+*Enhancements*
+- Support for cronjob resource ([#206](https://github.com/Shopify/kubernetes-deploy/pull/206])).
+- Make it possible to override the tool's hard timeout for one specific resource via the `kubernetes-deploy.shopify.io/timeout-override`
+annotation ([#232](https://github.com/Shopify/kubernetes-deploy/pull/232)).
+- Make it possible to modify how many replicas need to be updated and available before a deployment is considered
+successful via the `kubernetes-deploy.shopify.io/required-rollout` annotation ([#208](https://github.com/Shopify/kubernetes-deploy/pull/208)).
+
 ### 0.14.1
 *Bug Fixes*
 - Make deployments whose pods crash because of CreateContainerConfigError fail fast in 1.8+ too (they would previously time out).
