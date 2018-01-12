@@ -82,6 +82,7 @@ module KubernetesDeploy
 
       if fail_count > 0
         @logger.summary.add_action("failed to #{@operation_name} #{fail_count} #{'resource'.pluralize(fail_count)}")
+        KubernetesDeploy::Concurrency.split_across_threads(failed_resources, &:sync_debug_info)
         failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
       end
     end

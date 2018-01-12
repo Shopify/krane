@@ -140,7 +140,15 @@ module KubernetesDeploy
       :apply
     end
 
+    def sync_debug_info
+      @events = fetch_events
+      @logs = fetch_logs if type_supports_logs?
+      @debug_info_synced = true
+    end
+
     def debug_message
+      sync_debug_info unless @debug_info_synced
+
       helpful_info = []
       if deploy_failed?
         helpful_info << ColorizedString.new("#{id}: FAILED").red
@@ -156,22 +164,20 @@ module KubernetesDeploy
       end
       helpful_info << "  - Final status: #{status}"
 
-      events = fetch_events
-      if events.present?
+      if @events.present?
         helpful_info << "  - Events (common success events excluded):"
-        events.each do |identifier, event_hashes|
+        @events.each do |identifier, event_hashes|
           event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
         end
       else
         helpful_info << "  - Events: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
       end
 
-      if respond_to?(:fetch_logs)
-        container_logs = fetch_logs
-        if container_logs.blank? || container_logs.values.all?(&:blank?)
+      if type_supports_logs?
+        if @logs.blank? || @logs.values.all?(&:blank?)
           helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
         else
-          sorted_logs = container_logs.sort_by { |_, log_lines| log_lines.length }
+          sorted_logs = @logs.sort_by { |_, log_lines| log_lines.length }
           sorted_logs.each do |identifier, log_lines|
             if log_lines.empty?
               helpful_info << "  - Logs from container '#{identifier}': #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
@@ -320,6 +326,10 @@ module KubernetesDeploy
       file
     ensure
       file&.close
+    end
+
+    def type_supports_logs?
+      respond_to?(:fetch_logs)
     end
 
     def statsd_tags
