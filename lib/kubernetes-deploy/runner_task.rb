@@ -34,7 +34,7 @@ module KubernetesDeploy
       @logger.reset
       @logger.phase_heading("Validating configuration")
       validate_configuration(task_template, args)
-
+      confirm_kubernetes_version(@kubeclient.apiVersion)
       @logger.phase_heading("Fetching task template")
       raw_template = get_template(task_template)
 

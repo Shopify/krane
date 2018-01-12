@@ -90,6 +90,7 @@ module KubernetesDeploy
     end
 
     NOT_FOUND_ERROR = 'NotFound'
+    MIN_KUBE_VERSION = '1.6.0'
 
     def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {})
       @namespace = namespace
@@ -99,7 +100,6 @@ module KubernetesDeploy
       @logger = logger
       @kubectl = kubectl_instance
       @bindings = bindings
-      @min_version = '1.6.0'
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
     end
@@ -341,10 +341,6 @@ module KubernetesDeploy
       return if resources.empty?
       deploy_started_at = Time.now.utc
 
-      if server_version < Gem::Version.new(@min_version)
-        @logger.warn("Minimum cluster version requirement of #{@min_version} not met.")
-      end
-
       if resources.length > 1
         @logger.info("Deploying resources:")
       else
@@ -437,6 +433,8 @@ module KubernetesDeploy
     end
 
     def confirm_cluster_reachable
+      confirm_kubernetes_version(server_version)
+
       success = false
       with_retries(2) do
         begin
@@ -446,6 +444,13 @@ module KubernetesDeploy
         end
       end
       raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
+    end
+
+    def confirm_kubernetes_version(version)
+      if version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn("Minimum cluster version requirement of #{MIN_KUBE_VERSION} not met. "\
+         "Using #{version} could result in unexpected behavior as it is no longer tested against")
+      end
     end
 
     def confirm_namespace_exists

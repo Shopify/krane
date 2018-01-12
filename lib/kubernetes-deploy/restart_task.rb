@@ -33,6 +33,8 @@ module KubernetesDeploy
       verify_namespace
       deployments = identify_target_deployments(deployments_names)
 
+      confirm_kubernetes_version(kubeclient.apiVersion)
+
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
 
