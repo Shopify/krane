@@ -183,6 +183,18 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_debug_message_with_no_debug_info
+    ENV['NO_DEBUG_INFO'] = 'true'
+    dummy = DummyResource.new
+    dummy.expects(:deploy_failed?).returns(true)
+
+    assert_match dummy.debug_message,
+    "DummyResource/test: FAILED\n  - Final status: Unknown\n" +
+    KubernetesDeploy::KubernetesResource::NO_DEBUG_INFO_MESSAGE
+  ensure
+    ENV['NO_DEBUG_INFO'] = nil
+  end
+
   private
 
   def timeout_override_err_prefix

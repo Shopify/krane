@@ -168,35 +168,37 @@ module KubernetesDeploy
 
       if ENV['NO_DEBUG_INFO']
         helpful_info << NO_DEBUG_INFO_MESSAGE
-      else
-        if @events.present?
-          helpful_info << "  - Events (common success events excluded):"
-          @events.each do |identifier, event_hashes|
-            event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
-          end
-        else
-          helpful_info << "  - Events: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
+        return helpful_info.join("\n")
+      end
+
+      if @events.present?
+        helpful_info << "  - Events (common success events excluded):"
+        @events.each do |identifier, event_hashes|
+          event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
         end
+      else
+        helpful_info << "  - Events: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
+      end
 
-        if supports_logs?
-          elsif @logs.blank? || @logs.values.all?(&:blank?)
-            helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
-          else
-            sorted_logs = @logs.sort_by { |_, log_lines| log_lines.length }
-            sorted_logs.each do |identifier, log_lines|
-              if log_lines.empty?
-                helpful_info << "  - Logs from container '#{identifier}': #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
-                next
-              end
+      if supports_logs?
+        if @logs.blank? || @logs.values.all?(&:blank?)
+          helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
+        else
+          sorted_logs = @logs.sort_by { |_, log_lines| log_lines.length }
+          sorted_logs.each do |identifier, log_lines|
+            if log_lines.empty?
+              helpful_info << "  - Logs from container '#{identifier}': #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
+              next
+            end
 
-              helpful_info << "  - Logs from container '#{identifier}' (last #{LOG_LINE_COUNT} lines shown):"
-              log_lines.each do |line|
-                helpful_info << "      #{line}"
-              end
+            helpful_info << "  - Logs from container '#{identifier}' (last #{LOG_LINE_COUNT} lines shown):"
+            log_lines.each do |line|
+              helpful_info << "      #{line}"
             end
           end
         end
       end
+
       helpful_info.join("\n")
     end
 
