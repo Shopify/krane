@@ -1,3 +1,7 @@
+### 0.15.1
+*Enhancements*
+- Fetch debug events and logs for failed resources in parallel ([#238](https://github.com/Shopify/kubernetes-deploy/pull/238))
+
 ### 0.15.0
 *Bug Fixes*
 - None
