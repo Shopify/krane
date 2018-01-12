@@ -189,8 +189,8 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     dummy.expects(:deploy_failed?).returns(true)
 
     assert_match dummy.debug_message,
-    "DummyResource/test: FAILED\n  - Final status: Unknown\n" +
-    KubernetesDeploy::KubernetesResource::NO_DEBUG_INFO_MESSAGE
+      "DummyResource/test: FAILED\n  - Final status: Unknown\n" +
+      KubernetesDeploy::KubernetesResource::NO_DEBUG_INFO_MESSAGE
   ensure
     ENV['NO_DEBUG_INFO'] = nil
   end
