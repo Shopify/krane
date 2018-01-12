@@ -147,8 +147,6 @@ module KubernetesDeploy
     end
 
     def debug_message
-      sync_debug_info unless @debug_info_synced
-
       helpful_info = []
       if deploy_failed?
         helpful_info << ColorizedString.new("#{id}: FAILED").red
@@ -163,6 +161,9 @@ module KubernetesDeploy
         helpful_info << timeout_message if timeout_message.present? && timeout_message != STANDARD_TIMEOUT_MESSAGE
       end
       helpful_info << "  - Final status: #{status}"
+
+      return helpful_info.join("\n") if ENV['NO_DEBUG_MESSAGES']
+      sync_debug_info unless @debug_info_synced
 
       if @events.present?
         helpful_info << "  - Events (common success events excluded):"
