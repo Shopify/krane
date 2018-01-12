@@ -42,8 +42,14 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
     watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
     watcher.run(delay_sync: 0.1)
+    logger.print_summary(false)
 
-    assert_logs_match(/web-pod failed to deploy after \d\.\ds/)
+    assert_logs_match_all([
+      /web-pod failed to deploy after \d\.\ds/,
+      "Result: FAILURE",
+      "Failed to deploy 1 resource",
+      "Something went wrong"
+    ], in_order: true)
   end
 
   def test_timeout_from_resource
@@ -94,6 +100,8 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   private
 
   MockResource = Struct.new(:id, :hits_to_complete, :status) do
+    attr_reader :debug_message
+
     def sync
       @hits ||= 0
       @hits += 1
@@ -115,8 +123,8 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       hits_to_complete
     end
 
-    def debug_message
-      "Something went wrong"
+    def sync_debug_info
+      @debug_message = "Something went wrong"
     end
 
     def pretty_status

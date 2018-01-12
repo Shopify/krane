@@ -142,7 +142,7 @@ module KubernetesDeploy
 
     def sync_debug_info
       @events = fetch_events
-      @logs = fetch_logs if type_supports_logs?
+      @logs = fetch_logs if supports_logs?
       @debug_info_synced = true
     end
 
@@ -173,7 +173,7 @@ module KubernetesDeploy
         helpful_info << "  - Events: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
       end
 
-      if type_supports_logs?
+      if supports_logs?
         if @logs.blank? || @logs.values.all?(&:blank?)
           helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
         else
@@ -328,7 +328,7 @@ module KubernetesDeploy
       file&.close
     end
 
-    def type_supports_logs?
+    def supports_logs?
       respond_to?(:fetch_logs)
     end
 
