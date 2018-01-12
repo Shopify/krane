@@ -342,7 +342,7 @@ module KubernetesDeploy
       deploy_started_at = Time.now.utc
 
       if server_version < Gem::Version.new(@min_version)
-        @logger.warn("You are attempting to deploy to a server which doesn't meet the minimum version of #{@min_version}.")
+        @logger.warn("Minimum cluster version requirement of #{@min_version} not met.")
       end
 
       if resources.length > 1
