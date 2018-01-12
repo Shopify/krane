@@ -99,6 +99,7 @@ module KubernetesDeploy
       @logger = logger
       @kubectl = kubectl_instance
       @bindings = bindings
+      @min_version = '1.6.0'
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
     end
@@ -339,6 +340,10 @@ module KubernetesDeploy
     def deploy_resources(resources, prune: false, verify:, record_summary: true)
       return if resources.empty?
       deploy_started_at = Time.now.utc
+
+      if server_version < Gem::Version.new(@min_version)
+        @logger.warn("You are attempting to deploy to a server which doesn't meet the minimum version of #{@min_version}.")
+      end
 
       if resources.length > 1
         @logger.info("Deploying resources:")
