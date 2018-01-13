@@ -8,7 +8,7 @@ spec:
   template:
     metadata:
       labels:
-        name: web
+        name: bad-probe
         app: crash-app
     spec:
       containers:

@@ -184,30 +184,23 @@ module KubernetesDeploy
       end
 
       def doom_reason
-        limbo_reason = @status.dig("state", "waiting", "reason")
-        limbo_message = @status.dig("state", "waiting", "message")
-
-        if @status.dig("lastState", "terminated", "reason") == "ContainerCannotRun"
-          # ref: https://github.com/kubernetes/kubernetes/blob/562e721ece8a16e05c7e7d6bdd6334c910733ab2/pkg/kubelet/dockershim/docker_container.go#L353
-          exit_code = @status.dig('lastState', 'terminated', 'exitCode')
-          "Failed to start (exit #{exit_code}): #{@status.dig('lastState', 'terminated', 'message')}"
-        elsif @status.dig("state", "terminated", "reason") == "ContainerCannotRun"
-          exit_code = @status.dig('state', 'terminated', 'exitCode')
-          "Failed to start (exit #{exit_code}): #{@status.dig('state', 'terminated', 'message')}"
-        elsif limbo_reason == "CrashLoopBackOff"
-          exit_code = @status.dig('lastState', 'terminated', 'exitCode')
-          "Crashing repeatedly (exit #{exit_code}). See logs for more information."
-        elsif %w(ImagePullBackOff ErrImagePull).include?(limbo_reason) &&
-          limbo_message.match(/(?:not found)|(?:back-off)/i)
-          "Failed to pull image #{@image}. "\
+        if image_pull_failure?
+          return "Failed to pull image #{@image}. "\
           "Did you wait for it to be built and pushed to the registry before deploying?"
-        elsif limbo_message == "Generate Container Config Failed"
-          # reason/message are backwards in <1.8.0 (next condition used by 1.8.0+)
-          # Fixed by https://github.com/kubernetes/kubernetes/commit/df41787b1a3f51b73fb6db8a2203f0a7c7c92931
-          "Failed to generate container configuration: #{limbo_reason}"
-        elsif limbo_reason == "CreateContainerConfigError"
-          "Failed to generate container configuration: #{limbo_message}"
         end
+
+        doomed_state_tree.each do |state_or_laststate, values1|
+          values1.each do |waiting_or_terminated, values2|
+            values2.each do |reason_or_msg, problem_hash|
+              problem_hash.each do |problematic_value, error_message|
+                if @status.dig(state_or_laststate, waiting_or_terminated, reason_or_msg) == problematic_value
+                  return error_message
+                end
+              end
+            end
+          end
+        end
+        nil
       end
 
       def readiness_fail_reason
@@ -236,6 +229,44 @@ module KubernetesDeploy
 
       def reset_status
         @status = {}
+      end
+
+      private
+
+      def image_pull_failure?
+        %w(ImagePullBackOff ErrImagePull).include?(@status.dig("state", "waiting", "reason")) &&
+        !@status.dig("state", "waiting", "message").match(/(?:not found)|(?:back-off)/i).nil?
+      end
+
+      def doomed_state_tree
+        {
+          "state" => {
+            "waiting" => {
+              "reason" => {
+                "CrashLoopBackOff" => "Crashing repeatedly (exit #{@status.dig('lastState', 'terminated', 'exitCode')}). See logs for more information.",
+                "CreateContainerConfigError" => "Failed to generate container configuration: #{@status.dig("state", "waiting", "message")}"
+              },
+              "message" => {
+                # reason/message are backwards in <1.8.0 (next condition used by 1.8.0+)
+                # Fixed by https://github.com/kubernetes/kubernetes/commit/df41787b1a3f51b73fb6db8a2203f0a7c7c92931
+                "Generate Container Config Failed" => "Failed to generate container configuration: #{@status.dig("state", "waiting", "reason")}"
+              }
+            },
+            "terminated" => {
+              "reason" => {
+                "ContainerCannotRun" => "Failed to start (exit #{@status.dig('state', 'terminated', 'exitCode')}): #{@status.dig('state', 'terminated', 'message')}"
+              }
+            }
+          },
+          "lastState" => {
+            "terminated" => {
+              "reason" => {
+                "ContainerCannotRun" => "Failed to start (exit #{@status.dig('lastState', 'terminated', 'exitCode')}): #{@status.dig('lastState', 'terminated', 'message')}",
+                "Error" => "Crashing (exit #{@status.dig('lastState', 'terminated', 'exitCode')}). See logs for more information."
+              }
+            }
+          }
+        }
       end
     end
   end

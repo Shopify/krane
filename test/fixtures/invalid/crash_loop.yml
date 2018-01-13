@@ -8,7 +8,7 @@ spec:
   template:
     metadata:
       labels:
-        name: web
+        name: crash-loop
         app: crash-app
     spec:
       containers:

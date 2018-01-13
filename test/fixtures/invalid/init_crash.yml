@@ -8,7 +8,7 @@ spec:
   template:
     metadata:
       labels:
-        name: web
+        name: init-crash
         app: crash-app
     spec:
       initContainers:

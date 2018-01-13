@@ -8,7 +8,7 @@ spec:
   template:
     metadata:
       labels:
-        name: web
+        name: missing-volumes
         app: crash-app
     spec:
       containers:
