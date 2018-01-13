@@ -41,5 +41,5 @@ spec:
               command: ["sleep", "40"]
         env:
         - name: GITHUB_REV
-          value: <%= current_sha %>
+          value: "<%= current_sha %>"
       terminationGracePeriodSeconds: 30
