@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module KubernetesDeploy
+  MIN_KUBE_VERSION = '1.6.0'
   class Kubectl
     def initialize(namespace:, context:, logger:, log_failure_by_default:, default_timeout: '30s',
       output_is_sensitive: false)

@@ -90,7 +90,6 @@ module KubernetesDeploy
     end
 
     NOT_FOUND_ERROR = 'NotFound'
-    MIN_KUBE_VERSION = '1.6.0'
 
     def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {})
       @namespace = namespace
@@ -433,8 +432,10 @@ module KubernetesDeploy
     end
 
     def confirm_cluster_reachable
-      confirm_kubernetes_version(server_version)
-
+      if server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn("Minimum cluster version requirement of #{MIN_KUBE_VERSION} not met. "\
+        "Using #{server_version} could result in unexpected behavior as it is no longer tested against")
+      end
       success = false
       with_retries(2) do
         begin
@@ -444,13 +445,6 @@ module KubernetesDeploy
         end
       end
       raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
-    end
-
-    def confirm_kubernetes_version(version)
-      if version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn("Minimum cluster version requirement of #{MIN_KUBE_VERSION} not met. "\
-         "Using #{version} could result in unexpected behavior as it is no longer tested against")
-      end
     end
 
     def confirm_namespace_exists

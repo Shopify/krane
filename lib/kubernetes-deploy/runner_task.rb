@@ -15,11 +15,16 @@ module KubernetesDeploy
       end
     end
 
+    def server_version
+      kubectl.server_version
+    end
+
     def initialize(namespace:, context:, logger:)
       @logger = logger
       @namespace = namespace
       @kubeclient = build_v1_kubeclient(context)
       @context = context
+      @kubectl = nil
     end
 
     def run(*args)
@@ -34,7 +39,10 @@ module KubernetesDeploy
       @logger.reset
       @logger.phase_heading("Validating configuration")
       validate_configuration(task_template, args)
-      confirm_kubernetes_version(@kubeclient.apiVersion)
+      if server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn("Minimum cluster version requirement of #{MIN_KUBE_VERSION} not met. "\
+        "Using #{server_version} could result in unexpected behavior as it is no longer tested against")
+      end
       @logger.phase_heading("Fetching task template")
       raw_template = get_template(task_template)
 
@@ -127,12 +135,15 @@ module KubernetesDeploy
       f.write recursive_to_h(pod).to_json
       f.close
 
-      kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
       _out, err, status = kubectl.run("apply", "--dry-run", "-f", f.path)
 
       unless status.success?
         raise FatalTaskRunError, "Invalid pod spec: #{err}"
       end
+    end
+
+    def kubectl
+      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
     end
 
     def recursive_to_h(struct)
