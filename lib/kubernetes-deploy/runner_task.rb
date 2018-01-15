@@ -15,16 +15,11 @@ module KubernetesDeploy
       end
     end
 
-    def server_version
-      kubectl.server_version
-    end
-
     def initialize(namespace:, context:, logger:)
       @logger = logger
       @namespace = namespace
       @kubeclient = build_v1_kubeclient(context)
       @context = context
-      @kubectl = nil
     end
 
     def run(*args)
@@ -39,10 +34,7 @@ module KubernetesDeploy
       @logger.reset
       @logger.phase_heading("Validating configuration")
       validate_configuration(task_template, args)
-      if server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn("Minimum cluster version requirement of #{MIN_KUBE_VERSION} not met. "\
-        "Using #{server_version} could result in unexpected behavior as it is no longer tested against")
-      end
+      KubernetesDeploy::Errors.server_version_warning(kubectl.server_version, @logger)
       @logger.phase_heading("Fetching task template")
       raw_template = get_template(task_template)
 

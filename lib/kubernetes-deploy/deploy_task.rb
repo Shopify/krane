@@ -432,10 +432,6 @@ module KubernetesDeploy
     end
 
     def confirm_cluster_reachable
-      if server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn("Minimum cluster version requirement of #{MIN_KUBE_VERSION} not met. "\
-        "Using #{server_version} could result in unexpected behavior as it is no longer tested against")
-      end
       success = false
       with_retries(2) do
         begin
@@ -445,6 +441,7 @@ module KubernetesDeploy
         end
       end
       raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
+      KubernetesDeploy::Errors.server_version_warning(server_version, @logger)
     end
 
     def confirm_namespace_exists

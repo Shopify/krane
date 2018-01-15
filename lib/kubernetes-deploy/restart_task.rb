@@ -20,10 +20,6 @@ module KubernetesDeploy
     HTTP_OK_RANGE = 200..299
     ANNOTATION = "shipit.shopify.io/restart"
 
-    def server_version
-      kubectl.server_version
-    end
-
     def initialize(context:, namespace:, logger:)
       @context = context
       @namespace = namespace
@@ -37,10 +33,7 @@ module KubernetesDeploy
       @logger.phase_heading("Initializing restart")
       verify_namespace
       deployments = identify_target_deployments(deployments_names)
-      if server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn("Minimum cluster version requirement of #{MIN_KUBE_VERSION} not met. "\
-        "Using #{server_version} could result in unexpected behavior as it is no longer tested against")
-      end
+      KubernetesDeploy::Errors.server_version_warning(kubectl.server_version, @logger)
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
 
