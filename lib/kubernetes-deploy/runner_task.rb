@@ -34,7 +34,9 @@ module KubernetesDeploy
       @logger.reset
       @logger.phase_heading("Validating configuration")
       validate_configuration(task_template, args)
-      KubernetesDeploy::Errors.server_version_warning(kubectl.server_version, @logger)
+      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
+      end
       @logger.phase_heading("Fetching task template")
       raw_template = get_template(task_template)
 

@@ -33,7 +33,9 @@ module KubernetesDeploy
       @logger.phase_heading("Initializing restart")
       verify_namespace
       deployments = identify_target_deployments(deployments_names)
-      KubernetesDeploy::Errors.server_version_warning(kubectl.server_version, @logger)
+      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
+      end
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
 
