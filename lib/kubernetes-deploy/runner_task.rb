@@ -34,7 +34,9 @@ module KubernetesDeploy
       @logger.reset
       @logger.phase_heading("Validating configuration")
       validate_configuration(task_template, args)
-
+      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
+      end
       @logger.phase_heading("Fetching task template")
       raw_template = get_template(task_template)
 
@@ -127,12 +129,15 @@ module KubernetesDeploy
       f.write recursive_to_h(pod).to_json
       f.close
 
-      kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
       _out, err, status = kubectl.run("apply", "--dry-run", "-f", f.path)
 
       unless status.success?
         raise FatalTaskRunError, "Invalid pod spec: #{err}"
       end
+    end
+
+    def kubectl
+      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
     end
 
     def recursive_to_h(struct)

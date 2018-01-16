@@ -441,6 +441,9 @@ module KubernetesDeploy
         end
       end
       raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
+      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn(KubernetesDeploy::Errors.server_version_warning(server_version))
+      end
     end
 
     def confirm_namespace_exists
