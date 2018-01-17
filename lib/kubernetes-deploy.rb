@@ -21,6 +21,6 @@ require 'kubernetes-deploy/bindings_parser'
 require 'kubernetes-deploy/duration_parser'
 
 module KubernetesDeploy
-  MIN_KUBE_VERSION = '1.6.0'
+  MIN_KUBE_VERSION = '1.7.0'
   KubernetesDeploy::StatsD.build
 end

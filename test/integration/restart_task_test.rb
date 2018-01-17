@@ -184,7 +184,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       "The following containers have not passed their readiness probes",
       "app must exit 0 from the following command",
       "Final status: 2 replicas, 1 updatedReplica, 1 availableReplica, 1 unavailableReplica",
-      # "Unhealthy: Readiness probe failed" # from an event not produced by v1.6.4--add back when we drop 1.6 CI
+      "Unhealthy: Readiness probe failed"
     ],
       in_order: true)
   end
