@@ -3,13 +3,13 @@ kind: Pod
 metadata:
   name: unmanaged-pod-<%= deployment_id %>
   annotations:
-    kubernetes-deploy.shopify.io/timeout-override: "42s"
+    kubernetes-deploy.shopify.io/timeout-override: "60s"
   labels:
     type: unmanaged-pod
     name: unmanaged-pod-<%= deployment_id %>
     app: hello-cloud
 spec:
-  activeDeadlineSeconds: 20
+  activeDeadlineSeconds: 60
   restartPolicy: Never
   containers:
     - name: hello-cloud

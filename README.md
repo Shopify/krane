@@ -74,6 +74,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * Each app managed by `kubernetes-deploy` must have its own exclusive Kubernetes namespace.<sup>2</sup>
 
 <sup>1</sup> We run integration tests against these Kubernetes versions. Kubernetes v1.6 was officially supported in gem versions < 0.16. Kubernetes v1.5 was officially supported in gem versions < 0.12.
+
 <sup>2</sup> This requirement can be bypassed with the `--no-prune` option, but it is not recommended.
 
 

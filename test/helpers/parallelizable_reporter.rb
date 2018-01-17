@@ -20,8 +20,7 @@ module Minitest
         # Print fast_fail information
         return unless @fast_fail && test.failure # test.failure includes skips
         return if test.skipped? && !@detailed_skip
-        puts
-        puts
+        puts "\n"
         print_failure(test)
       end
     end
