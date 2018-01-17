@@ -12,7 +12,10 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     LOG_LINE_COUNT = 250
 
-    NO_DEBUG_INFO_MESSAGE = "Event and log collection is disabled by the NO_DEBUG_INFO env var."
+    DISABLE_FETCHING_LOG_INFO = 'DISABLE_FETCHING_LOG_INFO'
+    DISABLE_FETCHING_EVENT_INFO = 'DISABLE_FETCHING_EVENT_INFO'
+    DISABLED_LOG_INFO_MESSAGE = "Log collection is disabled by the #{DISABLE_FETCHING_LOG_INFO} env var."
+    DISABLED_EVENT_INFO_MESSAGE = "Event collection is disabled by the #{DISABLE_FETCHING_EVENT_INFO} env var."
     DEBUG_RESOURCE_NOT_FOUND_MESSAGE = "None found. Please check your usual logging service (e.g. Splunk)."
     UNUSUAL_FAILURE_MESSAGE = <<~MSG
       It is very unusual for this resource type to fail to deploy. Please try the deploy again.
@@ -142,9 +145,8 @@ module KubernetesDeploy
     end
 
     def sync_debug_info
-      return if ENV['NO_DEBUG_INFO']
-      @events = fetch_events
-      @logs = fetch_logs if supports_logs?
+      @events = fetch_events unless ENV[DISABLE_FETCHING_EVENT_INFO]
+      @logs = fetch_logs if supports_logs? && !ENV[DISABLE_FETCHING_EVENT_INFO]
       @debug_info_synced = true
     end
 
@@ -166,22 +168,21 @@ module KubernetesDeploy
       end
       helpful_info << "  - Final status: #{status}"
 
-      if ENV['NO_DEBUG_INFO']
-        helpful_info << NO_DEBUG_INFO_MESSAGE
-        return helpful_info.join("\n")
-      end
-
       if @events.present?
         helpful_info << "  - Events (common success events excluded):"
         @events.each do |identifier, event_hashes|
           event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
         end
+      elsif ENV[DISABLE_FETCHING_EVENT_INFO]
+        helpful_info << DISABLED_EVENT_INFO_MESSAGE
       else
         helpful_info << "  - Events: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
       end
 
       if supports_logs?
-        if @logs.blank? || @logs.values.all?(&:blank?)
+        if ENV[DISABLE_FETCHING_LOG_INFO]
+          helpful_info << DISABLED_LOG_INFO_MESSAGE
+        elsif @logs.blank? || @logs.values.all?(&:blank?)
           helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
         else
           sorted_logs = @logs.sort_by { |_, log_lines| log_lines.length }

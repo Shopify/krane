@@ -3,7 +3,7 @@ require 'test_helper'
 
 class KubernetesResourceTest < KubernetesDeploy::TestCase
   class DummyResource < KubernetesDeploy::KubernetesResource
-    attr_writer :succeeded
+    attr_writer :succeeded, :deploy_failed
 
     def initialize(definition_extras: {})
       definition = { "kind" => "DummyResource", "metadata" => { "name" => "test" } }.merge(definition_extras)
@@ -13,6 +13,18 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
     def exists?
       true
+    end
+
+    def deploy_failed?
+      @deploy_failed
+    end
+
+    def supports_logs?
+      true
+    end
+
+    def fetch_logs
+      []
     end
 
     def deploy_succeeded?
@@ -183,19 +195,43 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     end
   end
 
-  def test_debug_message_with_no_debug_info
-    ENV['NO_DEBUG_INFO'] = 'true'
-    dummy = DummyResource.new
-    dummy.expects(:deploy_failed?).returns(true)
+  def test_debug_message_with_no_log_info
+    with_env(KubernetesDeploy::KubernetesResource::DISABLE_FETCHING_LOG_INFO, 'true') do
+      dummy = DummyResource.new
+      dummy.deploy_failed = true
 
-    assert_match dummy.debug_message,
-      "DummyResource/test: FAILED\n  - Final status: Unknown\n" +
-      KubernetesDeploy::KubernetesResource::NO_DEBUG_INFO_MESSAGE
-  ensure
-    ENV['NO_DEBUG_INFO'] = nil
+      assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Unknown\n"
+      assert_includes dummy.debug_message, KubernetesDeploy::KubernetesResource::DISABLED_LOG_INFO_MESSAGE
+      refute_includes dummy.debug_message, "- Logs"
+    end
+  end
+
+  def test_debug_message_with_no_event_info
+    with_env(KubernetesDeploy::KubernetesResource::DISABLE_FETCHING_EVENT_INFO, 'true') do
+      dummy = DummyResource.new
+      dummy.deploy_failed = true
+
+      assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Unknown\n"
+      assert_includes dummy.debug_message, KubernetesDeploy::KubernetesResource::DISABLED_EVENT_INFO_MESSAGE
+      refute_includes dummy.debug_message, "- Events"
+    end
   end
 
   private
+
+  def with_env(key, value)
+    old_env_id = ENV[key]
+
+    if value.nil?
+      ENV.delete(key)
+    else
+      ENV[key] = value.to_s
+    end
+
+    yield
+  ensure
+    ENV[key] = old_env_id
+  end
 
   def timeout_override_err_prefix
     "kubernetes-deploy.shopify.io/timeout-override annotation is invalid"
