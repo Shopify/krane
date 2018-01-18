@@ -12,6 +12,10 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     LOG_LINE_COUNT = 250
 
+    DISABLE_FETCHING_LOG_INFO = 'DISABLE_FETCHING_LOG_INFO'
+    DISABLE_FETCHING_EVENT_INFO = 'DISABLE_FETCHING_EVENT_INFO'
+    DISABLED_LOG_INFO_MESSAGE = "collection is disabled by the #{DISABLE_FETCHING_LOG_INFO} env var."
+    DISABLED_EVENT_INFO_MESSAGE = "collection is disabled by the #{DISABLE_FETCHING_EVENT_INFO} env var."
     DEBUG_RESOURCE_NOT_FOUND_MESSAGE = "None found. Please check your usual logging service (e.g. Splunk)."
     UNUSUAL_FAILURE_MESSAGE = <<~MSG
       It is very unusual for this resource type to fail to deploy. Please try the deploy again.
@@ -141,8 +145,8 @@ module KubernetesDeploy
     end
 
     def sync_debug_info
-      @events = fetch_events
-      @logs = fetch_logs if supports_logs?
+      @events = fetch_events unless ENV[DISABLE_FETCHING_EVENT_INFO]
+      @logs = fetch_logs if supports_logs? && !ENV[DISABLE_FETCHING_EVENT_INFO]
       @debug_info_synced = true
     end
 
@@ -169,12 +173,16 @@ module KubernetesDeploy
         @events.each do |identifier, event_hashes|
           event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
         end
+      elsif ENV[DISABLE_FETCHING_EVENT_INFO]
+        helpful_info << "  - Events: #{DISABLED_EVENT_INFO_MESSAGE}"
       else
         helpful_info << "  - Events: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
       end
 
       if supports_logs?
-        if @logs.blank? || @logs.values.all?(&:blank?)
+        if ENV[DISABLE_FETCHING_LOG_INFO]
+          helpful_info << "  - Logs: #{DISABLED_LOG_INFO_MESSAGE}"
+        elsif @logs.blank? || @logs.values.all?(&:blank?)
           helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
         else
           sorted_logs = @logs.sort_by { |_, log_lines| log_lines.length }
