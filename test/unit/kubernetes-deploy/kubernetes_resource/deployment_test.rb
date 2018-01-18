@@ -68,30 +68,6 @@ class DeploymentTest < KubernetesDeploy::TestCase
     assert deploy.deploy_succeeded?
 
     deploy = build_synced_deployment(
-      template: build_deployment_template(status: deployment_status, rollout: '2', max_unavailable: 2),
-      replica_sets: replica_sets
-    )
-    assert deploy.deploy_succeeded?
-
-    deploy = build_synced_deployment(
-      template: build_deployment_template(status: deployment_status, rollout: '1', max_unavailable: 2),
-      replica_sets: replica_sets
-    )
-    refute deploy.deploy_succeeded?
-
-    deploy = build_synced_deployment(
-      template: build_deployment_template(status: deployment_status, rollout: '90%', max_unavailable: 2),
-      replica_sets: replica_sets
-    )
-    assert deploy.deploy_succeeded?
-
-    deploy = build_synced_deployment(
-      template: build_deployment_template(status: deployment_status, rollout: '1%', max_unavailable: 2),
-      replica_sets: replica_sets
-    )
-    refute deploy.deploy_succeeded?
-
-    deploy = build_synced_deployment(
       template: build_deployment_template(status: deployment_status, rollout: 'maxUnavailable', max_unavailable: 1),
       replica_sets: replica_sets
     )
@@ -99,6 +75,34 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
     deploy = build_synced_deployment(
       template: build_deployment_template(status: deployment_status, rollout: 'maxUnavailable', max_unavailable: 0),
+      replica_sets: replica_sets
+    )
+    refute deploy.deploy_succeeded?
+  end
+
+  def test_deploy_succeeded_with_annotation_as_number
+    deployment_status = {
+      "replicas" => 3, # one terminating in old rs, one starting in new rs, one up in new rs
+      "updatedReplicas" => 2,
+      "unavailableReplicas" => 2,
+      "availableReplicas" => 1
+    }
+
+    rs_status = {
+      "replicas" => 2,
+      "availableReplicas" => 1,
+      "readyReplicas" => 1
+    }
+    replica_sets = [build_rs_template(status: rs_status)]
+
+    deploy = build_synced_deployment(
+      template: build_deployment_template(status: deployment_status, rollout: '33%', max_unavailable: 2),
+      replica_sets: replica_sets
+    )
+    assert deploy.deploy_succeeded?
+
+    deploy = build_synced_deployment(
+      template: build_deployment_template(status: deployment_status, rollout: '34%', max_unavailable: 2),
       replica_sets: replica_sets
     )
     refute deploy.deploy_succeeded?
@@ -173,17 +177,6 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
   def test_validation_with_percent_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10%'), replica_sets: [])
-    deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
-      ["", "super failed", SystemExit.new(1)]
-    )
-    refute deploy.validate_definition
-
-    expected = 'super failed'
-    assert_equal expected, deploy.validation_error_msg
-  end
-
-  def test_validation_with_number_rollout_annotation
-    deploy = build_synced_deployment(template: build_deployment_template(rollout: '10'), replica_sets: [])
     deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )

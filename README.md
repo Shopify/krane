@@ -134,8 +134,8 @@ before the deployment is considered successful.
   In other words, the number of new pods that must be ready is equal to `spec.replicas` - `strategy.RollingUpdate.maxUnavailable`
   (converted from percentages by rounding up, if applicable). This option is only valid for deployments
   that use the `RollingUpdate` strategy.
-  - number or percent (10 or 10%): Same as `maxUnavailable` except the provided value is used instead of taken from
-  `strategy.RollingUpdate.maxUnavailable`.
+  - Percent (e.g. 90%): The deploy is successful when the number of new pods that must be ready is equal to
+  `spec.replicas` * Percent.
 
 
 ### Running tasks at the beginning of a deploy
