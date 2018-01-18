@@ -68,6 +68,30 @@ class DeploymentTest < KubernetesDeploy::TestCase
     assert deploy.deploy_succeeded?
 
     deploy = build_synced_deployment(
+      template: build_deployment_template(status: deployment_status, rollout: '2', max_unavailable: 2),
+      replica_sets: replica_sets
+    )
+    assert deploy.deploy_succeeded?
+
+    deploy = build_synced_deployment(
+      template: build_deployment_template(status: deployment_status, rollout: '1', max_unavailable: 2),
+      replica_sets: replica_sets
+    )
+    refute deploy.deploy_succeeded?
+
+    deploy = build_synced_deployment(
+      template: build_deployment_template(status: deployment_status, rollout: '90%', max_unavailable: 2),
+      replica_sets: replica_sets
+    )
+    assert deploy.deploy_succeeded?
+
+    deploy = build_synced_deployment(
+      template: build_deployment_template(status: deployment_status, rollout: '1%', max_unavailable: 2),
+      replica_sets: replica_sets
+    )
+    refute deploy.deploy_succeeded?
+
+    deploy = build_synced_deployment(
       template: build_deployment_template(status: deployment_status, rollout: 'maxUnavailable', max_unavailable: 1),
       replica_sets: replica_sets
     )
@@ -144,6 +168,28 @@ class DeploymentTest < KubernetesDeploy::TestCase
       super failed
       '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: bad' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
     STRING
+    assert_equal expected, deploy.validation_error_msg
+  end
+
+  def test_validation_with_percent_rollout_annotation
+    deploy = build_synced_deployment(template: build_deployment_template(rollout: '10%'), replica_sets: [])
+    deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+      ["", "super failed", SystemExit.new(1)]
+    )
+    refute deploy.validate_definition
+
+    expected = 'super failed'
+    assert_equal expected, deploy.validation_error_msg
+  end
+
+  def test_validation_with_number_rollout_annotation
+    deploy = build_synced_deployment(template: build_deployment_template(rollout: '10'), replica_sets: [])
+    deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+      ["", "super failed", SystemExit.new(1)]
+    )
+    refute deploy.validate_definition
+
+    expected = 'super failed'
     assert_equal expected, deploy.validation_error_msg
   end
 
