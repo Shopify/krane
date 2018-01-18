@@ -14,8 +14,8 @@ module KubernetesDeploy
 
     DISABLE_FETCHING_LOG_INFO = 'DISABLE_FETCHING_LOG_INFO'
     DISABLE_FETCHING_EVENT_INFO = 'DISABLE_FETCHING_EVENT_INFO'
-    DISABLED_LOG_INFO_MESSAGE = "Log collection is disabled by the #{DISABLE_FETCHING_LOG_INFO} env var."
-    DISABLED_EVENT_INFO_MESSAGE = "Event collection is disabled by the #{DISABLE_FETCHING_EVENT_INFO} env var."
+    DISABLED_LOG_INFO_MESSAGE = "collection is disabled by the #{DISABLE_FETCHING_LOG_INFO} env var."
+    DISABLED_EVENT_INFO_MESSAGE = "collection is disabled by the #{DISABLE_FETCHING_EVENT_INFO} env var."
     DEBUG_RESOURCE_NOT_FOUND_MESSAGE = "None found. Please check your usual logging service (e.g. Splunk)."
     UNUSUAL_FAILURE_MESSAGE = <<~MSG
       It is very unusual for this resource type to fail to deploy. Please try the deploy again.
@@ -174,14 +174,14 @@ module KubernetesDeploy
           event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
         end
       elsif ENV[DISABLE_FETCHING_EVENT_INFO]
-        helpful_info << DISABLED_EVENT_INFO_MESSAGE
+        helpful_info << "  - Events: #{DISABLED_EVENT_INFO_MESSAGE}"
       else
         helpful_info << "  - Events: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
       end
 
       if supports_logs?
         if ENV[DISABLE_FETCHING_LOG_INFO]
-          helpful_info << DISABLED_LOG_INFO_MESSAGE
+          helpful_info << "  - Logs: #{DISABLED_LOG_INFO_MESSAGE}"
         elsif @logs.blank? || @logs.values.all?(&:blank?)
           helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
         else
