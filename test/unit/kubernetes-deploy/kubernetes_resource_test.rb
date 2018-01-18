@@ -202,7 +202,6 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
       assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Unknown\n"
       assert_includes dummy.debug_message, KubernetesDeploy::KubernetesResource::DISABLED_LOG_INFO_MESSAGE
-      refute_includes dummy.debug_message, "- Logs"
     end
   end
 
@@ -213,7 +212,6 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
       assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Unknown\n"
       assert_includes dummy.debug_message, KubernetesDeploy::KubernetesResource::DISABLED_EVENT_INFO_MESSAGE
-      refute_includes dummy.debug_message, "- Events"
     end
   end
 
