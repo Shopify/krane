@@ -1,3 +1,9 @@
+### 0.15.2
+*Enhancements*
+- Print warnings if kubernetes server version is not supported ([#237](https://github.com/Shopify/kubernetes-deploy/pull/237)).
+- Possible via env var to disable fetching logs and/or events on deployment failure ([#239](https://github.com/Shopify/kubernetes-deploy/pull/239)).
+- The `kubernetes-deploy.shopify.io/required-rollout` annotation now takes a percent (e.g. 90%) ([#240](https://github.com/Shopify/kubernetes-deploy/pull/240)).
+
 ### 0.15.1
 *Enhancements*
 - Fetch debug events and logs for failed resources in parallel ([#238](https://github.com/Shopify/kubernetes-deploy/pull/238))
