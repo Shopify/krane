@@ -181,7 +181,7 @@ module KubernetesDeploy
     end
 
     def percent?(value)
-      value =~ /%/
+      value =~ /\d+%/
     end
   end
 end

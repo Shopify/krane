@@ -80,7 +80,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
     refute deploy.deploy_succeeded?
   end
 
-  def test_deploy_succeeded_with_annotation_as_number
+  def test_deploy_succeeded_with_annotation_as_percent
     deployment_status = {
       "replicas" => 3, # one terminating in old rs, one starting in new rs, one up in new rs
       "updatedReplicas" => 2,
@@ -96,13 +96,25 @@ class DeploymentTest < KubernetesDeploy::TestCase
     replica_sets = [build_rs_template(status: rs_status)]
 
     deploy = build_synced_deployment(
-      template: build_deployment_template(status: deployment_status, rollout: '33%', max_unavailable: 2),
+      template: build_deployment_template(status: deployment_status, rollout: '0%'),
       replica_sets: replica_sets
     )
     assert deploy.deploy_succeeded?
 
     deploy = build_synced_deployment(
-      template: build_deployment_template(status: deployment_status, rollout: '34%', max_unavailable: 2),
+      template: build_deployment_template(status: deployment_status, rollout: '33%'),
+      replica_sets: replica_sets
+    )
+    assert deploy.deploy_succeeded?
+
+    deploy = build_synced_deployment(
+      template: build_deployment_template(status: deployment_status, rollout: '34%'),
+      replica_sets: replica_sets
+    )
+    refute deploy.deploy_succeeded?
+
+    deploy = build_synced_deployment(
+      template: build_deployment_template(status: deployment_status, rollout: '100%'),
       replica_sets: replica_sets
     )
     refute deploy.deploy_succeeded?
@@ -178,11 +190,23 @@ class DeploymentTest < KubernetesDeploy::TestCase
   def test_validation_with_percent_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10%'), replica_sets: [])
     deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+      ["", "", SystemExit.new(0)]
+    )
+    assert deploy.validate_definition
+    assert_empty deploy.validation_error_msg
+  end
+
+  def test_validation_with_number_rollout_annotation
+    deploy = build_synced_deployment(template: build_deployment_template(rollout: '10'), replica_sets: [])
+    deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
-    refute deploy.validate_definition
 
-    expected = 'super failed'
+    refute deploy.validate_definition
+    expected = <<~STRING.strip
+      super failed
+      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: 10' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+    STRING
     assert_equal expected, deploy.validation_error_msg
   end
 
