@@ -48,15 +48,14 @@ module KubernetesDeploy
     def deploy_succeeded?
       return false unless @latest_rs.present?
 
-      case required_rollout
-      when 'full'
+      if required_rollout == 'full'
         @latest_rs.deploy_succeeded? &&
         @latest_rs.desired_replicas == @desired_replicas && # latest RS fully scaled up
         @rollout_data["updatedReplicas"].to_i == @desired_replicas &&
         @rollout_data["updatedReplicas"].to_i == @rollout_data["availableReplicas"].to_i
-      when 'none'
+      elsif required_rollout == 'none'
         true
-      when 'maxUnavailable'
+      elsif required_rollout == 'maxUnavailable' || percent?(required_rollout)
         minimum_needed = min_available_replicas
 
         @latest_rs.desired_replicas >= minimum_needed &&
@@ -102,7 +101,7 @@ module KubernetesDeploy
     def validate_definition
       super
 
-      unless REQUIRED_ROLLOUT_TYPES.include?(required_rollout)
+      unless REQUIRED_ROLLOUT_TYPES.include?(required_rollout) || percent?(required_rollout)
         @validation_errors << rollout_annotation_err_msg
       end
 
@@ -168,16 +167,21 @@ module KubernetesDeploy
     end
 
     def min_available_replicas
-      if @max_unavailable =~ /%/
-        (@desired_replicas * (100 - @max_unavailable.to_i) / 100.0).ceil
+      max_unavailable = percent?(required_rollout) ? "#{100 - required_rollout.to_i}%" : @max_unavailable
+
+      if max_unavailable =~ /%/
+        (@desired_replicas * (100 - max_unavailable.to_i) / 100.0).ceil
       else
-        @desired_replicas - @max_unavailable.to_i
+        @desired_replicas - max_unavailable.to_i
       end
     end
 
     def required_rollout
-      @definition.dig('metadata', 'annotations', REQUIRED_ROLLOUT_ANNOTATION).presence ||
-      DEFAULT_REQUIRED_ROLLOUT
+      @definition.dig('metadata', 'annotations', REQUIRED_ROLLOUT_ANNOTATION).presence || DEFAULT_REQUIRED_ROLLOUT
+    end
+
+    def percent?(value)
+      value =~ /\d+%/
     end
   end
 end
