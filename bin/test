@@ -41,4 +41,4 @@ bundle exec rake serial_integration_test
 print_header "Run Parallel Integration Tests (N=$PARALLELISM)"
 PARALLELIZE_ME=1 N=$PARALLELISM bundle exec rake integration_test
 
-test $err=0
+test $err -eq 0
