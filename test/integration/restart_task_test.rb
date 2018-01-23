@@ -3,28 +3,6 @@ require 'test_helper'
 require 'kubernetes-deploy/restart_task'
 
 class RestartTaskTest < KubernetesDeploy::IntegrationTest
-  def test_restart
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]))
-
-    refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
-
-    restart = build_restart_task
-    assert_restart_success(restart.perform(["web"]))
-
-    assert_logs_match_all([
-      "Configured to restart deployments by name: web",
-      "Triggered `web` restart",
-      "Waiting for rollout",
-      %r{Successfully restarted in \d+\.\d+s: Deployment/web},
-      "Result: SUCCESS",
-      "Successfully restarted 1 resource",
-      %r{Deployment/web.*1 availableReplica}
-    ],
-      in_order: true)
-
-    assert fetch_restarted_at("web"), "RESTARTED_AT is present after the restart"
-  end
-
   def test_restart_by_annotation
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]))
 
@@ -38,7 +16,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       "Configured to restart all deployments with the `shipit.shopify.io/restart` annotation",
       "Triggered `web` restart",
       "Waiting for rollout",
-      %r{Successfully restarted in \d\.\ds: Deployment/web},
+      %r{Successfully restarted in \d+\.\d+s: Deployment/web},
       "Result: SUCCESS",
       "Successfully restarted 1 resource",
       %r{Deployment/web.*1 availableReplica}
@@ -60,7 +38,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       in_order: true)
   end
 
-  def test_restart_twice
+  def test_restart_named_deployments_twice
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]))
 
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
@@ -71,8 +49,13 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Configured to restart deployments by name: web",
       "Triggered `web` restart",
-      "Successfully restarted 1 resource"
-    ])
+      "Waiting for rollout",
+      %r{Successfully restarted in \d+\.\d+s: Deployment/web},
+      "Result: SUCCESS",
+      "Successfully restarted 1 resource",
+      %r{Deployment/web.*1 availableReplica}
+    ],
+      in_order: true)
 
     first_restarted_at = fetch_restarted_at("web")
     assert first_restarted_at, "RESTARTED_AT is present after first restart"
@@ -173,7 +156,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_failure
     success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
-      deployment["spec"]["progressDeadlineSeconds"] = 8
+      deployment["spec"]["progressDeadlineSeconds"] = 30
       container = deployment["spec"]["template"]["spec"]["containers"].first
       container["readinessProbe"] = {
         "failureThreshold" => 1,
@@ -201,7 +184,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       "The following containers have not passed their readiness probes",
       "app must exit 0 from the following command",
       "Final status: 2 replicas, 1 updatedReplica, 1 availableReplica, 1 unavailableReplica",
-      # "Unhealthy: Readiness probe failed" # from an event not produced by v1.6.4--add back when we drop 1.6 CI
+      "Unhealthy: Readiness probe failed"
     ],
       in_order: true)
   end

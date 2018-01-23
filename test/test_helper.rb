@@ -25,6 +25,8 @@ require 'minitest/autorun'
 require 'minitest/stub/const'
 require 'webmock/minitest'
 require 'mocha/mini_test'
+require 'minitest/parallel'
+require "minitest/reporters"
 
 Dir.glob(File.expand_path("../helpers/*.rb", __FILE__)).each { |file| require file }
 ENV["KUBECONFIG"] ||= "#{Dir.home}/.kube/config"
@@ -33,12 +35,41 @@ Mocha::Configuration.prevent(:stubbing_method_unnecessarily)
 Mocha::Configuration.prevent(:stubbing_non_existent_method)
 Mocha::Configuration.prevent(:stubbing_non_public_method)
 
+if ENV["PARALLELIZE_ME"]
+  Minitest::Reporters.use! [
+    Minitest::Reporters::ParallelizableReporter.new(
+      fast_fail: ENV['VERBOSE'] == '1',
+      slow_count: 10,
+      detailed_skip: false,
+      verbose: ENV['VERBOSE'] == '1'
+    )
+  ]
+else
+  Minitest::Reporters.use! [
+    Minitest::Reporters::DefaultReporter.new(
+      slow_count: 10,
+      detailed_skip: false,
+      verbose: ENV['VERBOSE'] == '1'
+    )
+  ]
+end
+
 module KubernetesDeploy
   class TestCase < ::Minitest::Test
+    # Warning: running unit tests in parallel will not work!
+    if ENV["PARALLELIZE_ME"]
+      puts "Running tests in parallel!"
+      parallelize_me!
+    end
+
     def setup
+      unless is_a?(KubernetesDeploy::IntegrationTest)
+        WebMock.disable_net_connect!
+      end
       @logger_stream = StringIO.new
 
       if ENV["PRINT_LOGS"]
+        ColorizedString.disable_colorization = false
         # Allows you to view the integration test output as a series of tophat scenarios
         <<~MESSAGE.each_line { |l| $stderr.puts l }
 
@@ -60,7 +91,6 @@ module KubernetesDeploy
     end
 
     def teardown
-      ColorizedString.disable_colorization = false
       @logger_stream.close
     end
 
@@ -128,7 +158,8 @@ module KubernetesDeploy
 
     def refute_logs_match(regexp)
       logging_assertion do |logs|
-        refute_match regexp, logs
+        regexp = regexp.is_a?(Regexp) ? regexp : Regexp.new(Regexp.escape(regexp))
+        refute regexp =~ logs, "Expected '#{regexp}' not to appear in the following logs:\n#{logs}"
       end
     end
 
@@ -186,7 +217,6 @@ module KubernetesDeploy
       super
     ensure
       TestProvisioner.delete_namespace(@namespace)
-      WebMock.disable_net_connect!
     end
 
     logger = KubernetesDeploy::FormattedLogger.build("default", MINIKUBE_CONTEXT, $stderr)

@@ -2,13 +2,15 @@ apiVersion: extensions/v1beta1 # keep as long as this group is valid
 kind: Deployment
 metadata:
   name: bad-probe
+  annotations:
+    kubernetes-deploy.shopify.io/timeout-override: '25s'
 spec:
   replicas: 1
   # progressDeadlineSeconds: 10 -- do not add: this is used to test the hard deadline
   template:
     metadata:
       labels:
-        name: web
+        name: bad-probe
         app: crash-app
     spec:
       containers:
@@ -45,7 +47,7 @@ spec:
         readinessProbe:
           exec:
             command: ["test", "0", "-eq", "0"]
-          initialDelaySeconds: 1
-          periodSeconds: 1
+          initialDelaySeconds: 2
+          periodSeconds: 2
           successThreshold: 1
           failureThreshold: 100

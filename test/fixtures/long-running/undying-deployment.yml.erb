@@ -17,7 +17,7 @@ metadata:
   name: undying
 spec:
   replicas: 2
-  progressDeadlineSeconds: 20
+  progressDeadlineSeconds: 60
   revisionHistoryLimit: 1
   strategy:
     type: RollingUpdate
@@ -41,5 +41,5 @@ spec:
               command: ["sleep", "40"]
         env:
         - name: GITHUB_REV
-          value: <%= current_sha %>
+          value: "<%= current_sha %>"
       terminationGracePeriodSeconds: 30

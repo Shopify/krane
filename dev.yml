@@ -13,7 +13,7 @@ up:
 commands:
   reset-minikube: minikube delete && rm -rf ~/.minikube
   test:
-    run: bundle exec rake test
+    run: bin/test
   tophat:
     run: PRINT_LOGS=1 bundle exec ruby -I test test/integration/kubernetes_deploy_test.rb -n/${1}/
     desc: Tophat a change by running a test scenario with logging output enabled.

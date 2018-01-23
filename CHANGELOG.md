@@ -1,3 +1,7 @@
+### 0.16.0
+
+**Important:** This release changes the officially supported Kubernetes versions to v1.7 through v1.9. Other versions may continue to work, but we are no longer running our test suite against them.
+
 ### 0.15.2
 *Enhancements*
 - Print warnings if kubernetes server version is not supported ([#237](https://github.com/Shopify/kubernetes-deploy/pull/237)).

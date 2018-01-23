@@ -9,7 +9,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
-      %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 42s\)}, # annotation timeout override
+      %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
       "Successfully deployed 17 resources"
@@ -50,18 +50,6 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   end
 
-  def test_partial_deploy_followed_by_full_deploy
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "redis.yml"]))
-    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-    hello_cloud.assert_all_redis_resources_up
-    hello_cloud.assert_configmap_data_present
-    hello_cloud.refute_managed_pod_exists
-    hello_cloud.refute_web_resources_exist
-
-    assert_deploy_success(deploy_fixtures("hello-cloud"))
-    hello_cloud.assert_all_up
-  end
-
   def test_pruning_works
     assert_deploy_success(deploy_fixtures("hello-cloud"))
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
@@ -70,7 +58,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["redis.yml"]))
     hello_cloud.assert_all_redis_resources_up
     hello_cloud.refute_configmap_data_exists
-    hello_cloud.refute_managed_pod_exists
+    hello_cloud.refute_unmanaged_pod_exists
     hello_cloud.refute_web_resources_exist
 
     expected_pruned = [
@@ -94,39 +82,27 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_configmap_data_present
 
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["redis.yml"], prune: false))
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"], prune: false))
     hello_cloud.assert_configmap_data_present
-    hello_cloud.assert_all_redis_resources_up
-  end
-
-  def test_deploying_to_protected_namespace_with_override_does_not_prune
-    KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
-      assert_deploy_success(deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: false))
-      hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-      hello_cloud.assert_all_up
-      assert_logs_match_all([
-        /cannot be pruned/,
-        /Please do not deploy to #{@namespace} unless you really know what you are doing/
-      ])
-
-      result = deploy_fixtures("hello-cloud", subset: ["redis.yml"], allow_protected_ns: true, prune: false)
-      assert_deploy_success(result)
-      hello_cloud.assert_all_up
-    end
+    hello_cloud.assert_poddisruptionbudget
   end
 
   def test_refuses_deploy_to_protected_namespace_with_override_if_pruning_enabled
-    KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
-      assert_deploy_failure(deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: true))
-    end
-    assert_logs_match(/Refusing to deploy to protected namespace .* pruning enabled/)
+    generated_ns = @namespace
+    @namespace = 'default'
+    assert_deploy_failure(deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: true))
+    assert_logs_match(/Refusing to deploy to protected namespace 'default' with pruning enabled/)
+  ensure
+    @namespace = generated_ns
   end
 
   def test_refuses_deploy_to_protected_namespace_without_override
-    KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
-      assert_deploy_failure(deploy_fixtures("hello-cloud", prune: false))
-    end
+    generated_ns = @namespace
+    @namespace = 'default'
+    assert_deploy_failure(deploy_fixtures("hello-cloud", prune: false))
     assert_logs_match(/Refusing to deploy to protected namespace/)
+  ensure
+    @namespace = generated_ns
   end
 
   def test_pvcs_are_not_pruned
@@ -396,18 +372,18 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
   end
 
   def test_deployment_with_progress_times_out_for_short_duration
-    # The deployment adds a progressDeadlineSeconds of 2s and attepts to deploy a container
+    # The deployment adds a short progressDeadlineSeconds and attepts to deploy a container
     # which sleeps and cannot fulfill the readiness probe causing it to timeout
     result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
-      deployment['spec']['progressDeadlineSeconds'] = 2
+      deployment['spec']['progressDeadlineSeconds'] = 10
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
     assert_deploy_failure(result)
 
     assert_logs_match_all([
-      'Deployment/undying: TIMED OUT (progress deadline: 2s)',
+      'Deployment/undying: TIMED OUT (progress deadline: 10s)',
       'Timeout reason: ProgressDeadlineExceeded'
     ])
   end
@@ -453,38 +429,6 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       assert_equal 2, rev_pods.length, "#{rev} had #{rev_pods.length} pods (wanted 2). Statuses:\n#{statuses}"
     end
     assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
-  end
-
-  def test_create_and_update_secrets_from_ejson
-    logger.level = ::Logger::DEBUG # for assertions that we don't log secret data
-
-    # Create secrets
-    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
-    ejson_cloud.create_ejson_keys_secret
-    assert_deploy_success(deploy_fixtures("ejson-cloud"))
-    ejson_cloud.assert_all_up
-    assert_logs_match_all([
-      /Creating secret catphotoscom/,
-      /Creating secret unused-secret/,
-      /Creating secret monitoring-token/
-    ])
-
-    refute_logs_match(ejson_cloud.test_private_key)
-    refute_logs_match(ejson_cloud.test_public_key)
-    refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
-
-    # Update secrets
-    result = deploy_fixtures("ejson-cloud") do |fixtures|
-      fixtures["secrets.ejson"]["kubernetes_secrets"]["unused-secret"]["data"] = { "_test" => "a" }
-    end
-    assert_deploy_success(result)
-    ejson_cloud.assert_secret_present('unused-secret', { "test" => "a" }, managed: true)
-    ejson_cloud.assert_web_resources_up
-    assert_logs_match(/Updating secret unused-secret/)
-
-    refute_logs_match(ejson_cloud.test_private_key)
-    refute_logs_match(ejson_cloud.test_public_key)
-    refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
   end
 
   def test_create_ejson_secrets_with_malformed_secret_data
@@ -543,13 +487,12 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
   end
 
   def test_deploy_result_logging_for_mixed_result_deploy
-    KubernetesDeploy::Deployment.any_instance.stubs(:timeout).returns(10)
     result = deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"])
     assert_deploy_failure(result)
 
     # Debug info for bad probe timeout
     assert_logs_match_all([
-      "Deployment/bad-probe: TIMED OUT (timeout: 10s)",
+      %r{Deployment/bad-probe: TIMED OUT \(timeout: \d+s\)},
       "Timeout reason: hard deadline for Deployment",
       /Latest ReplicaSet: bad-probe-\w+/,
       "The following containers have not passed their readiness probes on at least one pod:",
@@ -575,7 +518,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       /Latest ReplicaSet: init-crash-\w+/,
       "The following containers are in a state that is unlikely to be recoverable:",
       "init-crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
-      "Final status: 2 replicas, 2 updatedReplicas, 2 unavailableReplicas",
+      "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
       "Scaled up replica set init-crash-", # event
       "this is a log from the crashing init container"
     ], in_order: true)
@@ -611,14 +554,6 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "no such file or directory" # from logs
     ], in_order: true)
     refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary
-  end
-
-  def test_unusual_timeout_output
-    KubernetesDeploy::ConfigMap.any_instance.stubs(:deploy_succeeded?).returns(false)
-    KubernetesDeploy::ConfigMap.any_instance.stubs(:timeout).returns(2)
-    assert_deploy_failure(deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"]))
-    assert_logs_match("It is very unusual for this resource type to fail to deploy. Please try the deploy again.")
-    assert_logs_match("Final status: Available")
   end
 
   # ref https://github.com/kubernetes/kubernetes/issues/26202
@@ -794,7 +729,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       "StatefulSet/stateful-busybox: FAILED",
       "app: Crashing repeatedly (exit 1). See logs for more information.",
       "Events (common success events excluded):",
-      "[Pod/stateful-busybox-0]	FailedSync: Error syncing pod",
+      %r{\[Pod/stateful-busybox-\d\]	BackOff: Back-off restarting failed container},
       "Logs from container 'app' (last 250 lines shown):",
       "ls: /not-a-dir: No such file or directory"
     ], in_order: true)
@@ -867,66 +802,6 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     ejson_cloud.assert_secret_present('ejson-keys', managed: false)
   end
 
-  def test_invalid_context
-    old_config = ENV['KUBECONFIG']
-    begin
-      ENV['KUBECONFIG'] = File.join(__dir__, '../fixtures/kube-config/invalid_config.yml')
-      result = deploy_fixtures('hello-cloud')
-      assert_deploy_failure(result)
-      assert_logs_match_all([
-        'The following command failed: kubectl version',
-        'Unable to connect to the server',
-        'Unable to connect to the server',
-        'Unable to connect to the server',
-        'Result: FAILURE',
-        'Failed to reach server for minikube',
-      ], in_order: true)
-    ensure
-      ENV['KUBECONFIG'] = old_config
-    end
-  end
-
-  def test_multiple_configuration_files
-    old_config = ENV['KUBECONFIG']
-    config_file = File.join(__dir__, '../fixtures/kube-config/unknown_config.yml')
-    ENV['KUBECONFIG'] = config_file
-    result = deploy_fixtures('hello-cloud')
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'Result: FAILURE',
-      'Configuration invalid',
-      "Kube config not found at #{config_file}"
-    ], in_order: true)
-    reset_logger
-
-    ENV['KUBECONFIG'] = " : "
-    result = deploy_fixtures('hello-cloud')
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'Result: FAILURE',
-      'Configuration invalid',
-      "Kube config file name(s) not set in $KUBECONFIG"
-    ], in_order: true)
-    reset_logger
-
-    ENV['KUBECONFIG'] = nil
-    result = deploy_fixtures('hello-cloud')
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'Result: FAILURE',
-      'Configuration invalid',
-      "$KUBECONFIG not set"
-    ], in_order: true)
-    reset_logger
-
-    valid_config = File.join(__dir__, '../fixtures/kube-config/valid_config.yml')
-    ENV['KUBECONFIG'] = "#{old_config}:#{valid_config}"
-    result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
-    assert_deploy_success(result)
-  ensure
-    ENV['KUBECONFIG'] = old_config
-  end
-
   def test_roll_back_a_bad_deploy
     result = deploy_fixtures("invalid", subset: ["cannot_run.yml"], sha: "REVA") do |fixtures|
       container = fixtures["cannot_run.yml"]["Deployment"].first["spec"]["template"]["spec"]["containers"].first
@@ -936,7 +811,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     original_rs = v1beta1_kubeclient.get_replica_sets(namespace: @namespace).first
     original_rs_uid = original_rs["metadata"]["uid"]
     assert original_rs_uid.present?
-    assert_equal 3, original_rs["status"]["availableReplicas"]
+    assert_equal 2, original_rs["status"]["availableReplicas"]
 
     # Bad deploy
     assert_deploy_failure(deploy_fixtures("invalid", subset: ["cannot_run.yml"], sha: "REVB"))
@@ -951,7 +826,7 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
     all_rs = v1beta1_kubeclient.get_replica_sets(namespace: @namespace)
     assert_equal 2, all_rs.length, "Test premise failure: Rollback created a new RS"
     original_rs = all_rs.find { |rs| rs["metadata"]["uid"] == original_rs_uid }
-    assert_equal 3, original_rs["status"]["availableReplicas"]
+    assert_equal 2, original_rs["status"]["availableReplicas"]
   end
 
   def test_deployment_with_recreate_strategy
@@ -959,9 +834,8 @@ invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
       result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
         deployment = fixtures["web.yml.erb"]["Deployment"].first
         deployment["spec"]["strategy"] = { "type" => "Recreate" }
-        deployment["spec"]["template"]["spec"]["containers"].first["lifecycle"] = {
-          "preStop" => { "exec" => { "command" => %w(sleep 5) } } # simulate app shutdown time
-        }
+        # if this is > 0, the test goes from taking 10s to taking 1m+. Original pod sticks in Terminating.
+        deployment["spec"]["template"]["spec"]["terminationGracePeriodSeconds"] = 0
       end
       assert_deploy_success(result)
     end

@@ -14,6 +14,8 @@ docker run --rm \
     -e CI=1 \
     -e CODECOV_TOKEN=$CODECOV_TOKEN \
     -e COVERAGE=1 \
+    -e VERBOSE=1 \
+    -e PARALLELISM=$PARALLELISM \
     -w /usr/src/app \
     ruby:2.3 \
     bin/test

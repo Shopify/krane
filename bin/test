@@ -1,7 +1,44 @@
 #!/bin/bash
-set -euo pipefail
+set -uo pipefail
 
-echo "--- :ruby: Bundle Install"
-bundle install --jobs 4 
-echo "+++ :kubernetes: Run Tests"
-bundle exec rake test TESTOPTS='-v'
+err=0
+trap 'err=1' ERR
+trap 'exit 1' SIGINT
+
+function print_header() {
+  if [[ ${CI:="0"} == "1" ]]; then
+    printf "+++ :kubernetes: %s\n" "${1}"
+  else
+    printf "\n\n\033[0;35m⎈   %s\033[0m\n" "${1}"
+  fi
+}
+
+if [[ ${PARALLELISM:=0} -lt 1 ]]; then
+  if [[ $(uname) == "Darwin" ]]; then
+    num_cpus=$(sysctl -n hw.ncpu)
+  else
+    num_cpus=$(nproc --all)
+  fi
+
+  if [[ $num_cpus -le 2 ]]; then
+    PARALLELISM=1
+  else
+    (( PARALLELISM=num_cpus/2 ))
+  fi
+fi
+
+if [[ ${CI:="0"} == "1" ]]; then
+  echo "--- :ruby: Bundle Install"
+  bundle install --jobs 4
+fi
+
+print_header "Run Unit Tests"
+bundle exec rake unit_test
+
+print_header "Run Non-Parallel Integration Tests"
+bundle exec rake serial_integration_test
+
+print_header "Run Parallel Integration Tests (N=$PARALLELISM)"
+PARALLELIZE_ME=1 N=$PARALLELISM bundle exec rake integration_test
+
+test $err=0

@@ -25,9 +25,9 @@ module FixtureSetAssertions
       assert pods.all? { |pod| pod.status.phase == status }
     end
 
-    def refute_managed_pod_exists
+    def refute_unmanaged_pod_exists
       pods = kubeclient.get_pods(namespace: namespace, label_selector: "type=unmanaged-pod,app=#{app_name}")
-      assert_equal 0, pods.size, "Expected to find 0 managed pods, found #{pods.size}"
+      assert_equal 0, pods.size, "Expected to find 0 unmanaged pods, found #{pods.size}"
     end
 
     def assert_configmap_data_present

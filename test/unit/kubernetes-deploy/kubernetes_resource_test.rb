@@ -46,6 +46,21 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_unusual_timeout_output
+    spec = { "kind" => "ConfigMap", "metadata" => { "name" => "foo" } }
+    cm = KubernetesDeploy::ConfigMap.new(namespace: 'foo', context: 'none', definition: spec, logger: logger)
+    cm.deploy_started_at = Time.now.utc
+
+    Timecop.freeze(Time.now.utc + 60) do
+      assert cm.deploy_timed_out?
+      expected = <<~STRING
+        It is very unusual for this resource type to fail to deploy. Please try the deploy again.
+        If that new deploy also fails, contact your cluster administrator.
+      STRING
+      assert_equal expected, cm.timeout_message
+    end
+  end
+
   def test_service_and_deployment_timeouts_are_equal
     message = "Service and Deployment timeouts have to match since services are waiting to get endpoints " \
       "from their backing deployments"
