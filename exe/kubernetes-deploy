@@ -10,6 +10,7 @@ allow_protected_ns = false
 prune = true
 bindings = {}
 verbose_log_prefix = false
+selector = nil
 
 ARGV.options do |opts|
   opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
@@ -23,6 +24,10 @@ ARGV.options do |opts|
   opts.on("--no-prune", "Disable deletion of resources that do not appear in the template dir") { prune = false }
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
   opts.on("--verbose-log-prefix", "Add [context][namespace] to the log prefix") { verbose_log_prefix = true }
+  opts.on("--selector=SELECTOR", "Ensure that all resources in your template dir match the given selector, " \
+    "and restrict pruning to deployed resources it selects.  (format: k1=v1,k2=v2 or JSON)") do |s|
+    selector = KubernetesDeploy::BindingsParser.parse(s)
+  end
 
   opts.on_tail("-h", "--help", "Print this help") do
     puts opts
@@ -60,7 +65,8 @@ runner = KubernetesDeploy::DeployTask.new(
   current_sha: revision,
   template_dir: template_dir,
   bindings: bindings,
-  logger: logger
+  logger: logger,
+  selector: selector
 )
 
 success = runner.run(

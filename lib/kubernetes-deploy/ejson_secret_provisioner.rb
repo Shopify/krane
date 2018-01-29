@@ -3,6 +3,7 @@ require 'json'
 require 'base64'
 require 'open3'
 require 'kubernetes-deploy/kubectl'
+require 'kubernetes-deploy/utils'
 
 module KubernetesDeploy
   class EjsonSecretError < FatalDeploymentError
@@ -17,12 +18,13 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, template_dir:, logger:, prune: true)
+    def initialize(namespace:, context:, template_dir:, logger:, prune: true, selector: nil)
       @namespace = namespace
       @context = context
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
       @logger = logger
       @prune = prune
+      @selector = selector
       @kubectl = Kubectl.new(
         namespace: @namespace,
         context: @context,
@@ -62,7 +64,7 @@ module KubernetesDeploy
 
     def prune_managed_secrets
       ejson_secret_names = encrypted_ejson.fetch(MANAGED_SECRET_EJSON_KEY, {}).keys
-      live_secrets = run_kubectl_json("get", "secrets")
+      live_secrets = current_secrets
 
       prune_count = 0
       live_secrets.each do |secret|
@@ -80,7 +82,7 @@ module KubernetesDeploy
     end
 
     def managed_secrets_exist?
-      all_secrets = run_kubectl_json("get", "secrets")
+      all_secrets = current_secrets
       all_secrets.any? { |secret| secret_managed?(secret) }
     end
 
@@ -137,13 +139,16 @@ module KubernetesDeploy
         encoded[secret_key] = Base64.strict_encode64(value)
       end
 
+      labels = { "name" => secret_name }
+      labels.merge!(@selector) if @selector
+
       secret = {
         'kind' => 'Secret',
         'apiVersion' => 'v1',
         'type' => secret_type,
         'metadata' => {
           "name" => secret_name,
-          "labels" => { "name" => secret_name },
+          "labels" => labels,
           "namespace" => @namespace,
           "annotations" => { MANAGEMENT_ANNOTATION => "true" }
         },
@@ -202,6 +207,12 @@ module KubernetesDeploy
       raise EjsonSecretError, err unless st.success?
       result = JSON.parse(out)
       result.fetch('items', result)
+    end
+
+    def current_secrets
+      command = %w(get secrets)
+      command.push("--selector", Utils.selector_to_string(@selector)) if @selector
+      run_kubectl_json(*command)
     end
   end
 end

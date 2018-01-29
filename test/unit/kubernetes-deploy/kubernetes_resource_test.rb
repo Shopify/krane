@@ -163,7 +163,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("bad"))
     customized_resource.kubectl.expects(:run).returns([
       "{}",
-      "Error from kubectl: Something else in this template was not valid",
+      "Error: Something else in this template was not valid",
       stub(success?: false)
     ])
 
@@ -171,7 +171,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     assert customized_resource.validation_failed?, "Expected resource to be invalid"
     expected = <<~STRING.strip
       #{timeout_override_err_prefix}: Invalid ISO 8601 duration: "BAD"
-      Error from kubectl: Something else in this template was not valid
+      Error: Something else in this template was not valid
     STRING
     assert_equal expected, customized_resource.validation_error_msg
   end
