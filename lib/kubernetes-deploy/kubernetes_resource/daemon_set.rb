@@ -37,6 +37,7 @@ module KubernetesDeploy
     end
 
     def fetch_logs
+      return {} unless @pods.present?
       most_useful_pod = @pods.find(&:deploy_failed?) || @pods.find(&:deploy_timed_out?) || @pods.first
       most_useful_pod.fetch_logs
     end
