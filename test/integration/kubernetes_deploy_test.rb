@@ -181,38 +181,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   # The next three tests reproduce a k8s bug
   # The dry run should catch these problems, but it does not. Instead, apply fails.
-  # https://github.com/kubernetes/kubernetes/issues/42057
-  def test_invalid_k8s_spec_that_is_valid_yaml_fails_on_apply_and_prints_template
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
-      configmap = fixtures["configmap-data.yml"]["ConfigMap"].first
-      configmap["metadata"]["labels"] = {
-        "name" => { "not_a_name" => [1, 2] }
-      }
-    end
-    assert_deploy_failure(result)
-    if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
-      assert_logs_match_all([
-        "Command failed: apply -f",
-        "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-        /Invalid template: ConfigMap-hello-cloud-configmap-data.*\.yml/,
-        "> Error from kubectl:",
-        "    Error from server (BadRequest): error when creating",
-        "> Rendered template content:",
-        "          not_a_name:",
-      ], in_order: true)
-    else
-      assert_logs_match_all([
-        "Template validation failed",
-        /Invalid template: ConfigMap-hello-cloud-configmap-data.*\.yml/,
-        "> Error from kubectl:",
-        "error validating data: ValidationError(ConfigMap.metadata.labels.name): \
-invalid type for io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta.labels:",
-        "> Rendered template content:",
-        "          not_a_name:",
-      ], in_order: true)
-    end
-  end
-
+  # https://github.com/kubernetes/kubernetes/issues/42057 shows how this manifested for a particular field,
+  # and although that particular case has been fixed, other invalid specs still aren't caught until apply.
   def test_multiple_invalid_k8s_specs_fails_on_apply_and_prints_template
     result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
       bad_port_name = "http_test_is_really_long_and_invalid_chars"
