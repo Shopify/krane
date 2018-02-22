@@ -63,9 +63,14 @@ runner = KubernetesDeploy::DeployTask.new(
   logger: logger
 )
 
-success = runner.run(
+success, err = runner.run(
   verify_result: !skip_wait,
   allow_protected_ns: allow_protected_ns,
   prune: prune
 )
-exit 1 unless success
+
+if err == :timeout
+  exit 2
+elsif !success
+  exit 1
+end
