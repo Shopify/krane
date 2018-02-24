@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: web
+        app: test-partials
+    spec: <%= partial 'sleepy-pod-spec' %>
+<%= partial "pod", name: "pod1", args: ["echo", "log from pod1"] %>
+<%= partial "independent-configmap", data: "renderer test" %>
+<%= partial "pod", name: "pod2", args: ["echo", "log from pod2"] %>
