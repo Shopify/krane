@@ -122,6 +122,92 @@ All templates must be YAML formatted. You can also use ERB. The following local 
 
 You can add additional variables using the `--bindings=BINDINGS` option. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size` in your templates.
 
+#### Using partials
+
+`kubernetes-deploy` supports composing templates from so called partials in order to reduce duplication in Kubernetes YAML files. Given a template directory `DIR`, partials are searched for in `DIR/partials`and in 'DIR/../partials', in that order. They can be embedded in other ERB templates using the helper method `partial`. For example, let's assume an application needs a number of different CronJob resources, one could place a template called `cron` in one of those directories and then use it in the main deployment.yaml.erb like so:
+
+```yaml
+<%= partial "cron", name: "cleanup",   schedule: "0 0 * * *", args: %w(cleanup),    cpu: "100m", memory: "100Mi" %>
+<%= partial "cron", name: "send-mail", schedule: "0 0 * * *", args: %w(send-mails), cpu: "200m", memory: "256Mi" %>
+```
+
+Inside a partial, parameters can be accessed as normal variables, or via a hash called `locals`. Thus, the `cron` template could like this:
+
+```yaml
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cron-<%= name %>
+spec:
+  schedule: <%= schedule %>
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: cron-<%= name %>
+            image: ...
+            args: <%= args %>
+            resources:
+              requests:
+                cpu: "<%= cpu %>"
+                memory: <%= memory %>
+          restartPolicy: OnFailure
+```
+
+Both `.yaml.erb` and `.yml.erb` file extensions are supported. Templates must refer to the bare filename (e.g. use `partial: 'cron'` to reference `cron.yaml.erb`).
+
+##### Limitations when using partials
+
+Partials can be included almost everywhere in ERB templates, with one notable exception: you cannot use a partial to define a subset of fields. For example, given a partial `p` defining two fields 'a' and 'b',
+
+```yaml
+a: 1
+b: 2
+```
+
+you cannot do this:
+
+```yaml
+x: yz
+<%= partial 'p' %>
+```
+
+hoping to get
+
+```yaml
+x: yz
+a: 1
+b: 2
+```
+
+but you can do:
+
+```yaml
+x:
+  <%= partial 'p' %>
+```
+
+or even
+
+```yaml
+x: <%= partial 'p' %>
+```
+
+which both will result in
+
+```yaml
+x:
+  a: 1
+  b: 2
+```
+
+This is a limitation of the current implementation.
+
 
 ### Customizing behaviour with annotations
 - `kubernetes-deploy.shopify.io/timeout-override`: Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours.
@@ -138,7 +224,6 @@ before the deployment is considered successful.
   that use the `RollingUpdate` strategy.
   - Percent (e.g. 90%): The deploy is successful when the number of new pods that are ready is equal to
   `spec.replicas` * Percent.
-
 
 ### Running tasks at the beginning of a deploy
 

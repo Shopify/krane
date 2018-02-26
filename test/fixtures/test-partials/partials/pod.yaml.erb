@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: <%= name %>
+spec:
+  restartPolicy: <%= partial "restart-policy" %>
+  activeDeadlineSeconds: 60
+  containers:
+  - name: <%= name %>
+    image: busybox
+    args: <%= args %>
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-for-<%= name %>
+data:
+  supports_partials: "<%= supports_partials %>"

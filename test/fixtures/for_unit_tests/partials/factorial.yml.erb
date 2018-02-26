@@ -1,0 +1,7 @@
+value: <%= n %>
+<% if locals[:n] > 1 -%>
+step:
+  <%= partial 'factorial', n: n-1, r: r*n -%>
+<% else -%>
+result: <%= r %>
+<% end -%>

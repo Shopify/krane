@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 require 'open3'
-require 'securerandom'
-require 'erb'
 require 'yaml'
 require 'shellwords'
 require 'tempfile'
@@ -36,6 +34,7 @@ require 'kubernetes-deploy/resource_watcher'
 require 'kubernetes-deploy/kubectl'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
+require 'kubernetes-deploy/renderer'
 
 module KubernetesDeploy
   class DeployTask
@@ -98,9 +97,12 @@ module KubernetesDeploy
       @template_dir = File.expand_path(template_dir)
       @logger = logger
       @kubectl = kubectl_instance
-      @bindings = bindings
-      # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
-      @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
+      @renderer = KubernetesDeploy::Renderer.new(
+        current_sha: @current_sha,
+        template_dir: @template_dir,
+        logger: @logger,
+        bindings: bindings,
+      )
     end
 
     def run(verify_result: true, allow_protected_ns: false, prune: true)
@@ -167,13 +169,6 @@ module KubernetesDeploy
       success
     end
 
-    def template_variables
-      {
-        'current_sha' => @current_sha,
-        'deployment_id' => @id,
-      }.merge(@bindings)
-    end
-
     private
 
     # Inspect the file referenced in the kubectl stderr
@@ -234,7 +229,7 @@ module KubernetesDeploy
 
     def split_templates(filename)
       file_content = File.read(File.join(@template_dir, filename))
-      rendered_content = render_template(filename, file_content)
+      rendered_content = @renderer.render_template(filename, file_content)
       YAML.load_stream(rendered_content) do |doc|
         yield doc unless doc.blank?
       end
@@ -269,20 +264,6 @@ module KubernetesDeploy
 
     def indent_four(str)
       "    " + str.gsub("\n", "\n    ")
-    end
-
-    def render_template(filename, raw_template)
-      return raw_template unless File.extname(filename) == ".erb"
-
-      erb_template = ERB.new(raw_template)
-      erb_binding = binding
-      template_variables.each do |var_name, value|
-        erb_binding.local_variable_set(var_name, value)
-      end
-      erb_template.result(erb_binding)
-    rescue NameError => e
-      @logger.summary.add_paragraph("Error from renderer:\n  #{e.message.tr("\n", ' ')}")
-      raise FatalDeploymentError, "Template '#{filename}' cannot be rendered"
     end
 
     def validate_configuration(allow_protected_ns:, prune:)
