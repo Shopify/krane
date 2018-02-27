@@ -1,6 +1,11 @@
 ### 0.16.0
-
 **Important:** This release changes the officially supported Kubernetes versions to v1.7 through v1.9. Other versions may continue to work, but we are no longer running our test suite against them.
+
+*Features*
+- Support partials to reduce duplication in yaml files ([#207](https://github.com/Shopify/kubernetes-deploy/pull/207))
+
+*Bug Fixes*
+- Handle podless deamon sets properly ([#242](https://github.com/Shopify/kubernetes-deploy/pull/242))
 
 ### 0.15.2
 *Enhancements*
