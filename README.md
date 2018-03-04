@@ -50,6 +50,9 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * [Prerequisites](#prerequisites-1)
 * [Usage](#usage-2)
 
+**KUBERNETES-RENDER**
+* [Usage](#usage-3)
+
 **DEVELOPMENT**
 * [Setup](#setup)
 * [Running the test suite locally](#running-the-test-suite-locally)
@@ -352,6 +355,28 @@ Based on this specification `kubernetes-run` will create a new pod with the entr
 * `--template=TEMPLATE`:  Specifies the name of the PodTemplate to use (default is `task-runner-template` if this option is not set).
 * `--env-vars=ENV_VARS`: Accepts a comma separated list of environment variables to be added to the pod template. For example, `--env-vars="ENV=VAL,ENV2=VAL2"` will make `ENV` and `ENV2` available to the container.
 
+
+# kubernetes-render
+
+`kubernetes-render` is a tool to render ERB templates as `kubernetes-deploy` would.
+
+## Usage
+
+`kubernetes-render <options>`
+
+*Environment variables:*
+
+- `$REVISION` **(required)**: the SHA of the commit you are deploying. Will be exposed to your ERB templates as `current_sha`.
+- `$KUBECONFIG`  **(required)**: points to one or multiple valid kubeconfig files that include the context you want to deploy to. File names are separated by colon for Linux and Mac, and semi-colon for Windows.
+- `$ENVIRONMENT`: used to set the deploy directory to `config/deploy/$ENVIRONMENT`. You can use the `--template-dir=DIR` option instead if you prefer (**one or the other is required**).
+
+
+*Options:*
+
+Refer to `kubernetes-render --help` for the authoritative set of options.
+
+- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`.
+- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size`.
 
 
 
