@@ -113,7 +113,11 @@ module KubernetesDeploy
         assert_match Regexp.new("Result: FAILURE"), logs, "'Result: FAILURE' not found in the following logs:\n#{logs}"
       end
     end
-    alias_method :assert_restart_failure, :assert_deploy_failure
+
+    def assert_restart_failure(result)
+      success, _ = result
+      assert_deploy_failure(success)
+    end
 
     def assert_deploy_success(result)
       if ENV["PRINT_LOGS"]
@@ -126,7 +130,11 @@ module KubernetesDeploy
         assert_match Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}"
       end
     end
-    alias_method :assert_restart_success, :assert_deploy_success
+
+    def assert_restart_success(result)
+      success, _ = result
+      assert_deploy_success(success)
+    end
 
     def assert_logs_match(regexp, times = nil)
       logging_assertion do |logs|

@@ -100,6 +100,14 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       in_order: true)
   end
 
+  def test_restart_error_nil_when_not_timeout
+    restart = build_restart_task
+    success, error = restart.perform(["web"])
+
+    assert_equal success, false
+    refute_equal error, :timeout
+  end
+
   def test_restart_one_not_existing_deployment
     assert deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"])
 
@@ -174,7 +182,10 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(success)
 
     restart = build_restart_task
-    assert_restart_failure(restart.perform(%w(web)))
+    status, error = restart.perform(%w(web))
+
+    assert_equal false, status
+    assert_equal :timeout, error
     assert_logs_match_all([
       "Triggered `web` restart",
       "Deployment/web rollout timed out",

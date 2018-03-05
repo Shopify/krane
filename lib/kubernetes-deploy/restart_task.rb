@@ -28,6 +28,7 @@ module KubernetesDeploy
 
     def perform(deployments_names = nil)
       start = Time.now.utc
+      error = nil
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
@@ -43,9 +44,12 @@ module KubernetesDeploy
       resources = build_watchables(deployments, start)
       ResourceWatcher.new(resources, logger: @logger, operation_name: "restart").run
       success = resources.all?(&:deploy_succeeded?)
+      error = :timeout if !success && resources.any?(&:deploy_timed_out?)
+      [success, error]
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message)
       success = false
+      [success, error]
     ensure
       @logger.print_summary(success)
       status = success ? "success" : "failed"

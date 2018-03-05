@@ -134,7 +134,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_fails_fast
-    refute deploy_dir(fixture_path("invalid"))
+    success, _ = deploy_dir(fixture_path("invalid"))
+    refute success
     assert_logs_match_all([
       /Template 'yaml-error.yml' cannot be parsed/,
       /datapoint1: value1:/
@@ -203,8 +204,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_dynamic_erb_collection_works
-    assert_deploy_success(deploy_raw_fixtures("collection-with-erb",
-      bindings: { binding_test_a: 'foo', binding_test_b: 'bar' }))
+    success, _ = deploy_raw_fixtures("collection-with-erb",
+      bindings: { binding_test_a: 'foo', binding_test_b: 'bar' })
+
+    assert_deploy_success success
 
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
     assert_equal 3, deployments.size
@@ -376,18 +379,28 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_deployment_with_progress_times_out_for_short_duration
     # The deployment adds a short progressDeadlineSeconds and attepts to deploy a container
     # which sleeps and cannot fulfill the readiness probe causing it to timeout
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
+    result, error = deploy_fixtures_with_error("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 10
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
     assert_deploy_failure(result)
+    assert_equal error, :timeout
 
     assert_logs_match_all([
       'Deployment/undying: TIMED OUT (progress deadline: 10s)',
       'Timeout reason: ProgressDeadlineExceeded'
     ])
+  end
+
+  def test_failed_deployment_error_nil_when_not_timeout
+    result, error = deploy_fixtures_with_error("invalid", subset: ["cannot_run.yml"]) do |fixtures|
+      container = fixtures["cannot_run.yml"]["Deployment"].first["spec"]["template"]["spec"]["containers"].first
+      container["image"] = "some-invalid-image:badtag"
+    end
+    assert_deploy_failure(result)
+    assert_equal error, nil
   end
 
   def test_wait_false_ignores_non_priority_resource_failures

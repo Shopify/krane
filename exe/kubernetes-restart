@@ -17,5 +17,10 @@ context = ARGV[1]
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
 
 restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: context, logger: logger)
-success = restart.perform(raw_deployments)
-exit 1 unless success
+success, error = restart.perform(raw_deployments)
+
+if error == :timeout
+  exit 2
+elsif !success
+  exit 1
+end

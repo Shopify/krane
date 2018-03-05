@@ -107,7 +107,7 @@ module KubernetesDeploy
 
     def run(verify_result: true, allow_protected_ns: false, prune: true)
       start = Time.now.utc
-      err = nil
+      error = nil
       @logger.reset
 
       @logger.phase_heading("Initializing deploy")
@@ -150,7 +150,7 @@ module KubernetesDeploy
         deploy_resources(resources, prune: prune, verify: true)
         ::StatsD.measure('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
         success = resources.all?(&:deploy_succeeded?)
-        err = :timeout if !success && resource.any?(&:deploy_timed_out?)
+        error = :timeout if !success && resources.any?(&:deploy_timed_out?)
       else
         deploy_resources(resources, prune: prune, verify: false)
         @logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
@@ -161,14 +161,15 @@ module KubernetesDeploy
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
         success = true
       end
+      [success, error]
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message)
       success = false
+      [success, error]
     ensure
       @logger.print_summary(success)
       status = success ? "success" : "failed"
       ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:#{status}")
-      [success, err]
     end
 
     private
