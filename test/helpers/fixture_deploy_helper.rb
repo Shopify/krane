@@ -26,8 +26,8 @@ module FixtureDeployHelper
   #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end
-  def deploy_fixtures(set, subset: nil, **args) # extra args are passed through to deploy_dir_without_profiling
-    success, _ = deploy_fixtures_with_error(set, subset: subset, **args)
+  def deploy_fixtures(set, subset: nil, **args, &block) # extra args are passed through to deploy_dir_without_profiling
+    success, _ = deploy_fixtures_with_error(set, subset: subset, **args, &block)
     success
   end
 
