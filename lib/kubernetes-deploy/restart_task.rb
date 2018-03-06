@@ -55,6 +55,7 @@ module KubernetesDeploy
       status = success ? "success" : "failed"
       tags = %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
       ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags)
+      [success, error]
     end
 
     private

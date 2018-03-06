@@ -143,7 +143,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_in_partial_prints_helpful_error
-    refute deploy_raw_fixtures("invalid-partials")
+    success, _ = deploy_raw_fixtures("invalid-partials")
+
+    refute success
     assert_logs_match_all([
       "Result: FAILURE",
       %r{Template '.*/partials/invalid.yml.erb' cannot be rendered \(included from: include-invalid-partial.yml.erb\)},
@@ -162,7 +164,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_missing_nested_partial_prints_helpful_error
-    refute deploy_raw_fixtures("missing-partials")
+    success, _ = deploy_raw_fixtures("missing-partials")
+
+    refute success
     assert_logs_match_all([
       "Result: FAILURE",
       %r{Could not find partial 'missing' in any of.*fixtures/missing-partials/partials:.*/fixtures/partials},
@@ -400,7 +404,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       container["image"] = "some-invalid-image:badtag"
     end
     assert_deploy_failure(result)
-    assert_equal error, nil
+    refute_equal error, :timeout
   end
 
   def test_wait_false_ignores_non_priority_resource_failures
@@ -818,7 +822,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_partials
-    result = deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' })
+    result, _ = deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' })
     assert_deploy_success(result)
     assert_logs_match_all([
       "log from pod1",
