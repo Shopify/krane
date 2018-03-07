@@ -27,6 +27,7 @@ module KubernetesDeploy
       MSG
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
+    NO_ROLLOUT_VERIFICATION_ANNOTATION = 'kubernetes-deploy.shopify.io/no-rollout-verification'
 
     class << self
       def build(namespace:, context:, definition:, logger:, statsd_tags:)
@@ -133,6 +134,10 @@ module KubernetesDeploy
         @success_assumption_warning_shown = true
       end
       true
+    end
+
+    def skip_rollout_verification?
+      true if deploy_started? && @definition.dig('metadata', 'annotations', NO_ROLLOUT_VERIFICATION_ANNOTATION).present?
     end
 
     def exists?
@@ -371,7 +376,9 @@ module KubernetesDeploy
     end
 
     def statsd_tags
-      status = if deploy_failed?
+      status = if skip_rollout_verification?
+        "ignored"
+      elsif deploy_failed?
         "failure"
       elsif deploy_timed_out?
         "timeout"

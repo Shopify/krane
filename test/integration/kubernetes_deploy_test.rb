@@ -430,6 +430,21 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
+  def test_deployment_timeout_can_be_ignored
+    # The deployment adds a short progressDeadlineSeconds and attepts to deploy a container
+    # which sleeps and cannot fulfill the readiness probe causing it to timeout
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
+      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+      deployment['spec']['progressDeadlineSeconds'] = 10
+      annotation_key = KubernetesDeploy::KubernetesResource::NO_ROLLOUT_VERIFICATION_ANNOTATION
+      deployment["metadata"]["annotations"] = { annotation_key => '1' }
+      container = deployment['spec']['template']['spec']['containers'].first
+      container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
+    end
+
+    assert_deploy_success(result)
+  end
+
   def test_wait_false_ignores_non_priority_resource_failures
     # web depends on configmap so will not succeed deployed alone
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], wait: false))

@@ -149,6 +149,10 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       status == "timeout" && hits_complete?
     end
 
+    def skip_rollout_verification?
+      status == "ingnored"
+    end
+
     def timeout
       hits_to_complete
     end
