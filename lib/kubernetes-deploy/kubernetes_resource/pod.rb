@@ -17,42 +17,34 @@ module KubernetesDeploy
       super(namespace: namespace, context: context, definition: definition, logger: logger)
     end
 
-    def sync(pod_data = nil)
-      if pod_data.blank?
-        raw_json, _err, st = kubectl.run("get", type, @name, "-a", "--output=json")
-        pod_data = JSON.parse(raw_json) if st.success?
-        raise_predates_deploy_error if pod_data.present? && unmanaged? && !deploy_started?
-      end
+    def sync(mediator)
+      super
+      raise_predates_deploy_error if exists? && unmanaged? && !deploy_started?
 
-      if pod_data.present?
-        @found = true
-        @phase = @status = pod_data["status"]["phase"]
-        @status += " (Reason: #{pod_data['status']['reason']})" if pod_data['status']['reason'].present?
-        @ready = ready?(pod_data["status"])
-        update_container_statuses(pod_data["status"])
+      if exists?
+        update_container_statuses(@instance_data["status"])
       else # reset
-        @found = @ready = false
-        @status = @phase = 'Unknown'
         @containers.each(&:reset_status)
       end
 
-      display_logs if unmanaged? && deploy_succeeded?
+      display_logs(mediator) if unmanaged? && deploy_succeeded?
+    end
+
+    def status
+      return phase if @instance_data.dig('status', 'reason').blank?
+      "#{phase} (Reason: #{@instance_data['status']['reason']})"
     end
 
     def deploy_succeeded?
       if unmanaged?
-        @phase == "Succeeded"
+        phase == "Succeeded"
       else
-        @phase == "Running" && @ready
+        phase == "Running" && ready?
       end
     end
 
     def deploy_failed?
       failure_message.present?
-    end
-
-    def exists?
-      @found
     end
 
     def timeout_message
@@ -63,8 +55,8 @@ module KubernetesDeploy
     end
 
     def failure_message
-      if @phase == FAILED_PHASE_NAME
-        phase_problem = "Pod status: #{@status}. "
+      if phase == FAILED_PHASE_NAME
+        phase_problem = "Pod status: #{status}. "
       end
 
       doomed_containers = @containers.select(&:doomed?)
@@ -87,7 +79,7 @@ module KubernetesDeploy
     #   "app" => ["array of log lines", "received from app container"],
     #   "nginx" => ["array of log lines", "received from nginx container"]
     # }
-    def fetch_logs
+    def fetch_logs(kubectl)
       return {} unless exists? && @containers.present?
       @containers.each_with_object({}) do |container, container_logs|
         cmd = [
@@ -104,13 +96,18 @@ module KubernetesDeploy
 
     private
 
+    def phase
+      @instance_data.dig("status", "phase") || "Unknown"
+    end
+
     def readiness_probe_failure?
-      return false if @ready || unmanaged?
-      return false if @phase != "Running"
+      return false if ready? || unmanaged?
+      return false if phase != "Running"
       @containers.any?(&:readiness_fail_reason)
     end
 
-    def ready?(status_data)
+    def ready?
+      return false unless status_data = @instance_data["status"]
       ready_condition = status_data.fetch("conditions", []).find { |condition| condition["type"] == "Ready" }
       ready_condition.present? && (ready_condition["status"] == "True")
     end
@@ -131,9 +128,9 @@ module KubernetesDeploy
       @parent.blank?
     end
 
-    def display_logs
+    def display_logs(mediator)
       return if @already_displayed
-      container_logs = fetch_logs
+      container_logs = fetch_logs(mediator.kubectl)
 
       if container_logs.empty?
         @logger.warn("No logs found for pod #{id}")

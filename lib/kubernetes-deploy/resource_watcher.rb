@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class ResourceWatcher
-    def initialize(resources, logger:, deploy_started_at: Time.now.utc, operation_name: "deploy")
+    def initialize(resources:, sync_mediator:, logger:, deploy_started_at: Time.now.utc, operation_name: "deploy")
       unless resources.is_a?(Enumerable)
         raise ArgumentError, <<~MSG
           ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
@@ -9,6 +9,7 @@ module KubernetesDeploy
       end
       @resources = resources
       @logger = logger
+      @sync_mediator = sync_mediator
       @deploy_started_at = deploy_started_at
       @operation_name = operation_name
     end
@@ -23,7 +24,7 @@ module KubernetesDeploy
         end
         delay_sync_until = Time.now.utc + delay_sync # don't pummel the API if the sync is fast
 
-        KubernetesDeploy::Concurrency.split_across_threads(remainder, &:sync)
+        @sync_mediator.sync(remainder)
         new_successes, remainder = remainder.partition(&:deploy_succeeded?)
         new_failures, remainder = remainder.partition(&:deploy_failed?)
         new_timeouts, remainder = remainder.partition(&:deploy_timed_out?)
@@ -93,7 +94,7 @@ module KubernetesDeploy
             "failed to #{@operation_name} #{failures.length} #{'resource'.pluralize(failures.length)}"
           )
         end
-        KubernetesDeploy::Concurrency.split_across_threads(failed_resources, &:sync_debug_info)
+        KubernetesDeploy::Concurrency.split_across_threads(failed_resources) { |r| r.sync_debug_info(@sync_mediator) }
         failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
       end
     end

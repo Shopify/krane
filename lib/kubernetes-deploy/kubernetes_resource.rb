@@ -2,7 +2,6 @@
 require 'json'
 require 'open3'
 require 'shellwords'
-require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class KubernetesResource
@@ -28,20 +27,34 @@ module KubernetesDeploy
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
 
-    def self.build(namespace:, context:, definition:, logger:)
-      opts = { namespace: namespace, context: context, definition: definition, logger: logger }
-      if KubernetesDeploy.const_defined?(definition["kind"])
-        klass = KubernetesDeploy.const_get(definition["kind"])
-        klass.new(**opts)
-      else
-        inst = new(**opts)
-        inst.type = definition["kind"]
-        inst
+    class << self
+      def build(namespace:, context:, definition:, logger:)
+        opts = { namespace: namespace, context: context, definition: definition, logger: logger }
+        if KubernetesDeploy.const_defined?(definition["kind"])
+          klass = KubernetesDeploy.const_get(definition["kind"])
+          klass.new(**opts)
+        else
+          inst = new(**opts)
+          inst.type = definition["kind"]
+          inst
+        end
       end
-    end
 
-    def self.timeout
-      self::TIMEOUT
+      def timeout
+        self::TIMEOUT
+      end
+
+      def inherited(child_class)
+        KubernetesResource.descendants.add(child_class)
+      end
+
+      def descendants
+        @descendants ||= Set.new
+      end
+
+      def kind
+        name.demodulize
+      end
     end
 
     def timeout
@@ -76,7 +89,7 @@ module KubernetesDeploy
       @validation_errors = []
     end
 
-    def validate_definition
+    def validate_definition(kubectl)
       @validation_errors = []
       validate_timeout_annotation
 
@@ -103,7 +116,8 @@ module KubernetesDeploy
       file.path
     end
 
-    def sync
+    def sync(mediator)
+      @instance_data = mediator.get_instance(type, name)
     end
 
     def deploy_failed?
@@ -123,15 +137,15 @@ module KubernetesDeploy
     end
 
     def exists?
-      nil
+      @instance_data.present?
     end
 
     def status
-      @status ||= "Unknown"
+      exists? ? "Exists" : "Unknown"
     end
 
     def type
-      @type || self.class.name.demodulize
+      @type || self.class.kind
     end
 
     def deploy_timed_out?
@@ -144,15 +158,13 @@ module KubernetesDeploy
       :apply
     end
 
-    def sync_debug_info
-      @events = fetch_events unless ENV[DISABLE_FETCHING_EVENT_INFO]
-      @logs = fetch_logs if supports_logs? && !ENV[DISABLE_FETCHING_EVENT_INFO]
+    def sync_debug_info(mediator)
+      @events = fetch_events(mediator.kubectl) unless ENV[DISABLE_FETCHING_EVENT_INFO]
+      @logs = fetch_logs(mediator.kubectl) if supports_logs? && !ENV[DISABLE_FETCHING_EVENT_INFO]
       @debug_info_synced = true
     end
 
     def debug_message
-      sync_debug_info unless @debug_info_synced
-
       helpful_info = []
       if deploy_failed?
         helpful_info << ColorizedString.new("#{id}: FAILED").red
@@ -210,7 +222,7 @@ module KubernetesDeploy
     #     "Pulled: Successfully pulled image "hello-world:latest" (1 events)"
     #   ]
     # }
-    def fetch_events
+    def fetch_events(kubectl)
       return {} unless exists?
       out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}")
       return {} unless st.success?
@@ -230,12 +242,7 @@ module KubernetesDeploy
 
     def pretty_status
       padding = " " * [50 - id.length, 1].max
-      msg = exists? ? status : "not found"
-      "#{id}#{padding}#{msg}"
-    end
-
-    def kubectl
-      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
+      "#{id}#{padding}#{status}"
     end
 
     def report_status_to_statsd(watch_time)

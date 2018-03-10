@@ -427,10 +427,9 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
 
 1. Create a the file for your type in `lib/kubernetes-deploy/kubernetes_resource/`
 2. Create a new class that inherits from `KubernetesResource`. Minimally, it should implement the following methods:
-    * `sync` -- gather/update the data you'll need to determine `deploy_succeeded?` and `deploy_failed?`
+    * `sync` -- Gather the data you'll need to determine `deploy_succeeded?` and `deploy_failed?`. The superclass's implementation fetches the corresponding resource, parses it and stores it in `@instance_data`. You can define your own implementation if you need something else.
     * `deploy_succeeded?`
     * `deploy_failed?`
-    * `exists?`
 3. Adjust the `TIMEOUT` constant to an appropriate value for this type.
 4. Add the a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/kubernetes-deploy/blob/master/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
 5. Add tests for any edge cases you foresee.

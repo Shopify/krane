@@ -24,6 +24,7 @@ module KubernetesDeploy
       @context = context
       @namespace = namespace
       @logger = logger
+      @sync_mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
     end
 
     def perform(*args)
@@ -48,7 +49,8 @@ module KubernetesDeploy
 
       @logger.phase_heading("Waiting for rollout")
       resources = build_watchables(deployments, start)
-      ResourceWatcher.new(resources, logger: @logger, operation_name: "restart").run
+      ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
+        logger: @logger, operation_name: "restart").run
       failed_resources = resources.reject(&:deploy_succeeded?)
       success = failed_resources.empty?
       if !success && failed_resources.all?(&:deploy_timed_out?)

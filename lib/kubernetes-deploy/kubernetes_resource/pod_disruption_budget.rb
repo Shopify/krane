@@ -3,10 +3,8 @@ module KubernetesDeploy
   class PodDisruptionBudget < KubernetesResource
     TIMEOUT = 10.seconds
 
-    def sync
-      _, _err, st = kubectl.run("get", type, @name)
-      @found = st.success?
-      @status = @found ? "Available" : "Unknown"
+    def status
+      exists? ? "Available" : "Unknown"
     end
 
     def deploy_succeeded?
@@ -20,10 +18,6 @@ module KubernetesDeploy
 
     def timeout_message
       UNUSUAL_FAILURE_MESSAGE
-    end
-
-    def exists?
-      @found
     end
   end
 end

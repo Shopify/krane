@@ -6,6 +6,9 @@ metadata:
   uid: foobar
   annotations:
     "deployment.kubernetes.io/revision": "1"
+  labels:
+    name: web
+    app: hello-cloud
 spec:
   replicas: 3
   progressDeadlineSeconds: 10
@@ -39,6 +42,9 @@ apiVersion: apps/v1beta1
 kind: ReplicaSet
 metadata:
   name: web-1
+  labels:
+    name: web
+    app: hello-cloud
   annotations:
     "deployment.kubernetes.io/revision": "1"
   ownerReferences:

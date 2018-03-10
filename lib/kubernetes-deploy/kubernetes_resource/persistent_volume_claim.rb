@@ -3,22 +3,16 @@ module KubernetesDeploy
   class PersistentVolumeClaim < KubernetesResource
     TIMEOUT = 5.minutes
 
-    def sync
-      out, _err, st = kubectl.run("get", type, @name, "--output=jsonpath={.status.phase}")
-      @found = st.success?
-      @status = out if @found
+    def status
+      exists? ? @instance_data["status"]["phase"] : "Unknown"
     end
 
     def deploy_succeeded?
-      @status == "Bound"
+      status == "Bound"
     end
 
     def deploy_failed?
-      @status == "Lost"
-    end
-
-    def exists?
-      @found
+      status == "Lost"
     end
   end
 end

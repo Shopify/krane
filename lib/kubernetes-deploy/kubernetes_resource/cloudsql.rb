@@ -3,12 +3,14 @@ module KubernetesDeploy
   class Cloudsql < KubernetesResource
     TIMEOUT = 10.minutes
 
-    def sync
-      _, _err, st = kubectl.run("get", type, @name)
-      @found = st.success?
-      @deployment_exists = cloudsql_proxy_deployment_exists?
-      @service_exists = mysql_service_exists?
-      @status = if @deployment_exists && @service_exists
+    def sync(mediator)
+      super
+      @proxy_deployment = mediator.get_instance(Deployment.kind, "cloudsql-#{cloudsql_resource_uuid}")
+      @proxy_service = mediator.get_instance(Service.kind, "cloudsql-#{@name}")
+    end
+
+    def status
+      if proxy_deployment_ready? && proxy_service_ready?
         "Provisioned"
       else
         "Unknown"
@@ -16,15 +18,11 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      @service_exists && @deployment_exists
+      proxy_deployment_ready? && proxy_service_ready?
     end
 
     def deploy_failed?
       false
-    end
-
-    def exists?
-      @found
     end
 
     def deploy_method
@@ -33,45 +31,21 @@ module KubernetesDeploy
 
     private
 
-    def cloudsql_proxy_deployment_exists?
-      deployment, _err, st = kubectl.run("get", "deployments", "cloudsql-#{cloudsql_resource_uuid}", "-o=json")
-
-      if st.success?
-        parsed = JSON.parse(deployment)
-
-        if parsed.fetch("status", {}).fetch("availableReplicas", -1) == parsed.fetch("status", {}).fetch("replicas", 0)
-          # all cloudsql-proxy pods are running
-          return true
-        end
-      end
-
-      false
+    def proxy_deployment_ready?
+      return false unless status = @proxy_deployment["status"]
+      # all cloudsql-proxy pods are running
+      status.fetch("availableReplicas", -1) == status.fetch("replicas", 0)
     end
 
-    def mysql_service_exists?
-      service, _err, st = kubectl.run("get", "services", "cloudsql-#{@name}", "-o=json")
-
-      if st.success?
-        parsed = JSON.parse(service)
-
-        if parsed.dig("spec", "clusterIP").present?
-          # the service has an assigned cluster IP and is therefore functioning
-          return true
-        end
-      end
-
-      false
+    def proxy_service_ready?
+      return false unless @proxy_service.present?
+      # the service has an assigned cluster IP and is therefore functioning
+      @proxy_service.dig("spec", "clusterIP").present?
     end
 
     def cloudsql_resource_uuid
-      return @cloudsql_resource_uuid if defined?(@cloudsql_resource_uuid) && @cloudsql_resource_uuid
-
-      cloudsql, _err, st = kubectl.run("get", "cloudsqls", @name, "-o=json")
-      if st.success?
-        parsed = JSON.parse(cloudsql)
-
-        @cloudsql_resource_uuid = parsed.dig("metadata", "uid")
-      end
+      return unless @instance_data
+      @instance_data.dig("metadata", "uid")
     end
   end
 end
