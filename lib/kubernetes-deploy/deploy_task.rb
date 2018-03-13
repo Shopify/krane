@@ -27,6 +27,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   bucket
   stateful_set
   cron_job
+  mail
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -46,6 +47,7 @@ module KubernetesDeploy
       Redis
       Memcached
       Bugsnag
+      Mail
       ConfigMap
       PersistentVolumeClaim
       ServiceAccount
