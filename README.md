@@ -58,6 +58,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 
 **CONTRIBUTING**
 * [Contributing](#contributing)
+* [Code of Conduct](#code-of-conduct)
 * [License](#license)
 
 
@@ -434,7 +435,8 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
 4. Add the a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/kubernetes-deploy/blob/master/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
 5. Add tests for any edge cases you foresee.
 
-
+### Code of Conduct
+Everyone is expected to follow our [Code of Conduct](https://github.com/Shopify/kubernetes-deploy/blob/master/CODE_OF_CONDUCT.md).
 
 
 # License
