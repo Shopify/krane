@@ -1,3 +1,8 @@
+### 0.17.0
+*Enhancements*
+
+- Add the `--cascade` when we force replace a resource. ([#250](https://github.com/Shopify/kubernetes-deploy/pull/250))
+
 ### 0.16.0
 **Important:** This release changes the officially supported Kubernetes versions to v1.7 through v1.9. Other versions may continue to work, but we are no longer running our test suite against them.
 
