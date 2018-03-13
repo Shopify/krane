@@ -338,7 +338,8 @@ module KubernetesDeploy
         when :replace
           _, _, replace_st = kubectl.run("replace", "-f", r.file_path, log_failure: false)
         when :replace_force
-          _, _, replace_st = kubectl.run("replace", "--force", "-f", r.file_path, log_failure: false)
+          _, _, replace_st = kubectl.run("replace", "--force", "--cascade", "-f", r.file_path,
+            log_failure: false)
         else
           # Fail Fast! This is a programmer mistake.
           raise ArgumentError, "Unexpected deploy method! (#{r.deploy_method.inspect})"
