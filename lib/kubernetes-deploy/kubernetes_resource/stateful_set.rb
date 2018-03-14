@@ -6,6 +6,7 @@ module KubernetesDeploy
     ONDELETE = 'OnDelete'
     attr_reader :pods
 
+    SYNC_DEPENDENCIES = %w(Pod)
     def sync(mediator)
       super
       @pods = exists? ? find_pods(mediator) : []

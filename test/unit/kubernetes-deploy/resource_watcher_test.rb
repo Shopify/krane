@@ -112,6 +112,10 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       @hits += 1
     end
 
+    def type
+      "MockResource"
+    end
+
     def deploy_succeeded?
       status == "success" && hits_complete?
     end

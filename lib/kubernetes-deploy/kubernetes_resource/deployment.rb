@@ -6,6 +6,7 @@ module KubernetesDeploy
     REQUIRED_ROLLOUT_TYPES = %w(maxUnavailable full none).freeze
     DEFAULT_REQUIRED_ROLLOUT = 'full'
 
+    SYNC_DEPENDENCIES = %w(Pod ReplicaSet)
     def sync(mediator)
       super
       @latest_rs = exists? ? find_latest_rs(mediator) : nil

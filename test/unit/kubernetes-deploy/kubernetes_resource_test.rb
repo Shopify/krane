@@ -227,14 +227,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   private
 
   def kubectl
-    @kubectl ||= begin
-      obj = KubernetesDeploy::Kubectl.new(namespace: 'test', context: 'minikube', logger: logger,
-        log_failure_by_default: false)
-      def obj.run(*)
-        ["", "", SystemExit.new(0)]
-      end
-      obj
-    end
+    @kubectl ||= build_runless_kubectl
   end
 
   def with_env(key, value)

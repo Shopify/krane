@@ -44,14 +44,6 @@ module KubernetesDeploy
         self::TIMEOUT
       end
 
-      def inherited(child_class)
-        KubernetesResource.descendants.add(child_class)
-      end
-
-      def descendants
-        @descendants ||= Set.new
-      end
-
       def kind
         name.demodulize
       end
@@ -87,6 +79,7 @@ module KubernetesDeploy
       @definition = definition
       @statsd_report_done = false
       @validation_errors = []
+      @instance_data = {}
     end
 
     def validate_definition(kubectl)

@@ -4,6 +4,7 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     UUID_ANNOTATION = "redis.stable.shopify.io/owner_uid"
 
+    SYNC_DEPENDENCIES = %w(Deployment Service)
     def sync(mediator)
       super
       @deployment = mediator.get_instance(Deployment.kind, "redis-#{redis_resource_uuid}")

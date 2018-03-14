@@ -393,8 +393,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
   end
 
   def kubectl
-    @kubectl ||= KubernetesDeploy::Kubectl.new(namespace: 'test', context: 'minikube', logger: logger,
-      log_failure_by_default: false)
+    @kubectl ||= build_runless_kubectl
   end
 
   def fixtures

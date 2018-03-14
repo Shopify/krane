@@ -197,6 +197,15 @@ module KubernetesDeploy
         .returns(response)
     end
 
+    def build_runless_kubectl
+      obj = KubernetesDeploy::Kubectl.new(namespace: 'test', context: KubeclientHelper::MINIKUBE_CONTEXT,
+        logger: logger, log_failure_by_default: false)
+      def obj.run(*)
+        ["", "", SystemExit.new(0)]
+      end
+      obj
+    end
+
     private
 
     def logging_assertion

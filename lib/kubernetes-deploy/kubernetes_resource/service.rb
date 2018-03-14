@@ -3,6 +3,7 @@ module KubernetesDeploy
   class Service < KubernetesResource
     TIMEOUT = 7.minutes
 
+    SYNC_DEPENDENCIES = %w(Pod Deployment)
     def sync(mediator)
       super
       @related_deployments = mediator.get_all(Deployment.kind, selector)
@@ -12,7 +13,7 @@ module KubernetesDeploy
     def status
       if !requires_endpoints?
         "Doesn't require any endpoints"
-      elsif @related_pods.length > 0
+      elsif @related_pods.present?
         "Selects at least 1 pod"
       else
         "Selects 0 pods"

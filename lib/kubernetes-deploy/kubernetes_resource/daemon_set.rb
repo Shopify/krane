@@ -5,6 +5,7 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     attr_reader :pods
 
+    SYNC_DEPENDENCIES = %w(Pod)
     def sync(mediator)
       super
       @pods = exists? ? find_pods(mediator) : []
@@ -46,7 +47,7 @@ module KubernetesDeploy
 
     def rollout_data
       return { "currentNumberScheduled" => 0 } unless exists?
-      rollout_data = @instance_data["status"]
+      @instance_data["status"]
         .slice("currentNumberScheduled", "desiredNumberScheduled", "numberReady")
     end
 

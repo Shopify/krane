@@ -3,6 +3,7 @@ module KubernetesDeploy
   class Cloudsql < KubernetesResource
     TIMEOUT = 10.minutes
 
+    SYNC_DEPENDENCIES = %w(Deployment Service)
     def sync(mediator)
       super
       @proxy_deployment = mediator.get_instance(Deployment.kind, "cloudsql-#{cloudsql_resource_uuid}")

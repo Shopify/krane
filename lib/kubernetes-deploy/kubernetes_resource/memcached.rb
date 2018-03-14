@@ -4,6 +4,7 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     CONFIGMAP_NAME = "memcached-url"
 
+    SYNC_DEPENDENCIES = %w(Deployment Service ConfigMap)
     def sync(mediator)
       super
       @deployment = mediator.get_instance(Deployment.kind, "memcached-#{@name}")

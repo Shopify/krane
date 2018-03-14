@@ -12,6 +12,7 @@ module KubernetesDeploy
       super(namespace: namespace, context: context, definition: definition, logger: logger)
     end
 
+    SYNC_DEPENDENCIES = %w(Pod)
     def sync(mediator)
       super
       @pods = exists? ? find_pods(mediator) : []
