@@ -8,6 +8,15 @@ module KubernetesDeploy
       super("Namespace `#{name}` not found in context `#{context}`")
     end
   end
+
+  class DeploymentTimeoutError < StandardError
+    attr_reader :resources
+    def initialize(resources)
+      @resources = resources
+      super("Resources #{@resources.map(&:name).join(',')} failed due to timeouts.")
+    end
+  end
+
   module Errors
     extend self
     def server_version_warning(server_version)

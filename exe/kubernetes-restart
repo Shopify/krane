@@ -19,8 +19,5 @@ logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
 restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: context, logger: logger)
 success, error = restart.perform(raw_deployments)
 
-if error == :timeout
-  exit 2
-elsif !success
-  exit 1
-end
+exit 2 if error.is_a?(KubernetesDeploy::DeploymentTimeoutError)
+exit 1 unless success

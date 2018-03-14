@@ -390,7 +390,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
     assert_deploy_failure(result)
-    assert_equal error, :timeout
+    assert_kind_of KubernetesDeploy::DeploymentTimeoutError, error
 
     assert_logs_match_all([
       'Deployment/undying: TIMED OUT (progress deadline: 10s)',
@@ -404,7 +404,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       container["image"] = "some-invalid-image:badtag"
     end
     assert_deploy_failure(result)
-    refute_equal error, :timeout
+    assert_nil error
   end
 
   def test_wait_false_ignores_non_priority_resource_failures

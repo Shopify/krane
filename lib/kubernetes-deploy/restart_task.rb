@@ -44,7 +44,9 @@ module KubernetesDeploy
       resources = build_watchables(deployments, start)
       ResourceWatcher.new(resources, logger: @logger, operation_name: "restart").run
       success = resources.all?(&:deploy_succeeded?)
-      error = :timeout if !success && resources.any?(&:deploy_timed_out?)
+      if !success && (timedout_resources = resources.select(&:deploy_timed_out?).presence)
+        error = DeploymentTimeoutError.new(timedout_resources)
+      end
       [success, error]
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message)
@@ -55,7 +57,6 @@ module KubernetesDeploy
       status = success ? "success" : "failed"
       tags = %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
       ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags)
-      [success, error]
     end
 
     private

@@ -105,7 +105,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     success, error = restart.perform(["web"])
 
     assert_equal success, false
-    refute_equal error, :timeout
+    assert_nil error
   end
 
   def test_restart_one_not_existing_deployment
@@ -185,7 +185,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     status, error = restart.perform(%w(web))
 
     assert_equal false, status
-    assert_equal :timeout, error
+    assert_kind_of KubernetesDeploy::DeploymentTimeoutError, error
     assert_logs_match_all([
       "Triggered `web` restart",
       "Deployment/web rollout timed out",
