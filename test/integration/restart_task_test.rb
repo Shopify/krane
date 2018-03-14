@@ -105,7 +105,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     success, error = restart.perform(["web"])
 
     assert_equal success, false
-    assert_nil error
+    refute_kind_of KubernetesDeploy::DeploymentTimeoutError, error
   end
 
   def test_restart_one_not_existing_deployment

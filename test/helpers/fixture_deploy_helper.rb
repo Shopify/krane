@@ -27,8 +27,7 @@ module FixtureDeployHelper
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end
   def deploy_fixtures(set, subset: nil, **args, &block) # extra args are passed through to deploy_dir_without_profiling
-    success, error = deploy_fixtures_with_error(set, subset: subset, **args, &block)
-    assert_nil error
+    success, _ = deploy_fixtures_with_error(set, subset: subset, **args, &block)
     success
   end
 
