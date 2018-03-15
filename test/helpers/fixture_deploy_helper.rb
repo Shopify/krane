@@ -26,24 +26,18 @@ module FixtureDeployHelper
   #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end
-  def deploy_fixtures(set, subset: nil, **args, &block) # extra args are passed through to deploy_dir_without_profiling
-    success, _ = deploy_fixtures_with_error(set, subset: subset, **args, &block)
-    success
-  end
-
-  def deploy_fixtures_with_error(set, subset: nil, **args)
+  def deploy_fixtures(set, subset: nil, **args) # extra args are passed through to deploy_dir_without_profiling
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
 
     yield fixtures if block_given?
 
     success = false
-    error = nil
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
-      success, error = deploy_dir(target_dir, args)
+      success = deploy_dir(target_dir, args)
     end
-    [success, error]
+    success
   end
 
   def deploy_raw_fixtures(set, wait: true, bindings: {})

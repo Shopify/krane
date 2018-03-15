@@ -134,8 +134,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_fails_fast
-    success, _ = deploy_dir(fixture_path("invalid"))
-    refute success
+    refute deploy_dir(fixture_path("invalid"))
     assert_logs_match_all([
       /Template 'yaml-error.yml' cannot be parsed/,
       /datapoint1: value1:/
@@ -143,9 +142,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_in_partial_prints_helpful_error
-    success, _ = deploy_raw_fixtures("invalid-partials")
-
-    refute success
+    refute deploy_raw_fixtures("invalid-partials")
     assert_logs_match_all([
       "Result: FAILURE",
       %r{Template '.*/partials/invalid.yml.erb' cannot be rendered \(included from: include-invalid-partial.yml.erb\)},
@@ -164,9 +161,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_missing_nested_partial_prints_helpful_error
-    success, _ = deploy_raw_fixtures("missing-partials")
-
-    refute success
+    refute deploy_raw_fixtures("missing-partials")
     assert_logs_match_all([
       "Result: FAILURE",
       %r{Could not find partial 'missing' in any of.*fixtures/missing-partials/partials:.*/fixtures/partials},
@@ -208,10 +203,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_dynamic_erb_collection_works
-    success, _ = deploy_raw_fixtures("collection-with-erb",
+    assert_deploy_success deploy_raw_fixtures("collection-with-erb",
       bindings: { binding_test_a: 'foo', binding_test_b: 'bar' })
-
-    assert_deploy_success success
 
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
     assert_equal 3, deployments.size
@@ -383,28 +376,18 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_deployment_with_progress_times_out_for_short_duration
     # The deployment adds a short progressDeadlineSeconds and attepts to deploy a container
     # which sleeps and cannot fulfill the readiness probe causing it to timeout
-    result, error = deploy_fixtures_with_error("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 10
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
-    assert_deploy_failure(result)
-    assert_kind_of KubernetesDeploy::DeploymentTimeoutError, error
+    assert_deploy_failure(result, :timeout)
 
     assert_logs_match_all([
       'Deployment/undying: TIMED OUT (progress deadline: 10s)',
       'Timeout reason: ProgressDeadlineExceeded'
     ])
-  end
-
-  def test_failed_deployment_error_nil_when_not_timeout
-    result, error = deploy_fixtures_with_error("invalid", subset: ["cannot_run.yml"]) do |fixtures|
-      container = fixtures["cannot_run.yml"]["Deployment"].first["spec"]["template"]["spec"]["containers"].first
-      container["image"] = "some-invalid-image:badtag"
-    end
-    assert_deploy_failure(result)
-    assert_nil error
   end
 
   def test_wait_false_ignores_non_priority_resource_failures
@@ -782,7 +765,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_resource_quotas_are_deployed_first
     result = deploy_fixtures("resource-quota")
-    assert_deploy_failure(result)
+    assert_deploy_failure(result, :timeout)
     assert_logs_match_all([
       "Predeploying priority resources",
       "Deploying ResourceQuota/resource-quotas (timeout: 30s)",
@@ -822,8 +805,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_partials
-    result, _ = deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' })
-    assert_deploy_success(result)
+    assert_deploy_success deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' })
     assert_logs_match_all([
       "log from pod1",
       "log from pod2",

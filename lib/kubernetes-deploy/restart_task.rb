@@ -26,9 +26,15 @@ module KubernetesDeploy
       @logger = logger
     end
 
-    def perform(deployments_names = nil)
+    def perform(*args)
+      perform!(*args)
+      true
+    rescue FatalDeploymentError
+      false
+    end
+
+    def perform!(deployments_names = nil)
       start = Time.now.utc
-      error = nil
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
@@ -43,15 +49,21 @@ module KubernetesDeploy
       @logger.phase_heading("Waiting for rollout")
       resources = build_watchables(deployments, start)
       ResourceWatcher.new(resources, logger: @logger, operation_name: "restart").run
-      success = resources.all?(&:deploy_succeeded?)
-      if !success && (timedout_resources = resources.select(&:deploy_timed_out?).presence)
-        error = DeploymentTimeoutError.new(timedout_resources)
+      failed_resources = resources.reject(&:deploy_succeeded?)
+      success = failed_resources.empty?
+      if !success && failed_resources.all?(&:deploy_timed_out?)
+        raise DeploymentTimeoutError, failed_resources
       end
-      [success, error]
-    rescue FatalDeploymentError => error
-      @logger.summary.add_action(error.message)
+      raise FatalDeploymentError unless success
+      success
+    rescue DeploymentTimeoutError
       success = false
-      [success, error]
+      @logger.summary.add_action(error.message)
+      raise
+    rescue FatalDeploymentError => error
+      @logger.summary.add_action(error.message) if error.message.present?
+      success = false
+      raise
     ensure
       @logger.print_summary(success)
       status = success ? "success" : "failed"

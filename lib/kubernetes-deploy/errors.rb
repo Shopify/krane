@@ -9,7 +9,7 @@ module KubernetesDeploy
     end
   end
 
-  class DeploymentTimeoutError < StandardError
+  class DeploymentTimeoutError < FatalDeploymentError
     attr_reader :resources
     def initialize(resources)
       @resources = resources
