@@ -56,7 +56,7 @@ module KubernetesDeploy
       end
       raise FatalDeploymentError unless success
       success
-    rescue DeploymentTimeoutError
+    rescue DeploymentTimeoutError => error
       success = false
       @logger.summary.add_action(error.message)
       raise

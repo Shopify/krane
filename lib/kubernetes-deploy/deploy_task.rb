@@ -180,7 +180,7 @@ module KubernetesDeploy
       raise
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message) if error.message.present?
-      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:#{failed}")
+      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:failed")
       success = false
       raise
     ensure
