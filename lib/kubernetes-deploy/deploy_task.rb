@@ -244,24 +244,25 @@ module KubernetesDeploy
         end
       end
       resources
+    rescue InvalidTemplateError => e
+      debug_msg = paragraph_for_invalid_templates(e.message, filenames: [e.filename], content: e.content)
+      @logger.summary.add_paragraph(debug_msg)
+      raise FatalDeploymentError, "Failed to render and parse template"
     end
 
     def split_templates(filename)
       file_content = File.read(File.join(@template_dir, filename))
       rendered_content = @renderer.render_template(filename, file_content)
       YAML.load_stream(rendered_content) do |doc|
-        yield doc unless doc.blank?
+        next if doc.blank?
+        unless doc.is_a?(Hash)
+          raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
+            filename: filename, content: doc)
+        end
+        yield doc
       end
     rescue Psych::SyntaxError => e
-      debug_msg = <<~INFO
-        Error message: #{e}
-
-        Template content:
-        ---
-      INFO
-      debug_msg += rendered_content
-      @logger.summary.add_paragraph(debug_msg)
-      raise FatalDeploymentError, "Template '#{filename}' cannot be parsed"
+      raise InvalidTemplateError.new(e, filename: filename, content: rendered_content)
     end
 
     def record_invalid_template(err, file_paths:, original_filenames: nil)
@@ -271,14 +272,18 @@ module KubernetesDeploy
         contents << File.read(file_path)
         template_names << File.basename(file_path) unless original_filenames
       end.join("\n")
-      template_list = template_names.compact.join(", ").presence || "See error message"
-
-      debug_msg = ColorizedString.new("Invalid #{'template'.pluralize(template_names.length)}: #{template_list}\n").red
-      debug_msg += "> Error from kubectl:\n#{indent_four(err)}"
-      if file_content.present?
-        debug_msg += "\n> Rendered template content:\n#{indent_four(file_content)}"
-      end
+      debug_msg = paragraph_for_invalid_templates(err, filenames: template_names, content: file_content)
       @logger.summary.add_paragraph(debug_msg)
+    end
+
+    def paragraph_for_invalid_templates(err, filenames:, content:)
+      template_list = filenames.compact.join(", ").presence || "See error message"
+      debug_msg = ColorizedString.new("Invalid #{'template'.pluralize(filenames.length)}: #{template_list}\n").red
+      debug_msg += "> Error message:\n#{indent_four(err)}"
+      if content.present?
+        debug_msg += "\n> Template content:\n#{indent_four(content)}"
+      end
+      debug_msg
     end
 
     def indent_four(str)

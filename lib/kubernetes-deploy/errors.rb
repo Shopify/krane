@@ -3,6 +3,15 @@ module KubernetesDeploy
   class FatalDeploymentError < StandardError; end
   class KubectlError < StandardError; end
 
+  class InvalidTemplateError < FatalDeploymentError
+    attr_reader :filename, :content
+    def initialize(err, filename:, content: nil)
+      @filename = filename
+      @content = content
+      super(err)
+    end
+  end
+
   class NamespaceNotFoundError < FatalDeploymentError
     def initialize(name, context)
       super("Namespace `#{name}` not found in context `#{context}`")

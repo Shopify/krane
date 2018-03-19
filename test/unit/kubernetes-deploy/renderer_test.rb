@@ -43,20 +43,23 @@ class RendererTest < KubernetesDeploy::TestCase
   end
 
   def test_invalid_partial_raises
-    err = assert_raises(KubernetesDeploy::FatalDeploymentError) do
+    err = assert_raises(KubernetesDeploy::InvalidTemplateError) do
       render('broken-partial-inclusion.yaml.erb')
     end
-    included_from = "included from: broken-partial-inclusion.yaml.erb -> broken.yml.erb"
-    assert_match %r{Template '.*/partials/simple.yaml.erb' cannot be rendered \(#{included_from}\)}, err.message
+    included_from = "partial included from: broken-partial-inclusion.yaml.erb -> broken.yml.erb"
+    assert_match "undefined local variable or method `foo'", err.message
+    assert_match %r{.*/partials/simple.yaml.erb \(#{included_from}\)}, err.filename
+    assert_equal "c: c3\nd: d4\nfoo: <%= foo %>\n", err.content
   end
 
   def test_non_existent_partial_raises
-    err = assert_raises(KubernetesDeploy::FatalDeploymentError) do
+    err = assert_raises(KubernetesDeploy::InvalidTemplateError) do
       render('including-non-existent-partial.yaml.erb')
     end
     base = "Could not find partial 'foobarbaz' in any of"
-    included_from = "included from: including-non-existent-partial.yaml.erb"
-    assert_match %r{#{base} .*/fixtures/for_unit_tests/partials:.*/fixtures/partials \(#{included_from}\)}, err.message
+    assert_match %r{#{base} .*/fixtures/for_unit_tests/partials:.*/fixtures/partials}, err.message
+    assert_equal "foobarbaz (partial included from: including-non-existent-partial.yaml.erb)", err.filename
+    assert_nil err.content
   end
 
   def test_nesting_fields
