@@ -44,6 +44,11 @@ module FixtureDeployHelper
     success = false
     if subset
       Dir.mktmpdir("fixture_dir") do |target_dir|
+        partials_dir = File.join(fixture_path(set), 'partials')
+        if File.directory?(partials_dir)
+          FileUtils.copy_entry(partials_dir, File.join(target_dir, 'partials'))
+        end
+
         subset.each do |file|
           FileUtils.copy_entry(File.join(fixture_path(set), file), File.join(target_dir, file))
         end

@@ -141,7 +141,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_fails_fast
-    refute deploy_dir(fixture_path("invalid"))
+    assert_deploy_failure(deploy_dir(fixture_path("invalid")))
     assert_logs_match_all([
       "Failed to render and parse template",
       "Invalid template: yaml-error.yml",
@@ -152,7 +152,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_in_partial_prints_helpful_error
-    refute deploy_raw_fixtures("invalid-partials")
+    assert_deploy_failure(deploy_raw_fixtures("invalid-partials"))
     included_from = "partial included from: include-invalid-partial.yml.erb"
     assert_logs_match_all([
       "Result: FAILURE",
@@ -172,18 +172,32 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match("Error message:", 1)
   end
 
-  def test_missing_nested_partial_prints_helpful_error
-    refute deploy_raw_fixtures("missing-partials")
-    included_from = "partial included from: include-missing-partials.yml.erb -> nest-missing-partial.yml.erb"
+  def test_missing_partial_correctly_identifies_invalid_template
+    assert_deploy_failure(deploy_raw_fixtures("missing-partials", subset: ["parent-with-missing-child.yml.erb"]))
+
     assert_logs_match_all([
       "Result: FAILURE",
       "Failed to render and parse template",
-      "Invalid template: missing (#{included_from})",
+      "Invalid template: parent-with-missing-child.yml.erb", # the thing with the invalid `partial` call in it
       "> Error message:",
-      %r{Could not find partial 'missing' in any of.*fixtures/missing-partials/partials:.*/fixtures/partials}
+      %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
+      "> Template content:",
+      "<%= partial 'does-not-exist' %>",
     ], in_order: true)
+  end
 
-    refute_logs_match("Template content")
+  def test_missing_nested_partial_correctly_identifies_invalid_template_and_its_parents
+    assert_deploy_failure(deploy_raw_fixtures("missing-partials", subset: ["parent-with-missing-grandchild.yml.erb"]))
+
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Failed to render and parse template",
+      "Invalid template: parent-with-missing-child (partial included from: parent-with-missing-grandchild.yml.erb)",
+      "> Error message:",
+      %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
+      "> Template content:",
+      "<%= partial 'does-not-exist' %>"
+    ], in_order: true)
   end
 
   def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast_and_prints_template

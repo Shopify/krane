@@ -58,8 +58,8 @@ class RendererTest < KubernetesDeploy::TestCase
     end
     base = "Could not find partial 'foobarbaz' in any of"
     assert_match %r{#{base} .*/fixtures/for_unit_tests/partials:.*/fixtures/partials}, err.message
-    assert_equal "foobarbaz (partial included from: including-non-existent-partial.yaml.erb)", err.filename
-    assert_nil err.content
+    assert_equal "including-non-existent-partial.yaml.erb", err.filename
+    assert_equal "---\n<%= partial 'foobarbaz' %>\n", err.content
   end
 
   def test_nesting_fields

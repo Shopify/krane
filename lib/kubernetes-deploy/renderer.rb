@@ -8,13 +8,13 @@ require 'json'
 module KubernetesDeploy
   class Renderer
     class InvalidPartialError < InvalidTemplateError
-      attr_reader :parents, :content, :filename
+      attr_accessor :parents, :content, :filename
       def initialize(msg, parents: [], content: nil, filename:)
         @parents = parents
         super(msg, content: content, filename: filename)
       end
     end
-    class PartialNotFound < InvalidPartialError; end
+    class PartialNotFound < InvalidTemplateError; end
 
     def initialize(current_sha:, template_dir:, logger:, bindings: {})
       @current_sha = current_sha
@@ -35,9 +35,9 @@ module KubernetesDeploy
 
       ERB.new(raw_template, nil, '-').result(erb_binding)
     rescue InvalidPartialError => err
-      all_parents = err.parents.dup.unshift(filename)
-      raise InvalidTemplateError.new(err.message,
-        filename: "#{err.filename} (partial included from: #{all_parents.join(' -> ')})", content: err.content)
+      err.parents = err.parents.dup.unshift(filename)
+      err.filename = "#{err.filename} (partial included from: #{err.parents.join(' -> ')})"
+      raise err
     rescue StandardError => err
       raise InvalidTemplateError.new(err.message, filename: filename, content: raw_template)
     end
@@ -60,10 +60,12 @@ module KubernetesDeploy
       # Note that JSON is a subset of YAML.
       JSON.generate(docs.children.first.to_ruby)
     rescue PartialNotFound => err
-      raise InvalidPartialError.new(err.message, filename: err.filename)
+      # get the filename from the first parent, not the missing partial itself
+      raise err if err.filename == partial
+      raise InvalidPartialError.new(err.message, filename: partial, content: expanded_template || template)
     rescue InvalidPartialError => err
-      parents = err.parents.dup.unshift(File.basename(partial_path))
-      raise InvalidPartialError.new(err.message, parents: parents, filename: err.filename, content: err.content)
+      err.parents = err.parents.dup.unshift(File.basename(partial_path))
+      raise err
     rescue StandardError => err
       raise InvalidPartialError.new(err.message, filename: partial_path, content: expanded_template || template)
     end
