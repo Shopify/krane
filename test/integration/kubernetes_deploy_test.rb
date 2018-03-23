@@ -382,7 +382,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
-    assert_deploy_failure(result, :timeout)
+    assert_deploy_failure(result, :timed_out)
 
     assert_logs_match_all([
       'Deployment/undying: TIMED OUT (progress deadline: 10s)',
@@ -765,7 +765,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_resource_quotas_are_deployed_first
     result = deploy_fixtures("resource-quota")
-    assert_deploy_failure(result, :timeout)
+    assert_deploy_failure(result, :timed_out)
     assert_logs_match_all([
       "Predeploying priority resources",
       "Deploying ResourceQuota/resource-quotas (timeout: 30s)",

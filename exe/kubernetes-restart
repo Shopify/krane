@@ -20,7 +20,7 @@ restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: conte
 begin
   restart.perform!(raw_deployments)
 rescue KubernetesDeploy::DeploymentTimeoutError
-  exit 124
+  exit 70
 rescue KubernetesDeploy::FatalDeploymentError
   exit 1
 end

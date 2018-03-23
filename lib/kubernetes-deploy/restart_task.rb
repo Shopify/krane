@@ -55,23 +55,25 @@ module KubernetesDeploy
         raise DeploymentTimeoutError, failed_resources
       end
       raise FatalDeploymentError unless success
-      success
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
+      @logger.print_summary(:success)
     rescue DeploymentTimeoutError => error
-      success = false
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('timeout', deployments))
       @logger.summary.add_action(error.message)
+      @logger.print_summary(:timed_out)
       raise
     rescue FatalDeploymentError => error
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('failure', deployments))
       @logger.summary.add_action(error.message) if error.message.present?
-      success = false
+      @logger.print_summary(:failure)
       raise
-    ensure
-      @logger.print_summary(success)
-      status = success ? "success" : "failed"
-      tags = %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
-      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags)
     end
 
     private
+
+    def tags(status, deployments)
+      %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
+    end
 
     def identify_target_deployments(deployment_names)
       if deployment_names.nil?

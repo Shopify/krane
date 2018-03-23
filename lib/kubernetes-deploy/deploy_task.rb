@@ -169,22 +169,19 @@ module KubernetesDeploy
           This means the desired changes were communicated to Kubernetes, but the deploy did not make sure they actually succeeded.
         MSG
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
-        success = true
       end
       ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:success")
-      success
+      @logger.print_summary(:success)
     rescue DeploymentTimeoutError => error
-      success = false
       @logger.summary.add_action(error.message)
+      @logger.print_summary(:timed_out)
       ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:timeout")
       raise
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message) if error.message.present?
+      @logger.print_summary(:failure)
       ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:failed")
-      success = false
       raise
-    ensure
-      @logger.print_summary(success)
     end
 
     private

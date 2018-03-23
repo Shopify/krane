@@ -179,7 +179,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Triggered `web` restart",
       "Deployment/web rollout timed out",
-      "Result: FAILURE",
+      "Result: TIMED OUT",
       "Failed to restart 1 resource",
       "Deployment/web: TIMED OUT",
       "The following containers have not passed their readiness probes",
