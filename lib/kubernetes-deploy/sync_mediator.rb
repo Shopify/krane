@@ -10,20 +10,17 @@ module KubernetesDeploy
 
     def get_instance(kind, resource_name)
       if @cache.key?(kind)
-        @cache[kind].find { |r| r.dig("metadata", "name") == resource_name } || {}
+        @cache.dig(kind, resource_name) || {}
       else
         request_instance(kind, resource_name)
       end
     end
 
     def get_all(kind, selector = nil)
-      unless @cache.key?(kind)
-        list = request_list(kind)
-        @cache[kind] = list
-      end
-      return @cache[kind] unless selector
+      fetch_by_kind!(kind) unless @cache.key?(kind)
+      return @cache[kind].values unless selector
 
-      @cache[kind].select do |r|
+      @cache[kind].values.select do |r|
         labels = r.dig("metadata", "labels") || {}
         labels >= selector
       end
@@ -35,10 +32,8 @@ module KubernetesDeploy
         c::SYNC_DEPENDENCIES if c.const_defined?('SYNC_DEPENDENCIES')
       end
       kinds = (resources.map(&:type) + dependencies).compact.uniq
-      kinds.each do |kind|
-        list = request_list(kind)
-        @cache[kind] = list
-      end
+      kinds.each { |kind| fetch_by_kind!(kind) }
+
       KubernetesDeploy::Concurrency.split_across_threads(resources) do |r|
         r.sync(self)
       end
@@ -51,7 +46,7 @@ module KubernetesDeploy
     private
 
     def clear_cache
-      @cache = Hash.new { |hash, key| hash[key] = [] }
+      @cache = Hash.new { |hash, key| hash[key] = {} }
     end
 
     def request_instance(kind, iname)
@@ -59,9 +54,13 @@ module KubernetesDeploy
       st.success? ? JSON.parse(raw_json) : {}
     end
 
-    def request_list(kind)
+    def fetch_by_kind!(kind)
       raw_json, _, st = kubectl.run("get", kind, "-a", "--output=json")
-      st.success? ? JSON.parse(raw_json)["items"] : []
+      @cache[kind] = if st.success?
+        JSON.parse(raw_json)["items"].each_with_object({}) { |r, hash| hash[r.dig("metadata", "name")] = r }
+      else
+        {}
+      end
     end
   end
 end
