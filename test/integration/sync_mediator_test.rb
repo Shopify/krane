@@ -2,8 +2,7 @@
 require 'test_helper'
 
 class SyncMediatorTest < KubernetesDeploy::IntegrationTest
-
-  def test_get_instance_without_cache
+  def test_get_instance
     mediator = bulid_mediator
     name = 'hello-cloud-configmap-data'
     r = mediator.get_instance('ConfigMap', name)
@@ -13,13 +12,15 @@ class SyncMediatorTest < KubernetesDeploy::IntegrationTest
   def test_get_instance_uses_cache
     mediator = bulid_mediator
     name = 'hello-cloud-configmap-data'
-    r = mediator.get_instance('ConfigMap', name)
-    assert_equal name, r.dig('metadata', 'name')
-    r = mediator.get_instance('ConfigMap', name)
-    assert_equal name, r.dig('metadata', 'name')
+    mediator.get_all('ConfigMap')
+
+    mediator.stub :request_instance, {} do
+      r = mediator.get_instance('ConfigMap', name)
+      assert_equal name, r.dig('metadata', 'name')
+    end
   end
 
-  def test_get_all_without_cache
+  def test_get_all
     mediator = bulid_mediator
     name = 'hello-cloud-configmap-data'
     maps = mediator.get_all('ConfigMap')
@@ -33,16 +34,13 @@ class SyncMediatorTest < KubernetesDeploy::IntegrationTest
     assert_equal name, maps.first.dig('metadata', 'name')
   end
 
-  def test_sync
+  def test_sync_calls_resource_sync
     mediator = bulid_mediator
-    name = 'hello-cloud-configmap-data'
-    r = mediator.get_instance('ConfigMap', name)
-    config_map = KubernetesDeploy::ConfigMap.new(namespace: nil, context: nil, definition: r, logger: logger)
+    config_map = Minitest::Mock.new
+    config_map.expect :sync, true, [mediator]
+    config_map.expect :type, "ConfigMap"
     mediator.sync([config_map])
-    refute "What the heck am I supposed to be testing here"
-  end
-
-  def test_sync_with_dependencies
+    config_map.verify
   end
 
   private
