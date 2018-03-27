@@ -254,13 +254,18 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      /Invalid templates: (Deployment|Service)-web.*\.yml, (Deployment|Service)-web.*\.yml/,
-      "Error from server (Invalid): error when creating",
-      "Error from server (Invalid): error when creating", # once for deployment, once for svc
+      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+      /Invalid template: Deployment-web.*\.yml/,
+      "> Error message:",
+      /Error from server \(Invalid\): error when creating.*Deployment\.?\w* "web" is invalid/,
       "> Template content:",
-      /(name|targetPort): http_test_is_really_long_and_invalid_chars/, # error in svc template
-      /(name|targetPort): http_test_is_really_long_and_invalid_chars/ # error in deployment template
+      "              name: http_test_is_really_long_and_invalid_chars",
+
+      /Invalid template: Service-web.*\.yml/,
+      "> Error message:",
+      /Error from server \(Invalid\): error when creating.*Service "web" is invalid/,
+      "> Template content:",
+      "        targetPort: http_test_is_really_long_and_invalid_chars"
     ], in_order: true)
   end
 
@@ -272,9 +277,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      "Invalid templates: See error message",
-      "> Error message:",
+      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+      "Unidentified error(s):",
       '    The Service "web" is invalid:',
       'spec.ports[0].targetPort: Invalid value: "http_test_is_really_long_and_invalid_chars"'
     ], in_order: true)
@@ -616,9 +620,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      "Invalid templates: See error message",
-      "> Error message:",
+      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+      "Unidentified error(s):",
       /The Deployment "web" is invalid.*`selector` does not match template `labels`/
     ], in_order: true)
   end
