@@ -13,7 +13,7 @@ module KubernetesDeploy
     attr_reader :resources
     def initialize(resources)
       @resources = resources
-      super("Resources #{@resources.map(&:name).join(',')} failed due to timeouts.")
+      super("Timed out waiting for #{@resources.count} resources.")
     end
   end
 

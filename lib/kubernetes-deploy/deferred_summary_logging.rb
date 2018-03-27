@@ -39,6 +39,9 @@ module KubernetesDeploy
       if status == :success
         heading("Result: ", status_string, :green)
         level = :info
+      elsif status == :timed_out
+        heading("Result: ", status_string, :yellow)
+        level = :warn
       else
         heading("Result: ", status_string, :red)
         level = :fatal
