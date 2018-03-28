@@ -94,7 +94,9 @@ module KubernetesDeploy
             "failed to #{@operation_name} #{failures.length} #{'resource'.pluralize(failures.length)}"
           )
         end
-        KubernetesDeploy::Concurrency.split_across_threads(failed_resources) { |r| r.sync_debug_info(@sync_mediator) }
+        KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
+          r.sync_debug_info(@sync_mediator.kubectl)
+        end
         failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
       end
     end

@@ -206,7 +206,9 @@ module KubernetesDeploy
         failed_resources = matching_resources.reject(&:deploy_succeeded?)
         fail_count = failed_resources.length
         if fail_count > 0
-          KubernetesDeploy::Concurrency.split_across_threads(failed_resources) { |r| r.sync_debug_info(@sync_mediator) }
+          KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
+            r.sync_debug_info(@sync_mediator.kubectl)
+          end
           failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
           raise FatalDeploymentError, "Failed to deploy #{fail_count} priority #{'resource'.pluralize(fail_count)}"
         end

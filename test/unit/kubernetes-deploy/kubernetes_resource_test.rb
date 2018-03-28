@@ -220,10 +220,6 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     end
   end
 
-  def test_no_subclass_makes_api_calls_in_result_check_methods
-    skip "todo"
-  end
-
   private
 
   def kubectl
