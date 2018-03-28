@@ -1,7 +1,13 @@
+### 0.17.1
+*Features*
+- kubernetes-restart and kubernetes-deploy use exit code 70 when a
+deploy fails due to one or more resources failing to deploy in time.
+([#244](https://github.com/Shopify/kubernetes-deploy/pull/244))
+
 ### 0.17.0
 *Enhancements*
 
-- Add the `--cascade` when we force replace a resource. ([#250](https://github.com/Shopify/kubernetes-deploy/pull/250))
+- Add the `--cascade` flag when we force replace a resource. ([#250](https://github.com/Shopify/kubernetes-deploy/pull/250))
 
 ### 0.16.0
 **Important:** This release changes the officially supported Kubernetes versions to v1.7 through v1.9. Other versions may continue to work, but we are no longer running our test suite against them.

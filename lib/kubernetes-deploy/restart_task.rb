@@ -26,7 +26,14 @@ module KubernetesDeploy
       @logger = logger
     end
 
-    def perform(deployments_names = nil)
+    def perform(*args)
+      perform!(*args)
+      true
+    rescue FatalDeploymentError
+      false
+    end
+
+    def perform!(deployments_names = nil)
       start = Time.now.utc
       @logger.reset
 
@@ -42,18 +49,31 @@ module KubernetesDeploy
       @logger.phase_heading("Waiting for rollout")
       resources = build_watchables(deployments, start)
       ResourceWatcher.new(resources, logger: @logger, operation_name: "restart").run
-      success = resources.all?(&:deploy_succeeded?)
-    rescue FatalDeploymentError => error
+      failed_resources = resources.reject(&:deploy_succeeded?)
+      success = failed_resources.empty?
+      if !success && failed_resources.all?(&:deploy_timed_out?)
+        raise DeploymentTimeoutError, failed_resources
+      end
+      raise FatalDeploymentError unless success
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
+      @logger.print_summary(:success)
+    rescue DeploymentTimeoutError => error
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('timeout', deployments))
       @logger.summary.add_action(error.message)
-      success = false
-    ensure
-      @logger.print_summary(success)
-      status = success ? "success" : "failed"
-      tags = %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
-      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags)
+      @logger.print_summary(:timed_out)
+      raise
+    rescue FatalDeploymentError => error
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('failure', deployments))
+      @logger.summary.add_action(error.message) if error.message.present?
+      @logger.print_summary(:failure)
+      raise
     end
 
     private
+
+    def tags(status, deployments)
+      %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
+    end
 
     def identify_target_deployments(deployment_names)
       if deployment_names.nil?

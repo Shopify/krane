@@ -203,8 +203,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_dynamic_erb_collection_works
-    assert_deploy_success(deploy_raw_fixtures("collection-with-erb",
-      bindings: { binding_test_a: 'foo', binding_test_b: 'bar' }))
+    assert_deploy_success deploy_raw_fixtures("collection-with-erb",
+      bindings: { binding_test_a: 'foo', binding_test_b: 'bar' })
 
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
     assert_equal 3, deployments.size
@@ -382,7 +382,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
-    assert_deploy_failure(result)
+    assert_deploy_failure(result, :timed_out)
 
     assert_logs_match_all([
       'Deployment/undying: TIMED OUT (progress deadline: 10s)',
@@ -765,7 +765,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_resource_quotas_are_deployed_first
     result = deploy_fixtures("resource-quota")
-    assert_deploy_failure(result)
+    assert_deploy_failure(result, :timed_out)
     assert_logs_match_all([
       "Predeploying priority resources",
       "Deploying ResourceQuota/resource-quotas (timeout: 30s)",
@@ -805,8 +805,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_partials
-    result = deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' })
-    assert_deploy_success(result)
+    assert_deploy_success deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' })
     assert_logs_match_all([
       "log from pod1",
       "log from pod2",

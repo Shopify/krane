@@ -42,7 +42,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
     watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
     watcher.run(delay_sync: 0.1)
-    logger.print_summary(false)
+    logger.print_summary(:failure)
 
     assert_logs_match_all([
       /web-pod failed to deploy after \d\.\ds/,

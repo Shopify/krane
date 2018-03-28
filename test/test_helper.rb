@@ -102,15 +102,17 @@ module KubernetesDeploy
       end
     end
 
-    def assert_deploy_failure(result)
+    def assert_deploy_failure(result, cause = nil)
       if ENV["PRINT_LOGS"]
         assert_equal false, result, "Deploy succeeded when it was expected to fail"
         return
       end
 
       logging_assertion do |logs|
+        cause_string = cause == :timed_out ? "TIMED OUT" : "FAILURE"
+        assert_match Regexp.new("Result: #{cause_string}"), logs,
+          "'Result: #{cause_string}' not found in the following logs:\n#{logs}"
         assert_equal false, result, "Deploy succeeded when it was expected to fail. Logs:\n#{logs}"
-        assert_match Regexp.new("Result: FAILURE"), logs, "'Result: FAILURE' not found in the following logs:\n#{logs}"
       end
     end
     alias_method :assert_restart_failure, :assert_deploy_failure

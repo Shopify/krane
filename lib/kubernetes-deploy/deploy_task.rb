@@ -105,7 +105,14 @@ module KubernetesDeploy
       )
     end
 
-    def run(verify_result: true, allow_protected_ns: false, prune: true)
+    def run(*args)
+      run!(*args)
+      true
+    rescue FatalDeploymentError
+      false
+    end
+
+    def run!(verify_result: true, allow_protected_ns: false, prune: true)
       start = Time.now.utc
       @logger.reset
 
@@ -148,7 +155,12 @@ module KubernetesDeploy
         start_normal_resource = Time.now.utc
         deploy_resources(resources, prune: prune, verify: true)
         ::StatsD.measure('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
-        success = resources.all?(&:deploy_succeeded?)
+        failed_resources = resources.reject(&:deploy_succeeded?)
+        success = failed_resources.empty?
+        if !success && failed_resources.all?(&:deploy_timed_out?)
+          raise DeploymentTimeoutError, failed_resources
+        end
+        raise FatalDeploymentError unless success
       else
         deploy_resources(resources, prune: prune, verify: false)
         @logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
@@ -157,16 +169,19 @@ module KubernetesDeploy
           This means the desired changes were communicated to Kubernetes, but the deploy did not make sure they actually succeeded.
         MSG
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
-        success = true
       end
-    rescue FatalDeploymentError => error
+      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:success")
+      @logger.print_summary(:success)
+    rescue DeploymentTimeoutError => error
       @logger.summary.add_action(error.message)
-      success = false
-    ensure
-      @logger.print_summary(success)
-      status = success ? "success" : "failed"
-      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:#{status}")
-      success
+      @logger.print_summary(:timed_out)
+      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:timeout")
+      raise
+    rescue FatalDeploymentError => error
+      @logger.summary.add_action(error.message) if error.message.present?
+      @logger.print_summary(:failure)
+      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:failed")
+      raise
     end
 
     private
