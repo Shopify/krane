@@ -11,14 +11,16 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
     @params = ['-a', '--output=json']
   end
 
-  def test_get_instance_retrieves_resources_when_cache_is_empty
+  def test_get_instance_retrieves_the_resource_and_leaves_the_cache_alone_when_cache_is_empty
     stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params, resp: @fake_cm.kubectl_response)
-    r = mediator.get_instance('FakeConfigMap', @fake_cm.name)
-    assert_equal @fake_cm.name, r.dig('metadata', 'name')
+    assert_equal @fake_cm.kubectl_response, mediator.get_instance('FakeConfigMap', @fake_cm.name)
 
+    # get_instance shouldn't populate the cache, so these new calls should make new requests and return correct results
     stub_kubectl_response('get', 'FakeConfigMap', 'does-not-exist', *@params, resp: {})
-    missing = mediator.get_instance('FakeConfigMap', 'does-not-exist')
-    assert_equal({}, missing)
+    assert_equal({}, mediator.get_instance('FakeConfigMap', 'does-not-exist'))
+
+    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm2.name, *@params, resp: @fake_cm2.kubectl_response)
+    assert_equal @fake_cm2.kubectl_response, mediator.get_instance('FakeConfigMap', @fake_cm2.name)
   end
 
   def test_get_instance_uses_cache_when_available
@@ -38,14 +40,6 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
     assert_equal @fake_cm.name, r.dig('metadata', 'name')
     missing = mediator.get_instance('FakeConfigMap', 'does-not-exist')
     assert_equal({}, missing)
-  end
-
-  def test_get_instance_does_not_populate_the_cache
-    # If we created the cache key for the type when we retrieved a single instance, retrieving other instances
-    # would think the cache for that type was warm and wrongly return no result
-    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params, resp: @fake_cm.kubectl_response, times: 2)
-    mediator.get_instance('FakeConfigMap', @fake_cm.name)
-    mediator.get_instance('FakeConfigMap', @fake_cm.name)
   end
 
   def test_get_all_populates_cache_and_returns_array_of_instance_hashes
