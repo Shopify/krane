@@ -228,12 +228,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Command failed: apply -f",
       "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      /Invalid templates: Service-web.*\.yml, Deployment-web.*\.yml/,
+      /Invalid templates: (Deployment|Service)-web.*\.yml, (Deployment|Service)-web.*\.yml/,
       "Error from server (Invalid): error when creating",
       "Error from server (Invalid): error when creating", # once for deployment, once for svc
       "> Rendered template content:",
-      "        targetPort: http_test_is_really_long_and_invalid_chars", # error in svc template
-      "              name: http_test_is_really_long_and_invalid_chars" # error in deployment template
+      /(name|targetPort): http_test_is_really_long_and_invalid_chars/, # error in svc template
+      /(name|targetPort): http_test_is_really_long_and_invalid_chars/ # error in deployment template
     ], in_order: true)
   end
 
@@ -863,25 +863,5 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(deploy_fixtures("cronjobs"))
     cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
     cronjobs.assert_cronjob_present("my-cronjob")
-  end
-
-  def test_deploy_successful_with_temp_dir_deploy_strategy
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
-      config_maps = fixtures["configmap-data.yml"]["ConfigMap"]
-      1000.times do |i|
-        new_map = {
-          "apiVersion" => "v1", "kind" => "ConfigMap",
-          "metadata" => {
-            "name" => "hello-cloud-configmap-data#{i}",
-            "labels" => { "name" => "hello-cloud-configmap-data", "app" => "hello-cloud" }
-          },
-          "data" => { "datapoint1" => "value1", "datapoint2" => "value2" }
-        }
-        config_maps << new_map
-      end
-    end
-
-    assert_deploy_success(result)
-    assert_logs_match("Using directory based kubectl apply since there are 1004 resources", 1)
   end
 end

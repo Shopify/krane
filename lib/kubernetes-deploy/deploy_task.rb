@@ -380,46 +380,35 @@ module KubernetesDeploy
     end
 
     def apply_all(resources, prune)
-      tmp_dir = Dir.mktmpdir
-      deploy_from_tmp_dir_resouce_count = 1000
       return unless resources.present?
-
-      resources_count = resources.length
       command = ["apply"]
-      if resources_count < deploy_from_tmp_dir_resouce_count
+
+      Dir.mktmpdir do |tmp_dir|
         resources.each do |r|
-          @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources_count > 1
-          command.push("-f", r.file_path)
-          r.deploy_started_at = Time.now.utc
-        end
-      else
-        @logger.info("Using directory based kubectl apply since there are #{resources_count} resources")
-        resources.each do |r|
-          @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources_count > 1
-          FileUtils.cp(r.file_path, tmp_dir)
+          @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1
+          FileUtils.symlink(r.file_path, tmp_dir)
           r.deploy_started_at = Time.now.utc
         end
         command.push("-f", tmp_dir)
-      end
 
-      if prune
-        command.push("--prune", "--all")
-        prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
-      end
+        if prune
+          command.push("--prune", "--all")
+          prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
+        end
 
-      out, err, st = kubectl.run(*command, log_failure: false)
-      if st.success?
-        log_pruning(out) if prune
-      else
-        file_paths = find_bad_files_from_kubectl_output(err)
-        warn_msg = "WARNING: Any resources not mentioned in the error below were likely created/updated. " \
-          "You may wish to roll back this deploy."
-        @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-        record_invalid_template(err, file_paths: file_paths)
-        raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
+        out, err, st = kubectl.run(*command, log_failure: false)
+
+        if st.success?
+          log_pruning(out) if prune
+        else
+          file_paths = find_bad_files_from_kubectl_output(err)
+          warn_msg = "WARNING: Any resources not mentioned in the error below were likely created/updated. " \
+            "You may wish to roll back this deploy."
+          @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
+          record_invalid_template(err, file_paths: file_paths)
+          raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
+        end
       end
-    ensure
-      FileUtils.remove_entry(tmp_dir)
     end
 
     def log_pruning(kubectl_output)
