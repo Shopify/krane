@@ -81,7 +81,18 @@ module KubernetesDeploy
       end
 
       if fail_count > 0
-        @logger.summary.add_action("failed to #{@operation_name} #{fail_count} #{'resource'.pluralize(fail_count)}")
+        timeouts, failures = failed_resources.partition(&:deploy_timed_out?)
+        if timeouts.present?
+          @logger.summary.add_action(
+            "timed out waiting for #{timeouts.length} #{'resource'.pluralize(timeouts.length)} to #{@operation_name}"
+          )
+        end
+
+        if failures.present?
+          @logger.summary.add_action(
+            "failed to #{@operation_name} #{failures.length} #{'resource'.pluralize(failures.length)}"
+          )
+        end
         KubernetesDeploy::Concurrency.split_across_threads(failed_resources, &:sync_debug_info)
         failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
       end
