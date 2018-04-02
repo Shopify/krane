@@ -3,6 +3,7 @@ require 'open3'
 require 'yaml'
 require 'shellwords'
 require 'tempfile'
+require 'fileutils'
 require 'kubernetes-deploy/kubernetes_resource'
 %w(
   cloudsql
@@ -56,7 +57,6 @@ module KubernetesDeploy
       kube-system
       kube-public
     )
-
     # Things removed from default prune whitelist at https://github.com/kubernetes/kubernetes/blob/0dff56b4d88ec7551084bf89028dbeebf569620e/pkg/kubectl/cmd/apply.go#L411:
     # core/v1/Namespace -- not namespaced
     # core/v1/PersistentVolume -- not namespaced
@@ -380,13 +380,26 @@ module KubernetesDeploy
     end
 
     def apply_all(resources, prune)
+      tmp_dir = Dir.mktmpdir
+      deploy_from_tmp_dir_resouce_count = 1000
       return unless resources.present?
 
+      resources_count = resources.length
       command = ["apply"]
-      resources.each do |r|
-        @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1
-        command.push("-f", r.file_path)
-        r.deploy_started_at = Time.now.utc
+      if resources_count < deploy_from_tmp_dir_resouce_count
+        resources.each do |r|
+          @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources_count > 1
+          command.push("-f", r.file_path)
+          r.deploy_started_at = Time.now.utc
+        end
+      else
+        @logger.info("Using directory based kubectl apply since there are #{resources_count} resources")
+        resources.each do |r|
+          @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources_count > 1
+          FileUtils.cp(r.file_path, tmp_dir)
+          r.deploy_started_at = Time.now.utc
+        end
+        command.push("-f", tmp_dir)
       end
 
       if prune
@@ -405,6 +418,8 @@ module KubernetesDeploy
         record_invalid_template(err, file_paths: file_paths)
         raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
       end
+    ensure
+      FileUtils.remove_entry(tmp_dir)
     end
 
     def log_pruning(kubectl_output)

@@ -4,6 +4,10 @@
 deploy fails due to one or more resources failing to deploy in time.
 ([#244](https://github.com/Shopify/kubernetes-deploy/pull/244))
 
+*Bug Fixes*
+- Handle deploying thousands of resources at a time, previously kubernetes-deploy would fail with
+ `Argument list too long - kubectl (Errno::E2BIG)`.
+
 ### 0.17.0
 *Enhancements*
 

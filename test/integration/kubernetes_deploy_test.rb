@@ -864,4 +864,24 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
     cronjobs.assert_cronjob_present("my-cronjob")
   end
+
+  def test_deploy_successful_with_temp_dir_deploy_strategy
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+      config_maps = fixtures["configmap-data.yml"]["ConfigMap"]
+      1000.times do |i|
+        new_map = {
+          "apiVersion" => "v1", "kind" => "ConfigMap",
+          "metadata" => {
+            "name" => "hello-cloud-configmap-data#{i}",
+            "labels" => { "name" => "hello-cloud-configmap-data", "app" => "hello-cloud" }
+          },
+          "data" => { "datapoint1" => "value1", "datapoint2" => "value2" }
+        }
+        config_maps << new_map
+      end
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match("Using directory based kubectl apply since there are 1004 resources", 1)
+  end
 end
