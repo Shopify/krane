@@ -96,6 +96,16 @@ module KubernetesDeploy
 
     private
 
+    def current_generation
+      return -2 unless exists? # different default than observed
+      @instance_data.dig('metadata', 'generation')
+    end
+
+    def observed_generation
+      return -1 unless exists? # different default than current
+      @instance_data.dig('status', 'observedGeneration')
+    end
+
     def desired_replicas
       return -1 unless exists?
       @instance_data["spec"]["replicas"].to_i
@@ -133,12 +143,12 @@ module KubernetesDeploy
         # Deployments were being updated prematurely with incorrect progress information
         # https://github.com/kubernetes/kubernetes/issues/49637
         return false unless Time.now.utc - @deploy_started_at >= progress_deadline.to_i
-      else
-        return false unless deploy_started?
       end
 
+      deploy_started? &&
+      current_generation == observed_generation &&
       progress_condition["status"] == 'False' &&
-      Time.parse(progress_condition["lastUpdateTime"]).to_i >= (@deploy_started_at - 5.seconds).to_i
+      progress_condition["reason"] == "ProgressDeadlineExceeded"
     end
 
     def find_latest_rs(mediator)

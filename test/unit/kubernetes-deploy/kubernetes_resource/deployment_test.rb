@@ -267,33 +267,36 @@ class DeploymentTest < KubernetesDeploy::TestCase
     Timecop.freeze do
       deployment_status = {
         "replicas" => 3,
+        "observedGeneration" => 2,
         "conditions" => [{
           "type" => "Progressing",
           "status" => 'False',
           "lastUpdateTime" => Time.now.utc - 10.seconds,
-          "reason" => "Failed to progress"
+          "reason" => "ProgressDeadlineExceeded"
         }]
       }
       deploy = build_synced_deployment(
         template: build_deployment_template(status: deployment_status),
         replica_sets: [build_rs_template(status: { "replica" => 1 })]
       )
-      deploy.deploy_started_at = Time.now.utc - 3.minutes
+      refute deploy.deploy_timed_out?, "Deploy not started shouldn't have timed out"
 
+      deploy.deploy_started_at = Time.now.utc - 3.minutes
       assert deploy.deploy_timed_out?
-      assert_equal "Timeout reason: Failed to progress\nLatest ReplicaSet: web-1", deploy.timeout_message.strip
+      assert_equal "Timeout reason: ProgressDeadlineExceeded\nLatest ReplicaSet: web-1", deploy.timeout_message.strip
     end
   end
 
-  def test_deploy_timed_out_based_on_progress_deadline_ignores_conditions_older_than_the_deploy
+  def test_deploy_timed_out_based_on_progress_deadline_ignores_statuses_for_older_generations
     Timecop.freeze do
       deployment_status = {
         "replicas" => 3,
+        "observedGeneration" => 1, # current generation is 2
         "conditions" => [{
           "type" => "Progressing",
           "status" => 'False',
           "lastUpdateTime" => Time.now.utc - 10.seconds,
-          "reason" => "Failed to progress"
+          "reason" => "ProgressDeadlineExceeded"
         }]
       }
       deploy = build_synced_deployment(
@@ -301,14 +304,8 @@ class DeploymentTest < KubernetesDeploy::TestCase
         replica_sets: [build_rs_template(status: { "replica" => 1 })]
       )
 
-      deploy.deploy_started_at = nil # not started yet
+      deploy.deploy_started_at = Time.now.utc - 20.seconds
       refute deploy.deploy_timed_out?
-
-      deploy.deploy_started_at = Time.now.utc - 4.seconds # 10s ago is before deploy started
-      refute deploy.deploy_timed_out?
-
-      deploy.deploy_started_at = Time.now.utc - 5.seconds # 10s ago is "equal" to deploy time (fudge for clock skew)
-      assert deploy.deploy_timed_out?
     end
   end
 
