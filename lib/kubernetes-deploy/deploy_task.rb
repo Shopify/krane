@@ -3,6 +3,7 @@ require 'open3'
 require 'yaml'
 require 'shellwords'
 require 'tempfile'
+require 'fileutils'
 require 'kubernetes-deploy/kubernetes_resource'
 %w(
   cloudsql
@@ -56,7 +57,6 @@ module KubernetesDeploy
       kube-system
       kube-public
     )
-
     # Things removed from default prune whitelist at https://github.com/kubernetes/kubernetes/blob/0dff56b4d88ec7551084bf89028dbeebf569620e/pkg/kubectl/cmd/apply.go#L411:
     # core/v1/Namespace -- not namespaced
     # core/v1/PersistentVolume -- not namespaced
@@ -381,29 +381,33 @@ module KubernetesDeploy
 
     def apply_all(resources, prune)
       return unless resources.present?
-
       command = ["apply"]
-      resources.each do |r|
-        @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1
-        command.push("-f", r.file_path)
-        r.deploy_started_at = Time.now.utc
-      end
 
-      if prune
-        command.push("--prune", "--all")
-        prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
-      end
+      Dir.mktmpdir do |tmp_dir|
+        resources.each do |r|
+          @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1
+          FileUtils.symlink(r.file_path, tmp_dir)
+          r.deploy_started_at = Time.now.utc
+        end
+        command.push("-f", tmp_dir)
 
-      out, err, st = kubectl.run(*command, log_failure: false)
-      if st.success?
-        log_pruning(out) if prune
-      else
-        file_paths = find_bad_files_from_kubectl_output(err)
-        warn_msg = "WARNING: Any resources not mentioned in the error below were likely created/updated. " \
-          "You may wish to roll back this deploy."
-        @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-        record_invalid_template(err, file_paths: file_paths)
-        raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
+        if prune
+          command.push("--prune", "--all")
+          prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
+        end
+
+        out, err, st = kubectl.run(*command, log_failure: false)
+
+        if st.success?
+          log_pruning(out) if prune
+        else
+          file_paths = find_bad_files_from_kubectl_output(err)
+          warn_msg = "WARNING: Any resources not mentioned in the error below were likely created/updated. " \
+            "You may wish to roll back this deploy."
+          @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
+          record_invalid_template(err, file_paths: file_paths)
+          raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
+        end
       end
     end
 

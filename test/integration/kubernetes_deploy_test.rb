@@ -228,12 +228,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Command failed: apply -f",
       "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      /Invalid templates: Service-web.*\.yml, Deployment-web.*\.yml/,
+      /Invalid templates: (Deployment|Service)-web.*\.yml, (Deployment|Service)-web.*\.yml/,
       "Error from server (Invalid): error when creating",
       "Error from server (Invalid): error when creating", # once for deployment, once for svc
       "> Rendered template content:",
-      "        targetPort: http_test_is_really_long_and_invalid_chars", # error in svc template
-      "              name: http_test_is_really_long_and_invalid_chars" # error in deployment template
+      /(name|targetPort): http_test_is_really_long_and_invalid_chars/, # error in svc template
+      /(name|targetPort): http_test_is_really_long_and_invalid_chars/ # error in deployment template
     ], in_order: true)
   end
 
