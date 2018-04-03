@@ -9,13 +9,7 @@ module KubernetesDeploy
     end
   end
 
-  class DeploymentTimeoutError < FatalDeploymentError
-    attr_reader :resources
-    def initialize(resources)
-      @resources = resources
-      super("Timed out waiting for #{@resources.count} resources.")
-    end
-  end
+  class DeploymentTimeoutError < FatalDeploymentError; end
 
   module Errors
     extend self

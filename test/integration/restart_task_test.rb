@@ -180,7 +180,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       "Triggered `web` restart",
       "Deployment/web rollout timed out",
       "Result: TIMED OUT",
-      "Failed to restart 1 resource",
+      "Timed out waiting for 1 resource to restart",
       "Deployment/web: TIMED OUT",
       "The following containers have not passed their readiness probes",
       "app must exit 0 from the following command",

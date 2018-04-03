@@ -91,7 +91,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     generated_ns = @namespace
     @namespace = 'default'
     assert_deploy_failure(deploy_fixtures("hello-cloud", allow_protected_ns: true, prune: true))
-    assert_logs_match(/Refusing to deploy to protected namespace 'default' with pruning enabled/)
+    assert_logs_match_all([
+      "Configuration invalid",
+      "- Refusing to deploy to protected namespace 'default' with pruning enabled"
+    ], in_order: true)
   ensure
     @namespace = generated_ns
   end
@@ -100,7 +103,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     generated_ns = @namespace
     @namespace = 'default'
     assert_deploy_failure(deploy_fixtures("hello-cloud", prune: false))
-    assert_logs_match(/Refusing to deploy to protected namespace/)
+    assert_logs_match_all([
+      "Configuration invalid",
+      "- Refusing to deploy to protected namespace"
+    ], in_order: true)
   ensure
     @namespace = generated_ns
   end
@@ -301,6 +307,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
 
     assert_logs_match_all([
+      "Failed to deploy 1 resource",
       "Deployment/web: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
       "app: Failed to generate container configuration: secrets \"monitoring-token\" not found",
@@ -318,6 +325,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
 
     assert_logs_match_all([
+      "Failed to deploy 1 resource",
       "Deployment/cannot-run: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
       "container-cannot-run: Failed to pull image some-invalid-image:badtag.",
@@ -339,6 +347,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(deploy_fixtures("invalid", subset: ["crash_loop.yml"]))
 
     assert_logs_match_all([
+      "Failed to deploy 1 resource",
       "Deployment/crash-loop: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
       "crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
@@ -350,6 +359,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(deploy_fixtures("invalid", subset: ["cannot_run.yml"]))
 
     assert_logs_match_all([
+      "Failed to deploy 1 resource",
       "Deployment/cannot-run: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
       %r{container-cannot-run: Failed to start \(exit 127\): .*/some/bad/path},
@@ -385,6 +395,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result, :timed_out)
 
     assert_logs_match_all([
+      "Successfully deployed 1 resource and timed out waiting for 1 resource to deploy",
       'Deployment/undying: TIMED OUT (progress deadline: 10s)',
       'Timeout reason: ProgressDeadlineExceeded'
     ])
@@ -442,7 +453,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       fixtures["secrets.ejson"]["kubernetes_secrets"]["monitoring-token"]["data"] = malformed
     end
     assert_deploy_failure(result)
-    assert_logs_match(/data for secret monitoring-token was invalid/)
+    assert_logs_match("Creation of kubernetes secrets from ejson failed: data for secret monitoring-token was invalid")
   end
 
   def test_pruning_of_secrets_created_from_ejson
@@ -489,8 +500,20 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deploy_result_logging_for_mixed_result_deploy
-    result = deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"])
+    result = deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"]) do |f|
+      f["bad_probe.yml"]["ConfigMap"] = {
+        "apiVersion" => "v1",
+        "kind" => "ConfigMap",
+        "metadata" => { "name" => "test" },
+        "data" => { "datapoint1" => "value1" }
+      }
+    end
     assert_deploy_failure(result)
+    assert_logs_match_all([
+      "Successfully deployed 1 resource, timed out waiting for 2 resources to deploy, and failed to deploy 1 resource",
+      "Successful resources",
+      %r{ConfigMap/test\s+Available}
+    ], in_order: true)
 
     # Debug info for bad probe timeout
     assert_logs_match_all([
@@ -706,6 +729,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_bad_container_on_daemon_sets_fails
     assert_deploy_failure(deploy_fixtures("invalid", subset: ["crash_loop_daemon_set.yml"]))
     assert_logs_match_all([
+      "Failed to deploy 1 resource",
       "DaemonSet/crash-loop: FAILED",
       "crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
       "Final status: 1 currentNumberScheduled, 1 desiredNumberScheduled, 0 numberReady",
@@ -728,6 +752,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_deploy_failure(result)
     assert_logs_match_all([
+      "Failed to deploy 1 resource",
       "StatefulSet/stateful-busybox: FAILED",
       "app: Crashing repeatedly (exit 1). See logs for more information.",
       "Events (common success events excluded):",
@@ -770,6 +795,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Predeploying priority resources",
       "Deploying ResourceQuota/resource-quotas (timeout: 30s)",
       "Deployment/web rollout timed out",
+      "Successfully deployed 1 resource and timed out waiting for 1 resource to deploy",
       "Successful resources",
       "ResourceQuota/resource-quotas",
       %r{Deployment/web: TIMED OUT \(progress deadline: \d+s\)},
