@@ -78,7 +78,11 @@ module KubernetesDeploy
       record_success_statuses(successful_resources)
       record_failed_statuses(failed_resources, remaining_resources)
 
-      raise DeploymentTimeoutError
+      if failed_resources.present? && !failed_resources.all?(&:deploy_timed_out?)
+        raise FatalDeploymentError
+      else
+        raise DeploymentTimeoutError
+      end
     end
 
     def record_statuses_for_summary(resources)
