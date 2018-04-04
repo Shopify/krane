@@ -12,7 +12,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 17 resources"
+      "Successfully deployed 18 resources"
     ], in_order: true)
 
     assert_logs_match_all([
@@ -65,12 +65,13 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'configmap "hello-cloud-configmap-data"',
       'pod "unmanaged-pod-',
       'service "web"',
+      'resourcequota "resource-quotas"',
       'deployment "web"',
       'ingress "web"',
       'daemonset "ds-app"',
-      'statefulset "stateful-busybox"'
+      'statefulset "stateful-busybox"',
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 7 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 8 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
