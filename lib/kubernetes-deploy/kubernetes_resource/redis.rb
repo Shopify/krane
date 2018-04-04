@@ -12,11 +12,7 @@ module KubernetesDeploy
     end
 
     def status
-      if deployment_ready? && service_ready?
-        "Provisioned"
-      else
-        "Unknown"
-      end
+      deploy_succeeded? ? "Provisioned" : "Unknown"
     end
 
     def deploy_succeeded?

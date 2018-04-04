@@ -53,6 +53,8 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
   def test_get_all_does_not_cache_error_result_from_kubectl
     stub_kubectl_response('get', 'FakeConfigMap', *@params, success: false, resp: { "items" => [] }, err: 'no').times(2)
     stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params, resp: @fake_cm.kubectl_response, times: 1)
+
+    # Neither the main code path nor the selector-based code path should cause error results to be cached
     assert_equal [], mediator.get_all('FakeConfigMap')
     assert_equal [], mediator.get_all('FakeConfigMap', "fake" => "false", "type" => "fakeconfigmap")
     assert_equal @fake_cm.kubectl_response, mediator.get_instance('FakeConfigMap', @fake_cm.name)

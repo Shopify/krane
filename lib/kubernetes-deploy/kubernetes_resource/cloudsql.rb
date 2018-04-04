@@ -11,11 +11,7 @@ module KubernetesDeploy
     end
 
     def status
-      if proxy_deployment_ready? && proxy_service_ready?
-        "Provisioned"
-      else
-        "Unknown"
-      end
+      deploy_succeeded? ? "Provisioned" : "Unknown"
     end
 
     def deploy_succeeded?
