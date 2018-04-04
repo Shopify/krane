@@ -18,6 +18,8 @@
 
 # Feature request
 
-**Please note by far the quickest way to get a new feature is to file a Pull Request.**
+- [ ] If the maintainers agree with the feature as described here, I intend to submit a Pull Request myself.<sup>1</sup>
 
-We will consider your request but it may be closed if it's something we're not actively planning to work on.
+**Proposal:** [provide details on the behaviour you'd like to see and why it would be useful]
+
+<sup><small>1</small></sup> <sub>This is the quickest way to get a new feature! We reserve the right to close feature requests, even ones we like, if the proposer does not intend to contribute to the feature and it doesn't fit in our current roadmap.</sub>
