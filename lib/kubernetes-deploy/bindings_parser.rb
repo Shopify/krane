@@ -23,7 +23,7 @@ module KubernetesDeploy
         begin
           string = File.read(string.gsub(/\A@/, ''))
         rescue Errno::ENOENT
-          raise ArgumentError, "Expected supplied JSON file to exist. #{Dir.pwd} #{string}"
+          raise ArgumentError, "Expected supplied JSON file to exist: #{string}"
         end
       end
 
