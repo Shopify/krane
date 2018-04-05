@@ -19,6 +19,14 @@ module KubernetesDeploy
     private
 
     def parse_json(string)
+      if string =~ /\A@/
+        begin
+          string = File.read(string.gsub(/\A@/,''))
+        rescue Errno::ENOENT
+          raise ArgumentError, "Expected supplied JSON file to exist. #{Dir.pwd} #{string}"
+        end
+      end
+
       bindings = JSON.parse(string)
 
       unless bindings.is_a?(Hash)
