@@ -14,7 +14,7 @@ max_watch_seconds = nil
 
 ARGV.options do |opts|
   opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
-    "(format: k1=v1,k2=v2, JSON string or JSON file path)") do |binds|
+    "(format: k1=v1,k2=v2, JSON string or JSON file path prefixed by '@')") do |binds|
     bindings = KubernetesDeploy::BindingsParser.parse(binds)
   end
 
