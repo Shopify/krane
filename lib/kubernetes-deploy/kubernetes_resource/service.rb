@@ -6,14 +6,16 @@ module KubernetesDeploy
     SYNC_DEPENDENCIES = %w(Pod Deployment)
     def sync(mediator)
       super
-      @related_deployments = mediator.get_all(Deployment.kind, selector)
-      @related_pods = mediator.get_all(Pod.kind, selector)
+      @related_deployments = selector.present? ? mediator.get_all(Deployment.kind, selector) : []
+      @related_pods = selector.present? ? mediator.get_all(Pod.kind, selector) : []
     end
 
     def status
-      if !requires_endpoints?
+      if !exists?
+        "Not found"
+      elsif !requires_endpoints?
         "Doesn't require any endpoints"
-      elsif @related_pods.present?
+      elsif selects_some_pods?
         "Selects at least 1 pod"
       else
         "Selects 0 pods"
@@ -21,9 +23,10 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
+      return false unless exists?
       return exists? unless requires_endpoints?
       # We can't use endpoints if we want the service to be able to fail fast when the pods are down
-      exposes_zero_replica_deployment? || related_replica_count > 0
+      exposes_zero_replica_deployment? || selects_some_pods?
     end
 
     def deploy_failed?
@@ -49,6 +52,11 @@ module KubernetesDeploy
       return true if related_replica_count.blank?
 
       related_replica_count > 0
+    end
+
+    def selects_some_pods?
+      return false unless selector.present?
+      @related_pods.present?
     end
 
     def selector

@@ -24,7 +24,8 @@ module KubernetesDeploy
           id,
           "--container=#{container_name}",
           "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
-          "--tail=#{LOG_LINE_COUNT}"
+          "--tail=#{LOG_LINE_COUNT}",
+          log_failure: false
         )
         container_logs[container_name] = out.split("\n")
       end

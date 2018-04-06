@@ -10,7 +10,7 @@ module KubernetesDeploy
     def sync(mediator)
       super
       @pods = exists? ? find_pods(mediator) : []
-      @server_version = mediator.kubectl.server_version
+      @server_version ||= mediator.kubectl.server_version
     end
 
     def status

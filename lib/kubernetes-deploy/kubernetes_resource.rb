@@ -122,7 +122,8 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      if deploy_started? && !@success_assumption_warning_shown
+      return false unless deploy_started?
+      unless @success_assumption_warning_shown
         @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
         @success_assumption_warning_shown = true
       end
@@ -217,7 +218,8 @@ module KubernetesDeploy
     # }
     def fetch_events(kubectl)
       return {} unless exists?
-      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}")
+      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}",
+        log_failure: false)
       return {} unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }

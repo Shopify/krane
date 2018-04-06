@@ -1,0 +1,93 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-name
+spec:
+  type: ExternalName
+  externalName: external-redis.shopify
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: standard
+spec:
+  selector:
+    type: standard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: selectorless
+spec:
+  type: ClusterIP
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  type: standard
+  labels:
+    type: standard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      type: standard
+  template:
+    metadata:
+      labels:
+        type: standard
+    spec:
+      containers:
+      - name: app
+        image: busybox
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: some-pod-1
+  labels:
+    type: standard
+spec:
+  containers:
+    - name: hello-cloud
+      image: busybox
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: some-pod-2
+  labels:
+    type: standard
+spec:
+  containers:
+    - name: hello-cloud
+      image: busybox
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zero-replica
+spec:
+  selector:
+    type: zero-replica
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  type: zero-replica
+  labels:
+    type: zero-replica
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      type: zero-replica
+  template:
+    metadata:
+      labels:
+        type: zero-replica
+    spec:
+      containers:
+      - name: app
+        image: busybox
