@@ -120,7 +120,24 @@ All templates must be YAML formatted. You can also use ERB. The following local 
 * `current_sha`: The value of `$REVISION`
 * `deployment_id`:  A randomly generated identifier for the deploy. Useful for creating unique names for task-runner pods (e.g. a pod that runs rails migrations at the beginning of deploys).
 
-You can add additional variables using the `--bindings=BINDINGS` option which can be formated as comma separated or as JSON. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` or `kubernetes-deploy my-app cluster1 --bindings='{"color":"blue","size":"large"}'` will expose `color` and `size` in your templates. Complex JSON data will be converted to a Hash for use in templates.
+You can add additional variables using the `--bindings=BINDINGS` option which can be formated as comma separated string, JSON string or path to a JSON or YAML file. Complex JSON or YAML data will be converted to a Hash for use in templates. To load a file the argument should include the relative file path prefixed with an `@` sign. An argument error will be raised if the string argument cannot be parsed, the referenced file does not include a valid extension (`.json`, `.yaml` or `.yml`) or the referenced file does not exist.
+
+#### Bindings examples
+
+```
+# Comma separated string. Exposes, 'color' and 'size'
+$ kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large
+
+# JSON string. Exposes, 'color' and 'size'
+$ kubernetes-deploy my-app cluster1 --bindings='{"color":"blue","size":"large"}'
+
+# Load JSON file from ./config
+$ kubernetes-deploy my-app cluster1 --bindings='@config/production.json'
+
+# Load YAML file from ./config (.yaml or .yml supported)
+$ kubernetes-deploy my-app cluster1 --bindings='@config/production.yaml'
+```
+
 
 #### Using partials
 

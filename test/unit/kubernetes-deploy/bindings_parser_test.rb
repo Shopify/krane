@@ -8,6 +8,33 @@ class BindingsParserTest < ::Minitest::Test
     assert_equal expected, parse(expected.to_json)
   end
 
+  def test_parse_json_file
+    expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f" }
+    assert_equal expected, parse("@test/fixtures/for_unit_tests/bindings.json")
+  end
+
+  def test_parse_yaml_file_with_yml_ext
+    expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f" }
+    assert_equal expected, parse("@test/fixtures/for_unit_tests/bindings.yml")
+  end
+
+  def test_parse_yaml_file_with_yaml_ext
+    expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f" }
+    assert_equal expected, parse("@test/fixtures/for_unit_tests/bindings.yaml")
+  end
+
+  def test_parse_nonexistent_file
+    assert_raises(ArgumentError) do
+      parse("@fake/file.json")
+    end
+  end
+
+  def test_parse_invalid_file_type
+    assert_raises(ArgumentError) do
+      parse("@fake/file.ini")
+    end
+  end
+
   def test_parse_complex_json
     expected = { "foo" => 42, "bar" => [1, 2, 3], "bla" => { "hello" => 17 } }
     assert_equal expected, parse(expected.to_json)
