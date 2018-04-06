@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class ResourceWatcher
-    def initialize(resources:, sync_mediator:, logger:, deploy_started_at: Time.now.utc, operation_name: "deploy")
+    def initialize(resources:, sync_mediator:, logger:, deploy_started_at: Time.now.utc,
+      operation_name: "deploy", timeout: nil)
       unless resources.is_a?(Enumerable)
         raise ArgumentError, <<~MSG
           ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
@@ -12,13 +13,17 @@ module KubernetesDeploy
       @sync_mediator = sync_mediator
       @deploy_started_at = deploy_started_at
       @operation_name = operation_name
+      @timeout = timeout
     end
 
     def run(delay_sync: 3.seconds, reminder_interval: 30.seconds, record_summary: true)
-      delay_sync_until = last_message_logged_at = Time.now.utc
+      delay_sync_until = last_message_logged_at = monitoring_started = Time.now.utc
       remainder = @resources.dup
 
       while remainder.present?
+        if @timeout && (Time.now.utc - monitoring_started > @timeout)
+          report_and_give_up(remainder)
+        end
         if Time.now.utc < delay_sync_until
           sleep(delay_sync_until - Time.now.utc)
         end
@@ -69,20 +74,30 @@ module KubernetesDeploy
       @logger.info(msg)
     end
 
+    def report_and_give_up(remaining_resources)
+      successful_resources, failed_resources = (@resources - remaining_resources).partition(&:deploy_succeeded?)
+      record_success_statuses(successful_resources)
+      record_failed_statuses(failed_resources, remaining_resources)
+
+      if failed_resources.present? && !failed_resources.all?(&:deploy_timed_out?)
+        raise FatalDeploymentError
+      else
+        raise DeploymentTimeoutError
+      end
+    end
+
     def record_statuses_for_summary(resources)
       successful_resources, failed_resources = resources.partition(&:deploy_succeeded?)
-      fail_count = failed_resources.length
-      success_count = successful_resources.length
+      record_success_statuses(successful_resources)
+      record_failed_statuses(failed_resources)
+    end
 
-      if success_count > 0
-        @logger.summary.add_action("successfully #{@operation_name}ed #{success_count} "\
-          "#{'resource'.pluralize(success_count)}")
-        final_statuses = successful_resources.map(&:pretty_status).join("\n")
-        @logger.summary.add_paragraph("#{ColorizedString.new('Successful resources').green}\n#{final_statuses}")
-      end
+    def record_failed_statuses(failed_resources, global_timeouts = [])
+      fail_count = failed_resources.length + global_timeouts.length
 
       if fail_count > 0
         timeouts, failures = failed_resources.partition(&:deploy_timed_out?)
+        timeouts += global_timeouts
         if timeouts.present?
           @logger.summary.add_action(
             "timed out waiting for #{timeouts.length} #{'resource'.pluralize(timeouts.length)} to #{@operation_name}"
@@ -94,10 +109,21 @@ module KubernetesDeploy
             "failed to #{@operation_name} #{failures.length} #{'resource'.pluralize(failures.length)}"
           )
         end
-        KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
+        KubernetesDeploy::Concurrency.split_across_threads(failed_resources + global_timeouts) do |r|
           r.sync_debug_info(@sync_mediator.kubectl)
         end
         failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
+        global_timeouts.each { |r| @logger.summary.add_paragraph(r.debug_message(:gave_up, timeout: @timeout)) }
+      end
+    end
+
+    def record_success_statuses(successful_resources)
+      success_count = successful_resources.length
+      if success_count > 0
+        @logger.summary.add_action("successfully #{@operation_name}ed #{success_count} "\
+          "#{'resource'.pluralize(success_count)}")
+        final_statuses = successful_resources.map(&:pretty_status).join("\n")
+        @logger.summary.add_paragraph("#{ColorizedString.new('Successful resources').green}\n#{final_statuses}")
       end
     end
 

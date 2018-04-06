@@ -501,14 +501,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deploy_result_logging_for_mixed_result_deploy
-    result = deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"]) do |f|
-      f["bad_probe.yml"]["ConfigMap"] = {
-        "apiVersion" => "v1",
-        "kind" => "ConfigMap",
-        "metadata" => { "name" => "test" },
-        "data" => { "datapoint1" => "value1" }
-      }
-    end
+    subset = ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml", "config_map.yml"]
+    result = deploy_fixtures("invalid", subset: subset)
+
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Successfully deployed 1 resource, timed out waiting for 2 resources to deploy, and failed to deploy 1 resource",
@@ -890,5 +885,45 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(deploy_fixtures("cronjobs"))
     cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
     cronjobs.assert_cronjob_present("my-cronjob")
+  end
+
+  def test_resource_watcher_reports_failed_after_timeout
+    result = deploy_fixtures(
+      "invalid",
+      subset: ["bad_probe.yml", "cannot_run.yml", "missing_volumes.yml", "config_map.yml"],
+      max_watch_seconds: 15
+    ) do |f|
+      deployment = f["bad_probe.yml"]["Deployment"].first
+      deployment["metadata"]["annotations"]["kubernetes-deploy.shopify.io/timeout-override"] = '5s'
+      f["cannot_run.yml"]["Deployment"].first["spec"]["replicas"] = 1
+    end
+    assert_deploy_failure(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 1 resource, timed out waiting for 2 resources to deploy, and failed to deploy 1 resource",
+      "Successful resources",
+      "ConfigMap/test",
+      "Deployment/cannot-run: FAILED",
+      "Deployment/bad-probe: TIMED OUT (timeout: 5s)",
+      "Deployment/missing-volumes: GLOBAL WATCH TIMEOUT (15 seconds)"
+    ])
+  end
+
+  def test_resource_watcher_raises_after_timeout_seconds
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'], max_watch_seconds: 5) do |fixtures|
+      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+      deployment['spec']['progressDeadlineSeconds'] = 100
+      container = deployment['spec']['template']['spec']['containers'].first
+      container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
+    end
+
+    assert_deploy_failure(result, :timed_out)
+    assert_logs_match_all([
+      "Successfully deployed 1 resource and timed out waiting for 1 resource to deploy",
+      "Successful resources",
+      "Service/multi-replica",
+      "Deployment/undying: GLOBAL WATCH TIMEOUT (5 seconds)",
+      "If you expected it to take longer than 5 seconds for your deploy to roll out, increase --max-watch-seconds."
+    ], in_order: true)
   end
 end

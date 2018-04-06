@@ -20,11 +20,12 @@ module KubernetesDeploy
     HTTP_OK_RANGE = 200..299
     ANNOTATION = "shipit.shopify.io/restart"
 
-    def initialize(context:, namespace:, logger:)
+    def initialize(context:, namespace:, logger:, max_watch_seconds: nil)
       @context = context
       @namespace = namespace
       @logger = logger
       @sync_mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
+      @max_watch_seconds = max_watch_seconds
     end
 
     def perform(*args)
@@ -50,7 +51,7 @@ module KubernetesDeploy
       @logger.phase_heading("Waiting for rollout")
       resources = build_watchables(deployments, start)
       ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
-        logger: @logger, operation_name: "restart").run
+        logger: @logger, operation_name: "restart", timeout: @max_watch_seconds).run
       failed_resources = resources.reject(&:deploy_succeeded?)
       success = failed_resources.empty?
       if !success && failed_resources.all?(&:deploy_timed_out?)
