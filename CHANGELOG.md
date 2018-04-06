@@ -2,6 +2,7 @@
 *Features*
 - Added `--max-watch-seconds=seconds` to kubernetes-restart and kubernetes-deploy. When set
 a timeout error is raised if it takes longer than _seconds_ for any resource to deploy.
+- Adds YAML and JSON file reference support to the kubernetes-deploy `--bindings` argument ([#269](https://github.com/Shopify/kubernetes-deploy/pull/269))
 
 *Enhancements*
 - Prune resource quotas ([#264](https://github.com/Shopify/kubernetes-deploy/pull/264/files))
