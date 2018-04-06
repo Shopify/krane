@@ -24,8 +24,8 @@ module KubernetesDeploy
         if @timeout && (Time.now.utc - monitoring_started > @timeout)
           report_and_give_up(remainder)
         end
-        if Time.now.utc < delay_sync_until
-          sleep(delay_sync_until - Time.now.utc)
+        if (sleep_duration = delay_sync_until - Time.now.utc) > 0
+          sleep(sleep_duration)
         end
         delay_sync_until = Time.now.utc + delay_sync # don't pummel the API if the sync is fast
 
