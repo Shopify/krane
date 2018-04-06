@@ -99,7 +99,9 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_allows_success
     resource = build_mock_resource(hits_to_complete: 1)
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger, timeout: 2)
+    sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
+    watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource], logger: logger,
+      timeout: 2, sync_mediator: sync_mediator)
 
     watcher.run(delay_sync: 0.1)
     assert_logs_match(/Successfully deployed in \d.\ds: web-pod/)
@@ -107,7 +109,9 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_raises_after_timeout_seconds
     resource = build_mock_resource(hits_to_complete: 10**100)
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger, timeout: 2)
+    sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
+    watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource], logger: logger,
+      timeout: 2, sync_mediator: sync_mediator)
 
     assert_raises(KubernetesDeploy::DeploymentTimeoutError) { watcher.run(delay_sync: 0.1) }
   end
