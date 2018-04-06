@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class ResourceWatcher
-    def initialize(resources:, sync_mediator:, logger:, deploy_started_at: Time.now.utc, operation_name: "deploy", timeout: nil)
+    def initialize(resources:, sync_mediator:, logger:, deploy_started_at: Time.now.utc,
+      operation_name: "deploy", timeout: nil)
       unless resources.is_a?(Enumerable)
         raise ArgumentError, <<~MSG
           ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
