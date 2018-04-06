@@ -501,14 +501,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deploy_result_logging_for_mixed_result_deploy
-    result = deploy_fixtures("invalid", subset: ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml"]) do |f|
-      f["bad_probe.yml"]["ConfigMap"] = {
-        "apiVersion" => "v1",
-        "kind" => "ConfigMap",
-        "metadata" => { "name" => "test" },
-        "data" => { "datapoint1" => "value1" }
-      }
-    end
+    subset = ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml", "config_map.yml"]
+    result = deploy_fixtures("invalid", subset: subset)
+
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Successfully deployed 1 resource, timed out waiting for 2 resources to deploy, and failed to deploy 1 resource",
@@ -895,18 +890,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_resource_watcher_reports_failed_after_timeout
     result = deploy_fixtures(
       "invalid",
-      subset: ["bad_probe.yml", "cannot_run.yml", "missing_volumes.yml"],
+      subset: ["bad_probe.yml", "cannot_run.yml", "missing_volumes.yml", "config_map.yml"],
       max_watch_seconds: 15
     ) do |f|
       deployment = f["bad_probe.yml"]["Deployment"].first
       deployment["metadata"]["annotations"]["kubernetes-deploy.shopify.io/timeout-override"] = '5s'
       f["cannot_run.yml"]["Deployment"].first["spec"]["replicas"] = 1
-      f["bad_probe.yml"]["ConfigMap"] = {
-        "apiVersion" => "v1",
-        "kind" => "ConfigMap",
-        "metadata" => { "name" => "test" },
-        "data" => { "datapoint1" => "value1" }
-      }
     end
     assert_deploy_failure(result)
 

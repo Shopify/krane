@@ -159,8 +159,6 @@ module KubernetesDeploy
     end
 
     def debug_message(cause = nil, info_hash = {})
-      sync_debug_info unless @debug_info_synced
-
       helpful_info = []
       if cause == :gave_up
         helpful_info << ColorizedString.new("#{id}: GLOBAL WATCH TIMEOUT (#{info_hash[:timeout]} seconds)").yellow
