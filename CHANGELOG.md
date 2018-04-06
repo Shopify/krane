@@ -1,7 +1,9 @@
 ### Unreleased
 *Enhancements*
-
 - Prune resource quotas ([#264](https://github.com/Shopify/kubernetes-deploy/pull/264/files))
+
+*Bug Fixes*
+- Update gemspec to reflect need for ActiveSupport >= 5.0([#270](https://github.com/Shopify/kubernetes-deploy/pull/270))
 
 ### 0.18.1
 *Enhancements*
