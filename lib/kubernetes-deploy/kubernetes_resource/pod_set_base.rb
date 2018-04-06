@@ -9,14 +9,14 @@ module KubernetesDeploy
       pods.map(&:timeout_message).compact.uniq.join("\n")
     end
 
-    def fetch_events
+    def fetch_events(kubectl)
       own_events = super
       return own_events unless pods.present?
       most_useful_pod = pods.find(&:deploy_failed?) || pods.find(&:deploy_timed_out?) || pods.first
-      own_events.merge(most_useful_pod.fetch_events)
+      own_events.merge(most_useful_pod.fetch_events(kubectl))
     end
 
-    def fetch_logs
+    def fetch_logs(kubectl)
       return {} unless pods.present? # the kubectl command times out if no pods exist
       container_names.each_with_object({}) do |container_name, container_logs|
         out, _err, _st = kubectl.run(
@@ -24,7 +24,8 @@ module KubernetesDeploy
           id,
           "--container=#{container_name}",
           "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
-          "--tail=#{LOG_LINE_COUNT}"
+          "--tail=#{LOG_LINE_COUNT}",
+          log_failure: false
         )
         container_logs[container_name] = out.split("\n")
       end
@@ -36,7 +37,7 @@ module KubernetesDeploy
       raise NotImplementedError, "Subclasses must define a `pods` accessor"
     end
 
-    def parent_of_pod?(_, _)
+    def parent_of_pod?(_)
       raise NotImplementedError, "Subclasses must define a `parent_of_pod?` method"
     end
 
@@ -46,14 +47,11 @@ module KubernetesDeploy
       regular_containers + init_containers
     end
 
-    def find_pods(pod_controller_data)
-      label_string = pod_controller_data["spec"]["selector"]["matchLabels"].map { |k, v| "#{k}=#{v}" }.join(",")
-      raw_json, _err, st = kubectl.run("get", "pods", "-a", "--output=json", "--selector=#{label_string}")
-      return [] unless st.success?
+    def find_pods(mediator)
+      all_pods = mediator.get_all(Pod.kind, @instance_data["spec"]["selector"]["matchLabels"])
 
-      all_pods = JSON.parse(raw_json)["items"]
       all_pods.each_with_object([]) do |pod_data, relevant_pods|
-        next unless parent_of_pod?(pod_controller_data, pod_data)
+        next unless parent_of_pod?(pod_data)
         pod = Pod.new(
           namespace: namespace,
           context: context,
@@ -62,7 +60,7 @@ module KubernetesDeploy
           parent: "#{name.capitalize} #{type}",
           deploy_started_at: @deploy_started_at
         )
-        pod.sync(pod_data)
+        pod.sync(mediator)
         relevant_pods << pod
       end
     end

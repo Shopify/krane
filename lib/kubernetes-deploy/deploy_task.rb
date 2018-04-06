@@ -16,7 +16,6 @@ require 'kubernetes-deploy/kubernetes_resource'
   memcached
   service
   pod_template
-  bugsnag
   pod_disruption_budget
   replica_set
   service_account
@@ -46,7 +45,6 @@ module KubernetesDeploy
       Cloudsql
       Redis
       Memcached
-      Bugsnag
       ConfigMap
       PersistentVolumeClaim
       ServiceAccount
@@ -103,6 +101,7 @@ module KubernetesDeploy
         logger: @logger,
         bindings: bindings,
       )
+      @sync_mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
     end
 
     def run(*args)
@@ -124,7 +123,7 @@ module KubernetesDeploy
       validate_definitions(resources)
 
       @logger.phase_heading("Checking initial resource statuses")
-      KubernetesDeploy::Concurrency.split_across_threads(resources, &:sync)
+      @sync_mediator.sync(resources)
       resources.each { |r| @logger.info(r.pretty_status) }
 
       ejson = EjsonSecretProvisioner.new(
@@ -207,6 +206,9 @@ module KubernetesDeploy
         failed_resources = matching_resources.reject(&:deploy_succeeded?)
         fail_count = failed_resources.length
         if fail_count > 0
+          KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
+            r.sync_debug_info(@sync_mediator.kubectl)
+          end
           failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
           raise FatalDeploymentError, "Failed to deploy #{fail_count} priority #{'resource'.pluralize(fail_count)}"
         end
@@ -215,7 +217,7 @@ module KubernetesDeploy
     end
 
     def validate_definitions(resources)
-      KubernetesDeploy::Concurrency.split_across_threads(resources, &:validate_definition)
+      KubernetesDeploy::Concurrency.split_across_threads(resources) { |r| r.validate_definition(kubectl) }
       failed_resources = resources.select(&:validation_failed?)
       return unless failed_resources.present?
 
@@ -373,7 +375,8 @@ module KubernetesDeploy
       apply_all(applyables, prune)
 
       if verify
-        watcher = ResourceWatcher.new(resources, logger: @logger, deploy_started_at: deploy_started_at)
+        watcher = ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
+          logger: @logger, deploy_started_at: deploy_started_at)
         watcher.run(record_summary: record_summary)
       end
     end

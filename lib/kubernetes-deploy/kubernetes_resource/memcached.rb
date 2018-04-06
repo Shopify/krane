@@ -4,30 +4,24 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     CONFIGMAP_NAME = "memcached-url"
 
-    def sync
-      _, _err, st = kubectl.run("get", type, @name)
-      @found = st.success?
-      @deployment_exists = memcached_deployment_exists?
-      @service_exists = memcached_service_exists?
-      @configmap_exists = memcached_configmap_exists?
+    SYNC_DEPENDENCIES = %w(Deployment Service ConfigMap)
+    def sync(mediator)
+      super
+      @deployment = mediator.get_instance(Deployment.kind, "memcached-#{@name}")
+      @service = mediator.get_instance(Service.kind, "memcached-#{@name}")
+      @configmap = mediator.get_instance(ConfigMap.kind, CONFIGMAP_NAME)
+    end
 
-      @status = if @deployment_exists && @service_exists && @configmap_exists
-        "Provisioned"
-      else
-        "Unknown"
-      end
+    def status
+      deploy_succeeded? ? "Provisioned" : "Unknown"
     end
 
     def deploy_succeeded?
-      @deployment_exists && @service_exists && @configmap_exists
+      deployment_ready? && service_ready? && configmap_ready?
     end
 
     def deploy_failed?
       false
-    end
-
-    def exists?
-      @found
     end
 
     def deploy_method
@@ -36,26 +30,19 @@ module KubernetesDeploy
 
     private
 
-    def memcached_deployment_exists?
-      deployment, _err, st = kubectl.run("get", "deployments", "memcached-#{@name}", "-o=json")
-      return false unless st.success?
-      parsed = JSON.parse(deployment)
-      status = parsed.fetch("status", {})
+    def deployment_ready?
+      return false unless status = @deployment["status"]
       status.fetch("availableReplicas", -1) == status.fetch("replicas", 0)
     end
 
-    def memcached_service_exists?
-      service, _err, st = kubectl.run("get", "services", "memcached-#{@name}", "-o=json")
-      return false unless st.success?
-      parsed = JSON.parse(service)
-      parsed.dig("spec", "clusterIP").present?
+    def service_ready?
+      return false unless @service.present?
+      @service.dig("spec", "clusterIP").present?
     end
 
-    def memcached_configmap_exists?
-      secret, _err, st = kubectl.run("get", "configmaps", CONFIGMAP_NAME, "-o=json")
-      return false unless st.success?
-      parsed = JSON.parse(secret)
-      parsed.dig("data", @name).present?
+    def configmap_ready?
+      return false unless @configmap.present?
+      @configmap.dig("data", @name).present?
     end
   end
 end

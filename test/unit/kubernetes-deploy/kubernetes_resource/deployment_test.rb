@@ -175,10 +175,10 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
   def test_validation_fails_with_invalid_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: 'bad'), replica_sets: [])
-    deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
-    refute deploy.validate_definition
+    refute deploy.validate_definition(kubectl)
 
     expected = <<~STRING.strip
       super failed
@@ -189,20 +189,20 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
   def test_validation_with_percent_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10%'), replica_sets: [])
-    deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
       ["", "", SystemExit.new(0)]
     )
-    assert deploy.validate_definition
+    assert deploy.validate_definition(kubectl)
     assert_empty deploy.validation_error_msg
   end
 
   def test_validation_with_number_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10'), replica_sets: [])
-    deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
 
-    refute deploy.validate_definition
+    refute deploy.validate_definition(kubectl)
     expected = <<~STRING.strip
       super failed
       '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: 10' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
@@ -215,10 +215,10 @@ class DeploymentTest < KubernetesDeploy::TestCase
       template: build_deployment_template(rollout: 'maxUnavailable', strategy: 'Recreate'),
       replica_sets: [build_rs_template]
     )
-    deploy.kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
-    refute deploy.validate_definition
+    refute deploy.validate_definition(kubectl)
 
     expected = <<~STRING.strip
       super failed
@@ -279,7 +279,6 @@ class DeploymentTest < KubernetesDeploy::TestCase
         replica_sets: [build_rs_template(status: { "replica" => 1 })]
       )
       deploy.deploy_started_at = Time.now.utc - 3.minutes
-      deploy.kubectl.expects(:server_version).returns(Gem::Version.new("1.8"))
 
       assert deploy.deploy_timed_out?
       assert_equal "Timeout reason: Failed to progress\nLatest ReplicaSet: web-1", deploy.timeout_message.strip
@@ -301,7 +300,6 @@ class DeploymentTest < KubernetesDeploy::TestCase
         template: build_deployment_template(status: deployment_status),
         replica_sets: [build_rs_template(status: { "replica" => 1 })]
       )
-      deploy.kubectl.expects(:server_version).returns(Gem::Version.new("1.8")).at_least_once
 
       deploy.deploy_started_at = nil # not started yet
       refute deploy.deploy_timed_out?
@@ -327,11 +325,10 @@ class DeploymentTest < KubernetesDeploy::TestCase
       }
       deploy = build_synced_deployment(
         template: build_deployment_template(status: deployment_status),
-        replica_sets: [build_rs_template(status: { "replica" => 1 })]
+        replica_sets: [build_rs_template(status: { "replica" => 1 })],
+        server_version: Gem::Version.new("1.7.6")
       )
       deploy.deploy_started_at = Time.now.utc - 5.seconds # progress deadline of 10s has not elapsed
-      deploy.kubectl.expects(:server_version).returns(Gem::Version.new("1.7.6"))
-
       refute deploy.deploy_timed_out?
     end
   end
@@ -370,24 +367,33 @@ class DeploymentTest < KubernetesDeploy::TestCase
     result
   end
 
-  def build_synced_deployment(template:, replica_sets:)
+  def build_synced_deployment(template:, replica_sets:, server_version: Gem::Version.new("1.8"))
     deploy = KubernetesDeploy::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
-    deploy.kubectl.expects(:run).with("get", "Deployment", "web", "--output=json").returns(
+    sync_mediator = build_sync_mediator
+    sync_mediator.kubectl.expects(:run).with("get", "Deployment", "web", "-a", "--output=json").returns(
       [template.to_json, "", SystemExit.new(0)]
     )
+    sync_mediator.kubectl.expects(:server_version).returns(server_version)
 
     if replica_sets.present?
-      KubernetesDeploy::ReplicaSet.any_instance.expects(:kubectl).returns(deploy.kubectl)
-      deploy.kubectl.expects(:run).with("get", "pods", "-a", "--output=json", anything).returns(
+      sync_mediator.kubectl.expects(:run).with("get", "Pod", "-a", "--output=json", anything).returns(
         ['{ "items": [] }', "", SystemExit.new(0)]
       )
     end
 
-    deploy.kubectl.expects(:run).with("get", "replicasets", "--output=json", anything).returns(
+    sync_mediator.kubectl.expects(:run).with("get", "ReplicaSet", "-a", "--output=json", anything).returns(
       [{ "items" => replica_sets }.to_json, "", SystemExit.new(0)]
     )
-    deploy.sync
+    deploy.sync(sync_mediator)
     deploy
+  end
+
+  def build_sync_mediator
+    KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
+  end
+
+  def kubectl
+    @kubectl ||= build_runless_kubectl
   end
 
   def fixtures

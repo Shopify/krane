@@ -1,11 +1,6 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class Bucket < KubernetesResource
-    def sync
-      _, _err, st = kubectl.run("get", type, @name)
-      @found = st.success?
-    end
-
     def deploy_succeeded?
       return false unless deploy_started?
 
@@ -16,8 +11,8 @@ module KubernetesDeploy
       true
     end
 
-    def exists?
-      @found
+    def status
+      exists? ? "Available" : "Unknown"
     end
 
     def deploy_failed?

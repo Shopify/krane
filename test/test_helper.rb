@@ -189,12 +189,22 @@ module KubernetesDeploy
       source_dir
     end
 
-    def stub_kubectl_response(*args, resp:, err: "", success: true, json: true)
+    def stub_kubectl_response(*args, resp:, err: "", success: true, json: true, times: 1)
       resp = resp.to_json if json
       response = [resp, err, stub(success?: success)]
       KubernetesDeploy::Kubectl.any_instance.expects(:run)
         .with(*args)
         .returns(response)
+        .times(times)
+    end
+
+    def build_runless_kubectl
+      obj = KubernetesDeploy::Kubectl.new(namespace: 'test', context: KubeclientHelper::MINIKUBE_CONTEXT,
+        logger: logger, log_failure_by_default: false)
+      def obj.run(*)
+        ["", "", SystemExit.new(0)]
+      end
+      obj
     end
 
     private

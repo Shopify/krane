@@ -34,16 +34,6 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     def file_path
       "/tmp/foo/bar"
     end
-
-    def kubectl
-      @kubectl_stub ||= begin
-        kubectl_stub = super
-        def kubectl_stub.run(*)
-          ["", "", SystemExit.new(0)]
-        end
-        kubectl_stub
-      end
-    end
   end
 
   def test_unusual_timeout_output
@@ -75,8 +65,8 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     tricky_events = dummy_events(start_time)
     assert tricky_events.first[:message].count("\n") > 1, "Sanity check failed: inadequate newlines in test events"
 
-    dummy.kubectl.expects(:run).returns([build_event_jsonpath(tricky_events), "", SystemExit.new(0)])
-    events = dummy.fetch_events
+    kubectl.expects(:run).returns([build_event_jsonpath(tricky_events), "", SystemExit.new(0)])
+    events = dummy.fetch_events(kubectl)
     assert_includes_dummy_events(events, first: true, second: true)
   end
 
@@ -87,8 +77,8 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     mixed_time_events = dummy_events(start_time)
     mixed_time_events.first[:last_seen] = 1.hour.ago
 
-    dummy.kubectl.expects(:run).returns([build_event_jsonpath(mixed_time_events), "", SystemExit.new(0)])
-    events = dummy.fetch_events
+    kubectl.expects(:run).returns([build_event_jsonpath(mixed_time_events), "", SystemExit.new(0)])
+    events = dummy.fetch_events(kubectl)
     assert_includes_dummy_events(events, first: false, second: true)
   end
 
@@ -96,8 +86,8 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     dummy = DummyResource.new
     dummy.deploy_started_at = Time.now.utc - 10.seconds
 
-    dummy.kubectl.expects(:run).returns(["", "", SystemExit.new(0)])
-    events = dummy.fetch_events
+    kubectl.expects(:run).returns(["", "", SystemExit.new(0)])
+    events = dummy.fetch_events(kubectl)
     assert_operator events, :empty?
   end
 
@@ -117,7 +107,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_blank_timeout_annotation_is_invalid
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata(""))
-    customized_resource.validate_definition
+    customized_resource.validate_definition(kubectl)
     assert customized_resource.validation_failed?, "Blank annotation was valid"
     assert_equal "#{timeout_override_err_prefix}: Invalid ISO 8601 duration: \"\" is empty duration",
       customized_resource.validation_error_msg
@@ -126,48 +116,48 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_lack_of_timeout_annotation_does_not_fail_validation
     basic_resource = DummyResource.new
     assert_equal 300, basic_resource.timeout
-    basic_resource.validate_definition
+    basic_resource.validate_definition(kubectl)
     refute basic_resource.validation_failed?
   end
 
   def test_timeout_override_lower_bound_validation
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("-1S"))
-    customized_resource.validate_definition
+    customized_resource.validate_definition(kubectl)
     assert customized_resource.validation_failed?, "Annotation with '-1' was valid"
     assert_equal "#{timeout_override_err_prefix}: Value must be greater than 0",
       customized_resource.validation_error_msg
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("0S"))
-    customized_resource.validate_definition
+    customized_resource.validate_definition(kubectl)
     assert customized_resource.validation_failed?, "Annotation with '0' was valid"
     assert_equal "#{timeout_override_err_prefix}: Value must be greater than 0",
       customized_resource.validation_error_msg
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("1S"))
-    customized_resource.validate_definition
+    customized_resource.validate_definition(kubectl)
     refute customized_resource.validation_failed?, "Annotation with '1' was invalid"
   end
 
   def test_timeout_override_upper_bound_validation
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H1S"))
-    customized_resource.validate_definition
+    customized_resource.validate_definition(kubectl)
     assert customized_resource.validation_failed?, "Annotation with '24H1S' was valid"
     assert_equal "#{timeout_override_err_prefix}: Value must be less than 24h", customized_resource.validation_error_msg
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H"))
-    customized_resource.validate_definition
+    customized_resource.validate_definition(kubectl)
     refute customized_resource.validation_failed?, "Annotation with '24H' was invalid"
   end
 
   def test_annotation_and_kubectl_error_messages_are_combined
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("bad"))
-    customized_resource.kubectl.expects(:run).returns([
+    kubectl.expects(:run).returns([
       "{}",
       "Error from kubectl: Something else in this template was not valid",
       stub(success?: false)
     ])
 
-    customized_resource.validate_definition
+    customized_resource.validate_definition(kubectl)
     assert customized_resource.validation_failed?, "Expected resource to be invalid"
     expected = <<~STRING.strip
       #{timeout_override_err_prefix}: Invalid ISO 8601 duration: "BAD"
@@ -215,7 +205,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       dummy = DummyResource.new
       dummy.deploy_failed = true
 
-      assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Unknown\n"
+      assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
       assert_includes dummy.debug_message, KubernetesDeploy::KubernetesResource::DISABLED_LOG_INFO_MESSAGE
     end
   end
@@ -225,12 +215,16 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       dummy = DummyResource.new
       dummy.deploy_failed = true
 
-      assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Unknown\n"
+      assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
       assert_includes dummy.debug_message, KubernetesDeploy::KubernetesResource::DISABLED_EVENT_INFO_MESSAGE
     end
   end
 
   private
+
+  def kubectl
+    @kubectl ||= build_runless_kubectl
+  end
 
   def with_env(key, value)
     old_env_id = ENV[key]

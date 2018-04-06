@@ -5,16 +5,16 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   def test_requires_enumerable
     expected_msg = "ResourceWatcher expects Enumerable collection, got `Object` instead"
     assert_raises_message(ArgumentError, expected_msg) do
-      KubernetesDeploy::ResourceWatcher.new(Object.new, logger: logger)
+      build_watcher(Object.new)
     end
 
-    KubernetesDeploy::ResourceWatcher.new([], logger: logger)
+    build_watcher([])
   end
 
   def test_success_with_mock_resource_and_summary_recording_enabled
     resource = build_mock_resource
 
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
+    watcher = build_watcher([resource])
     watcher.run(delay_sync: 0.1)
     logger.print_summary(true)
 
@@ -28,7 +28,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   def test_success_with_mock_resource_and_summary_recording_disabled
     resource = build_mock_resource
 
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
+    watcher = build_watcher([resource])
     watcher.run(delay_sync: 0.1, record_summary: false)
     logger.print_summary(true)
 
@@ -40,7 +40,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   def test_failure_with_mock_resource
     resource = build_mock_resource(final_status: "failed")
 
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
+    watcher = build_watcher([resource])
     watcher.run(delay_sync: 0.1)
     logger.print_summary(:failure)
 
@@ -55,7 +55,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   def test_timeout_from_resource
     resource = build_mock_resource(final_status: "timeout")
 
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource], logger: logger)
+    watcher = build_watcher([resource])
     watcher.run(delay_sync: 0.1)
 
     assert_logs_match(/web-pod rollout timed out/)
@@ -67,7 +67,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     third = build_mock_resource(final_status: "failed", hits_to_complete: 3, name: "third")
     fourth = build_mock_resource(final_status: "success", hits_to_complete: 4, name: "fourth")
 
-    watcher = KubernetesDeploy::ResourceWatcher.new([first, second, third, fourth], logger: logger)
+    watcher = build_watcher([first, second, third, fourth])
     watcher.run(delay_sync: 0.1)
 
     assert_logs_match_all([
@@ -85,7 +85,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     resource1 = build_mock_resource(final_status: "success", hits_to_complete: 1, name: 'first')
     resource2 = build_mock_resource(final_status: "success", hits_to_complete: 9, name: 'second')
     resource3 = build_mock_resource(final_status: "success", hits_to_complete: 9, name: 'third')
-    watcher = KubernetesDeploy::ResourceWatcher.new([resource1, resource2, resource3], logger: logger)
+    watcher = build_watcher([resource1, resource2, resource3])
     watcher.run(delay_sync: 0.1, reminder_interval: 0.5.seconds)
 
     assert_logs_match_all([
@@ -99,12 +99,21 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   private
 
+  def build_watcher(resources)
+    sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
+    KubernetesDeploy::ResourceWatcher.new(resources: resources, logger: logger, sync_mediator: sync_mediator)
+  end
+
   MockResource = Struct.new(:id, :hits_to_complete, :status) do
     attr_reader :debug_message
 
-    def sync
+    def sync(_mediator)
       @hits ||= 0
       @hits += 1
+    end
+
+    def type
+      "MockResource"
     end
 
     def deploy_succeeded?
@@ -123,7 +132,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       hits_to_complete
     end
 
-    def sync_debug_info
+    def sync_debug_info(_)
       @debug_message = "Something went wrong"
     end
 

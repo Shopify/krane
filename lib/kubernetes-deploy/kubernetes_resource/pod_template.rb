@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class PodTemplate < KubernetesResource
-    def sync
-      _, _err, st = kubectl.run("get", type, @name)
-      @status = st.success? ? "Available" : "Unknown"
-      @found = st.success?
+    def status
+      exists? ? "Available" : "Unknown"
     end
 
     def deploy_succeeded?
@@ -17,10 +15,6 @@ module KubernetesDeploy
 
     def timeout_message
       UNUSUAL_FAILURE_MESSAGE
-    end
-
-    def exists?
-      @found
     end
   end
 end
