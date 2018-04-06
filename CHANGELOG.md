@@ -1,4 +1,8 @@
-### 0.17.1
+### 0.18.1
+*Enhancements*
+- Change the way the resource watcher fetches resources to make it more efficient for large deploys. Deploys with hundreds of resources are expected to see a measurable performance improvement from this change. ([#251](https://github.com/Shopify/kubernetes-deploy/pull/251))
+
+### 0.18.0
 *Features*
 - kubernetes-restart and kubernetes-deploy use exit code 70 when a
 deploy fails due to one or more resources failing to deploy in time.
