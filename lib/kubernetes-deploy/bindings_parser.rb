@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'json'
+require 'yaml'
 require 'csv'
 
 module KubernetesDeploy
@@ -7,7 +8,7 @@ module KubernetesDeploy
     extend self
 
     def parse(string)
-      bindings = parse_json(string) || parse_csv(string)
+      bindings = parse_file(string) || parse_json(string) || parse_csv(string)
 
       unless bindings
         raise ArgumentError, "Failed to parse bindings."
@@ -18,15 +19,28 @@ module KubernetesDeploy
 
     private
 
-    def parse_json(string)
-      if string =~ /\A@/
-        begin
-          string = File.read(string.gsub(/\A@/, ''))
-        rescue Errno::ENOENT
-          raise ArgumentError, "Supplied JSON file does not exist: #{string}"
-        end
-      end
+    def parse_file(string)
+      return unless string =~ /\A@/
 
+      begin
+        file_path = string.gsub(/\A@/, '')
+
+        case File.extname(file_path)
+        when '.json'
+          bindings = parse_json(File.read(file_path))
+        when '.yaml', '.yml'
+          bindings = YAML.load(File.read(file_path))
+        else
+          raise ArgumentError, "Supplied file does not appear to be JSON or YAML"
+        end
+
+        bindings
+      rescue Errno::ENOENT
+        raise ArgumentError, "Supplied file does not exist: #{string}"
+      end
+    end
+
+    def parse_json(string)
       bindings = JSON.parse(string)
 
       unless bindings.is_a?(Hash)
