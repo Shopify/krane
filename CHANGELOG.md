@@ -1,4 +1,4 @@
-### Unreleased
+### 0.19.0
 *Features*
 - Added `--max-watch-seconds=seconds` to kubernetes-restart and kubernetes-deploy. When set
 a timeout error is raised if it takes longer than _seconds_ for any resource to deploy.
