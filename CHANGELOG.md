@@ -1,3 +1,8 @@
+### Master
+
+*Bug Fixes*
+- Prevent calling sleep with a negative value ([#273](https://github.com/Shopify/kubernetes-deploy/pull/273))
+
 ### 0.19.0
 *Features*
 - Added `--max-watch-seconds=seconds` to kubernetes-restart and kubernetes-deploy. When set

@@ -893,8 +893,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       subset: ["bad_probe.yml", "cannot_run.yml", "missing_volumes.yml", "config_map.yml"],
       max_watch_seconds: 15
     ) do |f|
-      deployment = f["bad_probe.yml"]["Deployment"].first
-      deployment["metadata"]["annotations"]["kubernetes-deploy.shopify.io/timeout-override"] = '5s'
+      bad_probe = f["bad_probe.yml"]["Deployment"].first
+      bad_probe["metadata"]["annotations"]["kubernetes-deploy.shopify.io/timeout-override"] = '5s'
+      f["missing_volumes.yml"]["Deployment"].first["spec"]["progressDeadlineSeconds"] = 25
       f["cannot_run.yml"]["Deployment"].first["spec"]["replicas"] = 1
     end
     assert_deploy_failure(result)
