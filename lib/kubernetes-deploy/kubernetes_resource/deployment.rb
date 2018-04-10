@@ -145,10 +145,11 @@ module KubernetesDeploy
         return false unless Time.now.utc - @deploy_started_at >= progress_deadline.to_i
       end
 
+      # This assumes that when the controller bumps the observed generation, it also updates/clears all the status
+      # conditions. Specifically, it assumes the progress condition is immediately set to True if a rollout is starting.
       deploy_started? &&
       current_generation == observed_generation &&
-      progress_condition["status"] == 'False' &&
-      progress_condition["reason"] == "ProgressDeadlineExceeded"
+      progress_condition["status"] == 'False'
     end
 
     def find_latest_rs(mediator)
