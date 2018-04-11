@@ -891,7 +891,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     result = deploy_fixtures(
       "invalid",
       subset: ["bad_probe.yml", "cannot_run.yml", "missing_volumes.yml", "config_map.yml"],
-      max_watch_seconds: 15
+      max_watch_seconds: 20
     ) do |f|
       bad_probe = f["bad_probe.yml"]["Deployment"].first
       bad_probe["metadata"]["annotations"]["kubernetes-deploy.shopify.io/timeout-override"] = '5s'
@@ -906,7 +906,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "ConfigMap/test",
       "Deployment/cannot-run: FAILED",
       "Deployment/bad-probe: TIMED OUT (timeout: 5s)",
-      "Deployment/missing-volumes: GLOBAL WATCH TIMEOUT (15 seconds)"
+      "Deployment/missing-volumes: GLOBAL WATCH TIMEOUT (20 seconds)"
     ])
   end
 
