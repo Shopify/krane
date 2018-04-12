@@ -24,7 +24,7 @@ require 'timecop'
 require 'minitest/autorun'
 require 'minitest/stub/const'
 require 'webmock/minitest'
-require 'mocha/mini_test'
+require 'mocha/minitest'
 require 'minitest/parallel'
 require "minitest/reporters"
 

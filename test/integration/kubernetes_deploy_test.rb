@@ -66,10 +66,10 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'pod "unmanaged-pod-',
       'service "web"',
       'resourcequota "resource-quotas"',
-      'deployment "web"',
-      'ingress "web"',
-      'daemonset "ds-app"',
-      'statefulset "stateful-busybox"',
+      'deployment(\.extensions)? "web"',
+      'ingress(\.extensions)? "web"',
+      'daemonset(\.extensions)? "ds-app"',
+      'statefulset(\.apps)? "stateful-busybox"',
     ] # not necessarily listed in this order
     expected_msgs = [/Pruned 8 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
