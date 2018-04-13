@@ -469,7 +469,8 @@ module KubernetesDeploy
     def confirm_namespace_exists
       st, err = nil
       with_retries(2) do
-        _, err, st = kubectl.run("get", "namespace", @namespace, use_namespace: false, log_failure: true)
+        @namespace_info, err, st = kubectl.run("get", "namespace", @namespace, "-o", "json", use_namespace: false,
+           log_failure: true)
         st.success? || err.include?(NOT_FOUND_ERROR)
       end
       raise FatalDeploymentError, "Failed to find namespace. #{err}" unless st.success?
@@ -481,7 +482,13 @@ module KubernetesDeploy
     end
 
     def statsd_tags
-      %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context})
+      tags = %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context})
+      return tags if @namespace_info.blank?
+      namespace_labels = JSON.parse(@namespace_info, symbolize_names: true).dig(:metadata, :labels)
+      namespace_labels&.each do |key, value|
+        tags << "#{key}:#{value}"
+      end
+      tags
     end
 
     def with_retries(limit)

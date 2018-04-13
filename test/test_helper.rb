@@ -27,6 +27,7 @@ require 'webmock/minitest'
 require 'mocha/minitest'
 require 'minitest/parallel'
 require "minitest/reporters"
+include StatsD::Instrument::Assertions
 
 Dir.glob(File.expand_path("../helpers/*.rb", __FILE__)).each { |file| require file }
 ENV["KUBECONFIG"] ||= "#{Dir.home}/.kube/config"
