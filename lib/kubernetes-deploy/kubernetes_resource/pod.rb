@@ -5,7 +5,8 @@ module KubernetesDeploy
 
     FAILED_PHASE_NAME = "Failed"
 
-    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started_at: nil)
+    def initialize(namespace:, context:, definition:, logger:,
+      extra_statsd_tags: nil, parent: nil, deploy_started_at: nil)
       @parent = parent
       @deploy_started_at = deploy_started_at
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
@@ -14,7 +15,8 @@ module KubernetesDeploy
         raise FatalDeploymentError, "Template is missing required field spec.containers"
       end
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
-      super(namespace: namespace, context: context, definition: definition, logger: logger)
+      super(namespace: namespace, context: context, definition: definition,
+            logger: logger, extra_statsd_tags: extra_statsd_tags)
     end
 
     def sync(mediator)
