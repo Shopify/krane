@@ -971,18 +971,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_adds_namespace_labels_to_statsd_tags
-    desired_tag = "statsd_tag:test"
+    desired_tags = %W(context:#{KubeclientHelper::MINIKUBE_CONTEXT} statsd_tag:test)
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     kubeclient.patch_namespace(hello_cloud.namespace, metadata: { labels: { statsd_tag: 'test' } })
     metrics = capture_statsd_calls do
       assert_deploy_success(deploy_fixtures("hello-cloud"))
     end
-
-    found = false
-    metrics&.each do |metric|
-      found = true if metric.tags.include?(desired_tag)
+    metrics.each do |metric|
+      desired_tags.each do |tag|
+        assert_includes metric.tags, tag
+      end
     end
-    assert(found, "Expected to find #{desired_tag} in statsd tags but did not.")
   end
 
 
