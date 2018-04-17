@@ -122,6 +122,7 @@ module KubernetesDeploy
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
       confirm_context_exists
       confirm_namespace_exists
+      @namespace_tags = tags_from_namespace_labels
       resources = discover_resources
       validate_definitions(resources)
 
@@ -231,7 +232,7 @@ module KubernetesDeploy
 
         split_templates(filename) do |r_def|
           r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
-                                       definition: r_def, extra_statsd_tags: statsd_tags)
+                                       definition: r_def, statsd_tags: statsd_tags)
           resources << r
           @logger.info "  - #{r.id}"
         end
@@ -470,12 +471,27 @@ module KubernetesDeploy
     def confirm_namespace_exists
       st, err = nil
       with_retries(2) do
-        @namespace_info, err, st = kubectl.run("get", "namespace", @namespace, "-o", "json", use_namespace: false,
-           log_failure: true)
+        _, err, st = kubectl.run("get", "namespace", @namespace, use_namespace: false, log_failure: true)
         st.success? || err.include?(NOT_FOUND_ERROR)
       end
       raise FatalDeploymentError, "Failed to find namespace. #{err}" unless st.success?
       @logger.info("Namespace #{@namespace} found")
+    end
+
+    def tags_from_namespace_labels
+      namespace_info = nil
+      with_retries(2) do
+        namespace_info, err, st = kubectl.run("get", "namespace", @namespace, "-o", "json", use_namespace: false,
+          log_failure: true)
+        st.success?
+      end
+      tags = []
+      return tags if namespace_info.blank?
+      namespace_labels = JSON.parse(namespace_info, symbolize_names: true).dig(:metadata, :labels)
+      namespace_labels&.each do |key, value|
+        tags << "#{key}:#{value}"
+      end
+      tags
     end
 
     def kubectl
@@ -483,13 +499,7 @@ module KubernetesDeploy
     end
 
     def statsd_tags
-      tags = %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context})
-      return tags if @namespace_info.blank?
-      namespace_labels = JSON.parse(@namespace_info, symbolize_names: true).dig(:metadata, :labels)
-      namespace_labels&.each do |key, value|
-        tags << "#{key}:#{value}"
-      end
-      tags
+      %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context}) | @namespace_tags
     end
 
     def with_retries(limit)

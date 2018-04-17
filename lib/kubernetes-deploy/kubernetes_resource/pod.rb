@@ -6,7 +6,7 @@ module KubernetesDeploy
     FAILED_PHASE_NAME = "Failed"
 
     def initialize(namespace:, context:, definition:, logger:,
-      extra_statsd_tags: nil, parent: nil, deploy_started_at: nil)
+      statsd_tags: nil, parent: nil, deploy_started_at: nil)
       @parent = parent
       @deploy_started_at = deploy_started_at
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
@@ -16,7 +16,7 @@ module KubernetesDeploy
       end
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
       super(namespace: namespace, context: context, definition: definition,
-            logger: logger, extra_statsd_tags: extra_statsd_tags)
+            logger: logger, statsd_tags: statsd_tags)
     end
 
     def sync(mediator)

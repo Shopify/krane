@@ -5,7 +5,7 @@ require 'shellwords'
 
 module KubernetesDeploy
   class KubernetesResource
-    attr_reader :name, :namespace, :context, :extra_statsd_tags
+    attr_reader :name, :namespace, :context
     attr_writer :type, :deploy_started_at
 
     TIMEOUT = 5.minutes
@@ -28,10 +28,9 @@ module KubernetesDeploy
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
 
     class << self
-      attr_accessor :extra_statsd_tags
-      def build(namespace:, context:, definition:, logger:, extra_statsd_tags:)
+      def build(namespace:, context:, definition:, logger:, statsd_tags:)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
-                 extra_statsd_tags: extra_statsd_tags }
+                 statsd_tags: statsd_tags }
         if KubernetesDeploy.const_defined?(definition["kind"])
           klass = KubernetesDeploy.const_get(definition["kind"])
           klass.new(**opts)
@@ -67,7 +66,7 @@ module KubernetesDeploy
       "timeout: #{timeout}s"
     end
 
-    def initialize(namespace:, context:, definition:, logger:, extra_statsd_tags: nil)
+    def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
       # subclasses must also set these if they define their own initializer
       @name = definition.dig("metadata", "name")
       unless @name.present?
@@ -75,7 +74,7 @@ module KubernetesDeploy
         raise FatalDeploymentError, "Template is missing required field metadata.name"
       end
 
-      @extra_statsd_tags = extra_statsd_tags
+      @optional_statsd_tags = statsd_tags
       @namespace = namespace
       @context = context
       @logger = logger
@@ -361,10 +360,7 @@ module KubernetesDeploy
       end
       tags = %W(context:#{context} namespace:#{namespace} resource:#{id}
                 type:#{type} sha:#{ENV['REVISION']} status:#{status})
-      @extra_statsd_tags&.each do |tag|
-        tags << tag unless tags.include?(tag)
-      end
-      tags
+      tags | @optional_statsd_tags
     end
   end
 end
