@@ -4,6 +4,7 @@ kind: Deployment
 metadata:
   name: web
   uid: foobar
+  generation: 2
   annotations:
     "deployment.kubernetes.io/revision": "1"
   labels:
