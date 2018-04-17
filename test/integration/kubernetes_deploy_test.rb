@@ -983,7 +983,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert !metrics.empty?
 
     metrics.each do |metric|
-      assert (desired_tags - metric.tags).empty?
+      difference = desired_tags - metric.tags
+      assert difference.empty?
     end
   end
 

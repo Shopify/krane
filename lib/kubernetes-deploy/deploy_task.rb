@@ -481,7 +481,7 @@ module KubernetesDeploy
     def tags_from_namespace_labels
       namespace_info = nil
       with_retries(2) do
-        namespace_info, err, st = kubectl.run("get", "namespace", @namespace, "-o", "json", use_namespace: false,
+        namespace_info, _, st = kubectl.run("get", "namespace", @namespace, "-o", "json", use_namespace: false,
           log_failure: true)
         st.success?
       end
