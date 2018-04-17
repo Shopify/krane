@@ -2,6 +2,10 @@
 
 *Bug Fixes*
 - Prevent calling sleep with a negative value ([#273](https://github.com/Shopify/kubernetes-deploy/pull/273))
+- Prevent no-op redeploys of bad code from hanging forever ([#262](https://github.com/Shopify/kubernetes-deploy/pull/262))
+
+*Enhancements*
+- Improve output for rendering errors ([#253](https://github.com/Shopify/kubernetes-deploy/pull/253))
 
 ### 0.19.0
 *Features*
