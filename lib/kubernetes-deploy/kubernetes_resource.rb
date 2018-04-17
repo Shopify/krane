@@ -66,7 +66,7 @@ module KubernetesDeploy
       "timeout: #{timeout}s"
     end
 
-    def initialize(namespace:, context:, definition:, logger:, statsd_tags:)
+    def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
       # subclasses must also set these if they define their own initializer
       @name = definition.dig("metadata", "name")
       unless @name.present?
@@ -74,7 +74,7 @@ module KubernetesDeploy
         raise FatalDeploymentError, "Template is missing required field metadata.name"
       end
 
-      @optional_statsd_tags = statsd_tags || []
+      @optional_statsd_tags = statsd_tags
       @namespace = namespace
       @context = context
       @logger = logger
