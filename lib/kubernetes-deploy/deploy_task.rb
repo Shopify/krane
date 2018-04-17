@@ -253,6 +253,7 @@ module KubernetesDeploy
         yield doc
       end
     rescue InvalidTemplateError => e
+      e.filename ||= filename
       record_invalid_template(err: e.message, filename: e.filename, content: e.content)
       raise FatalDeploymentError, "Failed to render and parse template"
     rescue Psych::SyntaxError => e
