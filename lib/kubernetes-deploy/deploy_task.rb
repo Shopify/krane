@@ -92,6 +92,7 @@ module KubernetesDeploy
     def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil)
       @namespace = namespace
+      @namespace_tags = []
       @context = context
       @current_sha = current_sha
       @template_dir = File.expand_path(template_dir)
@@ -122,7 +123,7 @@ module KubernetesDeploy
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
       confirm_context_exists
       confirm_namespace_exists
-      @namespace_tags = tags_from_namespace_labels
+      @namespace_tags << tags_from_namespace_labels
       resources = discover_resources
       validate_definitions(resources)
 
