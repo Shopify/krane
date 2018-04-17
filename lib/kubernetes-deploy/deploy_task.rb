@@ -123,7 +123,7 @@ module KubernetesDeploy
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
       confirm_context_exists
       confirm_namespace_exists
-      @namespace_tags << tags_from_namespace_labels
+      @namespace_tags |= tags_from_namespace_labels
       resources = discover_resources
       validate_definitions(resources)
 
