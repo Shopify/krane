@@ -1,0 +1,12 @@
+<% (0..2).each do |n| %>
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: <%= "test#{n}" %>
+  labels:
+    name: <%= "test#{n}" %>
+    app: hello-cloud
+data:
+  test<%= n %>: <%= n * n %>
+<% end %>

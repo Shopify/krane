@@ -141,21 +141,26 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_fails_fast
-    refute deploy_dir(fixture_path("invalid"))
+    assert_deploy_failure(deploy_dir(fixture_path("invalid")))
     assert_logs_match_all([
-      /Template 'yaml-error.yml' cannot be parsed/,
-      /datapoint1: value1:/
-    ])
+      "Failed to render and parse template",
+      "Invalid template: yaml-error.yml",
+      "mapping values are not allowed in this context",
+      "> Template content:",
+      "datapoint1: value1:"
+    ], in_order: true)
   end
 
   def test_invalid_yaml_in_partial_prints_helpful_error
-    refute deploy_raw_fixtures("invalid-partials")
+    assert_deploy_failure(deploy_raw_fixtures("invalid-partials"))
+    included_from = "partial included from: include-invalid-partial.yml.erb"
     assert_logs_match_all([
       "Result: FAILURE",
-      %r{Template '.*/partials/invalid.yml.erb' cannot be rendered \(included from: include-invalid-partial.yml.erb\)},
-      "Error from renderer:",
-      "  (<unknown>): mapping values are not allowed in this context",
-      "Rendered template content:",
+      "Failed to render and parse template",
+      %r{Invalid template: .*/partials/invalid.yml.erb \(#{included_from}\)},
+      "> Error message:",
+      "(<unknown>): mapping values are not allowed in this context",
+      "> Template content:",
       "containers:",
       "- name: invalid-container",
       "notField: notval:"
@@ -163,21 +168,36 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
 
     # make sure we're not displaying duplicate errors
     refute_logs_match("Template 'include-invalid-partial.yml.erb' cannot be rendered")
-    assert_logs_match("Rendered template content:", 1)
-    assert_logs_match("Error from renderer:", 1)
+    assert_logs_match("Template content:", 1)
+    assert_logs_match("Error message:", 1)
   end
 
-  def test_missing_nested_partial_prints_helpful_error
-    refute deploy_raw_fixtures("missing-partials")
+  def test_missing_partial_correctly_identifies_invalid_template
+    assert_deploy_failure(deploy_raw_fixtures("missing-partials", subset: ["parent-with-missing-child.yml.erb"]))
+
     assert_logs_match_all([
       "Result: FAILURE",
-      %r{Could not find partial 'missing' in any of.*fixtures/missing-partials/partials:.*/fixtures/partials},
-      "(included from: include-missing-partials.yml.erb -> nest-missing-partial.yml.erb)"
+      "Failed to render and parse template",
+      "Invalid template: parent-with-missing-child.yml.erb", # the thing with the invalid `partial` call in it
+      "> Error message:",
+      %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
+      "> Template content:",
+      "<%= partial 'does-not-exist' %>",
     ], in_order: true)
+  end
 
-    # make sure we're not displaying empty errors from the parents
-    refute_logs_match("Rendered template content:")
-    refute_logs_match("Error from renderer:")
+  def test_missing_nested_partial_correctly_identifies_invalid_template_and_its_parents
+    assert_deploy_failure(deploy_raw_fixtures("missing-partials", subset: ["parent-with-missing-grandchild.yml.erb"]))
+
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Failed to render and parse template",
+      "Invalid template: parent-with-missing-child (partial included from: parent-with-missing-grandchild.yml.erb)",
+      "> Error message:",
+      %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
+      "> Template content:",
+      "<%= partial 'does-not-exist' %>"
+    ], in_order: true)
   end
 
   def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast_and_prints_template
@@ -191,19 +211,19 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       assert_logs_match_all([
         "Template validation failed",
         /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
-        "> Error from kubectl:",
+        "> Error message:",
         "error validating data: found invalid field myKey for v1.ObjectMeta",
-        "> Rendered template content:",
+        "> Template content:",
         "      myKey: uhOh"
       ], in_order: true)
     else
       assert_logs_match_all([
         "Template validation failed",
         /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
-        "> Error from kubectl:",
+        "> Error message:",
         "error validating data: ValidationError(ConfigMap.metadata): \
 unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
-        "> Rendered template content:",
+        "> Template content:",
         "      myKey: uhOh"
       ], in_order: true)
     end
@@ -234,13 +254,18 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      /Invalid templates: (Deployment|Service)-web.*\.yml, (Deployment|Service)-web.*\.yml/,
-      "Error from server (Invalid): error when creating",
-      "Error from server (Invalid): error when creating", # once for deployment, once for svc
-      "> Rendered template content:",
-      /(name|targetPort): http_test_is_really_long_and_invalid_chars/, # error in svc template
-      /(name|targetPort): http_test_is_really_long_and_invalid_chars/ # error in deployment template
+      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+      /Invalid template: Deployment-web.*\.yml/,
+      "> Error message:",
+      /Error from server \(Invalid\): error when creating.*Deployment\.?\w* "web" is invalid/,
+      "> Template content:",
+      "              name: http_test_is_really_long_and_invalid_chars",
+
+      /Invalid template: Service-web.*\.yml/,
+      "> Error message:",
+      /Error from server \(Invalid\): error when creating.*Service "web" is invalid/,
+      "> Template content:",
+      "        targetPort: http_test_is_really_long_and_invalid_chars"
     ], in_order: true)
   end
 
@@ -252,9 +277,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      "Invalid templates: See error message",
-      "> Error from kubectl:",
+      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+      "Unidentified error(s):",
       '    The Service "web" is invalid:',
       'spec.ports[0].targetPort: Invalid value: "http_test_is_really_long_and_invalid_chars"'
     ], in_order: true)
@@ -427,7 +451,15 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_deploy_fails_if_required_binding_not_present
     assert_deploy_failure(deploy_fixtures('collection-with-erb', subset: ["conf_map.yaml.erb"]))
-    assert_logs_match("Template 'conf_map.yaml.erb' cannot be rendered")
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Failed to render and parse template",
+      "Invalid template: conf_map.yaml.erb",
+      "> Error message:",
+      "undefined local variable or method `binding_test_a'",
+      "> Template content:",
+      'BINDING_TEST_A: "<%= binding_test_a %>"'
+    ], in_order: true)
   end
 
   def test_long_running_deployment
@@ -588,9 +620,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error below were likely created/updated.",
-      "Invalid templates: See error message",
-      "> Error from kubectl:",
+      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+      "Unidentified error(s):",
       /The Deployment "web" is invalid.*`selector` does not match template `labels`/
     ], in_order: true)
   end
@@ -925,6 +956,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Service/multi-replica",
       "Deployment/undying: GLOBAL WATCH TIMEOUT (5 seconds)",
       "If you expected it to take longer than 5 seconds for your deploy to roll out, increase --max-watch-seconds."
+    ], in_order: true)
+  end
+
+  def test_friendly_error_on_misidentified_erb_file
+    assert_deploy_failure(deploy_raw_fixtures('invalid', subset: ['wrong-extension-erb.yml']))
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Invalid template: wrong-extension-erb.yml",
+      "Template is not a valid Kubernetes manifest",
+      "> Template content:",
+      "<% (0..2).each do |n| %>"
     ], in_order: true)
   end
 end

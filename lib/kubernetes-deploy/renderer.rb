@@ -7,14 +7,14 @@ require 'json'
 
 module KubernetesDeploy
   class Renderer
-    class InvalidPartialError < FatalDeploymentError
-      attr_reader :parents
-      def initialize(msg, parents = [])
+    class InvalidPartialError < InvalidTemplateError
+      attr_accessor :parents, :content, :filename
+      def initialize(msg, parents: [], content: nil, filename:)
         @parents = parents
-        super(msg)
+        super(msg, content: content, filename: filename)
       end
     end
-    class PartialNotFound < InvalidPartialError; end
+    class PartialNotFound < InvalidTemplateError; end
 
     def initialize(current_sha:, template_dir:, logger:, bindings: {})
       @current_sha = current_sha
@@ -35,11 +35,11 @@ module KubernetesDeploy
 
       ERB.new(raw_template, nil, '-').result(erb_binding)
     rescue InvalidPartialError => err
-      all_parents = err.parents.dup.unshift(filename)
-      raise FatalDeploymentError, "#{err.message} (included from: #{all_parents.join(' -> ')})"
+      err.parents = err.parents.dup.unshift(filename)
+      err.filename = "#{err.filename} (partial included from: #{err.parents.join(' -> ')})"
+      raise err
     rescue StandardError => err
-      report_template_invalid(err.message, raw_template)
-      raise FatalDeploymentError, "Template '#{filename}' cannot be rendered"
+      raise InvalidTemplateError.new(err.message, filename: filename, content: raw_template)
     end
 
     def render_partial(partial, locals)
@@ -60,12 +60,14 @@ module KubernetesDeploy
       # Note that JSON is a subset of YAML.
       JSON.generate(docs.children.first.to_ruby)
     rescue PartialNotFound => err
-      raise InvalidPartialError, err.message
+      # get the filename from the first parent, not the missing partial itself
+      raise err if err.filename == partial
+      raise InvalidPartialError.new(err.message, filename: partial, content: expanded_template || template)
     rescue InvalidPartialError => err
-      raise InvalidPartialError.new(err.message, err.parents.dup.unshift(File.basename(partial_path)))
+      err.parents = err.parents.dup.unshift(File.basename(partial_path))
+      raise err
     rescue StandardError => err
-      report_template_invalid(err.message, expanded_template)
-      raise InvalidPartialError, "Template '#{partial_path}' cannot be rendered"
+      raise InvalidPartialError.new(err.message, filename: partial_path, content: expanded_template || template)
     end
 
     private
@@ -91,12 +93,8 @@ module KubernetesDeploy
           return partial_path if File.exist?(partial_path)
         end
       end
-      raise PartialNotFound, "Could not find partial '#{name}' in any of #{@partials_dirs.join(':')}"
-    end
-
-    def report_template_invalid(message, content)
-      @logger.summary.add_paragraph("Error from renderer:\n  #{message.tr("\n", ' ')}")
-      @logger.summary.add_paragraph("Rendered template content:\n#{content}")
+      raise PartialNotFound.new("Could not find partial '#{name}' in any of #{@partials_dirs.join(':')}",
+        filename: name)
     end
 
     class TemplateContext

@@ -187,15 +187,6 @@ module KubernetesDeploy
 
     private
 
-    # Inspect the file referenced in the kubectl stderr
-    # to make it easier for developer to understand what's going on
-    def find_bad_files_from_kubectl_output(stderr)
-      # stderr often contains one or more lines like the following, from which we can extract the file path(s):
-      # Error from server (TypeOfError): error when creating "/path/to/service-gqq5oh.yml": Service "web" is invalid:
-      matches = stderr.scan(%r{"(/\S+\.ya?ml\S*)"})
-      matches&.flatten
-    end
-
     def deploy_has_priority_resources?(resources)
       resources.any? { |r| PREDEPLOY_SEQUENCE.include?(r.type) }
     end
@@ -225,7 +216,8 @@ module KubernetesDeploy
       return unless failed_resources.present?
 
       failed_resources.each do |r|
-        record_invalid_template(r.validation_error_msg, file_paths: [r.file_path])
+        content = File.read(r.file_path) if File.file?(r.file_path)
+        record_invalid_template(err: r.validation_error_msg, filename: File.basename(r.file_path), content: content)
       end
       raise FatalDeploymentError, "Template validation failed"
     end
@@ -250,34 +242,25 @@ module KubernetesDeploy
       file_content = File.read(File.join(@template_dir, filename))
       rendered_content = @renderer.render_template(filename, file_content)
       YAML.load_stream(rendered_content) do |doc|
-        yield doc unless doc.blank?
+        next if doc.blank?
+        unless doc.is_a?(Hash)
+          raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
+            filename: filename, content: doc)
+        end
+        yield doc
       end
+    rescue InvalidTemplateError => e
+      record_invalid_template(err: e.message, filename: e.filename, content: e.content)
+      raise FatalDeploymentError, "Failed to render and parse template"
     rescue Psych::SyntaxError => e
-      debug_msg = <<~INFO
-        Error message: #{e}
-
-        Template content:
-        ---
-      INFO
-      debug_msg += rendered_content
-      @logger.summary.add_paragraph(debug_msg)
-      raise FatalDeploymentError, "Template '#{filename}' cannot be parsed"
+      record_invalid_template(err: e.message, filename: filename, content: rendered_content)
+      raise FatalDeploymentError, "Failed to render and parse template"
     end
 
-    def record_invalid_template(err, file_paths:, original_filenames: nil)
-      template_names = Array(original_filenames)
-      file_content = Array(file_paths).each_with_object([]) do |file_path, contents|
-        next unless File.file?(file_path)
-        contents << File.read(file_path)
-        template_names << File.basename(file_path) unless original_filenames
-      end.join("\n")
-      template_list = template_names.compact.join(", ").presence || "See error message"
-
-      debug_msg = ColorizedString.new("Invalid #{'template'.pluralize(template_names.length)}: #{template_list}\n").red
-      debug_msg += "> Error from kubectl:\n#{indent_four(err)}"
-      if file_content.present?
-        debug_msg += "\n> Rendered template content:\n#{indent_four(file_content)}"
-      end
+    def record_invalid_template(err:, filename:, content:)
+      debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
+      debug_msg += "> Error message:\n#{indent_four(err)}"
+      debug_msg += "\n> Template content:\n#{indent_four(content)}"
       @logger.summary.add_paragraph(debug_msg)
     end
 
@@ -406,11 +389,7 @@ module KubernetesDeploy
         if st.success?
           log_pruning(out) if prune
         else
-          file_paths = find_bad_files_from_kubectl_output(err)
-          warn_msg = "WARNING: Any resources not mentioned in the error below were likely created/updated. " \
-            "You may wish to roll back this deploy."
-          @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-          record_invalid_template(err, file_paths: file_paths)
+          record_apply_failure(err)
           raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
         end
       end
@@ -422,6 +401,41 @@ module KubernetesDeploy
 
       @logger.info("The following resources were pruned: #{pruned.join(', ')}")
       @logger.summary.add_action("pruned #{pruned.length} #{'resource'.pluralize(pruned.length)}")
+    end
+
+    def record_apply_failure(err)
+      warn_msg = "WARNING: Any resources not mentioned in the error(s) below were likely created/updated. " \
+        "You may wish to roll back this deploy."
+      @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
+
+      unidentified_errors = []
+      err.each_line do |line|
+        bad_files = find_bad_files_from_kubectl_output(line)
+        if bad_files.present?
+          bad_files.each { |f| record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content]) }
+        else
+          unidentified_errors << line
+        end
+      end
+
+      if unidentified_errors.present?
+        msg = "#{ColorizedString.new('Unidentified error(s):').red}\n#{indent_four(unidentified_errors.join)}"
+        @logger.summary.add_paragraph(msg)
+      end
+    end
+
+    # Inspect the file referenced in the kubectl stderr
+    # to make it easier for developer to understand what's going on
+    def find_bad_files_from_kubectl_output(line)
+      # stderr often contains one or more lines like the following, from which we can extract the file path(s):
+      # Error from server (TypeOfError): error when creating "/path/to/service-gqq5oh.yml": Service "web" is invalid:
+
+      line.scan(%r{"(/\S+\.ya?ml\S*)"}).each_with_object([]) do |matches, bad_files|
+        matches.each do |path|
+          content = File.read(path) if File.file?(path)
+          bad_files << { filename: File.basename(path), err: line, content: content }
+        end
+      end
     end
 
     def confirm_context_exists

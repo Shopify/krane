@@ -40,8 +40,24 @@ module FixtureDeployHelper
     success
   end
 
-  def deploy_raw_fixtures(set, wait: true, bindings: {})
-    deploy_dir(fixture_path(set), wait: wait, bindings: bindings)
+  def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil)
+    success = false
+    if subset
+      Dir.mktmpdir("fixture_dir") do |target_dir|
+        partials_dir = File.join(fixture_path(set), 'partials')
+        if File.directory?(partials_dir)
+          FileUtils.copy_entry(partials_dir, File.join(target_dir, 'partials'))
+        end
+
+        subset.each do |file|
+          FileUtils.copy_entry(File.join(fixture_path(set), file), File.join(target_dir, file))
+        end
+        success = deploy_dir(target_dir, wait: wait, bindings: bindings)
+      end
+    else
+      success = deploy_dir(fixture_path(set), wait: wait, bindings: bindings)
+    end
+    success
   end
 
   def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {},
