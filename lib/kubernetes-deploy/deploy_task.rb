@@ -233,7 +233,7 @@ module KubernetesDeploy
 
         split_templates(filename) do |r_def|
           r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
-                                       definition: r_def, statsd_tags: statsd_tags)
+                                       definition: r_def, statsd_tags: @namespace_tags)
           resources << r
           @logger.info "  - #{r.id}"
         end
