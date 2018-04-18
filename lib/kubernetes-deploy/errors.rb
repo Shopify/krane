@@ -4,8 +4,9 @@ module KubernetesDeploy
   class KubectlError < StandardError; end
 
   class InvalidTemplateError < FatalDeploymentError
-    attr_reader :filename, :content
-    def initialize(err, filename:, content: nil)
+    attr_reader :content
+    attr_accessor :filename
+    def initialize(err, filename: nil, content: nil)
       @filename = filename
       @content = content
       super(err)

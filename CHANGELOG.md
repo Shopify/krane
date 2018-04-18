@@ -3,6 +3,8 @@
 *Features*
 
 *Bug Fixes*
+- Display a nice error instead of crashing when a YAML document is missing 'Kind'
+([#280](https://github.com/Shopify/kubernetes-deploy/pull/280))
 
 *Enhancements*
 

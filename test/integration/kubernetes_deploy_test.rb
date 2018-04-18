@@ -986,4 +986,21 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       assert_empty desired_tags - metric.tags
     end
   end
+
+  def test_raise_on_yaml_missing_kind
+    result = deploy_fixtures("invalid-resources", subset: ["missing_kind.yml"])
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      "Invalid template: missing_kind.yml",
+      "> Error message:",
+      "Template missing 'Kind'",
+      "> Template content:",
+      "---",
+      "apiVersion: v1",
+      "metadata:",
+      "  name: test",
+      "data:",
+      "  datapoint: value1"
+    ], in_order: true)
+  end
 end
