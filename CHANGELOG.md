@@ -1,5 +1,16 @@
 ### Master
 
+*Features*
+
+*Bug Fixes*
+
+*Enhancements*
+
+### 0.20.0
+
+*Features*
+- Automatically add all Kubernetes namespace labels to StatsD tags ([#278](https://github.com/Shopify/kubernetes-deploy/pull/278))
+
 *Bug Fixes*
 - Prevent calling sleep with a negative value ([#273](https://github.com/Shopify/kubernetes-deploy/pull/273))
 - Prevent no-op redeploys of bad code from hanging forever ([#262](https://github.com/Shopify/kubernetes-deploy/pull/262))
