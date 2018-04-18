@@ -486,13 +486,9 @@ module KubernetesDeploy
           log_failure: true)
         st.success?
       end
-      tags = []
-      return tags if namespace_info.blank?
-      namespace_labels = JSON.parse(namespace_info, symbolize_names: true).dig(:metadata, :labels)
-      namespace_labels&.each do |key, value|
-        tags << "#{key}:#{value}"
-      end
-      tags
+      return [] if namespace_info.blank?
+      namespace_labels = JSON.parse(namespace_info, symbolize_names: true).fetch(:metadata, {}).fetch(:labels, {})
+      namespace_labels.map { |key, value| "#{key}:#{value}" }
     end
 
     def kubectl

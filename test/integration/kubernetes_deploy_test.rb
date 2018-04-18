@@ -975,12 +975,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     kubeclient.patch_namespace(hello_cloud.namespace, metadata: { labels: { foo: 'bar' } })
     metrics = capture_statsd_calls do
-      assert_deploy_success(deploy_fixtures("hello-cloud"))
+      assert_deploy_success deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"])
     end
 
     # We can't ensure that all the metrics we grab are from this specific test because they are running in parallel
     metrics = metrics.select { |m| m.tags.include? "namespace:#{@namespace}" }
-    refute_empty metrics
+    assert_equal 4, metrics.count
 
     metrics.each do |metric|
       assert_empty desired_tags - metric.tags
