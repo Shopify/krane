@@ -92,6 +92,7 @@ module KubernetesDeploy
     def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil)
       @namespace = namespace
+      @namespace_tags = []
       @context = context
       @current_sha = current_sha
       @template_dir = File.expand_path(template_dir)
@@ -122,6 +123,7 @@ module KubernetesDeploy
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
       confirm_context_exists
       confirm_namespace_exists
+      @namespace_tags |= tags_from_namespace_labels
       resources = discover_resources
       validate_definitions(resources)
 
@@ -230,7 +232,8 @@ module KubernetesDeploy
         next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
 
         split_templates(filename) do |r_def|
-          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def)
+          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
+                                       definition: r_def, statsd_tags: @namespace_tags)
           resources << r
           @logger.info "  - #{r.id}"
         end
@@ -476,12 +479,24 @@ module KubernetesDeploy
       @logger.info("Namespace #{@namespace} found")
     end
 
+    def tags_from_namespace_labels
+      namespace_info = nil
+      with_retries(2) do
+        namespace_info, _, st = kubectl.run("get", "namespace", @namespace, "-o", "json", use_namespace: false,
+          log_failure: true)
+        st.success?
+      end
+      return [] if namespace_info.blank?
+      namespace_labels = JSON.parse(namespace_info, symbolize_names: true).fetch(:metadata, {}).fetch(:labels, {})
+      namespace_labels.map { |key, value| "#{key}:#{value}" }
+    end
+
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
     end
 
     def statsd_tags
-      %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context})
+      %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context}) | @namespace_tags
     end
 
     def with_retries(limit)

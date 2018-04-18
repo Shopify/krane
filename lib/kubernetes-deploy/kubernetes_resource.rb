@@ -28,8 +28,9 @@ module KubernetesDeploy
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
 
     class << self
-      def build(namespace:, context:, definition:, logger:)
-        opts = { namespace: namespace, context: context, definition: definition, logger: logger }
+      def build(namespace:, context:, definition:, logger:, statsd_tags:)
+        opts = { namespace: namespace, context: context, definition: definition, logger: logger,
+                 statsd_tags: statsd_tags }
         if KubernetesDeploy.const_defined?(definition["kind"])
           klass = KubernetesDeploy.const_get(definition["kind"])
           klass.new(**opts)
@@ -65,7 +66,7 @@ module KubernetesDeploy
       "timeout: #{timeout}s"
     end
 
-    def initialize(namespace:, context:, definition:, logger:)
+    def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
       # subclasses must also set these if they define their own initializer
       @name = definition.dig("metadata", "name")
       unless @name.present?
@@ -73,6 +74,7 @@ module KubernetesDeploy
         raise FatalDeploymentError, "Template is missing required field metadata.name"
       end
 
+      @optional_statsd_tags = statsd_tags
       @namespace = namespace
       @context = context
       @logger = logger
@@ -356,7 +358,9 @@ module KubernetesDeploy
       else
         "unknown"
       end
-      %W(context:#{context} namespace:#{namespace} resource:#{id} type:#{type} sha:#{ENV['REVISION']} status:#{status})
+      tags = %W(context:#{context} namespace:#{namespace} resource:#{id}
+                type:#{type} sha:#{ENV['REVISION']} status:#{status})
+      tags | @optional_statsd_tags
     end
   end
 end

@@ -5,11 +5,13 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     attr_reader :pods
 
-    def initialize(namespace:, context:, definition:, logger:, parent: nil, deploy_started_at: nil)
+    def initialize(namespace:, context:, definition:, logger:, statsd_tags: nil,
+      parent: nil, deploy_started_at: nil)
       @parent = parent
       @deploy_started_at = deploy_started_at
       @pods = []
-      super(namespace: namespace, context: context, definition: definition, logger: logger)
+      super(namespace: namespace, context: context, definition: definition,
+            logger: logger, statsd_tags: statsd_tags)
     end
 
     SYNC_DEPENDENCIES = %w(Pod)
