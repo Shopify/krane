@@ -993,7 +993,14 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Invalid template: missing_kind.yml",
       "> Error message:",
-      "Template missing 'Kind'"
+      "Template missing 'Kind'",
+      "> Template content:",
+      "---",
+      "apiVersion: v1",
+      "metadata:",
+      "  name: test",
+      "data:",
+      "  datapoint: value1"
     ], in_order: true)
   end
 end

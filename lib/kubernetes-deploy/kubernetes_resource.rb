@@ -32,7 +32,7 @@ module KubernetesDeploy
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
         if definition["kind"].blank?
-          raise InvalidTemplateError.new("Template missing 'Kind'", filename: nil, content: definition.to_s)
+          raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
         elsif KubernetesDeploy.const_defined?(definition["kind"])
           klass = KubernetesDeploy.const_get(definition["kind"])
           klass.new(**opts)
