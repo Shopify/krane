@@ -14,6 +14,8 @@
 *Bug Fixes*
 - Prevent calling sleep with a negative value ([#273](https://github.com/Shopify/kubernetes-deploy/pull/273))
 - Prevent no-op redeploys of bad code from hanging forever ([#262](https://github.com/Shopify/kubernetes-deploy/pull/262))
+- Display a nice error instead of crashing when a YAML document is missing 'Kind'
+([#280](https://github.com/Shopify/kubernetes-deploy/pull/280))
 
 *Enhancements*
 - Improve output for rendering errors ([#253](https://github.com/Shopify/kubernetes-deploy/pull/253))
