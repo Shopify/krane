@@ -986,6 +986,4 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       assert_empty desired_tags - metric.tags
     end
   end
-
-
 end
