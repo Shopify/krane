@@ -25,7 +25,6 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 2.3.0'
   spec.add_dependency "activesupport", ">= 5.0"
   spec.add_dependency "kubeclient", "~> 3.0"
-  spec.add_dependency "rest-client", ">= 1.7" # Minimum required by kubeclient. Remove when kubeclient releases v3.0.
   spec.add_dependency "googleauth", ">= 0.5"
   spec.add_dependency "ejson", "1.0.1"
   spec.add_dependency "colorize", "~> 0.8"
