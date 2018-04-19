@@ -131,11 +131,11 @@ module KubernetesDeploy
 
     def patch_kubeclient_deployments(deployments)
       deployments.each do |record|
-        response = patch_deployment_with_restart(record)
-        if HTTP_OK_RANGE.cover?(response.code)
+        begin
+          patch_deployment_with_restart(record)
           @logger.info "Triggered `#{record.metadata.name}` restart"
-        else
-          raise RestartAPIError.new(record.metadata.name, response)
+        rescue Kubeclient::ResourceNotFoundError, Kubeclient::HttpError => e
+          raise RestartAPIError.new(record.metadata.name, e.message)
         end
       end
     end
