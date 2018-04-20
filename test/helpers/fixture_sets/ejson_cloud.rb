@@ -18,7 +18,7 @@ module FixtureSetAssertions
         labels: { name: 'ejson-keys' }
       }
       encoded_data = { test_public_key => test_private_key }
-      secret = Kubeclient::Secret.new(type: 'Opaque', metadata: metadata, data: encoded_data)
+      secret = Kubeclient::Resource.new(kind: 'Secret', type: 'Opaque', metadata: metadata, data: encoded_data)
       kubeclient.create_secret(secret)
     end
 

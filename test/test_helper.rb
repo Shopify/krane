@@ -254,7 +254,7 @@ module KubernetesDeploy
     end
 
     def self.create_namespace(namespace)
-      ns = Kubeclient::Namespace.new
+      ns = Kubeclient::Resource.new(kind: 'Namespace')
       ns.metadata = { name: namespace }
       kubeclient.create_namespace(ns)
     end
@@ -269,7 +269,7 @@ module KubernetesDeploy
       existing_pvs = kubeclient.get_persistent_volumes(label_selector: "name=#{name}")
       return if existing_pvs.present?
 
-      pv = Kubeclient::PersistentVolume.new
+      pv = Kubeclient::Resource.new(kind: 'PersistentVolume')
       pv.metadata = {
         name: name,
         labels: { name: name }
