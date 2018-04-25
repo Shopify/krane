@@ -74,6 +74,7 @@ module KubernetesDeploy
     end
 
     def deploy_timed_out?
+      return false if deploy_failed?
       # Do not use the hard timeout if progress deadline is set
       progress_condition.present? ? deploy_failing_to_progress? : super
     end
