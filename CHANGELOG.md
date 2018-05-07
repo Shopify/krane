@@ -7,6 +7,7 @@
 ([#280](https://github.com/Shopify/kubernetes-deploy/pull/280))
 
 *Enhancements*
+- Merge multiple `--bindings` arguments, to allow a composite bindings map (multiple arguments or files)
 
 ### 0.20.0
 
