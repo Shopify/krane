@@ -227,6 +227,20 @@ class DeploymentTest < KubernetesDeploy::TestCase
     assert_equal expected, deploy.validation_error_msg
   end
 
+  def test_validation_works_with_no_strategy_and_max_anavailable_annotation
+    deploy = build_synced_deployment(
+      template: build_deployment_template(rollout: 'maxUnavailable', strategy: nil),
+      replica_sets: [build_rs_template]
+    )
+    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+      ["", "super failed", SystemExit.new(1)]
+    )
+    refute deploy.validate_definition(kubectl)
+
+    expected = 'super failed'
+    assert_equal expected, deploy.validation_error_msg
+  end
+
   def test_deploy_succeeded_not_fooled_by_stale_rs_data_in_deploy_status
     deployment_status = {
       "replicas" => 3,
@@ -345,6 +359,10 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
     if strategy == "Recreate"
       result["spec"]["strategy"] = { "type" => strategy }
+    end
+
+    if strategy.nil?
+      result["spec"]["strategy"] = nil
     end
 
     if max_unavailable

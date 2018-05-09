@@ -87,7 +87,7 @@ module KubernetesDeploy
       end
 
       strategy = @definition.dig('spec', 'strategy', 'type').to_s
-      if required_rollout.downcase == 'maxunavailable' && strategy.downcase != 'rollingupdate'
+      if required_rollout.downcase == 'maxunavailable' && strategy.present? && strategy.downcase != 'rollingupdate'
         @validation_errors << "'#{REQUIRED_ROLLOUT_ANNOTATION}: #{required_rollout}' is incompatible "\
         "with strategy '#{strategy}'"
       end
