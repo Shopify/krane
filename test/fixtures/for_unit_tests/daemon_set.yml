@@ -1,0 +1,31 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: ds-app
+  generation: 2
+spec:
+  selector:
+    matchLabels:
+      app: ds-app
+      name: ds-app
+  template:
+    metadata:
+      labels:
+        app: hello-cloud
+        name: ds-app
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        ports:
+        - containerPort: 80
+status:
+  currentNumberScheduled: 2
+  desiredNumberScheduled: 2
+  numberAvailable: 2
+  numberMisscheduled: 0
+  numberReady: 2
+  observedGeneration: 2
+  updatedNumberScheduled: 1

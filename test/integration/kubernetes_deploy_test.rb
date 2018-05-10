@@ -19,7 +19,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
       %r{Service/web\s+Selects at least 1 pod},
-      %r{DaemonSet/ds-app\s+1 currentNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
+      %r{DaemonSet/ds-app\s+1 updatedNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
       %r{StatefulSet/stateful-busybox},
       %r{Service/redis-external\s+Doesn't require any endpoint}
     ])
@@ -759,7 +759,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Failed to deploy 1 resource",
       "DaemonSet/crash-loop: FAILED",
       "crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
-      "Final status: 1 currentNumberScheduled, 1 desiredNumberScheduled, 0 numberReady",
+      "Final status: 1 updatedNumberScheduled, 1 desiredNumberScheduled, 0 numberReady",
       "Events (common success events excluded):",
       "BackOff: Back-off restarting failed container",
       "Logs from container 'crash-loop-back-off' (last 250 lines shown):",
