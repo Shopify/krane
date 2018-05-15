@@ -18,7 +18,7 @@ module KubernetesDeploy
 
     def deploy_succeeded?
       return false unless exists?
-      rollout_data["desiredNumberScheduled"].to_i == rollout_data["currentNumberScheduled"].to_i &&
+      rollout_data["desiredNumberScheduled"].to_i == rollout_data["updatedNumberScheduled"].to_i &&
       rollout_data["desiredNumberScheduled"].to_i == rollout_data["numberReady"].to_i &&
       current_generation == observed_generation
     end
@@ -48,7 +48,7 @@ module KubernetesDeploy
     def rollout_data
       return { "currentNumberScheduled" => 0 } unless exists?
       @instance_data["status"]
-        .slice("currentNumberScheduled", "desiredNumberScheduled", "numberReady")
+        .slice("updatedNumberScheduled", "desiredNumberScheduled", "numberReady")
     end
 
     def parent_of_pod?(pod_data)
