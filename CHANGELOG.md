@@ -1,10 +1,13 @@
 ### Master
 
+### 0.20.1
 *Features*
 
 *Bug Fixes*
 - Display a nice error instead of crashing when a YAML document is missing 'Kind'
 ([#280](https://github.com/Shopify/kubernetes-deploy/pull/280))
+- Prevent DaemonSet from succeeding before rollout finishes
+  ([#288](https://github.com/Shopify/kubernetes-deploy/issues/288))
 
 *Enhancements*
 - Merge multiple `--bindings` arguments, to allow a composite bindings map (multiple arguments or files)
