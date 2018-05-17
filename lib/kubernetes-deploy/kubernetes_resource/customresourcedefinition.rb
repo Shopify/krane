@@ -4,10 +4,8 @@ module KubernetesDeploy
     TIMEOUT = 10.seconds
     PREDEPLOY = true
 
-    def sync
-      _, _err, st = kubectl.run("get", kind, @name)
-      @status = st.success? ? "Available" : "Unknown"
-      @found = st.success?
+    def sync(mediator)
+      @instance_data = mediator.get_instance(kind, name)
     end
 
     def deploy_succeeded?
@@ -23,7 +21,7 @@ module KubernetesDeploy
     end
 
     def exists?
-      @found
+      !@instance_data.empty?
     end
   end
 end

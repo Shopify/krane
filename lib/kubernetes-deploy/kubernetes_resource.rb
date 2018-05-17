@@ -137,7 +137,7 @@ module KubernetesDeploy
     end
 
     def sync(mediator)
-      @instance_data = mediator.get_instance(type, name)
+      @instance_data = mediator.get_instance(kind, name)
     end
 
     def deploy_failed?
@@ -245,7 +245,7 @@ module KubernetesDeploy
     # }
     def fetch_events(kubectl)
       return {} unless exists?
-      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(kind, name)}")
+      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(kind, name)}",
         log_failure: false)
       return {} unless st.success?
 
@@ -379,8 +379,8 @@ module KubernetesDeploy
       else
         "unknown"
       end
-      %W(context:#{context} namespace:#{namespace} resource:#{id} type:#{kind} sha:#{ENV['REVISION']} status:#{status})
-                type:#{type} sha:#{ENV['REVISION']} status:#{status})
+      tags = %W(context:#{context} namespace:#{namespace} resource:#{id} type:#{kind} sha:#{ENV['REVISION']} status:#{status}
+                sha:#{ENV['REVISION']} status:#{status})
       tags | @optional_statsd_tags
     end
   end

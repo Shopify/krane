@@ -79,8 +79,8 @@ module KubernetesDeploy
       kinds
     end
 
-    def self.build(namespace:, context:, definition:, logger:)
-      opts = { namespace: namespace, context: context, definition: definition, logger: logger }
+    def self.build(namespace:, context:, definition:, logger:, statsd_tags:)
+      opts = { namespace: namespace, context: context, definition: definition, logger: logger, statsd_tags: statsd_tags }
       kind = definition["kind"]
       group, _, version = definition['apiVersion'].rpartition('/')
 

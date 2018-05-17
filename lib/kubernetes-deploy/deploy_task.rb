@@ -260,8 +260,8 @@ module KubernetesDeploy
         next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
 
         split_templates(filename) do |r_def|
-          r = DiscoverableResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def)
-                                       definition: r_def, statsd_tags: @namespace_tags)
+          r = DiscoverableResource.build(namespace: @namespace, context: @context, logger: @logger,
+                                         definition: r_def, statsd_tags: @namespace_tags)
           resources << r
           @logger.info "  - #{r.id}"
         end

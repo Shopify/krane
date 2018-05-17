@@ -9,7 +9,6 @@ module KubernetesDeploy
 
     SYNC_DEPENDENCIES = %w(Pod ReplicaSet)
     def sync(mediator)
-      raw_json, _err, st = kubectl.run("get", type, @name, "--output=json")
       super
       @latest_rs = exists? ? find_latest_rs(mediator) : nil
       @server_version ||= mediator.kubectl.server_version
