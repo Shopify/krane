@@ -5,6 +5,7 @@ class RendererTest < KubernetesDeploy::TestCase
   def setup
     super
     @renderer = KubernetesDeploy::Renderer.new(
+      context: "tier-testing",
       current_sha: "12345678",
       template_dir: fixture_path('for_unit_tests'),
       logger: logger,
@@ -74,6 +75,14 @@ class RendererTest < KubernetesDeploy::TestCase
     assert_equal expected, actual
     actual = YAML.dump(YAML.load(render('nest-indented.yaml.erb')))
     assert_equal expected, actual
+  end
+
+  def test_context_fields
+    expected = <<~EOY
+    ---
+    x: <%= context %>
+    EOY
+    actual = YAML.dump(YAML.load(render('context_test.yml.erb')))
   end
 
   private
