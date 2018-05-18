@@ -5,7 +5,7 @@ metadata:
   name: widgets.api.foobar.com
   annotations:
     kubernetes-deploy.shopify.io/metadata: '{
-      "status-query": "*",
+      "status-query": "(",
       "status-success": "ok"
     }'
 spec:

@@ -30,6 +30,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "colorize", "~> 0.8"
   spec.add_dependency "statsd-instrument", "~> 2.1"
   spec.add_dependency "rgl", "0.5.3"
+  spec.add_dependency "jsonpath", "0.8.8"
 
   spec.add_development_dependency "bundler"
   spec.add_development_dependency "rake", "~> 10.0"

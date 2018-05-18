@@ -3,6 +3,7 @@ require 'kubernetes-deploy/kubernetes_resource'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'erb'
 require 'json'
+require "jsonpath"
 require 'open3'
 
 module KubernetesDeploy
@@ -168,8 +169,14 @@ module KubernetesDeploy
             getter = "get_#{kind.downcase}"
             @client ||= DiscoverableResource.kubeclient(context: @context, resource_class: self.class)
             raw_json = @client.send(getter, @name, @namespace, as: :raw)
-            result = query_json(query: STATUS_QUERY, json: raw_json)
-            result == SUCCESS_STATUS
+            begin
+              query_path = JsonPath.new(STATUS_QUERY)
+            rescue StandardError => e
+              raise FatalDeploymentError,
+                 "Invalid status query for for #{group}/#{version}/#{kind}: '\#{STATUS_QUERY}'"
+            end
+            current_status = query_path.first(raw_json)
+            current_status == SUCCESS_STATUS
           end
           <% end %>
 
@@ -189,16 +196,6 @@ module KubernetesDeploy
     def self.parse_bool(value)
       return true if TRUE_VALUES.include?(value)
       false
-    end
-
-    def query_json(query:, json:)
-      safe_query = Shellwords.escape(query)
-      out, err, status = Open3.capture3("jq -r #{safe_query}", stdin_data: json)
-      unless status.success?
-        str = "Invalid status query '#{query}' for #{self.class.qualified_kind}: #{err}"
-        raise FatalDeploymentError, str
-      end
-      out.strip # Trailing newlines
     end
 
     def self.kubeclient(context:, resource_class:)

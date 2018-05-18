@@ -9,7 +9,7 @@ metadata:
       "predeploy": "true",
       "predeploy-dependencies": ["ServiceAccount"],
       "timeout": "PT9M",
-      "status-query": ".status",
+      "status-query": "status",
       "status-success": "ok"
     }'
 spec:

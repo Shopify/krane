@@ -16,8 +16,7 @@ class ResourceDiscoveryTest < KubernetesDeploy::IntegrationTest
       # Deploy any other resource to trigger discovery
       assert_deploy_failure(deploy_fixtures("resource-discovery/instances", subset: ["crd.yml"]))
       assert_logs_match_all([
-        "Invalid status query '*' for api.foobar.com/v1/widget",
-        "syntax error"
+        "Invalid status query for for api.foobar.com/v1/widget: '('",
       ], in_order: true)
     ensure
       cleanup

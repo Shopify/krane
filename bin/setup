@@ -4,11 +4,6 @@ IFS=$'\n\t'
 
 bundle install
 
-if [ ! -x "$(which jq)" ]; then
-  echo -e "\n\033[0;33mPlease install jq: https://stedolan.github.io/jq/download/\033[0m"
-  exit 1
-fi
-
 if [ ! -x "$(which minikube)" ]; then
   echo -e "\n\033[0;33mIf you're going to run the tests, please follow the minikube setup instructions for your operating system:\nhttps://kubernetes.io/docs/getting-started-guides/minikube/#installation\033[0m"
 fi
