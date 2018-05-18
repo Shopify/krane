@@ -69,9 +69,6 @@ module KubernetesDeploy
       end
       @logger_stream = StringIO.new
 
-
-      puts name
-
       if ENV["PRINT_LOGS"]
         ColorizedString.disable_colorization = false
         # Allows you to view the integration test output as a series of tophat scenarios
