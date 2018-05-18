@@ -102,6 +102,7 @@ module KubernetesDeploy
       @renderer = KubernetesDeploy::Renderer.new(
         current_sha: @current_sha,
         template_dir: @template_dir,
+        context: @context,
         logger: @logger,
         bindings: bindings,
       )
