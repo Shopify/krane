@@ -84,6 +84,8 @@ module KubernetesDeploy
       kind = definition["kind"]
       group, _, version = definition['apiVersion'].rpartition('/')
 
+      raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml) if definition["kind"].blank?
+
       klass = get_static_class(kind: kind)
       klass = get_dynamic_class(group: group, version: version, kind: kind) unless klass
       klass.new(**opts)

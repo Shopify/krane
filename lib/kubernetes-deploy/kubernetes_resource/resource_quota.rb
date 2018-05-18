@@ -5,7 +5,6 @@ module KubernetesDeploy
     PREDEPLOY = true
 
     def status
-      raw_json, _err, st = kubectl.run("get", kind, @name, "--output=json")
       exists? ? "In effect" : "Unknown"
     end
 

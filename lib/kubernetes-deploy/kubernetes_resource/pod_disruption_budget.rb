@@ -4,7 +4,6 @@ module KubernetesDeploy
     TIMEOUT = 10.seconds
 
     def status
-      _, _err, st = kubectl.run("get", kind, @name)
       exists? ? "Available" : "Unknown"
     end
 

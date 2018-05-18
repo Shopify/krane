@@ -9,7 +9,6 @@ module KubernetesDeploy
 
     SYNC_DEPENDENCIES = %w(Pod)
     def sync(mediator)
-      raw_json, _err, st = kubectl.run("get", kind, @name, "--output=json")
       @pods = exists? ? find_pods(mediator) : []
       @server_version ||= mediator.kubectl.server_version
     end
