@@ -3,6 +3,7 @@ module KubernetesDeploy
   class ResourceQuota < KubernetesResource
     TIMEOUT = 30.seconds
     PREDEPLOY = true
+    PRUNABLE = true
 
     def status
       exists? ? "In effect" : "Unknown"
