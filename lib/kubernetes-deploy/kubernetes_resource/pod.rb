@@ -33,8 +33,8 @@ module KubernetesDeploy
     end
 
     def status
-      return phase if @instance_data.dig('status', 'reason').blank?
-      "#{phase} (Reason: #{@instance_data['status']['reason']})"
+      return phase if reason.blank?
+      "#{phase} (Reason: #{reason})"
     end
 
     def deploy_succeeded?
@@ -57,7 +57,7 @@ module KubernetesDeploy
     end
 
     def failure_message
-      if phase == FAILED_PHASE_NAME
+      if phase == FAILED_PHASE_NAME && reason != "Evicted"
         phase_problem = "Pod status: #{status}. "
       end
 
@@ -100,6 +100,10 @@ module KubernetesDeploy
 
     def phase
       @instance_data.dig("status", "phase") || "Unknown"
+    end
+
+    def reason
+      @instance_data.dig('status', 'reason')
     end
 
     def readiness_probe_failure?

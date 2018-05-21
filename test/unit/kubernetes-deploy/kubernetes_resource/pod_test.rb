@@ -155,6 +155,21 @@ class PodTest < KubernetesDeploy::TestCase
     assert_equal expected_msg, pod.failure_message
   end
 
+  def test_deploy_failed_is_false_for_evicted_
+    container_state = {
+      "state" => {
+        "waiting" => {
+          "message" => "Filler",
+          "reason" => "Evicted"
+        }
+      }
+    }
+    pod = build_synced_pod(build_pod_template(container_state: container_state))
+
+    refute pod.deploy_failed?
+    assert_nil pod.failure_message
+  end
+
   private
 
   def pod_spec
