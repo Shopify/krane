@@ -1,5 +1,8 @@
 ### Master
 
+### 0.20.2
+*Enhancements*
+- Emit data dog events when deploys succeed, time out or fail.
 ### 0.20.1
 *Features*
 

@@ -980,7 +980,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     # We can't ensure that all the metrics we grab are from this specific test because they are running in parallel
     metrics = metrics.select { |m| m.tags.include? "namespace:#{@namespace}" }
-    assert_equal 4, metrics.count
+    assert_equal 5, metrics.count
+
+    event_metrics = metrics.find_all { |m| m.type == :_e }
+    assert event_metrics.any?
+    assert_equal 1, event_metrics.count
 
     metrics.each do |metric|
       assert_empty desired_tags - metric.tags
