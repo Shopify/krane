@@ -155,16 +155,16 @@ class PodTest < KubernetesDeploy::TestCase
     assert_equal expected_msg, pod.failure_message
   end
 
-  def test_deploy_failed_is_false_for_evicted_
-    container_state = {
-      "state" => {
-        "waiting" => {
-          "message" => "Filler",
-          "reason" => "Evicted"
-        }
+  def test_deploy_failed_is_false_for_evicted
+    container_state = pod_spec.merge(
+      "status" => {
+        "message" => "The node was low on resource: nodefsInodes.",
+        "phase" => "Failed",
+        "reason" => "Evicted",
+        "startTime" => "2018-04-13T22:43:23Z"
       }
-    }
-    pod = build_synced_pod(build_pod_template(container_state: container_state))
+    )
+    pod = build_synced_pod(container_state)
 
     refute pod.deploy_failed?
     assert_nil pod.failure_message
