@@ -13,7 +13,7 @@ module KubernetesDeploy
       end
 
       def self.read(filename)
-        new(YAML.safe_load(File.read(filename)), File.dirname(filename))
+        new(YAML.safe_load(File.read(filename), [Time]), File.dirname(filename))
       end
 
       def new_token
