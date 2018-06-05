@@ -6,7 +6,6 @@ metadata:
     name: my-job
     app: jobs
 spec:
-  backoffLimit: 3
   template:
     spec:
       containers:
