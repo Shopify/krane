@@ -92,6 +92,7 @@ module KubernetesDeploy
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
         out, _err, _st = kubectl.run(*cmd, log_failure: true)
+        puts [cmd, out, _err, _st]
         container_logs[container.name] = out.split("\n")
       end
     end
