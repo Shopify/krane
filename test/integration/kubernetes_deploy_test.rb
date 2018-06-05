@@ -603,6 +603,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Failed to deploy 1 priority resource",
       %r{hello-cloud: Failed to start \(exit 127\): .*/some/bad/path},
       "Error response from daemon", # from an event
+      "Logs from container 'hello-cloud' (last 250 lines shown):",
+      "no such file or directory" # from logs
     ], in_order: true)
     refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary
   end

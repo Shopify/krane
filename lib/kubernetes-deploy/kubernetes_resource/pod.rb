@@ -91,7 +91,7 @@ module KubernetesDeploy
           "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
-        out, _err, _st = kubectl.run(*cmd, log_failure: false)
+        out, _err, _st = kubectl.run(*cmd, log_failure: true)
         container_logs[container.name] = out.split("\n")
       end
     end
