@@ -1,0 +1,5 @@
+---
+apiVersion: "stable.example.io/v1"
+kind: Widget
+metadata:
+  name: my-first-widget

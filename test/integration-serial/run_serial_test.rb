@@ -119,30 +119,16 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
     ENV['KUBECONFIG'] = old_config
   end
 
-  def test_crd_can_be_successful
-    assert_deploy_success(deploy_fixtures("crd"))
-    assert_logs_match_all([
-      "Phase 1: Initializing deploy",
-      "Detected non-namespaced resource which will never be pruned:",
-      " - CustomResourceDefinition/mail.stable.example.io",
-      "Phase 2: Checking initial resource statuses",
-      "Deploying CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
-      %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted}
-    ])
-  ensure
-    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
-  end
-
   def test_crd_can_fail
-    result = deploy_fixtures("crd") do |f|
-      crd = f.dig("crd.yml.erb", "CustomResourceDefinition").first
+    result = deploy_fixtures("crd", subset: %w(mail.yml)) do |f|
+      crd = f.dig("mail.yml", "CustomResourceDefinition").first
       names = crd.dig("spec", "names")
       names["listKind"] = 'Conflict'
     end
     assert_deploy_success(result)
 
-    result = deploy_fixtures("crd") do |f|
-      crd = f.dig("crd.yml.erb", "CustomResourceDefinition").first
+    result = deploy_fixtures("crd", subset: %w(mail.yml)) do |f|
+      crd = f.dig("mail.yml", "CustomResourceDefinition").first
       names = crd.dig("spec", "names")
       names["listKind"] = "Conflict"
       names["plural"] = "others"
@@ -157,5 +143,30 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
   ensure
     apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
     apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("others.stable.example.io")
+  end
+
+  def test_crd_pruning
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml widgets.yml)))
+    assert_logs_match_all([
+      "Phase 1: Initializing deploy",
+      "Detected non-namespaced resources which will never be pruned:",
+      " - CustomResourceDefinition/mail.stable.example.io",
+      "Phase 3: Deploying all resources",
+      "CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
+      %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted}
+    ])
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml widgets_cr.yml configmap-data.yml)))
+    # Deploy any other non-priority (predeployable) resource to trigger pruning
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(configmap-data.yml configmap2.yml)))
+
+    assert_predicate build_kubectl.run("get", "mail.stable.example.io", "my-first-mail").last, :success?
+    refute_logs_match(/The following resources were pruned: mail(.stable.example.io)? "my-first-mail"/)
+    assert_logs_match_all([
+      /The following resources were pruned: widget(.stable.example.io)? "my-first-widget"/,
+      "Pruned 1 resource and successfully deployed 2 resource"
+    ])
+  ensure
+    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
+    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("widgets.stable.example.io")
   end
 end

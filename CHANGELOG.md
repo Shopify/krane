@@ -1,13 +1,22 @@
 ### Master
 
+*Enhancements*
+- Add Job resource class ([#295](https://github.com/Shopify/kubernetes-deploy/pull/296))
+- Add HorizontalPodAutoscaler resource class ([#305](https://github.com/Shopify/kubernetes-deploy/pull/305))
+- Add CustomResourceDefinition resource class ([#305](https://github.com/Shopify/kubernetes-deploy/pull/306))
+- Officially support Kubernetes 1.10 ([#308](https://github.com/Shopify/kubernetes-deploy/pull/308))
+- SyncMediator will only batch fetch resources when there is a sufficiently large enough set of resources
+being tracked ([#316](https://github.com/Shopify/kubernetes-deploy/pull/316))
+- Allow CRs to be pruned based on `kubernetes-deploy.shopify.io/prunable` annotation on the custom resource definitions ([312](https://github.com/Shopify/kubernetes-deploy/pull/312))
+
 ### 0.20.4
+*Enhancements*
 - Don't consider pod preempting a failure ([#317](https://github.com/shopify/kubernetes-deploy/pull/317))
 
 ### 0.20.3
 *Enhancements*
 - Evictions are recoverable so prevent them from triggering fast failure detection ([#293](https://github.com/Shopify/kubernetes-deploy/pull/293)).
 - Use YAML.safe_load over YAML.load_file ([#295](https://github.com/Shopify/kubernetes-deploy/pull/295)).
-
 
 *Bug Fixes*
 - Default rollout strategy is compatible required-rollout annotation ([#289](https://github.com/Shopify/kubernetes-deploy/pull/289)).
@@ -16,7 +25,6 @@
 *Enhancements*
 - Emit data dog events when deploys succeed, time out or fail ([#292](https://github.com/Shopify/kubernetes-deploy/pull/292)).
 ### 0.20.1
-*Features*
 
 *Bug Fixes*
 - Display a nice error instead of crashing when a YAML document is missing 'Kind'
