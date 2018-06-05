@@ -1,8 +1,17 @@
 ### Master
 
+### 0.20.3
+*Enhancements*
+- Evictions are recoverable so prevent them from triggering fast failure detection ([#293](https://github.com/Shopify/kubernetes-deploy/pull/293)).
+- Use YAML.safe_load over YAML.load_file ([#295](https://github.com/Shopify/kubernetes-deploy/pull/295)).
+
+
+*Bug Fixes*
+- Default rollout strategy is compatible required-rollout annotation ([#289](https://github.com/Shopify/kubernetes-deploy/pull/289)).
+
 ### 0.20.2
 *Enhancements*
-- Emit data dog events when deploys succeed, time out or fail.
+- Emit data dog events when deploys succeed, time out or fail ([#292](https://github.com/Shopify/kubernetes-deploy/pull/292)).
 ### 0.20.1
 *Features*
 
