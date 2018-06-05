@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: my-job
+  labels:
+    name: my-job
+    app: jobs
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      containers:
+      - name: my-job-container
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        args: ["echo", "hello", "world"]
+      restartPolicy: Never

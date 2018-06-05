@@ -917,6 +917,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     cronjobs.assert_cronjob_present("my-cronjob")
   end
 
+  def test_jobs_can_be_deployed
+    assert_deploy_success(deploy_fixtures("jobs"))
+    jobs = FixtureSetAssertions::Jobs.new(@namespace)
+    jobs.assert_job_present("my-job")
+  end
+
   def test_resource_watcher_reports_failed_after_timeout
     result = deploy_fixtures(
       "invalid",
