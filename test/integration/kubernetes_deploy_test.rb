@@ -23,7 +23,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{StatefulSet/stateful-busybox},
       %r{Service/redis-external\s+Doesn't require any endpoint},
       "- Job/hello-job (timeout: 600s)",
-      %r{Job/hello-job\s+(Succeeded|Started)}
+      %r{Job/hello-job\s+(Succeeded|Started)},
+      %r{CustomResourceDefinition/mails.stable.example.io\s+Exists},
     ])
 
     # Verify that success section isn't duplicated for predeployed resources
@@ -1052,5 +1053,20 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "data:",
       "  datapoint: value1"
     ], in_order: true)
+  end
+
+  def test_crd_can_be_successful
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["crd.yml"]))
+  end
+
+  def test_crd_can_fail
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["crd.yml"]))
+    result = deploy_fixtures("hello-cloud", subset: ["crd.yml"]) do |f|
+      crd = f.dig("crd.yml", "CustomResourceDefinition").first
+      names = crd.dig("spec", "names")
+      crd["metadata"]["name"] = 'mis-matched.stable.example.io'
+      names["plural"] = 'mis-matched'
+    end
+    assert_deploy_failure(result)
   end
 end
