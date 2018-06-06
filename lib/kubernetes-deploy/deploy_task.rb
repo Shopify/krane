@@ -211,6 +211,7 @@ module KubernetesDeploy
         failed_resources = matching_resources.reject(&:deploy_succeeded?)
         fail_count = failed_resources.length
         if fail_count > 0
+          sleep 1
           KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
             r.sync_debug_info(@sync_mediator.kubectl)
           end
