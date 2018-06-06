@@ -159,6 +159,7 @@ module KubernetesDeploy
     def sync_debug_info(kubectl)
       @events = fetch_events(kubectl) unless ENV[DISABLE_FETCHING_EVENT_INFO]
       @logs = fetch_logs(kubectl) if supports_logs? && !ENV[DISABLE_FETCHING_EVENT_INFO]
+      puts "sync_debug_info: #{@logs}"
       @debug_info_synced = true
     end
 
