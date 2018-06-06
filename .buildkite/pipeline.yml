@@ -2,28 +2,28 @@ steps:
   - name: 'Run Test Suite (:kubernetes: 1.10-latest)'
     command: bin/ci
     agents:
-      queue: minikube-ci-110
+      queue: minikube-ci
     env:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.10-latest
   - name: 'Run Test Suite (:kubernetes: 1.9-latest)'
     command: bin/ci
     agents:
-      queue: minikube-ci-110
+      queue: minikube-ci
     env:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.9-latest
   - name: 'Run Test Suite (:kubernetes: 1.8-latest)'
     command: bin/ci
     agents:
-      queue: minikube-ci-110
+      queue: minikube-ci
     env:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.8-latest
   - name: 'Run Test Suite (:kubernetes: 1.7-latest)'
     command: bin/ci
     agents:
-      queue: minikube-ci-110
+      queue: minikube-ci
     env:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.7-latest
