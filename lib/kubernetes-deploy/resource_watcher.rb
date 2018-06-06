@@ -109,7 +109,6 @@ module KubernetesDeploy
             "failed to #{@operation_name} #{failures.length} #{'resource'.pluralize(failures.length)}"
           )
         end
-        sleep 1
         KubernetesDeploy::Concurrency.split_across_threads(failed_resources + global_timeouts) do |r|
           r.sync_debug_info(@sync_mediator.kubectl)
         end

@@ -213,6 +213,7 @@ module KubernetesDeploy
         if fail_count > 0
           sleep 1
           KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
+            puts "sync for #{r.name}"
             r.sync_debug_info(@sync_mediator.kubectl)
           end
           failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
