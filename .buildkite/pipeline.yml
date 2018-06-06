@@ -5,6 +5,7 @@
     env:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.9-latest
+      PARALLELISM: 1
   - name: 'Run Test Suite (:kubernetes: 1.8-latest)'
     command: bin/ci
     agents:
