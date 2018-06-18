@@ -8,7 +8,7 @@ up:
   - custom:
       name: Minikube Cluster
       met?: test $(minikube status | grep Running | wc -l) -eq 2 && $(minikube status | grep -q 'Correctly Configured')
-      meet: minikube start --kubernetes-version=v1.9.4 --vm-driver=hyperkit
+      meet: minikube start --kubernetes-version=v1.10.4 --vm-driver=hyperkit
       down: minikube stop
 commands:
   reset-minikube: minikube delete && rm -rf ~/.minikube
