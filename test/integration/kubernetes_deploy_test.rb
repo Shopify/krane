@@ -595,16 +595,15 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
       pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
       container = pod["spec"]["containers"].first
-      container["command"] = ["/some/bad/path"] # should throw an error
+      container["command"] = ["sh", "-c", "/some/bad/path"] # should throw an error
     end
     assert_deploy_failure(result)
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      %r{hello-cloud: Failed to start \(exit 127\): .*/some/bad/path},
-      "Error response from daemon", # from an event
+      "SuccessfulMountVolume", # from an event
       "Logs from container 'hello-cloud' (last 250 lines shown):",
-      "no such file or directory" # from logs
+      "sh: /some/bad/path: not found" # from logs
     ], in_order: true)
     refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary
   end
