@@ -30,9 +30,9 @@ module KubernetesDeploy
         delay_sync_until = Time.now.utc + delay_sync # don't pummel the API if the sync is fast
 
         @sync_mediator.sync(remainder)
-        new_successes, remainder = remainder.partition(&:deploy_succeeded?)
-        new_failures, remainder = remainder.partition(&:deploy_failed?)
-        new_timeouts, remainder = remainder.partition(&:deploy_timed_out?)
+        new_successes, remainder = remainder.partition { |r| r.deploy_status == "succeeded" }
+        new_failures, remainder = remainder.partition  { |r| r.deploy_status == "failed" }
+        new_timeouts, remainder = remainder.partition  { |r| r.deploy_status == "timed_out" }
 
         if new_successes.present? || new_failures.present? || new_timeouts.present?
           report_what_just_happened(new_successes, new_failures, new_timeouts)
@@ -75,11 +75,11 @@ module KubernetesDeploy
     end
 
     def report_and_give_up(remaining_resources)
-      successful_resources, failed_resources = (@resources - remaining_resources).partition(&:deploy_succeeded?)
-      record_success_statuses(successful_resources)
+      successful, failed_resources = (@resources - remaining_resources).partition { |r| r.deploy_status == "succeeded" }
+      record_success_statuses(successful)
       record_failed_statuses(failed_resources, remaining_resources)
 
-      if failed_resources.present? && !failed_resources.all?(&:deploy_timed_out?)
+      if failed_resources.present? && !failed_resources.all? { |r| r.deploy_status == "timed_out" }
         raise FatalDeploymentError
       else
         raise DeploymentTimeoutError
@@ -87,7 +87,7 @@ module KubernetesDeploy
     end
 
     def record_statuses_for_summary(resources)
-      successful_resources, failed_resources = resources.partition(&:deploy_succeeded?)
+      successful_resources, failed_resources = resources.partition { |r| r.deploy_status == "succeeded" }
       record_success_statuses(successful_resources)
       record_failed_statuses(failed_resources)
     end
@@ -96,7 +96,7 @@ module KubernetesDeploy
       fail_count = failed_resources.length + global_timeouts.length
 
       if fail_count > 0
-        timeouts, failures = failed_resources.partition(&:deploy_timed_out?)
+        timeouts, failures = failed_resources.partition { |r| r.deploy_status == "timed_out" }
         timeouts += global_timeouts
         if timeouts.present?
           @logger.summary.add_action(

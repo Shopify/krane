@@ -26,6 +26,7 @@ module KubernetesDeploy
       MSG
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
+    DEPLOY_STATUSES = %w(succeeded failure timeout started unknown)
 
     class << self
       def build(namespace:, context:, definition:, logger:, statsd_tags:)
@@ -117,23 +118,6 @@ module KubernetesDeploy
       @instance_data = mediator.get_instance(type, name)
     end
 
-    def deploy_failed?
-      false
-    end
-
-    def deploy_started?
-      @deploy_started_at.present?
-    end
-
-    def deploy_succeeded?
-      return false unless deploy_started?
-      unless @success_assumption_warning_shown
-        @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
-        @success_assumption_warning_shown = true
-      end
-      true
-    end
-
     def exists?
       @instance_data.present?
     end
@@ -144,11 +128,6 @@ module KubernetesDeploy
 
     def type
       @type || self.class.kind
-    end
-
-    def deploy_timed_out?
-      return false unless deploy_started?
-      !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started_at > timeout)
     end
 
     # Expected values: :apply, :replace, :replace_force
@@ -253,6 +232,10 @@ module KubernetesDeploy
         ::StatsD.measure('resource.duration', watch_time, tags: statsd_tags)
         @statsd_report_done = true
       end
+    end
+
+    def deploy_status
+      DEPLOY_STATUSES.detect { |n| send("deploy_#{n}?") }
     end
 
     class Event
@@ -363,6 +346,32 @@ module KubernetesDeploy
       tags = %W(context:#{context} namespace:#{namespace} resource:#{id}
                 type:#{type} sha:#{ENV['REVISION']} status:#{status})
       tags | @optional_statsd_tags
+    end
+
+    def deploy_failed?
+      false
+    end
+
+    def deploy_started?
+      @deploy_started_at.present?
+    end
+
+    def deploy_unknown?
+      !deploy_started?
+    end
+
+    def deploy_succeeded?
+      return false unless deploy_started?
+      unless @success_assumption_warning_shown
+        @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
+        @success_assumption_warning_shown = true
+      end
+      true
+    end
+
+    def deploy_timed_out?
+      return false unless deploy_started?
+      !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started_at > timeout)
     end
   end
 end

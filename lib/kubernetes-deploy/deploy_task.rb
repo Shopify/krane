@@ -159,9 +159,9 @@ module KubernetesDeploy
         start_normal_resource = Time.now.utc
         deploy_resources(resources, prune: prune, verify: true)
         ::StatsD.measure('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
-        failed_resources = resources.reject(&:deploy_succeeded?)
-        success = failed_resources.empty?
-        if !success && failed_resources.all?(&:deploy_timed_out?)
+        unsucceesful_resources = resources.reject { |r| r.deploy_status == "succeeded" }
+        success = unsucceesful_resources.empty?
+        if !success && unsucceesful_resources.all? { |r| r.deploy_status == "timed_out" }
           raise DeploymentTimeoutError
         end
         raise FatalDeploymentError unless success
@@ -208,13 +208,13 @@ module KubernetesDeploy
         next if matching_resources.empty?
         deploy_resources(matching_resources, verify: true, record_summary: false)
 
-        failed_resources = matching_resources.reject(&:deploy_succeeded?)
-        fail_count = failed_resources.length
+        unsucceesful_resources = resources.reject { |r| r.deploy_status == "succeeded" }
+        fail_count = unsucceesful_resources.length
         if fail_count > 0
           KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
             r.sync_debug_info(@sync_mediator.kubectl)
           end
-          failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
+          unsucceesful_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
           raise FatalDeploymentError, "Failed to deploy #{fail_count} priority #{'resource'.pluralize(fail_count)}"
         end
         @logger.blank_line
