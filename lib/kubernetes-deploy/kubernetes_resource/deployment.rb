@@ -29,31 +29,6 @@ module KubernetesDeploy
       @latest_rs.fetch_logs(kubectl)
     end
 
-    def deploy_succeeded?
-      return false unless exists? && @latest_rs.present?
-
-      if required_rollout == 'full'
-        @latest_rs.deploy_succeeded? &&
-        @latest_rs.desired_replicas == desired_replicas && # latest RS fully scaled up
-        rollout_data["updatedReplicas"].to_i == desired_replicas &&
-        rollout_data["updatedReplicas"].to_i == rollout_data["availableReplicas"].to_i
-      elsif required_rollout == 'none'
-        true
-      elsif required_rollout == 'maxUnavailable' || percent?(required_rollout)
-        minimum_needed = min_available_replicas
-
-        @latest_rs.desired_replicas >= minimum_needed &&
-        @latest_rs.ready_replicas >= minimum_needed &&
-        @latest_rs.available_replicas >= minimum_needed
-      else
-        raise FatalDeploymentError, rollout_annotation_err_msg
-      end
-    end
-
-    def deploy_failed?
-      @latest_rs&.deploy_failed?
-    end
-
     def failure_message
       return unless @latest_rs.present?
       "Latest ReplicaSet: #{@latest_rs.name}\n\n#{@latest_rs.failure_message}"
@@ -73,12 +48,6 @@ module KubernetesDeploy
       progress_deadline.present? ? "progress deadline: #{progress_deadline}s" : super
     end
 
-    def deploy_timed_out?
-      return false if deploy_failed?
-      # Do not use the hard timeout if progress deadline is set
-      progress_condition.present? ? deploy_failing_to_progress? : super
-    end
-
     def validate_definition(_)
       super
 
@@ -96,6 +65,37 @@ module KubernetesDeploy
     end
 
     private
+
+    def deploy_timed_out?
+      return false if deploy_failed?
+      # Do not use the hard timeout if progress deadline is set
+      progress_condition.present? ? deploy_failing_to_progress? : super
+    end
+
+    def deploy_succeeded?
+      return false unless exists? && @latest_rs.present?
+
+      if required_rollout == 'full'
+        @latest_rs.deploy_status == "succeeded" &&
+        @latest_rs.desired_replicas == desired_replicas && # latest RS fully scaled up
+        rollout_data["updatedReplicas"].to_i == desired_replicas &&
+        rollout_data["updatedReplicas"].to_i == rollout_data["availableReplicas"].to_i
+      elsif required_rollout == 'none'
+        true
+      elsif required_rollout == 'maxUnavailable' || percent?(required_rollout)
+        minimum_needed = min_available_replicas
+
+        @latest_rs.desired_replicas >= minimum_needed &&
+        @latest_rs.ready_replicas >= minimum_needed &&
+        @latest_rs.available_replicas >= minimum_needed
+      else
+        raise FatalDeploymentError, rollout_annotation_err_msg
+      end
+    end
+
+    def deploy_failed?
+      @latest_rs&.deploy_status == "failed"
+    end
 
     def current_generation
       return -2 unless exists? # different default than observed

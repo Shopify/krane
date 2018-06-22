@@ -19,6 +19,8 @@ module KubernetesDeploy
       rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
     end
 
+    private
+
     def deploy_succeeded?
       if update_strategy == ONDELETE
         # Gem cannot monitor update since it doesn't occur until delete
@@ -38,10 +40,8 @@ module KubernetesDeploy
 
     def deploy_failed?
       return false if update_strategy == ONDELETE
-      pods.present? && pods.any?(&:deploy_failed?)
+      pods.present? && pods.any? { |p| p.deploy_status == "failed" }
     end
-
-    private
 
     def update_strategy
       if @server_version < Gem::Version.new("1.7.0")

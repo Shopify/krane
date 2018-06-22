@@ -37,18 +37,6 @@ module KubernetesDeploy
       "#{phase} (Reason: #{reason})"
     end
 
-    def deploy_succeeded?
-      if unmanaged?
-        phase == "Succeeded"
-      else
-        phase == "Running" && ready?
-      end
-    end
-
-    def deploy_failed?
-      failure_message.present?
-    end
-
     def timeout_message
       return STANDARD_TIMEOUT_MESSAGE unless readiness_probe_failure?
       probe_failure_msgs = @containers.map(&:readiness_fail_reason).compact
@@ -97,6 +85,18 @@ module KubernetesDeploy
     end
 
     private
+
+    def deploy_succeeded?
+      if unmanaged?
+        phase == "Succeeded"
+      else
+        phase == "Running" && ready?
+      end
+    end
+
+    def deploy_failed?
+      failure_message.present?
+    end
 
     def phase
       @instance_data.dig("status", "phase") || "Unknown"

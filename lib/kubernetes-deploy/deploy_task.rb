@@ -208,10 +208,10 @@ module KubernetesDeploy
         next if matching_resources.empty?
         deploy_resources(matching_resources, verify: true, record_summary: false)
 
-        unsucceesful_resources = resources.reject { |r| r.deploy_status == "succeeded" }
+        unsucceesful_resources = matching_resources.reject { |r| r.deploy_status == "succeeded" }
         fail_count = unsucceesful_resources.length
         if fail_count > 0
-          KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
+          KubernetesDeploy::Concurrency.split_across_threads(unsucceesful_resources) do |r|
             r.sync_debug_info(@sync_mediator.kubectl)
           end
           unsucceesful_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }

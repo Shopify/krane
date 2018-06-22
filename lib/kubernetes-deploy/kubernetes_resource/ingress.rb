@@ -7,12 +7,10 @@ module KubernetesDeploy
       exists? ? "Created" : "Unknown"
     end
 
+    private
+
     def deploy_succeeded?
       exists?
-    end
-
-    def deploy_failed?
-      false
     end
   end
 end

@@ -14,19 +14,15 @@ module KubernetesDeploy
       deploy_succeeded? ? "Provisioned" : "Unknown"
     end
 
-    def deploy_succeeded?
-      proxy_deployment_ready? && proxy_service_ready?
-    end
-
-    def deploy_failed?
-      false
-    end
-
     def deploy_method
       :replace
     end
 
     private
+
+    def deploy_succeeded?
+      proxy_deployment_ready? && proxy_service_ready?
+    end
 
     def proxy_deployment_ready?
       return false unless status = @proxy_deployment["status"]

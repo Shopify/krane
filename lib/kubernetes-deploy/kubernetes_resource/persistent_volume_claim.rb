@@ -7,6 +7,8 @@ module KubernetesDeploy
       exists? ? @instance_data["status"]["phase"] : "Unknown"
     end
 
+    private
+
     def deploy_succeeded?
       status == "Bound"
     end

@@ -26,7 +26,7 @@ module KubernetesDeploy
       MSG
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
-    DEPLOY_STATUSES = %w(succeeded failure timeout started unknown)
+    DEPLOY_STATUSES = %w(succeeded failed timed_out started unknown)
 
     class << self
       def build(namespace:, context:, definition:, logger:, statsd_tags:)

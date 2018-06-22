@@ -12,7 +12,7 @@ module KubernetesDeploy
     def fetch_events(kubectl)
       own_events = super
       return own_events unless pods.present?
-      most_useful_pod = pods.find(&:deploy_failed?) || pods.find(&:deploy_timed_out?) || pods.first
+      most_useful_pod = pods.find { |p| p.deploy_status == "failed" } || pods.find { |p| p.deploy_status == "timed_out" } || pods.first
       own_events.merge(most_useful_pod.fetch_events(kubectl))
     end
 

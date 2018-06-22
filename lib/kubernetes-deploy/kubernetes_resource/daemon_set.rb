@@ -16,6 +16,14 @@ module KubernetesDeploy
       rollout_data.map { |state_replicas, num| "#{num} #{state_replicas}" }.join(", ")
     end
 
+    def fetch_logs(kubectl)
+      return {} unless pods.present?
+      most_useful_pod = pods.find { |p| p.deploy_status == "failed" } || pods.find { |p| p.deploy_status == "timed_out" } || pods.first
+      most_useful_pod.fetch_logs(kubectl)
+    end
+
+    private
+
     def deploy_succeeded?
       return false unless exists?
       rollout_data["desiredNumberScheduled"].to_i == rollout_data["updatedNumberScheduled"].to_i &&
@@ -24,16 +32,8 @@ module KubernetesDeploy
     end
 
     def deploy_failed?
-      pods.present? && pods.any?(&:deploy_failed?)
+      pods.present? && pods.any? { |p| p.deploy_status == "failed" }
     end
-
-    def fetch_logs(kubectl)
-      return {} unless pods.present?
-      most_useful_pod = pods.find(&:deploy_failed?) || pods.find(&:deploy_timed_out?) || pods.first
-      most_useful_pod.fetch_logs(kubectl)
-    end
-
-    private
 
     def current_generation
       return -1 unless exists? # must be different default than observed_generation

@@ -1,6 +1,16 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class Bucket < KubernetesResource
+    def status
+      exists? ? "Available" : "Unknown"
+    end
+
+    def deploy_method
+      :replace
+    end
+
+    private
+
     def deploy_succeeded?
       return false unless deploy_started?
 
@@ -9,18 +19,6 @@ module KubernetesDeploy
         @success_assumption_warning_shown = true
       end
       true
-    end
-
-    def status
-      exists? ? "Available" : "Unknown"
-    end
-
-    def deploy_failed?
-      false
-    end
-
-    def deploy_method
-      :replace
     end
   end
 end

@@ -22,22 +22,18 @@ module KubernetesDeploy
       end
     end
 
+    def timeout_message
+      "This service does not seem to select any pods. This means its spec.selector is probably incorrect."
+    end
+
+    private
+
     def deploy_succeeded?
       return false unless exists?
       return exists? unless requires_endpoints?
       # We can't use endpoints if we want the service to be able to fail fast when the pods are down
       exposes_zero_replica_deployment? || selects_some_pods?
     end
-
-    def deploy_failed?
-      false
-    end
-
-    def timeout_message
-      "This service does not seem to select any pods. This means its spec.selector is probably incorrect."
-    end
-
-    private
 
     def exposes_zero_replica_deployment?
       return false unless related_replica_count

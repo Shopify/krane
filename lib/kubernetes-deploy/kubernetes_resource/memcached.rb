@@ -16,19 +16,15 @@ module KubernetesDeploy
       deploy_succeeded? ? "Provisioned" : "Unknown"
     end
 
-    def deploy_succeeded?
-      deployment_ready? && service_ready? && configmap_ready?
-    end
-
-    def deploy_failed?
-      false
-    end
-
     def deploy_method
       :replace
     end
 
     private
+
+    def deploy_succeeded?
+      deployment_ready? && service_ready? && configmap_ready?
+    end
 
     def deployment_ready?
       return false unless status = @deployment["status"]

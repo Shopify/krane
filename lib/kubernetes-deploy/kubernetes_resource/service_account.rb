@@ -7,16 +7,14 @@ module KubernetesDeploy
       exists? ? "Created" : "Unknown"
     end
 
-    def deploy_succeeded?
-      exists?
-    end
-
-    def deploy_failed?
-      false
-    end
-
     def timeout_message
       UNUSUAL_FAILURE_MESSAGE
+    end
+
+    private
+
+    def deploy_succeeded?
+      exists?
     end
   end
 end
