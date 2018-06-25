@@ -46,6 +46,23 @@ module KubernetesDeploy
       record_statuses_for_summary(@resources) if record_summary
     end
 
+    def final_status
+      statuses = @resources.group_by(&:deploy_status).keys
+      if statuses.include?("failed")
+        "failed"
+      elsif statuses.include?("timed_out")
+        "timed_out"
+      elsif statuses == %w(success)
+        "success"
+      else
+        "not_finished"
+      end
+    end
+
+    def unsuccessful_resources
+      @resources.reject { |r| r.deploy_status == "succeeded" }
+    end
+
     private
 
     def report_what_just_happened(new_successes, new_failures, new_timeouts)

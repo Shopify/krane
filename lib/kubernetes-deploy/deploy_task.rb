@@ -157,14 +157,14 @@ module KubernetesDeploy
 
       if verify_result
         start_normal_resource = Time.now.utc
-        deploy_resources(resources, prune: prune, verify: true)
+        watcher = deploy_resources(resources, prune: prune, verify: true)
         ::StatsD.measure('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
-        unsucceesful_resources = resources.reject { |r| r.deploy_status == "succeeded" }
-        success = unsucceesful_resources.empty?
-        if !success && unsucceesful_resources.all? { |r| r.deploy_status == "timed_out" }
+        case watcher.final_status
+        when "timed_out"
           raise DeploymentTimeoutError
+        when "failed"
+          raise FatalDeploymentError
         end
-        raise FatalDeploymentError unless success
       else
         deploy_resources(resources, prune: prune, verify: false)
         @logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
@@ -206,9 +206,9 @@ module KubernetesDeploy
       PREDEPLOY_SEQUENCE.each do |resource_type|
         matching_resources = resource_list.select { |r| r.type == resource_type }
         next if matching_resources.empty?
-        deploy_resources(matching_resources, verify: true, record_summary: false)
+        watcher = deploy_resources(matching_resources, verify: true, record_summary: false)
 
-        unsucceesful_resources = matching_resources.reject { |r| r.deploy_status == "succeeded" }
+        unsucceesful_resources = watcher.unsuccessful_resources
         fail_count = unsucceesful_resources.length
         if fail_count > 0
           KubernetesDeploy::Concurrency.split_across_threads(unsucceesful_resources) do |r|
@@ -377,6 +377,9 @@ module KubernetesDeploy
         watcher = ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
           logger: @logger, deploy_started_at: deploy_started_at, timeout: @max_watch_seconds)
         watcher.run(record_summary: record_summary)
+        watcher
+      else
+        nil
       end
     end
 

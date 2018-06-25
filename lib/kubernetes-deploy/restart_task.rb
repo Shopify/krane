@@ -50,14 +50,16 @@ module KubernetesDeploy
 
       @logger.phase_heading("Waiting for rollout")
       resources = build_watchables(deployments, start)
-      ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
-        logger: @logger, operation_name: "restart", timeout: @max_watch_seconds).run
-      unsucceesful_resources = resources.reject { |r| r.deploy_status == "succeeded" }
-      success = unsucceesful_resources.empty?
-      if !success && unsucceesful_resources.all? { |r| r.deploy_status == "timed_out" }
+      watcher = ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
+        logger: @logger, operation_name: "restart", timeout: @max_watch_seconds)
+      watcher.run
+
+      case watcher.final_status
+      when "timed_out"
         raise DeploymentTimeoutError
+      when "failed"
+        raise FatalDeploymentError
       end
-      raise FatalDeploymentError unless success
       ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
