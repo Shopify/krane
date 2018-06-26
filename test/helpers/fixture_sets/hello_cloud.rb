@@ -92,10 +92,6 @@ module FixtureSetAssertions
       assert_daemon_set_present("ds-app")
     end
 
-    def assert_daemon_set_up
-      assert_daemon_set_present("ds-app")
-    end
-
     def assert_stateful_set_up
       assert_stateful_set_present("stateful-busybox")
     end

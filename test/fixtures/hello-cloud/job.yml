@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hello-job
+  labels:
+    name: hello-job
+    app: hello-cloud
+spec:
+  template:
+    spec:
+      containers:
+      - name: my-job-container
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        args: ["echo", "hello", "world"]
+      restartPolicy: Never

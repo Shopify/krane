@@ -71,8 +71,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'ingress(\.extensions)? "web"',
       'daemonset(\.extensions)? "ds-app"',
       'statefulset(\.apps)? "stateful-busybox"',
+      'job "hello-job"',
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 8 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 9 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -926,7 +927,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     fixtures = deploy_fixtures("jobs") do |f|
       spec = f["job.yml"]["Job"].first["spec"]["template"]["spec"]
       spec["backoffLimit"] = 1
-      spec["containers"].first["args"] = ['FAKE']
+      spec["containers"].first["args"] = %w(FAKE)
     end
     assert_deploy_failure(fixtures)
   end
