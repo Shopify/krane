@@ -12,7 +12,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 18 resources"
+      "Successfully deployed 19 resources"
     ], in_order: true)
 
     assert_logs_match_all([
@@ -21,7 +21,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Service/web\s+Selects at least 1 pod},
       %r{DaemonSet/ds-app\s+1 updatedNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
       %r{StatefulSet/stateful-busybox},
-      %r{Service/redis-external\s+Doesn't require any endpoint}
+      %r{Service/redis-external\s+Doesn't require any endpoint},
+      %r{Job/hello-job\s+Exists}
     ])
 
     # Verify that success section isn't duplicated for predeployed resources
@@ -917,10 +918,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     cronjobs.assert_cronjob_present("my-cronjob")
   end
 
-  def test_jobs_can_be_deployed
+  def test_jobs_can_be_successful
     assert_deploy_success(deploy_fixtures("jobs"))
-    jobs = FixtureSetAssertions::Jobs.new(@namespace)
-    jobs.assert_job_present("my-job")
+  end
+
+  def test_jobs_can_fail
+    fixtures = deploy_fixtures("jobs") do |f|
+      spec = f["job.yml"]["Job"].first["spec"]["template"]["spec"]
+      spec["backoffLimit"] = 1
+      spec["containers"].first["args"] = ['FAKE']
+    end
+    assert_deploy_failure(fixtures)
   end
 
   def test_resource_watcher_reports_failed_after_timeout
