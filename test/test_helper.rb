@@ -282,10 +282,18 @@ module KubernetesDeploy
       }
       kubeclient.create_persistent_volume(pv)
     end
+
+    def self.deploy_metric_server
+      # Set-up the metric server that the HPA needs https://github.com/kubernetes-incubator/metrics-server
+      Dir.glob("test/setup/metrics-server/*.{yml,yaml}*").map do |resource|
+        Kubeclient::Resource.new(YAML.safe_load(File.read(resource))).create
+      end
+    end
   end
 
   WebMock.allow_net_connect!
   TestProvisioner.prepare_pv("pv0001")
   TestProvisioner.prepare_pv("pv0002")
+  TestProvisioner.deploy_metric_server
   WebMock.disable_net_connect!
 end

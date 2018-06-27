@@ -36,7 +36,7 @@ module KubernetesDeploy
         dependencies = resources.map(&:class).uniq.flat_map do |c|
           c::SYNC_DEPENDENCIES if c.const_defined?('SYNC_DEPENDENCIES')
         end
-        kinds = (resources.map(&:type) + dependencies).compact.uniq
+        kinds = (resources.map(&:kubectl_resource_type) + dependencies).compact.uniq
         kinds.each { |kind| fetch_by_kind(kind) }
       end
 
