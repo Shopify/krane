@@ -13,14 +13,14 @@ module KubernetesDeploy
     end
 
     def status
-      deploy_succeeded? ? "Provisioned" : "Unknown"
+      deploy_succeeded ? "Provisioned" : "Unknown"
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       deployment_ready? && service_ready? && configmap_ready?
     end
 
-    def deploy_failed?
+    def deploy_failed
       false
     end
 

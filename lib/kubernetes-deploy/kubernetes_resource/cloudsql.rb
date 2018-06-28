@@ -14,11 +14,11 @@ module KubernetesDeploy
       deploy_succeeded? ? "Provisioned" : "Unknown"
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       proxy_deployment_ready? && proxy_service_ready?
     end
 
-    def deploy_failed?
+    def deploy_failed
       false
     end
 

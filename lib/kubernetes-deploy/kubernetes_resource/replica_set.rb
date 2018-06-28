@@ -25,13 +25,13 @@ module KubernetesDeploy
       rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       desired_replicas == rollout_data["availableReplicas"].to_i &&
       desired_replicas == rollout_data["readyReplicas"].to_i
     end
 
-    def deploy_failed?
-      pods.present? && pods.all?(&:deploy_failed?)
+    def deploy_failed
+      pods.present? && pods.all?(&:deploy_failed)
     end
 
     def desired_replicas

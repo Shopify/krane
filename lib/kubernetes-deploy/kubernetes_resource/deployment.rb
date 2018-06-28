@@ -8,9 +8,10 @@ module KubernetesDeploy
 
     SYNC_DEPENDENCIES = %w(Pod ReplicaSet)
     def sync(mediator)
-      super
-      @latest_rs = exists? ? find_latest_rs(mediator) : nil
+      @instance_data = mediator.get_instance(type, name)
       @server_version ||= mediator.kubectl.server_version
+      @latest_rs = exists? ? find_latest_rs(mediator) : nil
+      state_paths.events.zip(state_paths.to_states).each { |e, m| send(e) if send(m) }
     end
 
     def status
@@ -29,11 +30,11 @@ module KubernetesDeploy
       @latest_rs.fetch_logs(kubectl)
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       return false unless exists? && @latest_rs.present?
 
       if required_rollout == 'full'
-        @latest_rs.deploy_succeeded? &&
+        @latest_rs.deploy_succeeded &&
         @latest_rs.desired_replicas == desired_replicas && # latest RS fully scaled up
         rollout_data["updatedReplicas"].to_i == desired_replicas &&
         rollout_data["updatedReplicas"].to_i == rollout_data["availableReplicas"].to_i
@@ -50,8 +51,8 @@ module KubernetesDeploy
       end
     end
 
-    def deploy_failed?
-      @latest_rs&.deploy_failed?
+    def deploy_failed
+      @latest_rs&.deploy_failed
     end
 
     def failure_message
@@ -73,8 +74,8 @@ module KubernetesDeploy
       progress_deadline.present? ? "progress deadline: #{progress_deadline}s" : super
     end
 
-    def deploy_timed_out?
-      return false if deploy_failed?
+    def deploy_timed_out
+      return false if deploy_failed
       # Do not use the hard timeout if progress deadline is set
       progress_condition.present? ? deploy_failing_to_progress? : super
     end
@@ -148,7 +149,7 @@ module KubernetesDeploy
 
       # This assumes that when the controller bumps the observed generation, it also updates/clears all the status
       # conditions. Specifically, it assumes the progress condition is immediately set to True if a rollout is starting.
-      deploy_started? &&
+      deploy_started &&
       current_generation == observed_generation &&
       progress_condition["status"] == 'False'
     end

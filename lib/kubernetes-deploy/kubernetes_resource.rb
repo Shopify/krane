@@ -27,6 +27,24 @@ module KubernetesDeploy
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
 
+    state_machine initial: :unknown do
+      event :start do
+        transition [:unknown] => :deploy_started
+      end
+
+      event :time_out do
+        transition [:unknown, :deploy_started] => :deploy_timed_out
+      end
+
+      event :failure do
+        transition [:deploy_started] => :deploy_failed
+      end
+
+      event :succeed do
+        transition [:deploy_started] => :deploy_succeeded
+      end
+    end
+
     class << self
       def build(namespace:, context:, definition:, logger:, statsd_tags:)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
@@ -84,6 +102,7 @@ module KubernetesDeploy
       @statsd_report_done = false
       @validation_errors = []
       @instance_data = {}
+      super() # required to initialize state_machine
     end
 
     def validate_definition(kubectl)
@@ -115,18 +134,19 @@ module KubernetesDeploy
 
     def sync(mediator)
       @instance_data = mediator.get_instance(type, name)
+      state_paths.events.zip(state_paths.to_states).each { |e, m| send(e) if send(m) }
     end
 
-    def deploy_failed?
+    def deploy_failed
       false
     end
 
-    def deploy_started?
+    def deploy_started
       @deploy_started_at.present?
     end
 
-    def deploy_succeeded?
-      return false unless deploy_started?
+    def deploy_succeeded
+      return false unless deploy_started
       unless @success_assumption_warning_shown
         @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
         @success_assumption_warning_shown = true
@@ -146,9 +166,9 @@ module KubernetesDeploy
       @type || self.class.kind
     end
 
-    def deploy_timed_out?
-      return false unless deploy_started?
-      !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started_at > timeout)
+    def deploy_timed_out
+      return false unless deploy_started
+      !deploy_succeeded && !deploy_failed && (Time.now.utc - @deploy_started_at > timeout)
     end
 
     # Expected values: :apply, :replace, :replace_force

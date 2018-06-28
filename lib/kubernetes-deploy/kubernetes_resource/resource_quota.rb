@@ -7,11 +7,11 @@ module KubernetesDeploy
       exists? ? "In effect" : "Unknown"
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       @instance_data.dig("spec", "hard") == @instance_data.dig("status", "hard")
     end
 
-    def deploy_failed?
+    def deploy_failed
       false
     end
 

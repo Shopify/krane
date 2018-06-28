@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class Bucket < KubernetesResource
-    def deploy_succeeded?
-      return false unless deploy_started?
+    def deploy_succeeded
+      return false unless deploy_started
 
       unless @success_assumption_warning_shown
         @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
@@ -15,7 +15,7 @@ module KubernetesDeploy
       exists? ? "Available" : "Unknown"
     end
 
-    def deploy_failed?
+    def deploy_failed
       false
     end
 

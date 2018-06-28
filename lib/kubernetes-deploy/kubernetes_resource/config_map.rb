@@ -3,7 +3,7 @@ module KubernetesDeploy
   class ConfigMap < KubernetesResource
     TIMEOUT = 30.seconds
 
-    def deploy_succeeded?
+    def deploy_succeeded
       exists?
     end
 
@@ -11,7 +11,7 @@ module KubernetesDeploy
       exists? ? "Available" : "Unknown"
     end
 
-    def deploy_failed?
+    def deploy_failed
       false
     end
 

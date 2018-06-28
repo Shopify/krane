@@ -21,7 +21,7 @@ module KubernetesDeploy
 
     def sync(mediator)
       super
-      raise_predates_deploy_error if exists? && unmanaged? && !deploy_started?
+      raise_predates_deploy_error if exists? && unmanaged? && !deploy_started
 
       if exists?
         update_container_statuses(@instance_data["status"])
@@ -29,7 +29,7 @@ module KubernetesDeploy
         @containers.each(&:reset_status)
       end
 
-      display_logs(mediator) if unmanaged? && deploy_succeeded?
+      display_logs(mediator) if unmanaged? && deploy_succeeded
     end
 
     def status
@@ -37,7 +37,7 @@ module KubernetesDeploy
       "#{phase} (Reason: #{reason})"
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       if unmanaged?
         phase == "Succeeded"
       else
@@ -45,7 +45,7 @@ module KubernetesDeploy
       end
     end
 
-    def deploy_failed?
+    def deploy_failed
       failure_message.present?
     end
 

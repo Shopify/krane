@@ -16,20 +16,20 @@ module KubernetesDeploy
       rollout_data.map { |state_replicas, num| "#{num} #{state_replicas}" }.join(", ")
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       return false unless exists?
       rollout_data["desiredNumberScheduled"].to_i == rollout_data["updatedNumberScheduled"].to_i &&
       rollout_data["desiredNumberScheduled"].to_i == rollout_data["numberReady"].to_i &&
       current_generation == observed_generation
     end
 
-    def deploy_failed?
-      pods.present? && pods.any?(&:deploy_failed?)
+    def deploy_failed
+      pods.present? && pods.any?(&:deploy_failed)
     end
 
     def fetch_logs(kubectl)
       return {} unless pods.present?
-      most_useful_pod = pods.find(&:deploy_failed?) || pods.find(&:deploy_timed_out?) || pods.first
+      most_useful_pod = pods.find(&:deploy_failed) || pods.find(&:deploy_timed_out) || pods.first
       most_useful_pod.fetch_logs(kubectl)
     end
 

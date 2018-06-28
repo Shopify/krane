@@ -8,9 +8,9 @@ module KubernetesDeploy
 
     SYNC_DEPENDENCIES = %w(Pod)
     def sync(mediator)
+      @server_version ||= mediator.kubectl.server_version
       super
       @pods = exists? ? find_pods(mediator) : []
-      @server_version ||= mediator.kubectl.server_version
     end
 
     def status
@@ -19,7 +19,7 @@ module KubernetesDeploy
       rollout_data.map { |state_replicas, num| "#{num} #{state_replicas.chop.pluralize(num)}" }.join(", ")
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       if update_strategy == ONDELETE
         # Gem cannot monitor update since it doesn't occur until delete
         unless @success_assumption_warning_shown
@@ -36,9 +36,9 @@ module KubernetesDeploy
       end
     end
 
-    def deploy_failed?
+    def deploy_failed
       return false if update_strategy == ONDELETE
-      pods.present? && pods.any?(&:deploy_failed?)
+      pods.present? && pods.any?(&:deploy_failed)
     end
 
     private

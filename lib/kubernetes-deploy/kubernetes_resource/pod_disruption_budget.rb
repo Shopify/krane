@@ -7,7 +7,7 @@ module KubernetesDeploy
       exists? ? "Available" : "Unknown"
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       exists?
     end
 

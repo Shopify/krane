@@ -3,11 +3,11 @@ module KubernetesDeploy
   class CronJob < KubernetesResource
     TIMEOUT = 30.seconds
 
-    def deploy_succeeded?
+    def deploy_succeeded
       exists?
     end
 
-    def deploy_failed?
+    def deploy_failed
       !exists?
     end
 

@@ -22,14 +22,14 @@ module KubernetesDeploy
       end
     end
 
-    def deploy_succeeded?
+    def deploy_succeeded
       return false unless exists?
       return exists? unless requires_endpoints?
       # We can't use endpoints if we want the service to be able to fail fast when the pods are down
       exposes_zero_replica_deployment? || selects_some_pods?
     end
 
-    def deploy_failed?
+    def deploy_failed
       false
     end
 
@@ -65,7 +65,7 @@ module KubernetesDeploy
 
     def related_replica_count
       return 0 unless selector.present?
-      return unless @related_deployments.length == 1
+      return unless @related_deployments && @related_deployments.length == 1
       @related_deployments.first["spec"]["replicas"].to_i
     end
 

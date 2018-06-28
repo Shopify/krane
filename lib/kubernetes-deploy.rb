@@ -10,6 +10,7 @@ require 'active_support/core_ext/hash/keys'
 require 'active_support/core_ext/array/conversions'
 require 'active_support/duration'
 require 'colorized_string'
+require 'state_machines'
 
 require 'kubernetes-deploy/version'
 require 'kubernetes-deploy/errors'
