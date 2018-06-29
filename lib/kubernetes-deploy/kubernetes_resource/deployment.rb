@@ -119,14 +119,14 @@ module KubernetesDeploy
     end
 
     def progress_condition
-      return unless exists?
+      return unless exists? && progress_deadline
       conditions = @instance_data.fetch("status", {}).fetch("conditions", [])
       conditions.find { |condition| condition['type'] == 'Progressing' }
     end
 
     def progress_deadline
       if exists?
-        @instance_data['spec']['progressDeadlineSeconds']
+        @instance_data['spec']['progressDeadlineSeconds'] if @definition['spec']['progressDeadlineSeconds'].present?
       else
         @definition['spec']['progressDeadlineSeconds']
       end
