@@ -14,7 +14,7 @@ Especially in a CI/CD environment, we need a clear, actionable pass/fail result 
 
 :closed_lock_with_key:  [Creates Kubernetes secrets from encrypted EJSON](#deploying-kubernetes-secrets-from-ejson), which you can safely commit to your repository
 
-​:running: [Runs tasks at the beginning of the deploy](#deploy-time-tasks) using bare pods (example use case: Rails migrations)
+​:running: [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy) using bare pods (example use case: Rails migrations)
 
 This repo also includes related tools for [running tasks](#kubernetes-run) and [restarting deployments](#kubernetes-restart).
 
