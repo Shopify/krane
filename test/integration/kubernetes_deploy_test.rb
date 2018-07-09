@@ -141,7 +141,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_yaml_fails_fast
-    assert_deploy_failure(deploy_dir(fixture_path("invalid")))
+    assert_deploy_failure(deploy_raw_fixtures("invalid", subset: ["yaml-error.yml"]))
     assert_logs_match_all([
       "Failed to render and parse template",
       "Invalid template: yaml-error.yml",
