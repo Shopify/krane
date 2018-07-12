@@ -543,17 +543,28 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       %r{ConfigMap/test\s+Available}
     ], in_order: true)
 
+    if KUBE_SERVER_VERSION < Gem::Version.new("1.10.0")
+      start_bad_probe_logs = [
+        %r{Deployment/bad-probe: TIMED OUT \(timeout: \d+s\)},
+        "Timeout reason: hard deadline for Deployment"
+      ]
+      end_bad_probe_logs = [%r{Unhealthy: Readiness probe failed: .* \(\d+ events\)}] # event
+    else
+      start_bad_probe_logs = [
+        %r{Deployment/bad-probe: TIMED OUT \(progress deadline: \d+s\)},
+        "Timeout reason: ProgressDeadlineExceeded"
+      ]
+      end_bad_probe_logs = ["Scaled up replica set bad-probe-"] # event
+    end
+
     # Debug info for bad probe timeout
-    assert_logs_match_all([
-      %r{Deployment/bad-probe: TIMED OUT \(timeout: \d+s\)},
-      "Timeout reason: hard deadline for Deployment",
+    assert_logs_match_all(start_bad_probe_logs + [
       /Latest ReplicaSet: bad-probe-\w+/,
       "The following containers have not passed their readiness probes on at least one pod:",
       "http-probe must respond with a good status code at '/bad/ping/path'",
       "exec-probe must exit 0 from the following command: 'test 0 -eq 1'",
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
-      "Scaled up replica set bad-probe-", # event
-    ], in_order: true)
+    ] + end_bad_probe_logs, in_order: true)
     refute_logs_match("sidecar must exit 0") # this container is ready
 
     # Debug info for missing volume timeout
@@ -930,12 +941,18 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
     assert_deploy_failure(result)
 
+    bad_probe_timeout = if KUBE_SERVER_VERSION < Gem::Version.new("1.10.0")
+      "Deployment/bad-probe: TIMED OUT (timeout: 5s)"
+    else
+      "Deployment/bad-probe: GLOBAL WATCH TIMEOUT (20 seconds)"
+    end
+
     assert_logs_match_all([
       "Successfully deployed 1 resource, timed out waiting for 2 resources to deploy, and failed to deploy 1 resource",
       "Successful resources",
       "ConfigMap/test",
       "Deployment/cannot-run: FAILED",
-      "Deployment/bad-probe: TIMED OUT (timeout: 5s)",
+      bad_probe_timeout,
       "Deployment/missing-volumes: GLOBAL WATCH TIMEOUT (20 seconds)"
     ])
   end
