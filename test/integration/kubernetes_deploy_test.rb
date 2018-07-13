@@ -548,7 +548,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
         %r{Deployment/bad-probe: TIMED OUT \(timeout: \d+s\)},
         "Timeout reason: hard deadline for Deployment"
       ]
-      end_bad_probe_logs = [%r{Unhealthy: Readiness probe failed: .* \(\d+ events\)}] # event
+      end_bad_probe_logs = [/Unhealthy: Readiness probe failed: .* \(\d+ events\)}/] # event
     else
       start_bad_probe_logs = [
         %r{Deployment/bad-probe: TIMED OUT \(progress deadline: \d+s\)},
