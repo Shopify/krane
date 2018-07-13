@@ -32,7 +32,7 @@ module KubernetesDeploy
     def sync(resources)
       clear_cache
 
-      if resources.count < LARGE_BATCH_THRESHOLD
+      if resources.count > LARGE_BATCH_THRESHOLD
         dependencies = resources.map(&:class).uniq.flat_map do |c|
           c::SYNC_DEPENDENCIES if c.const_defined?('SYNC_DEPENDENCIES')
         end

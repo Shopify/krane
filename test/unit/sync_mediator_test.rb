@@ -90,7 +90,8 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
     all_cm = [@fake_cm.kubectl_response, @fake_cm2.kubectl_response]
     stub_kubectl_response('get', 'FakeConfigMap', *@params, resp: { "items" => all_cm }, times: 1)
     stub_kubectl_response('get', 'FakePod', *@params, resp: { "items" => [@fake_pod.kubectl_response] }, times: 1)
-    mediator.sync([@fake_cm, @fake_pod])
+    # Cache is only warmed if we batch fetch
+    mediator.sync([@fake_cm, @fake_pod] * KubernetesDeploy::SyncMediator::LARGE_BATCH_THRESHOLD)
 
     # These should use the warm cache
     assert_equal @fake_cm.kubectl_response, mediator.get_instance('FakeConfigMap', @fake_cm.name)
@@ -106,7 +107,9 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
     stub_kubectl_response('get', 'FakeDeployment', *@params,
       resp: { "items" => [@fake_deployment.kubectl_response] }, times: 1)
     stub_kubectl_response('get', 'FakePod', *@params, resp: { "items" => [@fake_pod.kubectl_response] }, times: 1)
-    mediator.sync([@fake_deployment]) # pod is a depedency so should get cached too
+    # Dependency fetching is only done if we batch fetch
+    # pod is a depedency so should get cached too
+    mediator.sync([@fake_deployment] * (KubernetesDeploy::SyncMediator::LARGE_BATCH_THRESHOLD + 1))
 
     assert_equal @fake_deployment.kubectl_response, mediator.get_instance('FakeDeployment', @fake_deployment.name)
     assert_equal @fake_pod.kubectl_response, mediator.get_instance('FakePod', @fake_pod.name)
@@ -118,18 +121,31 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
     bad_citizen = BadCitizen.new('foo')
     stub_kubectl_response('get', 'BadCitizen', *@params, resp: { "items" => [bad_citizen.kubectl_response] }, times: 1)
 
-    mediator.sync([bad_citizen])
+    # Cache is only warmed if we batch fetch
+    mediator.sync([bad_citizen] * (KubernetesDeploy::SyncMediator::LARGE_BATCH_THRESHOLD + 1))
     assert_equal bad_citizen.kubectl_response, mediator.get_instance('BadCitizen', bad_citizen.name) # still cached
   end
 
   def test_sync_calls_sync_on_each_instance
-    stub_kubectl_response('get', 'FakeDeployment', *@params,
-      resp: { "items" => [@fake_deployment.kubectl_response] }, times: 1)
-    stub_kubectl_response('get', 'FakePod', *@params, resp: { "items" => [@fake_pod.kubectl_response] }, times: 1)
-    all_cm = [@fake_cm.kubectl_response, @fake_cm2.kubectl_response]
-    stub_kubectl_response('get', 'FakeConfigMap', *@params, resp: { "items" => all_cm }, times: 1)
+    test_resources = [@fake_pod, @fake_cm, @fake_deployment]
+    test_resources.each { |r| r.expects(:sync).once }
+    mediator.sync(test_resources)
+  end
 
-    test_resources = [@fake_pod, @fake_cm, @fake_cm2, @fake_deployment]
+  def test_sync_does_not_batch_with_few_resources
+    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params,
+      resp: { "items" => [@fake_cm.kubectl_response] }, times: 0)
+
+    test_resources = [@fake_cm]
+    test_resources.each { |r| r.expects(:sync).once }
+    mediator.sync(test_resources)
+  end
+
+  def test_sync_does_batch_with_enough_resources
+    stub_kubectl_response('get', 'FakeConfigMap', *@params,
+      resp: { "items" => [@fake_cm.kubectl_response] }, times: 1)
+
+    test_resources = [@fake_cm] * (KubernetesDeploy::SyncMediator::LARGE_BATCH_THRESHOLD + 1)
     test_resources.each { |r| r.expects(:sync).once }
     mediator.sync(test_resources)
   end

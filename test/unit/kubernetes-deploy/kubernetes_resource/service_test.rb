@@ -37,7 +37,9 @@ class ServiceTest < KubernetesDeploy::TestCase
       build_service(service_fixture('zero-replica'))
     ]
 
-    stub_kubectl_response("get", "Service", "-a", "--output=json", resp: { items: [] })
+    stub_kubectl_response("get", "Service", "zero-replica", "-a", "--output=json", resp: {})
+    stub_kubectl_response("get", "Service", "standard", "-a", "--output=json", resp: {})
+    stub_kubectl_response("get", "Service", "external-name", "-a", "--output=json", resp: {})
     stub_kubectl_response("get", "Deployment", "-a", "--output=json", resp: { items: deployment_fixtures })
     stub_kubectl_response("get", "Pod", "-a", "--output=json", resp: { items: pod_fixtures })
 
