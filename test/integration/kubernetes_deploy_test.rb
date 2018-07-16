@@ -22,7 +22,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{DaemonSet/ds-app\s+1 updatedNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
       %r{StatefulSet/stateful-busybox},
       %r{Service/redis-external\s+Doesn't require any endpoint},
-      %r{Job/hello-job\s+Exists}
+      %r{Job/hello-job\s+(Succeeded|Started)}
     ])
 
     # Verify that success section isn't duplicated for predeployed resources
@@ -920,16 +920,30 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_jobs_can_be_successful
-    assert_deploy_success(deploy_fixtures("jobs"))
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["job.yml"]))
+    assert_logs_match_all([
+      "Deploying Job/hello-job (timeout: 600s)",
+      %r{Job/hello-job\s*Succeeded},
+    ])
   end
 
   def test_jobs_can_fail
-    fixtures = deploy_fixtures("jobs") do |f|
-      spec = f["job.yml"]["Job"].first["spec"]["template"]["spec"]
+    skip if KUBE_SERVER_VERSION < Gem::Version.new('1.8.0') # backoffLimit added 1.8
+    fixtures = deploy_fixtures("hello-cloud", subset: ["job.yml"]) do |f|
+      spec = f["job.yml"]["Job"].first["spec"]
       spec["backoffLimit"] = 1
-      spec["containers"].first["args"] = %w(FAKE)
+      spec["activeDeadlineSeconds"] = 1
+      spec["template"]["spec"]["containers"].first["command"] = %w(/not/a/command)
     end
+
     assert_deploy_failure(fixtures)
+    assert_logs_match_all([
+      "Deploying Job/hello-job (timeout: 600s)",
+      "Result: FAILURE",
+      "Job/hello-job: FAILED",
+      "Final status: Failed",
+      %r{\[Job/hello-job\]	DeadlineExceeded: Job was active longer than specified deadline \(\d+ events\)}
+    ])
   end
 
   def test_resource_watcher_reports_failed_after_timeout
