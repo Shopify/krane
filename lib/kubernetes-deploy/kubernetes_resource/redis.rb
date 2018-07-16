@@ -7,8 +7,12 @@ module KubernetesDeploy
     SYNC_DEPENDENCIES = %w(Deployment Service)
     def sync(mediator)
       super
-      @deployment = mediator.get_instance(Deployment.kind, "redis-#{redis_resource_uuid}")
-      @service = mediator.get_instance(Service.kind, "redis-#{redis_resource_uuid}")
+
+      @deployment = mediator.get_instance(Deployment.kind, name)
+      @deployment = mediator.get_instance(Deployment.kind, deprecated_name) if @deployment.empty?
+
+      @service = mediator.get_instance(Service.kind, name)
+      @service = mediator.get_instance(Service.kind, deprecated_name) if @service.empty?
     end
 
     def status
@@ -39,6 +43,14 @@ module KubernetesDeploy
       return false unless @service.present?
       # the service has an assigned cluster IP and is therefore functioning
       @service.dig("spec", "clusterIP").present?
+    end
+
+    def name
+      @definition.dig('metadata', 'name')
+    end
+
+    def deprecated_name
+      "redis-#{redis_resource_uuid}"
     end
 
     def redis_resource_uuid
