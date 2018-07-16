@@ -170,6 +170,21 @@ class PodTest < KubernetesDeploy::TestCase
     assert_nil pod.failure_message
   end
 
+  def test_deploy_failed_is_false_for_preempting
+    container_state = pod_spec.merge(
+      "status" => {
+        "message" => "Preempted in order to admit critical pod",
+        "phase" => "Failed",
+        "reason" => "Preempting",
+        "startTime" => "2018-04-13T22:43:23Z"
+      }
+    )
+    pod = build_synced_pod(container_state)
+
+    refute_predicate pod, :deploy_failed?
+    assert_nil pod.failure_message
+  end
+
   private
 
   def pod_spec
