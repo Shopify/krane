@@ -2,6 +2,7 @@
 module KubernetesDeploy
   class CustomResourceDefinition < KubernetesResource
     TIMEOUT = 30.seconds
+    GLOBAL = true
 
     def deploy_succeeded?
       names_accepted_status == "True"

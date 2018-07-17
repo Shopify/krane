@@ -1058,6 +1058,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_crd_can_be_successful
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["crd.yml"]))
     assert_logs_match_all([
+      "Phase 1: Initializing deploy",
+      "Detected non-namespaced resouce which will never be pruned:",
+      " - CustomResourceDefinition/mails.stable.example.io",
+      "Phase 2: Checking initial resource statuses",
       "Deploying CustomResourceDefinition/mails.stable.example.io (timeout: 30s)",
       %r{CustomResourceDefinition/mails.stable.example.io\s+Succeeded}
     ])
