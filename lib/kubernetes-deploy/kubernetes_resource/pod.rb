@@ -4,6 +4,10 @@ module KubernetesDeploy
     TIMEOUT = 10.minutes
 
     FAILED_PHASE_NAME = "Failed"
+    TRANSIENT_FAILURE_REASONS = %w(
+      Evicted
+      Preempting
+    )
 
     def initialize(namespace:, context:, definition:, logger:,
       statsd_tags: nil, parent: nil, deploy_started_at: nil)
@@ -57,7 +61,7 @@ module KubernetesDeploy
     end
 
     def failure_message
-      if phase == FAILED_PHASE_NAME && reason != "Evicted"
+      if phase == FAILED_PHASE_NAME && !TRANSIENT_FAILURE_REASONS.include?(reason)
         phase_problem = "Pod status: #{status}. "
       end
 
