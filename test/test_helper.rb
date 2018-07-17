@@ -192,7 +192,7 @@ module KubernetesDeploy
 
     def stub_kubectl_response(*args, resp:, err: "", success: true, json: true, times: 1)
       resp = resp.to_json if json
-      response = times > 0 ? [resp, err, stub(success?: success)] : []
+      response = [resp, err, stub(success?: success)]
       KubernetesDeploy::Kubectl.any_instance.expects(:run)
         .with(*args)
         .returns(response)

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class SyncMediator
-    LARGE_BATCH_THRESHOLD = 5
+    LARGE_BATCH_THRESHOLD = Concurrency::MAX_THREADS * 3
 
     def initialize(namespace:, context:, logger:)
       @namespace = namespace
