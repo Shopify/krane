@@ -1,5 +1,8 @@
 ### Master
 
+### 0.20.4
+- Don't consider pod preempting a failure ([#317](https://github.com/shopify/kubernetes-deploy/pull/317))
+
 ### 0.20.3
 *Enhancements*
 - Evictions are recoverable so prevent them from triggering fast failure detection ([#293](https://github.com/Shopify/kubernetes-deploy/pull/293)).
