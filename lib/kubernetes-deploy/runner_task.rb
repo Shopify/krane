@@ -15,44 +15,76 @@ module KubernetesDeploy
       end
     end
 
-    def initialize(namespace:, context:, logger:)
+    def initialize(namespace:, context:, logger:, max_watch_seconds: nil)
       @logger = logger
       @namespace = namespace
       @kubeclient = build_v1_kubeclient(context)
       @context = context
+      @max_watch_seconds = max_watch_seconds
     end
 
     def run(*args)
       run!(*args)
       true
-    rescue FatalDeploymentError => error
-      @logger.fatal "#{error.class}: #{error.message}"
+    rescue DeploymentTimeoutError, FatalDeploymentError
       false
     end
 
-    def run!(task_template:, entrypoint:, args:, env_vars: [])
+    def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: true)
       @logger.reset
-      @logger.phase_heading("Validating configuration")
+
+      @logger.phase_heading("Initializing deploy")
       validate_configuration(task_template, args)
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
+      pod = build_pod(task_template, entrypoint, args, env_vars, verify_result)
+
+      @logger.phase_heading("Running pod")
+      create_pod(pod)
+
+      if verify_result
+        sm = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
+        rw = ResourceWatcher.new(resources: [pod], logger: @logger, timeout: @max_watch_seconds, sync_mediator: sm)
+        rw.run(delay_sync: 5.seconds, reminder_interval: 1.day) # never print reminders
+        raise DeploymentTimeoutError if pod.deploy_timed_out?
+        raise FatalDeploymentError unless pod.deploy_succeeded?
+      else
+        warning = <<~MSG
+          Result verification is disabled for this task.
+          This means the desired pod was successfully created, but the runner did not make sure it actually succeeded.
+        MSG
+        @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
       end
-      @logger.phase_heading("Fetching task template")
-      raw_template = get_template(task_template)
-
-      @logger.phase_heading("Constructing final pod specification")
-      rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
-
-      validate_pod_spec(rendered_template)
-
-      @logger.phase_heading("Creating pod")
-      @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
-      @kubeclient.create_pod(rendered_template)
+      @logger.print_summary(:success)
+    rescue DeploymentTimeoutError
+      @logger.print_summary(:timed_out)
+      raise
+    rescue FatalDeploymentError => error
+      @logger.summary.add_action(error.message) unless error.message == error.class.to_s
+      @logger.print_summary(:failure)
+      raise
     end
 
     private
 
+    def create_pod(pod)
+      @logger.info("Starting task runner pod: '#{pod.name}'")
+      pod.deploy_started_at = Time.now.utc
+      @kubeclient.create_pod(Kubeclient::Resource.new(pod.definition))
+    end
+
+    def build_pod(task_template, entrypoint, args, env_vars, verify_result)
+      raw_template = get_template(task_template)
+      rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
+      rendered_template = validate_or_set_restart_policy(rendered_template, verify_result)
+
+      pod = Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
+                    definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
+      pod.validate_definition(kubectl)
+
+      pod
+    end
+
     def validate_configuration(task_template, args)
+      @logger.info("Validating Configuration")
       errors = []
 
       if task_template.blank?
@@ -75,6 +107,10 @@ module KubernetesDeploy
       end
 
       raise FatalTaskRunError, "Configuration invalid: #{errors.join(', ')}" unless errors.empty?
+
+      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
+      end
     end
 
     def get_template(template_name)
@@ -89,7 +125,7 @@ module KubernetesDeploy
       if error.error_code == 404
         raise TaskTemplateMissingError.new(template_name, @namespace, @context)
       else
-        raise
+        raise FatalDeploymentError, "Error communicating with the API server"
       end
     end
 
@@ -124,34 +160,18 @@ module KubernetesDeploy
       rendered_template
     end
 
-    def validate_pod_spec(pod)
-      f = Tempfile.new(pod.metadata.name)
-      f.write recursive_to_h(pod).to_json
-      f.close
-
-      _out, err, status = kubectl.run("apply", "--dry-run", "-f", f.path)
-
-      unless status.success?
-        raise FatalTaskRunError, "Invalid pod spec: #{err}"
+    def validate_or_set_restart_policy(template, verify)
+      restart_policy = template.spec.restartPolicy
+      if verify && restart_policy != "Never"
+        @logger.warn("Changed Pod RestartPolicy from '#{restart_policy}' to 'Never'. Use"\
+          "'--skip-wait=true' to use '#{restart_policy}'.")
+        template.spec.restartPolicy = "Never"
       end
+      template
     end
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
-    end
-
-    def recursive_to_h(struct)
-      if struct.is_a?(Array)
-        return struct.map { |v| v.is_a?(OpenStruct) || v.is_a?(Array) || v.is_a?(Hash) ? recursive_to_h(v) : v }
-      end
-
-      hash = {}
-
-      struct.each_pair do |k, v|
-        recursive_val = v.is_a?(OpenStruct) || v.is_a?(Array) || v.is_a?(Hash)
-        hash[k] = recursive_val ? recursive_to_h(v) : v
-      end
-      hash
     end
   end
 end
