@@ -535,7 +535,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_deploy_result_logging_for_mixed_result_deploy
     subset = ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml", "config_map.yml"]
     result = deploy_fixtures("invalid", subset: subset) do |f|
-      if KUBE_SERVER_VERSION >= Gem::Version.new("1.10.0")
+      if KUBE_SERVER_VERSION >= Gem::Version.new("1.10.0") # https://github.com/kubernetes/kubernetes/issues/66135
         f["bad_probe.yml"]["Deployment"].first["spec"]["progressDeadlineSeconds"] = 20
       end
     end
@@ -939,7 +939,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       max_watch_seconds: 20
     ) do |f|
       bad_probe = f["bad_probe.yml"]["Deployment"].first
-      if KUBE_SERVER_VERSION < Gem::Version.new("1.10.0")
+      if KUBE_SERVER_VERSION < Gem::Version.new("1.10.0") # https://github.com/kubernetes/kubernetes/issues/66135
         bad_probe["metadata"]["annotations"]["kubernetes-deploy.shopify.io/timeout-override"] = '5s'
       else
         bad_probe["spec"]["progressDeadlineSeconds"] = 5
