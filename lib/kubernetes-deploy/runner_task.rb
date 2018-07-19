@@ -15,22 +15,27 @@ module KubernetesDeploy
       end
     end
 
-    def initialize(namespace:, context:, logger:)
+    def initialize(namespace:, context:, logger:, max_watch_seconds: nil)
       @logger = logger
       @namespace = namespace
       @kubeclient = build_v1_kubeclient(context)
       @context = context
+      @max_watch_seconds = max_watch_seconds
     end
 
     def run(*args)
       run!(*args)
       true
+    rescue DeploymentTimeoutError
+      @logger.print_summary(:timed_out)
+      false
     rescue FatalDeploymentError => error
-      @logger.fatal "#{error.class}: #{error.message}"
+      @logger.summary.add_action(error.message) if error.message != error.class.to_s
+      @logger.print_summary(:failure)
       false
     end
 
-    def run!(task_template:, entrypoint:, args:, env_vars: [])
+    def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: false)
       @logger.reset
       @logger.phase_heading("Validating configuration")
       validate_configuration(task_template, args)
@@ -48,6 +53,30 @@ module KubernetesDeploy
       @logger.phase_heading("Creating pod")
       @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
       @kubeclient.create_pod(rendered_template)
+
+      if verify_result
+        resource = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
+                                            definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
+        resource.deploy_started_at = Time.now.utc
+
+        sync_mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
+        watcher = ResourceWatcher.new(resources: [resource], sync_mediator: sync_mediator,
+          logger: @logger, deploy_started_at: Time.now.utc, timeout: @max_watch_seconds)
+        watcher.run(record_summary: true)
+
+        if resource.deploy_failed?
+          raise FatalDeploymentError
+        elsif resource.deploy_timed_out?
+          raise DeploymentTimeoutError
+        end
+        @logger.print_summary(:success)
+      else
+        warning = <<~MSG
+          Result verification is disabled for this task.
+          This means the desired task creation was communicated to Kubernetes, but the runner did not make sure it actually succeeded.
+        MSG
+        @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
+      end
     end
 
     private

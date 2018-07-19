@@ -8,8 +8,15 @@ require 'optparse'
 template = "task-runner-template"
 entrypoint = nil
 env_vars = []
+skip_wait = nil
+max_watch_seconds = nil
 
 ARGV.options do |opts|
+  opts.on("--skip-wait", "Skip verification of non-priority-resource success (not recommended)") { skip_wait = true }
+  opts.on("--max-watch-seconds=seconds",
+    "Timeout error is raised if it takes longer than the specified number of seconds") do |t|
+    max_watch_seconds = t.to_i
+  end
   opts.on("--template=TEMPLATE") { |n| template = n }
   opts.on("--env-vars=ENV_VARS") { |vars| env_vars = vars.split(",") }
   opts.on("--entrypoint=ENTRYPOINT") { |c| entrypoint = [c] }
@@ -23,10 +30,12 @@ logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
 runner = KubernetesDeploy::RunnerTask.new(
   namespace: namespace,
   context: context,
-  logger: logger
+  logger: logger,
+  max_watch_seconds: max_watch_seconds
 )
 
 success = runner.run(
+  verify_result: !skip_wait,
   task_template: template,
   entrypoint: entrypoint,
   args: ARGV[2..-1],

@@ -14,6 +14,52 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
   end
 
+  def test_run_global_timeout_with_max_watch_seconds
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
+
+    task_runner = build_task_runner(max_watch_seconds: 5)
+    refute task_runner.run(**valid_run_params.merge(verify_result: true, args: ['sleep 20']))
+
+    assert_logs_match_all([
+      /Starting task runner pod: 'task-runner-\w+'/,
+      "Result: TIMED OUT",
+      "Timed out waiting for 1 resource to deploy",
+      %r{Pod/task-runner-\w+: GLOBAL WATCH TIMEOUT \(5 seconds\)}
+    ])
+  end
+
+  def test_run_bad_args
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
+
+    task_runner = build_task_runner
+    refute task_runner.run(**valid_run_params.merge(verify_result: true, args: ['FAKE']))
+
+    assert_logs_match_all([
+      /Starting task runner pod: 'task-runner-\w+'/,
+      "Result: FAILURE",
+      "Failed to deploy 1 resource",
+      %r{Pod/task-runner-\w+: FAILED},
+      "/bin/sh: FAKE: not found"
+    ])
+  end
+
+  def test_run_with_verify_result
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
+
+    task_runner = build_task_runner
+    assert task_runner.run(**valid_run_params.merge(verify_result: true))
+
+    assert_logs_match_all([
+      /Starting task runner pod: 'task-runner-\w+'/,
+      "Result: SUCCESS",
+      "Successfully deployed",
+      %r{Pod/task-runner-\w+: SUCCESS},
+      "KUBERNETES-DEPLOY"
+    ])
+    pods = kubeclient.get_pods(namespace: @namespace)
+    assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
+  end
+
   def test_run_bang_works
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml"])
 
@@ -47,7 +93,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       entrypoint: nil,
       args: 'a'
     )
-    assert_logs_match("Configuration invalid: Namespace was not found")
+    assert_logs_match(/Configuration invalid: Namespace was not found/i)
   end
 
   def test_run_with_template_runner_template_missing
@@ -86,10 +132,11 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   private
 
   def valid_run_params
-    { task_template: 'hello-cloud-template-runner', entrypoint: ['/bin/bash'], args: ["echo", "'KUBERNETES-DEPLOY'"] }
+    { task_template: 'hello-cloud-template-runner', entrypoint: ['/bin/sh', '-c'], args: ["echo 'KUBERNETES-DEPLOY'"] }
   end
 
-  def build_task_runner(ns: @namespace)
-    KubernetesDeploy::RunnerTask.new(context: KubeclientHelper::MINIKUBE_CONTEXT, namespace: ns, logger: logger)
+  def build_task_runner(ns: @namespace, max_watch_seconds: nil)
+    KubernetesDeploy::RunnerTask.new(context: KubeclientHelper::MINIKUBE_CONTEXT, namespace: ns, logger: logger,
+      max_watch_seconds: max_watch_seconds)
   end
 end
