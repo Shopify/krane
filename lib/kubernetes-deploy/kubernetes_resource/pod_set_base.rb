@@ -16,19 +16,14 @@ module KubernetesDeploy
       own_events.merge(most_useful_pod.fetch_events(kubectl))
     end
 
-    def fetch_logs(kubectl)
-      return {} unless pods.present? # the kubectl command times out if no pods exist
-      container_names.each_with_object({}) do |container_name, container_logs|
-        out, _err, _st = kubectl.run(
-          "logs",
-          id,
-          "--container=#{container_name}",
-          "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
-          "--tail=#{LOG_LINE_COUNT}",
-          log_failure: false
-        )
-        container_logs[container_name] = out.split("\n")
-      end
+    def fetch_debug_logs(kubectl)
+      logs = KubernetesDeploy::RemoteLogs.new(logger: @logger, parent_id: id, container_names: container_names)
+      logs.sync(kubectl)
+      logs
+    end
+
+    def supports_debug_logs?
+      pods.present? # the kubectl command times out if no pods exist
     end
 
     private

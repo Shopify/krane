@@ -619,7 +619,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      "Logs from container 'hello-cloud' (last 250 lines shown):",
+      "Logs from container 'hello-cloud':",
       "sh: /some/bad/path: not found" # from logs
     ], in_order: true)
     refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary
@@ -778,7 +778,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Final status: 1 updatedNumberScheduled, 1 desiredNumberScheduled, 0 numberReady",
       "Events (common success events excluded):",
       "BackOff: Back-off restarting failed container",
-      "Logs from container 'crash-loop-back-off' (last 250 lines shown):",
+      "Logs from container 'crash-loop-back-off':",
       "this is a log from the crashing container"
     ], in_order: true)
   end
@@ -799,7 +799,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "app: Crashing repeatedly (exit 1). See logs for more information.",
       "Events (common success events excluded):",
       %r{\[Pod/stateful-busybox-\d\]	BackOff: Back-off restarting failed container},
-      "Logs from container 'app' (last 250 lines shown):",
+      "Logs from container 'app':",
       "ls: /not-a-dir: No such file or directory"
     ], in_order: true)
   end
