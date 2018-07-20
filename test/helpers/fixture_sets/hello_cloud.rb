@@ -102,7 +102,8 @@ module FixtureSetAssertions
     end
 
     def assert_crd_up
-      assert_crd_present("mails.stable.example.io")
+      crd_name = /mails[-\w]+.stable.example.io/
+      assert_crd_present(crd_name)
     end
   end
 end

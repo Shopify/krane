@@ -12,7 +12,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 19 resources"
+      "Successfully deployed 20 resources"
     ], in_order: true)
 
     assert_logs_match_all([
@@ -24,7 +24,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Service/redis-external\s+Doesn't require any endpoint},
       "- Job/hello-job (timeout: 600s)",
       %r{Job/hello-job\s+(Succeeded|Started)},
-      %r{CustomResourceDefinition/mails.stable.example.io\s+Names Accepted},
+      %r{CustomResourceDefinition/mails[-\w]+.stable.example.io\s+Names accepted},
     ])
 
     # Verify that success section isn't duplicated for predeployed resources
@@ -73,7 +73,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'ingress(\.extensions)? "web"',
       'daemonset(\.extensions)? "ds-app"',
       'statefulset(\.apps)? "stateful-busybox"',
-      'job "hello-job"',
+      'job(\.batch)? "hello-job"',
     ] # not necessarily listed in this order
     expected_msgs = [/Pruned 9 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
@@ -1056,29 +1056,35 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_crd_can_be_successful
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["crd.yml"]))
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["crd.yml.erb"]))
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
       "Detected non-namespaced resource which will never be pruned:",
-      " - CustomResourceDefinition/mails.stable.example.io",
+      %r{ - CustomResourceDefinition/mails[-\w]+.stable.example.io},
       "Phase 2: Checking initial resource statuses",
-      "Deploying CustomResourceDefinition/mails.stable.example.io (timeout: 120s)",
-      %r{CustomResourceDefinition/mails.stable.example.io\s+Names Accepted}
+      %r{Deploying CustomResourceDefinition/mails[-\w]+.stable.example.io \(timeout: 120s\)},
+      %r{CustomResourceDefinition/mails[-\w]+.stable.example.io\s+Names accepted}
     ])
   end
 
   def test_crd_can_fail
-    result = deploy_fixtures("hello-cloud", subset: ["crd.yml"]) do |f|
-      crd = f.dig("crd.yml", "CustomResourceDefinition").first
+    result = deploy_fixtures("hello-cloud", subset: ["crd.yml.erb"]) do |f|
+      crd = f.dig("crd.yml.erb", "CustomResourceDefinition").first
       names = crd.dig("spec", "names")
-      crd["metadata"]["name"] = 'mis-matched.stable.example.io'
-      names["plural"] = 'mis-matched'
+      names["listKind"] = 'Conflict'
+    end
+    assert_deploy_success(result)
+
+    result = deploy_fixtures("hello-cloud", subset: ["crd.yml.erb"]) do |f|
+      crd = f.dig("crd.yml.erb", "CustomResourceDefinition").first
+      names = crd.dig("spec", "names")
+      names["listKind"] = 'Conflict'
     end
     assert_deploy_failure(result)
     assert_logs_match_all([
-      "Deploying CustomResourceDefinition/mis-matched.stable.example.io (timeout: 120s)",
-      "CustomResourceDefinition/mis-matched.stable.example.io: FAILED",
-      'Final status: ListKindConflict ("MailList" is already in use)'
+      %r{Deploying CustomResourceDefinition/mails[-\w]+.stable.example.io \(timeout: 120s\)},
+      %r{CustomResourceDefinition/mails[-\w]+.stable.example.io: FAILED},
+      'Final status: ListKindConflict ("Conflict" is already in use)'
     ])
   end
 end

@@ -162,7 +162,7 @@ module FixtureSetAssertions
 
     def assert_crd_present(name)
       crds = apiextensions_v1beta1_kubeclient.get_custom_resource_definitions
-      desired = crds.find { |crd| crd.metadata.name == name }
+      desired = crds.find { |crd| crd.metadata.name =~ name }
       assert desired.present?, "CRD #{name} does not exist"
     end
   end
