@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class CustomResourceDefinition < KubernetesResource
-    TIMEOUT = 30.seconds
+    TIMEOUT = 2.minutes
     GLOBAL = true
 
     def deploy_succeeded?
@@ -13,16 +13,16 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      UNUSUAL_FAILURE_MESSAGE
+      "The names this CRD is attempting to register were neither accepted nor rejected in time"
     end
 
     def status
       if !exists?
         super
       elsif deploy_succeeded?
-        "Succeeded"
+        "Names accepted"
       else
-        names_accepted_condition["reason"]
+        "#{names_accepted_condition['reason']} (#{names_accepted_condition['message']})"
       end
     end
 

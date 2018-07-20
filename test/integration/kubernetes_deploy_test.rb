@@ -24,7 +24,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Service/redis-external\s+Doesn't require any endpoint},
       "- Job/hello-job (timeout: 600s)",
       %r{Job/hello-job\s+(Succeeded|Started)},
-      %r{CustomResourceDefinition/mails.stable.example.io\s+Succeeded},
+      %r{CustomResourceDefinition/mails.stable.example.io\s+Names Accepted},
     ])
 
     # Verify that success section isn't duplicated for predeployed resources
@@ -1059,16 +1059,15 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["crd.yml"]))
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
-      "Detected non-namespaced resouce which will never be pruned:",
+      "Detected non-namespaced resource which will never be pruned:",
       " - CustomResourceDefinition/mails.stable.example.io",
       "Phase 2: Checking initial resource statuses",
-      "Deploying CustomResourceDefinition/mails.stable.example.io (timeout: 30s)",
-      %r{CustomResourceDefinition/mails.stable.example.io\s+Succeeded}
+      "Deploying CustomResourceDefinition/mails.stable.example.io (timeout: 120s)",
+      %r{CustomResourceDefinition/mails.stable.example.io\s+Names Accepted}
     ])
   end
 
   def test_crd_can_fail
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["crd.yml"]))
     result = deploy_fixtures("hello-cloud", subset: ["crd.yml"]) do |f|
       crd = f.dig("crd.yml", "CustomResourceDefinition").first
       names = crd.dig("spec", "names")
@@ -1077,9 +1076,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
     assert_deploy_failure(result)
     assert_logs_match_all([
-      "Deploying CustomResourceDefinition/mails.stable.example.io (timeout: 30s)",
+      "Deploying CustomResourceDefinition/mis-matched.stable.example.io (timeout: 120s)",
       "CustomResourceDefinition/mis-matched.stable.example.io: FAILED",
-      "Final status: ListKindConflict"
+      'Final status: ListKindConflict ("MailList" is already in use)'
     ])
   end
 end
