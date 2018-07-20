@@ -12,7 +12,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 18 resources"
+      "Successfully deployed 19 resources"
     ], in_order: true)
 
     assert_logs_match_all([
@@ -21,7 +21,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Service/web\s+Selects at least 1 pod},
       %r{DaemonSet/ds-app\s+1 updatedNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
       %r{StatefulSet/stateful-busybox},
-      %r{Service/redis-external\s+Doesn't require any endpoint}
+      %r{Service/redis-external\s+Doesn't require any endpoint},
+      "- Job/hello-job (timeout: 600s)",
+      %r{Job/hello-job\s+(Succeeded|Started)}
     ])
 
     # Verify that success section isn't duplicated for predeployed resources
@@ -70,8 +72,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'ingress(\.extensions)? "web"',
       'daemonset(\.extensions)? "ds-app"',
       'statefulset(\.apps)? "stateful-busybox"',
+      'job "hello-job"',
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 8 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 9 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -930,6 +933,25 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(deploy_fixtures("cronjobs"))
     cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
     cronjobs.assert_cronjob_present("my-cronjob")
+  end
+
+  def test_jobs_can_fail
+    skip if KUBE_SERVER_VERSION < Gem::Version.new('1.8.0') # backoffLimit added 1.8
+    fixtures = deploy_fixtures("hello-cloud", subset: ["job.yml"]) do |f|
+      spec = f["job.yml"]["Job"].first["spec"]
+      spec["backoffLimit"] = 1
+      spec["activeDeadlineSeconds"] = 1
+      spec["template"]["spec"]["containers"].first["command"] = %w(/not/a/command)
+    end
+
+    assert_deploy_failure(fixtures)
+    assert_logs_match_all([
+      "Deploying Job/hello-job (timeout: 600s)",
+      "Result: FAILURE",
+      "Job/hello-job: FAILED",
+      "Final status: Failed",
+      %r{\[Job/hello-job\]	DeadlineExceeded: Job was active longer than specified deadline \(\d+ events\)}
+    ])
   end
 
   def test_resource_watcher_reports_failed_after_timeout

@@ -17,6 +17,7 @@ module FixtureSetAssertions
       assert_all_service_accounts_up
       assert_daemon_set_up
       assert_stateful_set_up
+      assert_job_up
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -93,6 +94,10 @@ module FixtureSetAssertions
 
     def assert_stateful_set_up
       assert_stateful_set_present("stateful-busybox")
+    end
+
+    def assert_job_up
+      assert_job_exists("hello-job")
     end
   end
 end

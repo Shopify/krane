@@ -105,6 +105,14 @@ module FixtureSetAssertions
       assert_equal 1, cronjobs.size, "Expected 1 cronjob, got #{cronjobs.size}"
     end
 
+    def assert_job_exists(job_name)
+      jobs = batch_v1_kubeclient.get_jobs(
+        namespace: namespace,
+        label_selector: "name=#{job_name},app=#{app_name}"
+      )
+      assert_equal 1, jobs.size, "Expected 1 job, got #{jobs.size}"
+    end
+
     def assert_pod_templates_present(cm_name)
       pod_templates = kubeclient.get_pod_templates(
         namespace: namespace,
