@@ -22,6 +22,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{DaemonSet/ds-app\s+1 updatedNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
       %r{StatefulSet/stateful-busybox},
       %r{Service/redis-external\s+Doesn't require any endpoint},
+      "- Job/hello-job (timeout: 600s)",
       %r{Job/hello-job\s+(Succeeded|Started)}
     ])
 
@@ -917,14 +918,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(deploy_fixtures("cronjobs"))
     cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
     cronjobs.assert_cronjob_present("my-cronjob")
-  end
-
-  def test_jobs_can_be_successful
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["job.yml"]))
-    assert_logs_match_all([
-      "Deploying Job/hello-job (timeout: 600s)",
-      %r{Job/hello-job\s*Succeeded},
-    ])
   end
 
   def test_jobs_can_fail
