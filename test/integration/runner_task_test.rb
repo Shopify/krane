@@ -51,10 +51,10 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       /Starting task runner pod: 'task-runner-\w+'/,
+      "KUBERNETES-DEPLOY", # From pod logs
       "Result: SUCCESS",
-      "Successfully deployed",
-      %r{Pod/task-runner-\w+: SUCCESS},
-      "KUBERNETES-DEPLOY"
+      "Successfully deployed 1 resource",
+      %r{Pod/task-runner-\w+\s+Succeeded},
     ])
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
