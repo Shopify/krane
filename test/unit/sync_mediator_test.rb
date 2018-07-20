@@ -133,11 +133,14 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
   end
 
   def test_sync_does_not_warm_cache_with_few_resources
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).with('get', 'FakeConfigMap', @fake_cm.name, *@params).never
+    KubernetesDeploy::Kubectl.any_instance.expects(:run).with('get', 'FakeConfigMap', *@params).never
 
-    test_resources = [@fake_cm]
+    test_resources = [@fake_cm] * KubernetesDeploy::SyncMediator::LARGE_BATCH_THRESHOLD
     test_resources.each { |r| r.expects(:sync).once }
     mediator.sync(test_resources)
+
+    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params, resp: @fake_cm.kubectl_response, times: 1)
+    mediator.get_instance('FakeConfigMap', @fake_cm.name)
   end
 
   private
