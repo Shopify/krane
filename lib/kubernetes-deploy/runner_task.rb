@@ -27,18 +27,17 @@ module KubernetesDeploy
       run!(*args)
       true
     rescue DeploymentTimeoutError
-      @logger.print_summary(:timed_out)
       false
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message) if error.message != error.class.to_s
-      @logger.print_summary(:failure)
       false
     end
 
-    def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: false)
+    def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: true)
       @logger.reset
       @logger.phase_heading("Validating configuration")
       validate_configuration(task_template, args)
+      @logger.info("Configuration Valid")
       if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
         @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
       end
@@ -53,27 +52,30 @@ module KubernetesDeploy
       @logger.phase_heading("Creating pod")
       @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
       @kubeclient.create_pod(rendered_template)
+      pod_creation_time = Time.now.utc
 
       if verify_result
-        resource = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
+        resource = KubernetesResource::Pod.new(namespace: @namespace, context: @context, logger: @logger,
                                             definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
-        resource.deploy_started_at = Time.now.utc
+        resource.deploy_started_at = pod_creation_time
 
         sync_mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
         watcher = ResourceWatcher.new(resources: [resource], sync_mediator: sync_mediator,
-          logger: @logger, deploy_started_at: Time.now.utc, timeout: @max_watch_seconds)
+          logger: @logger, deploy_started_at: pod_creation_time, timeout: @max_watch_seconds)
         watcher.run(record_summary: true)
 
         if resource.deploy_failed?
+          @logger.print_summary(:failure)
           raise FatalDeploymentError
         elsif resource.deploy_timed_out?
+          @logger.print_summary(:timed_out)
           raise DeploymentTimeoutError
         end
         @logger.print_summary(:success)
       else
         warning = <<~MSG
           Result verification is disabled for this task.
-          This means the desired task creation was communicated to Kubernetes, but the runner did not make sure it actually succeeded.
+          This means the desired pod was successfully created, but the runner did not make sure it actually succeeded.
         MSG
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
       end

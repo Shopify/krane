@@ -32,7 +32,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
 
     task_runner = build_task_runner
-    refute task_runner.run(**valid_run_params.merge(verify_result: true, args: ['FAKE']))
+    refute task_runner.run(**valid_run_params.merge(verify_result: true, args: %w(FAKE)))
 
     assert_logs_match_all([
       /Starting task runner pod: 'task-runner-\w+'/,

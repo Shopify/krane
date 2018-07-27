@@ -12,9 +12,9 @@ skip_wait = nil
 max_watch_seconds = nil
 
 ARGV.options do |opts|
-  opts.on("--skip-wait", "Skip verification of non-priority-resource success (not recommended)") { skip_wait = true }
+  opts.on("--skip-wait", "Skip verification of resource success") { skip_wait = true }
   opts.on("--max-watch-seconds=seconds",
-    "Timeout error is raised if it takes longer than the specified number of seconds") do |t|
+    "Timeout error is raised if the pod runs for longer than the specified number of seconds") do |t|
     max_watch_seconds = t.to_i
   end
   opts.on("--template=TEMPLATE") { |n| template = n }
