@@ -28,6 +28,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   stateful_set
   cron_job
   job
+  custom_resource_definition
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -247,6 +248,10 @@ module KubernetesDeploy
           resources << r
           @logger.info "  - #{r.id}"
         end
+      end
+      if (global = resources.select(&:global?).presence)
+        @logger.warn("Detected non-namespaced #{'resource'.pluralize(global.count)} which will never be pruned:")
+        global.each { |r| @logger.warn("  - #{r.id}") }
       end
       resources
     end

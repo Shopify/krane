@@ -8,6 +8,7 @@ module KubernetesDeploy
     attr_reader :name, :namespace, :context
     attr_writer :type, :deploy_started_at
 
+    GLOBAL = false
     TIMEOUT = 5.minutes
     LOG_LINE_COUNT = 250
 
@@ -313,6 +314,10 @@ module KubernetesDeploy
       def to_s
         "#{@reason}: #{@message} (#{@count} events)"
       end
+    end
+
+    def global?
+      self.class::GLOBAL
     end
 
     private

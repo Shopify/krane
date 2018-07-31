@@ -60,6 +60,14 @@ module KubernetesDeploy
       )
     end
 
+    def build_apiextensions_v1beta1_kubeclient(context)
+      _build_kubeclient(
+        api_version: "v1beta1",
+        context: context,
+        endpoint_path: "/apis/apiextensions.k8s.io"
+      )
+    end
+
     def _build_kubeclient(api_version:, context:, endpoint_path: nil)
       # Find a context defined in kube conf files that matches the input context by name
       friendly_configs = config_files.map { |f| GoogleFriendlyConfig.read(f) }

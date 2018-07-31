@@ -118,4 +118,44 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
   ensure
     ENV['KUBECONFIG'] = old_config
   end
+
+  def test_crd_can_be_successful
+    assert_deploy_success(deploy_fixtures("crd"))
+    assert_logs_match_all([
+      "Phase 1: Initializing deploy",
+      "Detected non-namespaced resource which will never be pruned:",
+      " - CustomResourceDefinition/mail.stable.example.io",
+      "Phase 2: Checking initial resource statuses",
+      "Deploying CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
+      %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted}
+    ])
+  ensure
+    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
+  end
+
+  def test_crd_can_fail
+    result = deploy_fixtures("crd") do |f|
+      crd = f.dig("crd.yml.erb", "CustomResourceDefinition").first
+      names = crd.dig("spec", "names")
+      names["listKind"] = 'Conflict'
+    end
+    assert_deploy_success(result)
+
+    result = deploy_fixtures("crd") do |f|
+      crd = f.dig("crd.yml.erb", "CustomResourceDefinition").first
+      names = crd.dig("spec", "names")
+      names["listKind"] = "Conflict"
+      names["plural"] = "others"
+      crd["metadata"]["name"] = "others.stable.example.io"
+    end
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      "Deploying CustomResourceDefinition/others.stable.example.io (timeout: 120s)",
+      "CustomResourceDefinition/others.stable.example.io: FAILED",
+      'Final status: ListKindConflict ("Conflict" is already in use)'
+    ])
+  ensure
+    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
+    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("others.stable.example.io")
+  end
 end

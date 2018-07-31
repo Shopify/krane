@@ -23,7 +23,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{StatefulSet/stateful-busybox},
       %r{Service/redis-external\s+Doesn't require any endpoint},
       "- Job/hello-job (timeout: 600s)",
-      %r{Job/hello-job\s+(Succeeded|Started)}
+      %r{Job/hello-job\s+(Succeeded|Started)},
     ])
 
     # Verify that success section isn't duplicated for predeployed resources
@@ -72,7 +72,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'ingress(\.extensions)? "web"',
       'daemonset(\.extensions)? "ds-app"',
       'statefulset(\.apps)? "stateful-busybox"',
-      'job "hello-job"',
+      'job(\.batch)? "hello-job"',
     ] # not necessarily listed in this order
     expected_msgs = [/Pruned 9 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
