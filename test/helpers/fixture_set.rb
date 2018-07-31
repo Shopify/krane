@@ -159,12 +159,6 @@ module FixtureSetAssertions
       desired = stateful_sets.find { |ss| ss.metadata.name == name }
       assert desired.present?, "Stateful set #{name} does not exist"
     end
-
-    def assert_crd_present(name)
-      crds = apiextensions_v1beta1_kubeclient.get_custom_resource_definitions
-      desired = crds.find { |crd| crd.metadata.name =~ name }
-      assert desired.present?, "CRD #{name} does not exist"
-    end
   end
 end
 

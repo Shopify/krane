@@ -18,7 +18,6 @@ module FixtureSetAssertions
       assert_daemon_set_up
       assert_stateful_set_up
       assert_job_up
-      assert_crd_up
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -99,11 +98,6 @@ module FixtureSetAssertions
 
     def assert_job_up
       assert_job_exists("hello-job")
-    end
-
-    def assert_crd_up
-      crd_name = /mails[-\w]+.stable.example.io/
-      assert_crd_present(crd_name)
     end
   end
 end
