@@ -62,18 +62,17 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.refute_configmap_data_exists
     hello_cloud.refute_unmanaged_pod_exists
     hello_cloud.refute_web_resources_exist
-
     expected_pruned = [
-      'configmap "hello-cloud-configmap-data"',
-      'pod "unmanaged-pod-',
-      'service "web"',
-      'resourcequota "resource-quotas"',
-      'deployment(\.extensions)? "web"',
-      'ingress(\.extensions)? "web"',
-      'daemonset(\.extensions)? "ds-app"',
-      'statefulset(\.apps)? "stateful-busybox"',
-      'job(\.batch)? "hello-job"',
-      'poddisruptionbudget(.policy)? "test"',
+      prune_matcher("configmap", "", "hello-cloud-configmap-data"),
+      prune_matcher("pod", "", "unmanaged-pod-"),
+      prune_matcher("service", "", "web"),
+      prune_matcher("resourcequota", "", "resource-quotas"),
+      prune_matcher("deployment", "extensions", "web"),
+      prune_matcher("ingress", "extensions", "web"),
+      prune_matcher("daemonset", "extensions", "ds-app"),
+      prune_matcher("statefulset", "apps", "stateful-busybox"),
+      prune_matcher("job", "batch", "hello-job"),
+      prune_matcher("poddisruptionbudget", "policy", "test"),
     ] # not necessarily listed in this order
     expected_msgs = [/Pruned 10 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
@@ -620,7 +619,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      "SuccessfulMountVolume", # from an event
       "Logs from container 'hello-cloud' (last 250 lines shown):",
       "sh: /some/bad/path: not found" # from logs
     ], in_order: true)
@@ -1067,12 +1065,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     skip if KUBE_SERVER_VERSION < Gem::Version.new('1.9.0')
     assert_deploy_success(deploy_fixtures("hpa"))
     assert_deploy_success(deploy_fixtures("hpa", subset: ["deployment.yml"]))
-    assert_logs_match_all([/The following resources were pruned: horizontalpodautoscaler(.autoscaling)? "hello-hpa"/])
+    assert_logs_match_all([
+      /The following resources were pruned: #{prune_matcher("horizontalpodautoscaler", "autoscaling", "hello-hpa")}/
+    ])
   end
 
   def test_not_apply_resource_can_be_pruned
+    pod_disruption_budget_matcher = prune_matcher("poddisruptionbudget", "policy", "test")
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(disruption-budgets.yml configmap-data.yml)))
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(configmap-data.yml)))
-    assert_logs_match_all([/The following resources were pruned: poddisruptionbudget(.policy)? "test"/])
+    assert_logs_match_all([
+      /The following resources were pruned: #{pod_disruption_budget_matcher}/
+    ])
   end
 end

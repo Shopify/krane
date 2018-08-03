@@ -78,7 +78,6 @@ module KubernetesDeploy
         batch/v1/Job
         extensions/v1beta1/DaemonSet
         extensions/v1beta1/Deployment
-        apps/v1beta1/Deployment
         extensions/v1beta1/Ingress
         apps/v1beta1/StatefulSet
         autoscaling/v1/HorizontalPodAutoscaler

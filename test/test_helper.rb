@@ -232,6 +232,10 @@ module KubernetesDeploy
       TestProvisioner.delete_namespace(@namespace)
     end
 
+    def prune_matcher(kind, group, name)
+      kind + '(.' + group + ')?[ \/]"?' + name + '"?'
+    end
+
     logger = KubernetesDeploy::FormattedLogger.build("default", MINIKUBE_CONTEXT, $stderr)
     kubectl = KubernetesDeploy::Kubectl.new(namespace: "default", context: MINIKUBE_CONTEXT, logger: logger,
                                             log_failure_by_default: true, default_timeout: '5s')
