@@ -241,6 +241,10 @@ before the deployment is considered successful.
   that use the `RollingUpdate` strategy.
   - Percent (e.g. 90%): The deploy is successful when the number of new pods that are ready is equal to
   `spec.replicas` * Percent.
+- `kubernetes-deploy.shopify.io/prunable`: Allows a Custom Resource to be pruned during deployment.
+  - _Compatibility_: Custom Resource Definition
+  - `true`: The custom resource will be pruned if the resource is not in the deploy directory.
+  - All other values: The custom resource will not be pruned.
 
 ### Running tasks at the beginning of a deploy
 

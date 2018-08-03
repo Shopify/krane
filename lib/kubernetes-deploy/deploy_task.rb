@@ -37,6 +37,7 @@ require 'kubernetes-deploy/kubectl'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
+require 'kubernetes-deploy/resource_discovery'
 
 module KubernetesDeploy
   class DeployTask
@@ -52,6 +53,7 @@ module KubernetesDeploy
       ServiceAccount
       Pod
     )
+
     PROTECTED_NAMESPACES = %w(
       default
       kube-system
@@ -65,6 +67,7 @@ module KubernetesDeploy
     # core/v1/ReplicationController -- superseded by deployments/replicasets
     # extensions/v1beta1/ReplicaSet -- managed by deployments
     # core/v1/Secret -- should not committed / managed by shipit
+
     def prune_whitelist
       wl = %w(
         core/v1/ConfigMap
@@ -82,7 +85,7 @@ module KubernetesDeploy
       if server_version >= Gem::Version.new('1.8.0')
         wl << "batch/v1beta1/CronJob"
       end
-      wl
+      wl + cluster_resource_discoverer.crds(@sync_mediator).select(&:prunable?).map(&:group_version_kind)
     end
 
     def server_version
@@ -199,6 +202,10 @@ module KubernetesDeploy
     end
 
     private
+
+    def cluster_resource_discoverer
+      ResourceDiscovery.new(namespace: @namespace, context: @context, logger: @logger, namespace_tags: @namespace_tags)
+    end
 
     def deploy_has_priority_resources?(resources)
       resources.any? { |r| PREDEPLOY_SEQUENCE.include?(r.type) }

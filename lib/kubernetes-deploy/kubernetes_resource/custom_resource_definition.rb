@@ -26,6 +26,21 @@ module KubernetesDeploy
       end
     end
 
+    def group_version_kind
+      group = @definition.dig("spec", "group")
+      version = @definition.dig("spec", "version")
+      "#{group}/#{version}/#{kind}"
+    end
+
+    def kind
+      @definition.dig("spec", "names", "kind")
+    end
+
+    def prunable?
+      prunable = @definition.dig("metadata", "annotations", "kubernetes-deploy.shopify.io/prunable")
+      prunable == "true"
+    end
+
     private
 
     def names_accepted_condition
