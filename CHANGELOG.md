@@ -2,11 +2,12 @@
 
 *Enhancements*
 - Add Job resource class ([#295](https://github.com/Shopify/kubernetes-deploy/pull/296))
-- Add CustomResourceDefinition resource class ([#305](https://github.com/Shopify/kubernetes-deploy/pull/306))
+- Add CustomResourceDefinition resource class ([#306](https://github.com/Shopify/kubernetes-deploy/pull/306))
 - Officially support Kubernetes 1.10 ([#308](https://github.com/Shopify/kubernetes-deploy/pull/308))
 - SyncMediator will only batch fetch resources when there is a sufficiently large enough set of resources
 being tracked ([#316](https://github.com/Shopify/kubernetes-deploy/pull/316))
 - Allow CRs to be pruned based on `kubernetes-deploy.shopify.io/prunable` annotation on the custom resource definitions ([312](https://github.com/Shopify/kubernetes-deploy/pull/312))
+- Add HorizontalPodAutoscaler resource class ([#305](https://github.com/Shopify/kubernetes-deploy/pull/305))
 
 ### 0.20.4
 *Enhancements*

@@ -285,8 +285,13 @@ module KubernetesDeploy
 
     def self.deploy_metric_server
       # Set-up the metric server that the HPA needs https://github.com/kubernetes-incubator/metrics-server
+      logger = KubernetesDeploy::FormattedLogger.build("default", KubeclientHelper::MINIKUBE_CONTEXT, $stderr)
+      kubectl = KubernetesDeploy::Kubectl.new(namespace: "kube-system", context: KubeclientHelper::MINIKUBE_CONTEXT,
+        logger: logger, log_failure_by_default: true, default_timeout: '5s')
+
       Dir.glob("test/setup/metrics-server/*.{yml,yaml}*").map do |resource|
-        Kubeclient::Resource.new(YAML.safe_load(File.read(resource))).create
+        found = kubectl.run("get", "-f", resource, log_failure: false).last.success?
+        kubectl.run("create", "-f", resource) unless found
       end
     end
   end
