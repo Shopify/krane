@@ -30,6 +30,7 @@ module KubernetesDeploy
       false
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message) if error.message != error.class.to_s
+      @logger.print_summary(:failure)
       false
     end
 
@@ -46,32 +47,21 @@ module KubernetesDeploy
 
       @logger.phase_heading("Constructing final pod specification")
       rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
-
-      validate_pod_spec(rendered_template)
+      validate_restart_policy(rendered_template, verify_result)
+      pod = Pod.new(namespace: @namespace, context: @context, logger: @logger, log_on_success: false,
+                    definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
+      pod.validate_definition(kubectl)
 
       @logger.phase_heading("Creating pod")
       @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
-      @kubeclient.create_pod(rendered_template)
+
       pod_creation_time = Time.now.utc
+      pod.deploy_started_at = pod_creation_time
+      @kubeclient.create_pod(rendered_template)
 
       if verify_result
-        resource = KubernetesResource::Pod.new(namespace: @namespace, context: @context, logger: @logger,
-                                            definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
-        resource.deploy_started_at = pod_creation_time
-
         sync_mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
-        watcher = ResourceWatcher.new(resources: [resource], sync_mediator: sync_mediator,
-          logger: @logger, deploy_started_at: pod_creation_time, timeout: @max_watch_seconds)
-        watcher.run(record_summary: true)
-
-        if resource.deploy_failed?
-          @logger.print_summary(:failure)
-          raise FatalDeploymentError
-        elsif resource.deploy_timed_out?
-          @logger.print_summary(:timed_out)
-          raise DeploymentTimeoutError
-        end
-        @logger.print_summary(:success)
+        watch_and_report(pod, pod_creation_time, sync_mediator)
       else
         warning = <<~MSG
           Result verification is disabled for this task.
@@ -82,6 +72,51 @@ module KubernetesDeploy
     end
 
     private
+
+    def watch_and_report(pod, deploy_started_at, sync_mediator)
+      delay_sync = 5.seconds
+      last_loop_time = last_log_time = deploy_started_at
+      loop do
+        pod.sync(sync_mediator)
+        logs = pod.fetch_logs(kubectl, since: last_log_time.to_datetime.rfc3339)
+        last_log_time = Time.now.utc
+
+        logs.each do |container, log|
+          @logger.info("Logs from #{pod.id} #{container}:")
+          if log.present?
+            @logger.info("\t" + log.join("\n\t"))
+          else
+            @logger.info("\tNo log output")
+          end
+        end
+
+        if (sleep_duration = delay_sync - (Time.now.utc - last_loop_time)) > 0
+          sleep(sleep_duration)
+        end
+        last_loop_time = Time.now.utc
+
+        if pod.deploy_succeeded?
+          @logger.summary.add_action("Successfully ran pod")
+          @logger.print_summary(:success)
+          return
+        elsif pod.deploy_failed?
+          @logger.summary.add_action("failed to deploy pod")
+          @logger.summary.add_paragraph(pod.debug_message)
+          @logger.print_summary(:failure)
+          raise FatalDeploymentError
+        elsif pod.deploy_timed_out?
+          @logger.summary.add_action("Timed out waiting for pod")
+          @logger.summary.add_paragraph(pod.debug_message)
+          @logger.print_summary(:timed_out)
+          raise DeploymentTimeoutError
+        elsif @max_watch_seconds.present? && Time.now.utc - deploy_started_at > @max_watch_seconds
+          @logger.summary.add_action("Timed out waiting for pod")
+          @logger.summary.add_paragraph(pod.debug_message(:gave_up, timeout: @max_watch_seconds))
+          @logger.print_summary(:timed_out)
+          raise DeploymentTimeoutError
+        end
+      end
+    end
 
     def validate_configuration(task_template, args)
       errors = []
@@ -155,34 +190,15 @@ module KubernetesDeploy
       rendered_template
     end
 
-    def validate_pod_spec(pod)
-      f = Tempfile.new(pod.metadata.name)
-      f.write recursive_to_h(pod).to_json
-      f.close
-
-      _out, err, status = kubectl.run("apply", "--dry-run", "-f", f.path)
-
-      unless status.success?
-        raise FatalTaskRunError, "Invalid pod spec: #{err}"
+    def validate_restart_policy(template, verify)
+      if template.spec.restartPolicy != "Never" && verify
+        @logger.error("Pod RestartPolicy must be 'Never' unless '--skip-wait=true'")
+        raise FatalTaskRunError
       end
     end
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
-    end
-
-    def recursive_to_h(struct)
-      if struct.is_a?(Array)
-        return struct.map { |v| v.is_a?(OpenStruct) || v.is_a?(Array) || v.is_a?(Hash) ? recursive_to_h(v) : v }
-      end
-
-      hash = {}
-
-      struct.each_pair do |k, v|
-        recursive_val = v.is_a?(OpenStruct) || v.is_a?(Array) || v.is_a?(Hash)
-        hash[k] = recursive_val ? recursive_to_h(v) : v
-      end
-      hash
     end
   end
 end

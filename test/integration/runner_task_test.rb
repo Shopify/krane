@@ -7,7 +7,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml"])
 
     task_runner = build_task_runner
-    assert task_runner.run(**valid_run_params)
+    refute task_runner.run(**valid_run_params)
 
     assert_logs_match(/Starting task runner/)
     pods = kubeclient.get_pods(namespace: @namespace)
@@ -23,7 +23,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       /Starting task runner pod: 'task-runner-\w+'/,
       "Result: TIMED OUT",
-      "Timed out waiting for 1 resource to deploy",
+      "Timed out waiting for pod",
       %r{Pod/task-runner-\w+: GLOBAL WATCH TIMEOUT \(5 seconds\)}
     ])
   end
@@ -37,7 +37,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       /Starting task runner pod: 'task-runner-\w+'/,
       "Result: FAILURE",
-      "Failed to deploy 1 resource",
+      "Failed to deploy pod",
       %r{Pod/task-runner-\w+: FAILED},
       "/bin/sh: FAKE: not found"
     ])
@@ -47,24 +47,43 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
 
     task_runner = build_task_runner
-    assert task_runner.run(**valid_run_params.merge(verify_result: true))
+    assert task_runner.run(**valid_run_params.merge(verify_result: true,
+      args: ['echo "start" && sleep 6 && echo "finish"']))
 
     assert_logs_match_all([
       /Starting task runner pod: 'task-runner-\w+'/,
-      "KUBERNETES-DEPLOY", # From pod logs
+      "start", # From pod logs
+      "finish",
       "Result: SUCCESS",
-      "Successfully deployed 1 resource",
-      %r{Pod/task-runner-\w+\s+Succeeded},
+      "Successfully ran pod",
     ])
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
+  end
+
+  def test_run_with_bad_restart_policy
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"]) do |f|
+      f["template-runner.yml"]["PodTemplate"].first["template"]["spec"]["restartPolicy"] = "OnFailure"
+    end
+
+    task_runner = build_task_runner
+    refute task_runner.run(**valid_run_params.merge(verify_result: true))
+
+    assert_logs_match_all([
+      "Phase 3: Constructing final pod specification",
+      "Pod RestartPolicy must be 'Never' unless '--skip-wait=true'",
+      "Result: FAILURE",
+      "No actions taken"
+    ])
   end
 
   def test_run_bang_works
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml"])
 
     task_runner = build_task_runner
-    task_runner.run!(**valid_run_params)
+    assert_raises(KubernetesDeploy::FatalDeploymentError) do
+      task_runner.run!(**valid_run_params)
+    end
 
     assert_logs_match(/Starting task runner/)
     pods = kubeclient.get_pods(namespace: @namespace)
@@ -75,7 +94,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml"])
 
     task_runner = build_task_runner
-    assert task_runner.run(
+    refute task_runner.run(
       task_template: 'hello-cloud-template-runner',
       entrypoint: nil,
       args: %w(rake some_task)
@@ -115,7 +134,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml"])
 
     task_runner = build_task_runner
-    assert task_runner.run(
+    refute task_runner.run(
       task_template: 'hello-cloud-template-runner',
       entrypoint: nil,
       args: %w(rake some_task),

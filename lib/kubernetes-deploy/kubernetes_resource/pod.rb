@@ -10,9 +10,10 @@ module KubernetesDeploy
     )
 
     def initialize(namespace:, context:, definition:, logger:,
-      statsd_tags: nil, parent: nil, deploy_started_at: nil)
+      statsd_tags: nil, parent: nil, deploy_started_at: nil, log_on_success: true)
       @parent = parent
       @deploy_started_at = deploy_started_at
+      @log_on_success = log_on_success
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
@@ -33,7 +34,7 @@ module KubernetesDeploy
         @containers.each(&:reset_status)
       end
 
-      display_logs(mediator) if unmanaged? && deploy_succeeded?
+      display_logs(mediator) if unmanaged? && deploy_succeeded? && @log_on_success
     end
 
     def status
@@ -85,14 +86,14 @@ module KubernetesDeploy
     #   "app" => ["array of log lines", "received from app container"],
     #   "nginx" => ["array of log lines", "received from nginx container"]
     # }
-    def fetch_logs(kubectl)
+    def fetch_logs(kubectl, since: nil)
       return {} unless exists? && @containers.present?
       @containers.each_with_object({}) do |container, container_logs|
         cmd = [
           "logs",
           @name,
           "--container=#{container.name}",
-          "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
+          "--since-time=#{since || @deploy_started_at.to_datetime.rfc3339}",
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
         out, _err, _st = kubectl.run(*cmd, log_failure: false)
