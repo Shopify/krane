@@ -115,7 +115,7 @@ module KubernetesDeploy
     end
 
     def sync(mediator)
-      @instance_data = mediator.get_instance(type, name)
+      @instance_data = mediator.get_instance(kubectl_resource_type, name)
     end
 
     def deploy_failed?
@@ -145,6 +145,10 @@ module KubernetesDeploy
 
     def type
       @type || self.class.kind
+    end
+
+    def kubectl_resource_type
+      type
     end
 
     def deploy_timed_out?

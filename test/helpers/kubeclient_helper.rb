@@ -33,4 +33,8 @@ module KubeclientHelper
   def apiextensions_v1beta1_kubeclient
     @apiextensions_v1beta1_kubeclient ||= build_apiextensions_v1beta1_kubeclient(MINIKUBE_CONTEXT)
   end
+
+  def autoscaling_v1_kubeclient
+    @autoscaling_v1_kubeclient ||= build_autoscaling_v1_kubeclient(MINIKUBE_CONTEXT)
+  end
 end

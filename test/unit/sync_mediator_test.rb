@@ -143,6 +143,12 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
     mediator.get_instance('FakeConfigMap', @fake_cm.name)
   end
 
+  def test_sync_uses_kubectl_resource_type
+    hpa = FakeHPA.new('fake')
+    stub_kubectl_response('get', hpa.kubectl_resource_type, *@params, resp: { "items" => [] }, times: 1)
+    mediator.sync([hpa] * (KubernetesDeploy::SyncMediator::LARGE_BATCH_THRESHOLD + 1))
+  end
+
   private
 
   def mediator
@@ -162,6 +168,10 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
 
     def type
       self.class.name.demodulize
+    end
+
+    def kubectl_resource_type
+      type
     end
 
     def kubectl_response
@@ -187,6 +197,12 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
   class BadCitizen < MockResource
     def sync(mediator)
       mediator.sync([]) # clears the cache
+    end
+  end
+
+  class FakeHPA < MockResource
+    def kubectl_resource_type
+      'Not-HPA-Type'
     end
   end
 end
