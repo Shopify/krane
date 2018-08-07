@@ -70,7 +70,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     refute task_runner.run(**valid_run_params.merge(verify_result: true))
 
     assert_logs_match_all([
-      "Phase 3: Constructing final pod specification",
+      "Phase 1: Initializing deploy",
       "Pod RestartPolicy must be 'Never' unless '--skip-wait=true'",
       "Result: FAILURE",
       "No actions taken"

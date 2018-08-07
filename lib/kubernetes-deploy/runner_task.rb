@@ -36,22 +36,21 @@ module KubernetesDeploy
 
     def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: true)
       @logger.reset
-      @logger.phase_heading("Validating configuration")
+      @logger.phase_heading("Initializing deploy")
       validate_configuration(task_template, args)
-      @logger.info("Configuration Valid")
       if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
         @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
       end
-      @logger.phase_heading("Fetching task template")
+      @logger.info("Fetching task template")
       raw_template = get_template(task_template)
 
-      @logger.phase_heading("Constructing final pod specification")
+      @logger.info("Constructing final pod specification")
       rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
       validate_restart_policy(rendered_template, verify_result)
       pod = Pod.new(namespace: @namespace, context: @context, logger: @logger, log_on_success: false,
                     definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
       pod.validate_definition(kubectl)
-
+      @logger.info("Valid Configuration")
       @logger.phase_heading("Creating pod")
       @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
 
@@ -74,48 +73,55 @@ module KubernetesDeploy
     private
 
     def watch_and_report(pod, deploy_started_at, sync_mediator)
-      delay_sync = 5.seconds
+      sync_interval = 5.seconds
       last_loop_time = last_log_time = deploy_started_at
+      @logger.info("Logs from #{pod.id}:")
+
       loop do
         pod.sync(sync_mediator)
         logs = pod.fetch_logs(kubectl, since: last_log_time.to_datetime.rfc3339)
         last_log_time = Time.now.utc
 
-        logs.each do |container, log|
-          @logger.info("Logs from #{pod.id} #{container}:")
+        logs.each do |_, log|
           if log.present?
             @logger.info("\t" + log.join("\n\t"))
           else
-            @logger.info("\tNo log output")
+            @logger.info("\t...")
           end
         end
 
-        if (sleep_duration = delay_sync - (Time.now.utc - last_loop_time)) > 0
+        if (sleep_duration = sync_interval - (Time.now.utc - last_loop_time)) > 0
           sleep(sleep_duration)
         end
         last_loop_time = Time.now.utc
 
-        if pod.deploy_succeeded?
-          @logger.summary.add_action("Successfully ran pod")
-          @logger.print_summary(:success)
-          return
-        elsif pod.deploy_failed?
-          @logger.summary.add_action("failed to deploy pod")
-          @logger.summary.add_paragraph(pod.debug_message)
-          @logger.print_summary(:failure)
-          raise FatalDeploymentError
-        elsif pod.deploy_timed_out?
-          @logger.summary.add_action("Timed out waiting for pod")
-          @logger.summary.add_paragraph(pod.debug_message)
-          @logger.print_summary(:timed_out)
-          raise DeploymentTimeoutError
-        elsif @max_watch_seconds.present? && Time.now.utc - deploy_started_at > @max_watch_seconds
-          @logger.summary.add_action("Timed out waiting for pod")
-          @logger.summary.add_paragraph(pod.debug_message(:gave_up, timeout: @max_watch_seconds))
-          @logger.print_summary(:timed_out)
-          raise DeploymentTimeoutError
-        end
+        return if deploy_ended?(pod, deploy_started_at)
       end
+    end
+
+    def deploy_ended?(pod, deploy_started_at)
+      if pod.deploy_succeeded?
+        @logger.summary.add_action("Successfully ran pod")
+        @logger.print_summary(:success)
+        return true
+      elsif pod.deploy_failed?
+        @logger.summary.add_action("failed to deploy pod")
+        @logger.summary.add_paragraph(pod.debug_message)
+        @logger.print_summary(:failure)
+        raise FatalDeploymentError
+      elsif pod.deploy_timed_out?
+        @logger.summary.add_action("Timed out waiting for pod")
+        @logger.summary.add_paragraph(pod.debug_message)
+        @logger.print_summary(:timed_out)
+        raise DeploymentTimeoutError
+      elsif @max_watch_seconds.present? && Time.now.utc - deploy_started_at > @max_watch_seconds
+        @logger.summary.add_action("Timed out waiting for pod")
+        @logger.summary.add_paragraph(pod.debug_message(:gave_up, timeout: @max_watch_seconds))
+        @logger.print_summary(:timed_out)
+        raise DeploymentTimeoutError
+      end
+
+      false
     end
 
     def validate_configuration(task_template, args)
