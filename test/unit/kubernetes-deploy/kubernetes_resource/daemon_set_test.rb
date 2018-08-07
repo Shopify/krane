@@ -7,10 +7,29 @@ class DaemonSetTest < KubernetesDeploy::TestCase
     KubernetesDeploy::Kubectl.any_instance.expects(:run).never
   end
 
-  def test_deploy_fails_when_updated_available_does_not_match
+  def test_deploy_not_successful_when_updated_available_does_not_match
     ds_template = build_ds_template
     ds = build_synced_ds(template: ds_template)
-    refute ds.deploy_succeeded?
+    refute_predicate ds, :deploy_succeeded?
+  end
+
+  def test_deploy_succeeded_not_fooled_by_stale_status
+    status = {
+      "observedGeneration": 1,
+      "numberReady": 2,
+      "desiredNumberScheduled": 2,
+      "updatedNumberScheduled": 2,
+    }
+    ds_template = build_ds_template(status: status)
+    ds = build_synced_ds(template: ds_template)
+    refute_predicate ds, :deploy_succeeded?
+  end
+
+  def test_deploy_failed_ensures_controller_has_observed_deploy
+    ds_template = build_ds_template(status: { "observedGeneration": 1 })
+    ds = build_synced_ds(template: ds_template)
+    ds.stubs(:pods).returns([stub(deploy_failed?: true)])
+    refute_predicate ds, :deploy_failed?
   end
 
   def test_deploy_passes_when_updated_available_does_match
@@ -24,7 +43,7 @@ class DaemonSetTest < KubernetesDeploy::TestCase
 
     ds_template = build_ds_template(status: status)
     ds = build_synced_ds(template: ds_template)
-    assert ds.deploy_succeeded?
+    assert_predicate ds, :deploy_succeeded?
   end
 
   private

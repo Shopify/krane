@@ -30,6 +30,7 @@ module KubernetesDeploy
         end
         true
       else
+        observed_generation == current_generation &&
         status_data['currentRevision'] == status_data['updateRevision'] &&
         desired_replicas == status_data['readyReplicas'].to_i &&
         desired_replicas == status_data['currentReplicas'].to_i
@@ -38,7 +39,8 @@ module KubernetesDeploy
 
     def deploy_failed?
       return false if update_strategy == ONDELETE
-      pods.present? && pods.any?(&:deploy_failed?)
+      pods.present? && pods.any?(&:deploy_failed?) &&
+      observed_generation == current_generation
     end
 
     private

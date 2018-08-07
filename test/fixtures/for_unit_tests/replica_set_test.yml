@@ -1,0 +1,27 @@
+---
+apiVersion: extensions/v1beta1
+kind: ReplicaSet
+metadata:
+  name: test
+  generation: 2
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-cloud
+      name: test
+  template:
+    metadata:
+      labels:
+        app: hello-cloud
+        name: test
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+status:
+  observedGeneration: 2
+  availableReplicas: 3
+  readyReplicas: 3

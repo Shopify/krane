@@ -238,24 +238,35 @@ class DeploymentTest < KubernetesDeploy::TestCase
     assert deploy.validate_definition(kubectl)
   end
 
-  def test_deploy_succeeded_not_fooled_by_stale_rs_data_in_deploy_status
+  def test_deploy_succeeded_not_fooled_by_stale_status_data
     deployment_status = {
       "replicas" => 3,
-      "updatedReplicas" => 3, # stale -- hasn't been updated since new RS was created
+      "updatedReplicas" => 3, # stale -- hasn't been updated since deploy
       "unavailableReplicas" => 0,
-      "availableReplicas" => 3
+      "availableReplicas" => 3,
+      "observedGeneration" => 1, # stale
     }
 
-    rs_status = {
-      "replicas" => 1,
-      "availableReplicas" => 0,
-      "readyReplicas" => 0
+    rs_status = { # points to old RS, new one not created yet
+      "replicas" => 3,
+      "availableReplicas" => 3,
+      "readyReplicas" => 3,
+      "observedGeneration" => 1,
     }
     deploy = build_synced_deployment(
       template: build_deployment_template(status: deployment_status, rollout: 'full', max_unavailable: 1),
       replica_sets: [build_rs_template(status: rs_status)]
     )
-    refute deploy.deploy_succeeded?
+    refute_predicate deploy, :deploy_succeeded?
+  end
+
+  def test_deploy_failed_ensures_controller_has_observed_deploy
+    deploy = build_synced_deployment(
+      template: build_deployment_template(status: { "observedGeneration" => 1 }, rollout: 'full', max_unavailable: 1),
+      replica_sets: [build_rs_template]
+    )
+    KubernetesDeploy::ReplicaSet.any_instance.stubs(:pods).returns([stub(deploy_failed?: true)])
+    refute_predicate deploy, :deploy_failed?
   end
 
   def test_deploy_timed_out_with_hard_timeout

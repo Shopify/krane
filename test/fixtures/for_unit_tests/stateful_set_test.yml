@@ -1,0 +1,32 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: test-ss
+  generation: 2
+spec:
+  selector:
+    matchLabels:
+      name: test-ss
+      app: hello-cloud
+  serviceName: "test-ss"
+  updateStrategy:
+    type: RollingUpdate
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: hello-cloud
+        name: test-ss
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+status:
+  replicas: 2
+  readyReplicas: 2
+  currentReplicas: 2
+  observedGeneration: 2
+  currentRevision: 2
+  updateRevision: 2

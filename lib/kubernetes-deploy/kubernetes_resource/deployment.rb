@@ -31,6 +31,7 @@ module KubernetesDeploy
 
     def deploy_succeeded?
       return false unless exists? && @latest_rs.present?
+      return false unless observed_generation == current_generation
 
       if required_rollout == 'full'
         @latest_rs.deploy_succeeded? &&
@@ -51,7 +52,8 @@ module KubernetesDeploy
     end
 
     def deploy_failed?
-      @latest_rs&.deploy_failed?
+      @latest_rs&.deploy_failed? &&
+      observed_generation == current_generation
     end
 
     def failure_message
