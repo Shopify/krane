@@ -33,6 +33,7 @@ spec:
         image: busybox
 status:
   replicas: 3
+  observedGeneration: 2 # current
   conditions:
   - type: Progressing
     status: True
@@ -43,6 +44,7 @@ apiVersion: apps/v1beta1
 kind: ReplicaSet
 metadata:
   name: web-1
+  generation: 1
   labels:
     name: web
     app: hello-cloud
@@ -66,4 +68,5 @@ spec:
       - name: app
         image: busybox
 status:
+  observedGeneration: 1
   replicas: 3

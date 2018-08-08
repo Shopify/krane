@@ -1,0 +1,14 @@
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: test
+  generation: 2
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      name: web
+      app: hello-cloud
+status:
+  observedGeneration: 2

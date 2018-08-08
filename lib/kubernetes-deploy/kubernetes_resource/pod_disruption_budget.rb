@@ -8,7 +8,7 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      exists?
+      exists? && observed_generation == current_generation
     end
 
     def deploy_method

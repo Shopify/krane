@@ -139,6 +139,17 @@ module KubernetesDeploy
       @instance_data.present?
     end
 
+    def current_generation
+      return -1 unless exists? # must be different default than observed_generation
+      @instance_data["metadata"]["generation"]
+    end
+
+    def observed_generation
+      return -2 unless exists?
+      # populating this is a best practice, but not all controllers actually do it
+      @instance_data["status"]["observedGeneration"]
+    end
+
     def status
       exists? ? "Exists" : "Unknown"
     end

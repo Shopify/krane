@@ -24,7 +24,8 @@ module KubernetesDeploy
     end
 
     def deploy_failed?
-      pods.present? && pods.any?(&:deploy_failed?)
+      pods.present? && pods.any?(&:deploy_failed?) &&
+      observed_generation == current_generation
     end
 
     def fetch_logs(kubectl)
@@ -34,16 +35,6 @@ module KubernetesDeploy
     end
 
     private
-
-    def current_generation
-      return -1 unless exists? # must be different default than observed_generation
-      @instance_data["metadata"]["generation"]
-    end
-
-    def observed_generation
-      return -2 unless exists?
-      @instance_data["status"]["observedGeneration"]
-    end
 
     def rollout_data
       return { "currentNumberScheduled" => 0 } unless exists?

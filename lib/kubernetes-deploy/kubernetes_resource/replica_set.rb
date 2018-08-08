@@ -26,12 +26,15 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
+      observed_generation == current_generation &&
       desired_replicas == rollout_data["availableReplicas"].to_i &&
       desired_replicas == rollout_data["readyReplicas"].to_i
     end
 
     def deploy_failed?
-      pods.present? && pods.all?(&:deploy_failed?)
+      pods.present? &&
+      pods.all?(&:deploy_failed?) &&
+      observed_generation == current_generation
     end
 
     def desired_replicas
