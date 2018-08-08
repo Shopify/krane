@@ -146,6 +146,13 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_crd_pruning
+    widget = Class.new(KubernetesDeploy::KubernetesResource) do
+      def deploy_method
+        :replace
+      end
+    end
+    KubernetesDeploy.const_set("Widget", widget)
+
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml widgets.yml)))
     assert_logs_match_all([
       "Phase 1: Initializing deploy",

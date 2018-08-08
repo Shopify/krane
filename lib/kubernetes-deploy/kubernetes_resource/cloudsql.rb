@@ -23,7 +23,7 @@ module KubernetesDeploy
     end
 
     def deploy_method
-      :replace_apply
+      :replace
     end
 
     private

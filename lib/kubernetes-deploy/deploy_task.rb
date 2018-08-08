@@ -359,14 +359,15 @@ module KubernetesDeploy
 
       # Apply can be done in one large batch, the rest have to be done individually
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
-      # For resources that need to be done individually, but should also be pruned
-      applyables += resources.select { |r| r.deploy_method == :replace_apply }
+      # Prunable resources should also applied so that they can  be pruned
+      pruneable_types = prune_whitelist.map { |t| t.split("/").last }
+      applyables += individuals.select { |r| pruneable_types.include?(r.type) }
 
       individuals.each do |r|
         @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1
         r.deploy_started_at = Time.now.utc
         case r.deploy_method
-        when :replace, :replace_apply
+        when :replace
           _, _, replace_st = kubectl.run("replace", "-f", r.file_path, log_failure: false)
         when :replace_force
           _, _, replace_st = kubectl.run("replace", "--force", "--cascade", "-f", r.file_path,
