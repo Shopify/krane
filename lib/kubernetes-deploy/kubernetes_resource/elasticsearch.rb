@@ -8,9 +8,5 @@ module KubernetesDeploy
     def deploy_failed?
       false
     end
-
-    def deploy_method
-      :replace
-    end
   end
 end
