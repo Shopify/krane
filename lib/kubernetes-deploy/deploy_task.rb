@@ -82,6 +82,7 @@ module KubernetesDeploy
         extensions/v1beta1/Ingress
         apps/v1beta1/StatefulSet
         autoscaling/v1/HorizontalPodAutoscaler
+        policy/v1beta1/PodDisruptionBudget
       )
       if server_version >= Gem::Version.new('1.8.0')
         wl << "batch/v1beta1/CronJob"

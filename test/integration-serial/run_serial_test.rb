@@ -158,13 +158,6 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_crd_pruning
-    widget = Class.new(KubernetesDeploy::KubernetesResource) do
-      def deploy_method
-        :replace
-      end
-    end
-    KubernetesDeploy.const_set("Widget", widget)
-
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml widgets.yml)))
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
@@ -184,12 +177,6 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
       /The following resources were pruned: widget(.stable.example.io)? "my-first-widget"/,
       "Pruned 1 resource and successfully deployed 2 resource"
     ])
-
-    result = deploy_fixtures("crd", subset: %w(mail_cr.yml)) do |f|
-      mail = f.dig("mail_cr.yml", "Mail").first
-      mail["spec"]["something"] = 5
-    end
-    assert_deploy_success(result)
   ensure
     apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
     apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("widgets.stable.example.io")
