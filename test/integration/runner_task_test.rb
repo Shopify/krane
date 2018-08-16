@@ -71,9 +71,9 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
-      "Pod RestartPolicy must be 'Never' unless '--skip-wait=true'",
+      "Rendering template for task runner pod",
       "Result: FAILURE",
-      "No actions taken"
+      "Configuration invalid: pod restartpolicy must be 'never' unless '--skip-wait=true'",
     ])
   end
 
