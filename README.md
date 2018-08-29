@@ -180,7 +180,7 @@ Both `.yaml.erb` and `.yml.erb` file extensions are supported. Templates must re
 
 ##### Limitations when using partials
 
-Partials can be included almost everywhere in ERB templates, with one notable exception: you cannot use a partial to define a subset of fields. For example, given a partial `p` defining two fields 'a' and 'b',
+Partials can be included almost everywhere in ERB templates, with one notable exception: you must use [YAML merge keys](http://yaml.org/type/merge.html) to define a subset of fields. For example, given a partial `p` defining two fields 'a' and 'b',
 
 ```yaml
 a: 1
@@ -205,22 +205,8 @@ b: 2
 but you can do:
 
 ```yaml
-x:
-  <%= partial 'p' %>
-```
-
-or even
-
-```yaml
-x: <%= partial 'p' %>
-```
-
-which both will result in
-
-```yaml
-x:
-  a: 1
-  b: 2
+<<: <%= partial 'p' %>
+x: yz
 ```
 
 This is a limitation of the current implementation.
