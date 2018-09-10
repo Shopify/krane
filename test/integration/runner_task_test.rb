@@ -4,10 +4,10 @@ require 'test_helper'
 require 'kubernetes-deploy/runner_task'
 class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   def test_run_works
-    deploy_fixtures("hello-cloud", subset: ["template-runner.yml"])
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
 
     task_runner = build_task_runner
-    refute task_runner.run(**valid_run_params)
+    assert task_runner.run(**valid_run_params)
 
     assert_logs_match(/Starting task runner/)
     pods = kubeclient.get_pods(namespace: @namespace)
@@ -91,7 +91,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_run_substitutes_arguments
-    deploy_fixtures("hello-cloud", subset: ["template-runner.yml"])
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
 
     task_runner = build_task_runner
     refute task_runner.run(
@@ -112,7 +112,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       entrypoint: nil,
       args: 'a'
     )
-    assert_logs_match(/Configuration invalid: Namespace was not found/i)
+    assert_logs_match("Configuration invalid: namespace was not found")
   end
 
   def test_run_with_template_runner_template_missing
@@ -131,7 +131,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_run_with_env_vars
-    deploy_fixtures("hello-cloud", subset: ["template-runner.yml"])
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
 
     task_runner = build_task_runner
     refute task_runner.run(

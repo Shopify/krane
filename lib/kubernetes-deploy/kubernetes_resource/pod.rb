@@ -93,7 +93,7 @@ module KubernetesDeploy
           "logs",
           @name,
           "--container=#{container.name}",
-          "--since-time=#{since || @deploy_started_at.to_datetime.rfc3339}",
+          "--since-time=#{(since || @deploy_started_at).to_datetime.rfc3339}",
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
         out, _err, _st = kubectl.run(*cmd, log_failure: false)

@@ -6,7 +6,8 @@ require 'shellwords'
 module KubernetesDeploy
   class KubernetesResource
     attr_reader :name, :namespace, :context
-    attr_writer :type, :deploy_started_at
+    attr_writer :type
+    attr_accessor :deploy_started_at
 
     GLOBAL = false
     TIMEOUT = 5.minutes

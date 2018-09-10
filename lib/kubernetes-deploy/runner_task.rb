@@ -3,6 +3,7 @@ require 'tempfile'
 
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/kubectl'
+require 'kubernetes-deploy/resource_reporting_watcher'
 
 module KubernetesDeploy
   class RunnerTask
@@ -40,27 +41,24 @@ module KubernetesDeploy
       @logger.reset
       @logger.phase_heading("Initializing deploy")
       validate_configuration(task_template, args)
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
-      end
-      raw_template = get_template(task_template)
 
+      raw_template = get_template(task_template)
       rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
       validate_restart_policy(rendered_template, verify_result)
+
       pod = Pod.new(namespace: @namespace, context: @context, logger: @logger, log_on_success: false,
                     definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
       pod.validate_definition(kubectl)
       @logger.info("Configuration valid")
-      @logger.phase_heading("Creating pod")
-      @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
 
-      pod_creation_time = Time.now.utc
-      pod.deploy_started_at = pod_creation_time
+      @logger.phase_heading("Creating pod")
+
+      @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
+      pod.deploy_started_at = Time.now.utc
       @kubeclient.create_pod(rendered_template)
 
       if verify_result
-        sync_mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
-        watch_and_report(pod, pod_creation_time, sync_mediator)
+        ResourceReportingWatcher.new(resource: pod, logger: @logger, timeout: @max_watch_seconds).run
       else
         warning = <<~MSG
           Result verification is disabled for this task.
@@ -72,59 +70,11 @@ module KubernetesDeploy
 
     private
 
-    def watch_and_report(pod, deploy_started_at, sync_mediator)
-      sync_interval = 5.seconds
-      last_loop_time = last_log_time = deploy_started_at
-      @logger.info("Logs from #{pod.id}:")
-
-      loop do
-        pod.sync(sync_mediator)
-        logs = pod.fetch_logs(kubectl, since: last_log_time.to_datetime.rfc3339)
-        last_log_time = Time.now.utc
-
-        logs.each do |_, log|
-          if log.present?
-            @logger.info("\t" + log.join("\n\t"))
-          else
-            @logger.info("\t...")
-          end
-        end
-
-        if (sleep_duration = sync_interval - (Time.now.utc - last_loop_time)) > 0
-          sleep(sleep_duration)
-        end
-        last_loop_time = Time.now.utc
-
-        return if deploy_ended?(pod, deploy_started_at)
-      end
-    end
-
-    def deploy_ended?(pod, deploy_started_at)
-      if pod.deploy_succeeded?
-        @logger.summary.add_action("Successfully ran pod")
-        @logger.print_summary(:success)
-        return true
-      elsif pod.deploy_failed?
-        @logger.summary.add_action("Failed to deploy pod")
-        @logger.summary.add_paragraph(pod.debug_message)
-        @logger.print_summary(:failure)
-        raise FatalDeploymentError
-      elsif pod.deploy_timed_out?
-        @logger.summary.add_action("Timed out waiting for pod")
-        @logger.summary.add_paragraph(pod.debug_message)
-        @logger.print_summary(:timed_out)
-        raise DeploymentTimeoutError
-      elsif @max_watch_seconds.present? && Time.now.utc - deploy_started_at > @max_watch_seconds
-        @logger.summary.add_action("Timed out waiting for pod")
-        @logger.summary.add_paragraph(pod.debug_message(:gave_up, timeout: @max_watch_seconds))
-        @logger.print_summary(:timed_out)
-        raise DeploymentTimeoutError
-      end
-
-      false
-    end
-
     def validate_configuration(task_template, args)
+      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
+      end
+
       errors = []
 
       if task_template.blank?
@@ -161,7 +111,7 @@ module KubernetesDeploy
       if error.error_code == 404
         raise TaskTemplateMissingError.new(template_name, @namespace, @context)
       else
-        raise FatalDeploymentError, "Error communication with the API server"
+        raise FatalDeploymentError, "Error communicating with the API server"
       end
     end
 
