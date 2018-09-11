@@ -82,6 +82,7 @@ module KubernetesDeploy
         extensions/v1beta1/Ingress
         apps/v1beta1/StatefulSet
         autoscaling/v1/HorizontalPodAutoscaler
+        policy/v1beta1/PodDisruptionBudget
       )
       if server_version >= Gem::Version.new('1.8.0')
         wl << "batch/v1beta1/CronJob"
@@ -359,6 +360,9 @@ module KubernetesDeploy
 
       # Apply can be done in one large batch, the rest have to be done individually
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
+      # Prunable resources should also applied so that they can  be pruned
+      pruneable_types = prune_whitelist.map { |t| t.split("/").last }
+      applyables += individuals.select { |r| pruneable_types.include?(r.type) }
 
       individuals.each do |r|
         @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1

@@ -24,10 +24,6 @@ module KubernetesDeploy
       false
     end
 
-    def deploy_method
-      :replace
-    end
-
     private
 
     def deployment_ready?

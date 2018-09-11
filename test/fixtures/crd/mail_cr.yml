@@ -2,3 +2,5 @@ apiVersion: "stable.example.io/v1"
 kind: Mail
 metadata:
   name: my-first-mail
+spec:
+  something: 7

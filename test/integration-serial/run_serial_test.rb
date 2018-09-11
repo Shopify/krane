@@ -119,6 +119,18 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
     ENV['KUBECONFIG'] = old_config
   end
 
+  def test_cr_merging
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml)))
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml)))
+    result = deploy_fixtures("crd", subset: %w(mail_cr.yml)) do |f|
+      mail = f.dig("mail_cr.yml", "Mail").first
+      mail["spec"]["something"] = 5
+    end
+    assert_deploy_success(result)
+  ensure
+    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
+  end
+
   def test_crd_can_fail
     result = deploy_fixtures("crd", subset: %w(mail.yml)) do |f|
       crd = f.dig("mail.yml", "CustomResourceDefinition").first

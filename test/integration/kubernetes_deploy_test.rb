@@ -73,8 +73,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       'daemonset(\.extensions)? "ds-app"',
       'statefulset(\.apps)? "stateful-busybox"',
       'job(\.batch)? "hello-job"',
+      'poddisruptionbudget(.policy)? "test"',
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 9 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 10 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -1069,5 +1070,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(deploy_fixtures("hpa"))
     assert_deploy_success(deploy_fixtures("hpa", subset: ["deployment.yml"]))
     assert_logs_match_all([/The following resources were pruned: horizontalpodautoscaler(.autoscaling)? "hello-hpa"/])
+  end
+
+  def test_not_apply_resource_can_be_pruned
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(disruption-budgets.yml configmap-data.yml)))
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(configmap-data.yml)))
+    assert_logs_match_all([/The following resources were pruned: poddisruptionbudget(.policy)? "test"/])
   end
 end
