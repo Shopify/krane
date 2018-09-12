@@ -5,7 +5,7 @@ require 'shellwords'
 
 module KubernetesDeploy
   class KubernetesResource
-    attr_reader :name, :namespace, :context
+    attr_reader :name, :namespace, :context, :definition
     attr_writer :type
     attr_accessor :deploy_started_at
 

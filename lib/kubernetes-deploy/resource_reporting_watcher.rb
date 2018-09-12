@@ -54,27 +54,16 @@ module KubernetesDeploy
     end
 
     def report_final_status
-      if @resource.deploy_succeeded?
-        @logger.summary.add_action("Successfully ran pod")
-        @logger.print_summary(:success)
-      elsif @resource.deploy_failed?
-        @logger.summary.add_action("Failed to deploy pod")
+      if @resource.deploy_failed? || @resource.deploy_timed_out?
         @logger.summary.add_paragraph(@resource.debug_message)
-        @logger.print_summary(:failure)
-      elsif @resource.deploy_timed_out?
-        @logger.summary.add_action("Timed out waiting for pod")
-        @logger.summary.add_paragraph(@resource.debug_message)
-        @logger.print_summary(:timed_out)
       elsif global_timeout?
-        @logger.summary.add_action("Timed out waiting for pod")
         @logger.summary.add_paragraph(@resource.debug_message(:gave_up, timeout: @timeout))
-        @logger.print_summary(:timed_out)
       end
     end
 
     def raise_if_failed
       if @resource.deploy_failed?
-        raise FatalDeploymentError
+        raise FatalDeploymentError, "Failed to deploy pod"
       elsif @resource.deploy_timed_out? || global_timeout?
         raise DeploymentTimeoutError
       end

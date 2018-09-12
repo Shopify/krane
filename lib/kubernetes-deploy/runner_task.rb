@@ -27,35 +27,19 @@ module KubernetesDeploy
     def run(*args)
       run!(*args)
       true
-    rescue DeploymentTimeoutError
-      false
-    rescue FatalDeploymentError => error
-      if error.message != error.class.to_s
-        @logger.summary.add_action(error.message)
-        @logger.print_summary(:failure)
-      end
+    rescue DeploymentTimeoutError, FatalDeploymentError
       false
     end
 
     def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: true)
       @logger.reset
+
       @logger.phase_heading("Initializing deploy")
       validate_configuration(task_template, args)
+      pod = build_pod(task_template, entrypoint, args, env_vars, verify_result)
 
-      raw_template = get_template(task_template)
-      rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
-      validate_restart_policy(rendered_template, verify_result)
-
-      pod = Pod.new(namespace: @namespace, context: @context, logger: @logger, log_on_success: false,
-                    definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
-      pod.validate_definition(kubectl)
-      @logger.info("Configuration valid")
-
-      @logger.phase_heading("Creating pod")
-
-      @logger.info("Starting task runner pod: '#{rendered_template.metadata.name}'")
-      pod.deploy_started_at = Time.now.utc
-      @kubeclient.create_pod(rendered_template)
+      @logger.phase_heading("Running pod")
+      create_pod(pod)
 
       if verify_result
         ResourceReportingWatcher.new(resource: pod, logger: @logger, timeout: @max_watch_seconds).run
@@ -66,15 +50,40 @@ module KubernetesDeploy
         MSG
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
       end
+      @logger.summary.add_action("Successfully ran pod")
+      @logger.print_summary(:success)
+    rescue DeploymentTimeoutError
+      @logger.summary.add_action("Timed out waiting for pod")
+      @logger.print_summary(:timed_out)
+      raise
+    rescue FatalDeploymentError => error
+      @logger.summary.add_action(error.message)
+      @logger.print_summary(:failure)
+      raise
     end
 
     private
 
-    def validate_configuration(task_template, args)
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
-      end
+    def create_pod(pod)
+      @logger.info("Starting task runner pod: '#{pod.name}'")
+      pod.deploy_started_at = Time.now.utc
+      @kubeclient.create_pod(Kubeclient::Resource.new(pod.definition))
+    end
 
+    def build_pod(task_template, entrypoint, args, env_vars, verify_result)
+      raw_template = get_template(task_template)
+      rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
+      rendered_template = validate_or_set_restart_policy(rendered_template, verify_result)
+
+      pod = Pod.new(namespace: @namespace, context: @context, logger: @logger, log_on_success: false,
+                    definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
+      pod.validate_definition(kubectl)
+
+      pod
+    end
+
+    def validate_configuration(task_template, args)
+      @logger.info("Validating Configuration")
       errors = []
 
       if task_template.blank?
@@ -97,6 +106,10 @@ module KubernetesDeploy
       end
 
       raise FatalTaskRunError, "Configuration invalid: #{errors.join(', ')}" unless errors.empty?
+
+      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
+      end
     end
 
     def get_template(template_name)
@@ -146,10 +159,16 @@ module KubernetesDeploy
       rendered_template
     end
 
-    def validate_restart_policy(template, verify)
-      if template.spec.restartPolicy != "Never" && verify
-        raise FatalTaskRunError, "Configuration invalid: Pod RestartPolicy must be 'Never' unless '--skip-wait=true'"
+    def validate_or_set_restart_policy(template, verify)
+      if verify
+        restart_policy = template.spec.restartPolicy
+        if restart_policy.present? && restart_policy != "Never"
+          raise FatalTaskRunError, "Configuration invalid: Pod RestartPolicy must be 'Never' unless '--skip-wait=true'"
+        elsif
+          template.spec.restartPolicy = "Never"
+        end
       end
+      template
     end
 
     def kubectl
