@@ -10,10 +10,10 @@ module KubernetesDeploy
     )
 
     def initialize(namespace:, context:, definition:, logger:,
-      statsd_tags: nil, parent: nil, deploy_started_at: nil, log_on_success: true)
+      statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false)
       @parent = parent
       @deploy_started_at = deploy_started_at
-      @log_on_success = log_on_success
+      @stream_logs = stream_logs
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
@@ -34,7 +34,13 @@ module KubernetesDeploy
         @containers.each(&:reset_status)
       end
 
-      display_logs(mediator) if unmanaged? && deploy_succeeded? && @log_on_success
+      if unmanaged?
+        if @stream_logs
+          stream_logs(mediator)
+        elsif deploy_succeeded?
+          display_logs(mediator)
+        end
+      end
     end
 
     def status
@@ -137,6 +143,19 @@ module KubernetesDeploy
 
     def unmanaged?
       @parent.blank?
+    end
+
+    def stream_logs(mediator)
+      @logger.info("Logs from #{id}:") unless @last_log_fetch
+      logs = fetch_logs(mediator.kubectl, since: @last_log_fetch || @deploy_started_at)
+      @last_log_fetch = Time.now.utc
+      logs.each do |_, log|
+        if log.present?
+          @logger.info("\t" + log.join("\n\t"))
+        else
+          @logger.info("\t...")
+        end
+      end
     end
 
     def display_logs(mediator)

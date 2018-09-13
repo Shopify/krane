@@ -23,7 +23,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       /Starting task runner pod: 'task-runner-\w+'/,
       "Result: TIMED OUT",
-      "Timed out waiting for pod",
+      "Timed out waiting for 1 resource to deploy",
       %r{Pod/task-runner-\w+: GLOBAL WATCH TIMEOUT \(5 seconds\)}
     ])
   end
@@ -37,7 +37,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       /Starting task runner pod: 'task-runner-\w+'/,
       "Result: FAILURE",
-      "Failed to deploy pod",
+      "Failed to deploy 1 resource",
       %r{Pod/task-runner-\w+: FAILED},
       "/bin/sh: FAKE: not found"
     ])
@@ -55,7 +55,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "start", # From pod logs
       "finish",
       "Result: SUCCESS",
-      "Successfully ran pod",
+      "Successfully deployed 1 resource",
     ])
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
@@ -67,13 +67,13 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     end
 
     task_runner = build_task_runner
-    refute task_runner.run(**valid_run_params.merge(verify_result: true))
+    assert task_runner.run(**valid_run_params.merge(verify_result: true))
 
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
       "Rendering template for task runner pod",
-      "Result: FAILURE",
-      "Configuration invalid: pod restartpolicy must be 'never' unless '--skip-wait=true'",
+      "Changed Pod RestartPolicy from 'OnFailure' to 'Never'. Use'--skip-wait=true' to use 'OnFailure'.",
+      "Result: SUCCESS"
     ])
   end
 

@@ -3,7 +3,6 @@ require 'tempfile'
 
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/kubectl'
-require 'kubernetes-deploy/resource_reporting_watcher'
 
 module KubernetesDeploy
   class RunnerTask
@@ -42,7 +41,11 @@ module KubernetesDeploy
       create_pod(pod)
 
       if verify_result
-        ResourceReportingWatcher.new(resource: pod, logger: @logger, timeout: @max_watch_seconds).run
+        sm = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
+        rw = ResourceWatcher.new(resources: [pod], logger: @logger, timeout: @max_watch_seconds, sync_mediator: sm)
+        rw.run(delay_sync: 5.seconds, reminder_interval: 1.day) # never print reminders
+        raise DeploymentTimeoutError if pod.deploy_timed_out?
+        raise FatalDeploymentError unless pod.deploy_succeeded?
       else
         warning = <<~MSG
           Result verification is disabled for this task.
@@ -50,14 +53,12 @@ module KubernetesDeploy
         MSG
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
       end
-      @logger.summary.add_action("Successfully ran pod")
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
-      @logger.summary.add_action("Timed out waiting for pod")
       @logger.print_summary(:timed_out)
       raise
     rescue FatalDeploymentError => error
-      @logger.summary.add_action(error.message)
+      @logger.summary.add_action(error.message) unless error.message == error.class.to_s
       @logger.print_summary(:failure)
       raise
     end
@@ -75,7 +76,7 @@ module KubernetesDeploy
       rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
       rendered_template = validate_or_set_restart_policy(rendered_template, verify_result)
 
-      pod = Pod.new(namespace: @namespace, context: @context, logger: @logger, log_on_success: false,
+      pod = Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
                     definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
       pod.validate_definition(kubectl)
 
@@ -160,13 +161,11 @@ module KubernetesDeploy
     end
 
     def validate_or_set_restart_policy(template, verify)
-      if verify
-        restart_policy = template.spec.restartPolicy
-        if restart_policy.present? && restart_policy != "Never"
-          raise FatalTaskRunError, "Configuration invalid: Pod RestartPolicy must be 'Never' unless '--skip-wait=true'"
-        elsif
-          template.spec.restartPolicy = "Never"
-        end
+      restart_policy = template.spec.restartPolicy
+      if verify && restart_policy != "Never"
+        @logger.warn("Changed Pod RestartPolicy from '#{restart_policy}' to 'Never'. Use"\
+          "'--skip-wait=true' to use '#{restart_policy}'.")
+        template.spec.restartPolicy = "Never"
       end
       template
     end
