@@ -1,4 +1,8 @@
 ### Master
+*Features*
+- Make it possible to skip rollout verification for a single resouce via the
+`kubernetes-deploy.shopify.io/no-rollout-verification` annotation
+([#282](https://github.com/Shopify/kubernetes-deploy/pull/282))
 
 *Enhancements*
 - Add Job resource class ([#295](https://github.com/Shopify/kubernetes-deploy/pull/296))

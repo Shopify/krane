@@ -232,6 +232,10 @@ before the deployment is considered successful.
   - `true`: The custom resource will be pruned if the resource is not in the deploy directory.
   - All other values: The custom resource will not be pruned.
 
+- `kubernetes-deploy.shopify.io/no-rollout-verification`: When set on a resource the deploy will be
+considered successful even if the resource fails to deploy.
+
+
 ### Running tasks at the beginning of a deploy
 
 To run a task in your cluster at the beginning of every deploy, simply include a `Pod` template in your deploy directory. `kubernetes-deploy` will first deploy any `ConfigMap` and `PersistentVolumeClaim` resources in your template set, followed by any such pods. If the command run by one of these pods fails (i.e. exits with a non-zero status), the overall deploy will fail at this step (no other resources will be deployed).

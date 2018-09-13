@@ -154,7 +154,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_failure
-    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
       deployment["spec"]["progressDeadlineSeconds"] = 30
       container = deployment["spec"]["template"]["spec"]["containers"].first
@@ -171,7 +171,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
         }
       }
     end
-    assert_deploy_success(success)
+    assert_deploy_success(result)
 
     restart = build_restart_task
     assert_raises(KubernetesDeploy::DeploymentTimeoutError) { restart.perform!(%w(web)) }
@@ -188,6 +188,32 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       "Unhealthy: Readiness probe failed"
     ],
       in_order: true)
+  end
+
+  def test_restart_failure_can_be_ignored
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+      deployment = fixtures["web.yml.erb"]["Deployment"].first
+      deployment["spec"]["progressDeadlineSeconds"] = 30
+      annotation_key = KubernetesDeploy::KubernetesResource::NO_ROLLOUT_VERIFICATION_ANNOTATION
+      deployment["metadata"]["annotations"][annotation_key] = '1'
+      container = deployment["spec"]["template"]["spec"]["containers"].first
+      container["readinessProbe"] = {
+        "failureThreshold" => 1,
+        "periodSeconds" => 1,
+        "initialDelaySeconds" => 0,
+        "exec" => {
+          "command" => [
+            "/bin/sh",
+            "-c",
+            "test $(env | grep -s RESTARTED_AT -c) -eq 0"
+          ]
+        }
+      }
+    end
+    assert_deploy_success(result)
+
+    restart = build_restart_task
+    assert_restart_success(restart.perform(%w(web)))
   end
 
   def test_restart_successful_with_partial_availability

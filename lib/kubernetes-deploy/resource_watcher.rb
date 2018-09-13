@@ -19,6 +19,7 @@ module KubernetesDeploy
     def run(delay_sync: 3.seconds, reminder_interval: 30.seconds, record_summary: true)
       delay_sync_until = last_message_logged_at = monitoring_started = Time.now.utc
       remainder = @resources.dup
+      _ingnored, remainder = remainder.partition(&:skip_rollout_verification?)
 
       while remainder.present?
         if @timeout && (Time.now.utc - monitoring_started > @timeout)
@@ -87,9 +88,25 @@ module KubernetesDeploy
     end
 
     def record_statuses_for_summary(resources)
-      successful_resources, failed_resources = resources.partition(&:deploy_succeeded?)
+      ingnored_resources, remainder = resources.partition(&:skip_rollout_verification?)
+      successful_resources, failed_resources = remainder.partition(&:deploy_succeeded?)
       record_success_statuses(successful_resources)
       record_failed_statuses(failed_resources)
+      record_ignored_statuses(ingnored_resources)
+    end
+
+    def record_ignored_statuses(ingnored)
+      count = ingnored.length
+      if count > 0
+        @logger.summary.add_action("ignored #{count} #{'resource'.pluralize(count)}")
+
+        msg = "Deploy result verification is disabled for the following resources.\n"\
+        "This means the desired changes were communicated to Kubernetes, but the deploy "\
+        "did not make sure they succeeded.\n"
+
+        final_statuses = ingnored.map(&:pretty_status).join("\n")
+        @logger.summary.add_paragraph("#{ColorizedString.new('Ignored resources').yellow}\n#{msg}\n#{final_statuses}")
+      end
     end
 
     def record_failed_statuses(failed_resources, global_timeouts = [])

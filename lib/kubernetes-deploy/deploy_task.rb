@@ -166,7 +166,7 @@ module KubernetesDeploy
         start_normal_resource = Time.now.utc
         deploy_resources(resources, prune: prune, verify: true)
         ::StatsD.measure('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
-        failed_resources = resources.reject(&:deploy_succeeded?)
+        failed_resources = resources.reject(&:skip_rollout_verification?).reject(&:deploy_succeeded?)
         success = failed_resources.empty?
         if !success && failed_resources.all?(&:deploy_timed_out?)
           raise DeploymentTimeoutError

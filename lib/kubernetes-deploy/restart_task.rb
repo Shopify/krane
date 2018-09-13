@@ -52,7 +52,7 @@ module KubernetesDeploy
       resources = build_watchables(deployments, start)
       ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
         logger: @logger, operation_name: "restart", timeout: @max_watch_seconds).run
-      failed_resources = resources.reject(&:deploy_succeeded?)
+      failed_resources = resources.reject(&:skip_rollout_verification?).reject(&:deploy_succeeded?)
       success = failed_resources.empty?
       if !success && failed_resources.all?(&:deploy_timed_out?)
         raise DeploymentTimeoutError
