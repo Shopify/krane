@@ -63,7 +63,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
   def test_run_doesnt_miss_logs_across_pollings
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
-    upper = 5_000
+    upper = 3_000
     task_runner = build_task_runner
     assert task_runner.run(**valid_run_params.merge(verify_result: true,
       args: ["i=0; while [ $i -lt #{upper} ]; do echo \"$i\"; sleep 0.001; i=$((i+1)); done"]))

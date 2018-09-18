@@ -92,16 +92,17 @@ module KubernetesDeploy
     #   "app" => ["array of log lines", "received from app container"],
     #   "nginx" => ["array of log lines", "received from nginx container"]
     # }
-    def fetch_logs(kubectl, since: nil)
+    def fetch_logs(kubectl, since: nil, timestamps: false)
       return {} unless exists? && @containers.present?
       @containers.each_with_object({}) do |container, container_logs|
         cmd = [
           "logs",
           @name,
           "--container=#{container.name}",
-          "--since-time=#{(since || @deploy_started_at).to_datetime.rfc3339}",
+          "--since-time=#{(since || @deploy_started_at).to_datetime.rfc3339(9)}",
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
+        cmd << "--timestamps" if timestamps
         out, _err, _st = kubectl.run(*cmd, log_failure: false)
         container_logs[container.name] = out.split("\n")
       end
@@ -147,11 +148,14 @@ module KubernetesDeploy
 
     def stream_logs(mediator)
       @logger.info("Logs from #{id}:") unless @last_log_fetch
-      logs = fetch_logs(mediator.kubectl, since: @last_log_fetch || @deploy_started_at)
-      @last_log_fetch = Time.now.utc
+      since = @last_log_fetch || @deploy_started_at
+      logs = fetch_logs(mediator.kubectl, since: since, timestamps: true)
+
       logs.each do |_, log|
         if log.present?
-          @logger.info("\t" + log.join("\n\t"))
+          ts_logs = log.map { |l| l.split(" ", 2) }.select { |l| DateTime.parse(l.first) > since }
+          @logger.info("\t" + ts_logs.join("\n\t"))
+          @last_log_fetch = DateTime.parse(ts_logs.last.first)
         else
           @logger.info("\t...")
         end
