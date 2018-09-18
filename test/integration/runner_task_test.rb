@@ -61,6 +61,23 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
   end
 
+  def test_run_doesnt_miss_logs_across_pollings
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
+    upper = 5_000
+    task_runner = build_task_runner
+    assert task_runner.run(**valid_run_params.merge(verify_result: true,
+      args: ["i=0; while [ $i -lt #{upper} ]; do echo \"$i\"; sleep 0.001; i=$((i+1)); done"]))
+
+    assert_logs_match_all(
+      [/Starting task runner pod: 'task-runner-\w+'/] +
+      (1...upper).map(&:to_s) +
+      ["Result: SUCCESS", "Successfully deployed 1 resource"],
+      in_order: true
+    )
+    pods = kubeclient.get_pods(namespace: @namespace)
+    assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
+  end
+
   def test_run_with_bad_restart_policy
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"]) do |f|
       f["template-runner.yml"]["PodTemplate"].first["template"]["spec"]["restartPolicy"] = "OnFailure"
