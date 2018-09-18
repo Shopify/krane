@@ -99,7 +99,7 @@ module KubernetesDeploy
           "logs",
           @name,
           "--container=#{container.name}",
-          "--since-time=#{(since || @deploy_started_at).to_datetime.rfc3339(9)}",
+          "--since-time=#{(since || @deploy_started_at).to_datetime.rfc3339}",
         ]
         cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
         cmd << "--timestamps" if timestamps
@@ -155,7 +155,7 @@ module KubernetesDeploy
         if log.present?
           ts_logs = log.map { |l| l.split(" ", 2) }.select { |l| DateTime.parse(l.first) > since }
           @logger.info("\t" + ts_logs.join("\n\t"))
-          @last_log_fetch = DateTime.parse(ts_logs.last.first)
+          @last_log_fetch = DateTime.parse(ts_logs.last.first) if ts_logs.last
         else
           @logger.info("\t...")
         end
