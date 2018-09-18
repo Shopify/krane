@@ -1,6 +1,17 @@
 ### Master
 
 *Enhancements*
+
+## 0.20.6
+
+*Enhancements*
+- All resources marked as prunable will now be added to the prune whitelist ([#326](https://github.com/Shopify/kubernetes-deploy/pull/326))
+- Improve deploy status detection by ensuring we examine the correct generation ([#325](https://github.com/Shopify/kubernetes-deploy/pull/325))
+
+*Bug Fixes*
+
+## 0.20.5
+*Enhancements*
 - Add Job resource class ([#295](https://github.com/Shopify/kubernetes-deploy/pull/296))
 - Add CustomResourceDefinition resource class ([#306](https://github.com/Shopify/kubernetes-deploy/pull/306))
 - Officially support Kubernetes 1.10 ([#308](https://github.com/Shopify/kubernetes-deploy/pull/308))
@@ -8,6 +19,9 @@
 being tracked ([#316](https://github.com/Shopify/kubernetes-deploy/pull/316))
 - Allow CRs to be pruned based on `kubernetes-deploy.shopify.io/prunable` annotation on the custom resource definitions ([312](https://github.com/Shopify/kubernetes-deploy/pull/312))
 - Add HorizontalPodAutoscaler resource class ([#305](https://github.com/Shopify/kubernetes-deploy/pull/305))
+
+*Bug Fixes*
+- Prevent crash when STATSD_IMPLEMENTATION isn't set. ([#3242](https://github.com/Shopify/kubernetes-deploy/pull/324))
 
 ### 0.20.4
 *Enhancements*
