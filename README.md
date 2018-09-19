@@ -423,9 +423,18 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/Shopif
 
 Contributions to help us support additional resource types or increase the sophistication of our success heuristics for an existing type are especially encouraged! (See tips below)
 
+## Feature acceptance guidelines
 
+- This project's mission is to make it easy to ship changes to a Kubernetes namespace and understand the result. Features that introduce new classes of responsibility to the tool are not usually accepted.
+  - Deploys can be a very tempting place to cram features. Imagine a proposed feature actually fits better elsewhere—where might that be? (Examples: validator in CI, custom controller, initializer, pre-processing step in the CD pipeline, or even Kubernetes core)
+  - The basic ERB renderer included with the tool is intended as a convenience feature for a better out-of-the box experience. Providing complex rendering capabilities is out of scope of this project's mission, and enhancements in this area may be rejected.
+  - The deploy command does not officially support non-namespaced resource types.
+- This project strives to be composable with other tools in the ecosystem, such as renderers and validators. The deploy command must work with any Kubernetes templates provided to it, no matter how they were generated.
+- This project is open-source. Features tied to any specific organization (including Shopify) will be rejected.
+- The deploy command must remain performant when given several hundred resources at a time, generating 1000+ pods. (Technical note: This means only `sync` methods can make calls to the Kuberentes API server during result verification. This both limits the number of API calls made and ensures a consistent view of the world within each polling cycle.)
+- This tool must be able to run concurrent deploys to different targets safely, including when used as a library.
 
-### Contributing a new resource type
+## Contributing a new resource type
 
 The list of fully supported types is effectively the list of classes found in `lib/kubernetes-deploy/kubernetes_resource/`.
 
@@ -440,7 +449,7 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
 4. Add the a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/kubernetes-deploy/blob/master/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
 5. Add tests for any edge cases you foresee.
 
-### Code of Conduct
+## Code of Conduct
 Everyone is expected to follow our [Code of Conduct](https://github.com/Shopify/kubernetes-deploy/blob/master/CODE_OF_CONDUCT.md).
 
 
