@@ -153,9 +153,17 @@ module KubernetesDeploy
 
       logs.each do |_, log|
         if log.present?
-          ts_logs = log.map { |l| l.split(" ", 2) }.select { |l| DateTime.parse(l.first) > since }
-          @logger.info("\t" + ts_logs.join("\n\t"))
-          @last_log_fetch = DateTime.parse(ts_logs.last.first) if ts_logs.last
+          ts_logs = log.map do |line|
+            dt, message = line.split(" ", 2)
+            begin
+              [DateTime.parse(dt), message]
+            rescue ArgumentError
+              [nil, message]
+            end
+          end
+          ts_logs.select { |dt, _| dt.nil? || dt > since }
+          @logger.info("\t" + ts_logs.map(&:last).join("\n\t"))
+          @last_log_fetch = ts_logs.last.first if ts_logs.last&.first
         else
           @logger.info("\t...")
         end
