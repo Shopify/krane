@@ -142,12 +142,6 @@ module KubernetesDeploy
     def deploy_failing_to_progress?
       return false unless progress_condition.present?
 
-      if @server_version < Gem::Version.new("1.7.7")
-        # Deployments were being updated prematurely with incorrect progress information
-        # https://github.com/kubernetes/kubernetes/issues/49637
-        return false unless Time.now.utc - @deploy_started_at >= progress_deadline.to_i
-      end
-
       # This assumes that when the controller bumps the observed generation, it also updates/clears all the status
       # conditions. Specifically, it assumes the progress condition is immediately set to True if a rollout is starting.
       deploy_started? &&

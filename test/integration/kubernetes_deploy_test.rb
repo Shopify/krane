@@ -786,7 +786,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_bad_container_on_stateful_sets_fails_with_rolling_update
-    skip if KUBE_CLIENT_VERSION < Gem::Version.new("1.7.0")
     result = deploy_fixtures("hello-cloud", subset: ["stateful_set.yml"]) do |fixtures|
       stateful_set = fixtures['stateful_set.yml']['StatefulSet'].first
       stateful_set['spec']['updateStrategy'] = { 'type' => 'RollingUpdate' }
@@ -819,7 +818,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_rolling_update_stateful_sets_are_monitored
-    skip if KUBE_CLIENT_VERSION < Gem::Version.new("1.7.0")
     result = deploy_fixtures("hello-cloud", subset: ["stateful_set.yml"]) do |fixtures|
       stateful_set = fixtures['stateful_set.yml']['StatefulSet'].first
       stateful_set['spec']['updateStrategy'] = { 'type' => 'RollingUpdate' }
