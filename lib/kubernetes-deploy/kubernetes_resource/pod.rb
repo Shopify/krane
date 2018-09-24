@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+require 'kubernetes-deploy/pod_logger'
+
 module KubernetesDeploy
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
@@ -35,11 +37,7 @@ module KubernetesDeploy
       end
 
       if unmanaged?
-        if @stream_logs
-          stream_logs(mediator)
-        elsif deploy_succeeded?
-          display_logs(mediator)
-        end
+        KubernetesDeploy::PodLogger.log(pod: self, mediator: mediator, logger: @logger, stream: @stream_logs)
       end
     end
 
@@ -144,53 +142,6 @@ module KubernetesDeploy
 
     def unmanaged?
       @parent.blank?
-    end
-
-    def stream_logs(mediator)
-      @logger.info("Logs from #{id}:") unless @last_log_fetch
-      since = @last_log_fetch || @deploy_started_at
-      logs = fetch_logs(mediator.kubectl, since: since, timestamps: true)
-
-      logs.each do |_, log|
-        if log.present?
-          ts_logs = log.map do |line|
-            dt, message = line.split(" ", 2)
-            begin
-              [DateTime.parse(dt), message]
-            rescue ArgumentError
-              [nil, message]
-            end
-          end
-          ts_logs.select { |dt, _| dt.nil? || dt > since }
-          @logger.info("\t" + ts_logs.map(&:last).join("\n\t"))
-          @last_log_fetch = ts_logs.last.first if ts_logs.last&.first
-        else
-          @logger.info("\t...")
-        end
-      end
-    end
-
-    def display_logs(mediator)
-      return if @already_displayed
-      container_logs = fetch_logs(mediator.kubectl)
-
-      if container_logs.empty?
-        @logger.warn("No logs found for pod #{id}")
-        return
-      end
-
-      container_logs.each do |container_identifier, logs|
-        if logs.blank?
-          @logger.warn("No logs found for container '#{container_identifier}'")
-        else
-          @logger.blank_line
-          @logger.info("Logs from #{id} container '#{container_identifier}':")
-          logs.each { |line| @logger.info("\t#{line}") }
-          @logger.blank_line
-        end
-      end
-
-      @already_displayed = true
     end
 
     def raise_predates_deploy_error
