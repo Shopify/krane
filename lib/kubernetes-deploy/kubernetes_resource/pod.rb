@@ -15,7 +15,7 @@ module KubernetesDeploy
       statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false)
       @parent = parent
       @deploy_started_at = deploy_started_at
-      @pod_logger = KubernetesDeploy::PodLogger.new(logger: logger, stream: stream_logs)
+
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
@@ -24,6 +24,7 @@ module KubernetesDeploy
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
       super(namespace: namespace, context: context, definition: definition,
             logger: logger, statsd_tags: statsd_tags)
+      @pod_logger = KubernetesDeploy::PodLogger.new(logger: logger, stream: stream_logs, pod_name: @name, pod_id: id)
     end
 
     def sync(mediator)
@@ -36,7 +37,8 @@ module KubernetesDeploy
         @containers.each(&:reset_status)
       end
 
-      @pod_logger.log(mediator: mediator, pod: self) if unmanaged?
+      @pod_logger.log(kubectl: mediator.kubectl, deploy_succeeded: deploy_succeeded?, unmanaged: unmanaged?,
+        deploy_started_at: @deploy_started_at, container_names: @containers.map(&:name))
     end
 
     def status
@@ -88,20 +90,10 @@ module KubernetesDeploy
     #   "app" => ["array of log lines", "received from app container"],
     #   "nginx" => ["array of log lines", "received from nginx container"]
     # }
-    def fetch_logs(kubectl, since: nil, timestamps: false)
-      return {} unless exists? && @containers.present?
-      @containers.each_with_object({}) do |container, container_logs|
-        cmd = [
-          "logs",
-          @name,
-          "--container=#{container.name}",
-          "--since-time=#{(since || @deploy_started_at).to_datetime.rfc3339}",
-        ]
-        cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
-        cmd << "--timestamps" if timestamps
-        out, _err, _st = kubectl.run(*cmd, log_failure: false)
-        container_logs[container.name] = out.split("\n")
-      end
+    def fetch_logs(kubectl)
+      return {} unless exists?
+      @pod_logger.fetch_logs(kubectl, deploy_started_at: @deploy_started_at, container_names: @containers.map(&:name),
+        unmanaged: unmanaged?)
     end
 
     private
