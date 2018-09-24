@@ -24,8 +24,8 @@ module KubernetesDeploy
         # Gem cannot monitor update since it doesn't occur until delete
         unless @success_assumption_warning_shown
           @logger.warn("WARNING: Your StatefulSet's updateStrategy is set to OnDelete, "\
-                       "which means updates will not be applied until its pods are deleted, "\
-                       "consider switching to rollingUpdate.")
+                       "which means updates will not be applied until its pods are deleted. "\
+                       "Consider switching to rollingUpdate.")
           @success_assumption_warning_shown = true
         end
         true
