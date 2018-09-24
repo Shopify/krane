@@ -15,7 +15,7 @@ module KubernetesDeploy
       statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false)
       @parent = parent
       @deploy_started_at = deploy_started_at
-      @stream_logs = stream_logs
+      @pod_logger = KubernetesDeploy::PodLogger.new(logger: logger, stream: stream_logs)
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
@@ -36,9 +36,7 @@ module KubernetesDeploy
         @containers.each(&:reset_status)
       end
 
-      if unmanaged?
-        KubernetesDeploy::PodLogger.log(pod: self, mediator: mediator, logger: @logger, stream: @stream_logs)
-      end
+      @pod_logger.log(mediator: mediator, pod: self) if unmanaged?
     end
 
     def status
