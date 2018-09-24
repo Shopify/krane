@@ -20,10 +20,3 @@ steps:
     env:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.8-latest
-  - name: 'Run Test Suite (:kubernetes: 1.7-latest)'
-    command: bin/ci
-    agents:
-      queue: minikube-ci
-    env:
-      LOGGING_LEVEL: 4
-      KUBERNETES_VERSION: v1.7-latest

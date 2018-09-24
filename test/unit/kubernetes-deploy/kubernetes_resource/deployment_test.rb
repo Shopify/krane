@@ -331,27 +331,6 @@ class DeploymentTest < KubernetesDeploy::TestCase
     end
   end
 
-  def test_deploy_timed_out_based_on_progress_deadline_accommodates_stale_conditions_bug_in_k8s_176_and_lower
-    Timecop.freeze do
-      deployment_status = {
-        "replicas" => 3,
-        "conditions" => [{
-          "type" => "Progressing",
-          "status" => 'False',
-          "lastUpdateTime" => Time.now.utc - 5.seconds,
-          "reason" => "Failed to progress"
-        }]
-      }
-      deploy = build_synced_deployment(
-        template: build_deployment_template(status: deployment_status),
-        replica_sets: [build_rs_template(status: { "replica" => 1 })],
-        server_version: Gem::Version.new("1.7.6")
-      )
-      deploy.deploy_started_at = Time.now.utc - 5.seconds # progress deadline of 10s has not elapsed
-      refute deploy.deploy_timed_out?
-    end
-  end
-
   private
 
   def build_deployment_template(status: { 'replicas' => 3 }, rollout: nil,
