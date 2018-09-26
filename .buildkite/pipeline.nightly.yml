@@ -1,5 +1,19 @@
+shared: &shared
+  retry:
+     automatic:
+       - exit_status: "*"
+         limit: 1
 steps:
+  - name: 'Run Test Suite (:kubernetes: 1.11-latest)'
+    <<: *shared
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: 4
+      KUBERNETES_VERSION: v1.11-latest
   - name: 'Run Test Suite (:kubernetes: 1.10-latest)'
+    <<: *shared
     command: bin/ci
     agents:
       queue: minikube-ci
@@ -7,6 +21,7 @@ steps:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.10-latest
   - name: 'Run Test Suite (:kubernetes: 1.9-latest)'
+    <<: *shared
     command: bin/ci
     agents:
       queue: minikube-ci
@@ -14,6 +29,7 @@ steps:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.9-latest
   - name: 'Run Test Suite (:kubernetes: 1.8-latest)'
+    <<: *shared
     command: bin/ci
     agents:
       queue: minikube-ci
