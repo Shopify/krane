@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/pod_logger'
+require 'kubernetes-deploy/pod_log_retriever'
 
 module KubernetesDeploy
   class Pod < KubernetesResource
@@ -22,9 +22,11 @@ module KubernetesDeploy
         raise FatalDeploymentError, "Template is missing required field spec.containers"
       end
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
+      @stream_logs = stream_logs
+      @log_retriever = KubernetesDeploy::PodLogRetriever.new(logger: logger,
+        pod_name: definition.dig("metadata", "name"), container_names: @containers.map(&:name))
       super(namespace: namespace, context: context, definition: definition,
             logger: logger, statsd_tags: statsd_tags)
-      @pod_logger = KubernetesDeploy::PodLogger.new(logger: logger, stream: stream_logs, pod_name: @name, pod_id: id)
     end
 
     def sync(mediator)
@@ -37,8 +39,11 @@ module KubernetesDeploy
         @containers.each(&:reset_status)
       end
 
-      @pod_logger.log(kubectl: mediator.kubectl, deploy_succeeded: deploy_succeeded?, unmanaged: unmanaged?,
-        deploy_started_at: @deploy_started_at, container_names: @containers.map(&:name))
+      if unmanaged? && deploy_succeeded? && !@stream_logs
+        @log_retriever.print_all(kubectl: mediator.kubectl, since: @deploy_started_at, prevent_duplicate: true)
+      elsif @stream_logs
+        @log_retriever.print_latest(kubectl: mediator.kubectl)
+      end
     end
 
     def status
@@ -92,8 +97,12 @@ module KubernetesDeploy
     # }
     def fetch_logs(kubectl)
       return {} unless exists?
-      @pod_logger.fetch_logs(kubectl, deploy_started_at: @deploy_started_at, container_names: @containers.map(&:name),
-        unmanaged: unmanaged?)
+      tail_limit = unmanaged? ? nil : KubernetesResource::LOG_LINE_COUNT
+      @log_retriever.fetch_logs(kubectl, since: @deploy_started_at, tail_limit: tail_limit)
+    end
+
+    def print_debug_logs?
+      unmanaged? && !@stream_logs
     end
 
     private

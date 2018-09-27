@@ -8,11 +8,11 @@ require 'optparse'
 template = "task-runner-template"
 entrypoint = nil
 env_vars = []
-skip_wait = nil
+verify_result = true
 max_watch_seconds = nil
 
 ARGV.options do |opts|
-  opts.on("--skip-wait", "Skip verification of pod success") { skip_wait = true }
+  opts.on("--skip-wait", "Skip verification of pod success") { verify_result = false }
   opts.on("--max-watch-seconds=seconds",
     "Timeout error is raised if the pod runs for longer than the specified number of seconds") do |t|
     max_watch_seconds = t.to_i
@@ -35,7 +35,7 @@ runner = KubernetesDeploy::RunnerTask.new(
 )
 
 success = runner.run(
-  verify_result: !skip_wait,
+  verify_result: verify_result,
   task_template: template,
   entrypoint: entrypoint,
   args: ARGV[2..-1],

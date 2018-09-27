@@ -8,10 +8,15 @@ module KubernetesDeploy
   class RunnerTask
     include KubeclientBuilder
 
+    RESULT_VERIFICATION_WARNING = <<~MSG
+      Result verification is disabled for this task.
+      This means the desired pod was successfully created, but the runner did not make sure it actually succeeded.
+    MSG
+
     class FatalTaskRunError < FatalDeploymentError; end
     class TaskTemplateMissingError < FatalDeploymentError
       def initialize(task_template, namespace, context)
-        super("Pod template `#{task_template}` cannot be found in namespace: `#{namespace}`, context: `#{context}`")
+        super("Pod template `#{task_template}` cannot be found in namespace `#{namespace}`, context `#{context}`")
       end
     end
 
@@ -33,32 +38,25 @@ module KubernetesDeploy
     def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: true)
       @logger.reset
 
-      @logger.phase_heading("Initializing deploy")
+      @logger.phase_heading("Initializing task")
       validate_configuration(task_template, args)
       pod = build_pod(task_template, entrypoint, args, env_vars, verify_result)
+      validate_pod(pod)
 
       @logger.phase_heading("Running pod")
       create_pod(pod)
 
       if verify_result
-        sm = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
-        rw = ResourceWatcher.new(resources: [pod], logger: @logger, timeout: @max_watch_seconds, sync_mediator: sm)
-        rw.run(delay_sync: 5.seconds, reminder_interval: 1.day) # never print reminders
-        raise DeploymentTimeoutError if pod.deploy_timed_out?
-        raise FatalDeploymentError unless pod.deploy_succeeded?
+        @logger.phase_heading("Streaming logs")
+        watch_pod(pod)
       else
-        warning = <<~MSG
-          Result verification is disabled for this task.
-          This means the desired pod was successfully created, but the runner did not make sure it actually succeeded.
-        MSG
-        @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
+        @logger.summary.add_paragraph(ColorizedString.new(RESULT_VERIFICATION_WARNING).yellow)
       end
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
       @logger.print_summary(:timed_out)
       raise
-    rescue FatalDeploymentError => error
-      @logger.summary.add_action(error.message) unless error.message == error.class.to_s
+    rescue FatalDeploymentError
       @logger.print_summary(:failure)
       raise
     end
@@ -66,25 +64,37 @@ module KubernetesDeploy
     private
 
     def create_pod(pod)
-      @logger.info("Starting task runner pod: '#{pod.name}'")
       pod.deploy_started_at = Time.now.utc
       @kubeclient.create_pod(Kubeclient::Resource.new(pod.definition))
+      @logger.info("Pod '#{pod.name}' created")
     end
 
-    def build_pod(task_template, entrypoint, args, env_vars, verify_result)
-      raw_template = get_template(task_template)
-      rendered_template = build_pod_template(raw_template, entrypoint, args, env_vars)
-      rendered_template = validate_or_set_restart_policy(rendered_template, verify_result)
+    def build_pod(template_name, entrypoint, args, env_vars, verify_result)
+      @logger.info("Using template '#{template_name}' from namespace '#{@namespace}'")
+      task_template = get_template(template_name)
+      pod_template = build_pod_definition(task_template)
+      set_container_overrides!(pod_template, entrypoint, args, env_vars)
+      ensure_valid_restart_policy!(pod_template, verify_result)
+      Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
+                    definition: pod_template.to_hash.deep_stringify_keys, statsd_tags: [])
+    end
 
-      pod = Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
-                    definition: rendered_template.to_hash.deep_stringify_keys, statsd_tags: [])
+    def validate_pod(pod)
       pod.validate_definition(kubectl)
+    end
 
-      pod
+    def watch_pod(pod)
+      sm = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
+      rw = ResourceWatcher.new(resources: [pod], logger: @logger, timeout: @max_watch_seconds,
+        sync_mediator: sm, operation_name: "run")
+
+      rw.run(delay_sync: 1, reminder_interval: 1.day) # never print reminders
+      raise DeploymentTimeoutError if pod.deploy_timed_out?
+      raise FatalDeploymentError unless pod.deploy_succeeded?
     end
 
     def validate_configuration(task_template, args)
-      @logger.info("Validating Configuration")
+      @logger.info("Validating configuration")
       errors = []
 
       if task_template.blank?
@@ -114,10 +124,6 @@ module KubernetesDeploy
     end
 
     def get_template(template_name)
-      @logger.info(
-        "Fetching task runner pod template: '#{template_name}' in namespace: '#{@namespace}'"
-      )
-
       pod_template = @kubeclient.get_pod_template(template_name, @namespace)
 
       pod_template.template
@@ -129,45 +135,41 @@ module KubernetesDeploy
       end
     end
 
-    def build_pod_template(base_template, entrypoint, args, env_vars)
-      @logger.info("Rendering template for task runner pod")
+    def build_pod_definition(base_template)
+      pod_definition = base_template.dup
+      pod_definition.kind = 'Pod'
+      pod_definition.apiVersion = 'v1'
+      pod_definition.metadata.namespace = @namespace
 
-      rendered_template = base_template.dup
-      rendered_template.kind = 'Pod'
-      rendered_template.apiVersion = 'v1'
+      unique_name = pod_definition.metadata.name + "-" + SecureRandom.hex(8)
+      @logger.warn("Name is too long, using '#{unique_name[0..62]}'") if unique_name.length > 63
+      pod_definition.metadata.name = unique_name[0..62]
 
-      container = rendered_template.spec.containers.find { |cont| cont.name == 'task-runner' }
+      pod_definition
+    end
 
+    def set_container_overrides!(pod_definition, entrypoint, args, env_vars)
+      container = pod_definition.spec.containers.find { |cont| cont.name == 'task-runner' }
       raise FatalTaskRunError, "Pod spec does not contain a template container called 'task-runner'" if container.nil?
 
       container.command = entrypoint
       container.args = args
-      container.env ||= []
 
       env_args = env_vars.map do |env|
         key, value = env.split('=', 2)
         { name: key, value: value }
       end
-
+      container.env ||= []
       container.env = container.env.map(&:to_h) + env_args
-
-      unique_name = rendered_template.metadata.name + "-" + SecureRandom.hex(8)
-
-      @logger.warn("Name is too long, using '#{unique_name[0..62]}'") if unique_name.length > 63
-      rendered_template.metadata.name = unique_name[0..62]
-      rendered_template.metadata.namespace = @namespace
-
-      rendered_template
     end
 
-    def validate_or_set_restart_policy(template, verify)
+    def ensure_valid_restart_policy!(template, verify)
       restart_policy = template.spec.restartPolicy
       if verify && restart_policy != "Never"
-        @logger.warn("Changed Pod RestartPolicy from '#{restart_policy}' to 'Never'. Use"\
-          "'--skip-wait=true' to use '#{restart_policy}'.")
+        @logger.warn("Changed Pod RestartPolicy from '#{restart_policy}' to 'Never'. Disable"\
+          "result verification to use '#{restart_policy}'.")
         template.spec.restartPolicy = "Never"
       end
-      template
     end
 
     def kubectl

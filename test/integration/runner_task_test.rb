@@ -43,12 +43,12 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     ])
   end
 
-  def test_run_with_verify_result
+  def test_run_with_verify_result_success
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
 
     task_runner = build_task_runner
     assert task_runner.run(**valid_run_params.merge(verify_result: true,
-      args: ['echo "start" && sleep 6 && echo "finish"']))
+      args: ["i=0; while [ $i -lt 16 ]; do echo \"$i\"; sleep 0.25; i=$((i+1)); done"]))
 
     assert_logs_match_all([
       /Starting task runner pod: 'task-runner-\w+'/,
@@ -61,9 +61,18 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
   end
 
-  def test_run_doesnt_miss_logs_across_pollings
+  def test_run_with_verify_result_failure
     deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
-    upper = 3_000
+
+    task_runner = build_task_runner
+    assert task_runner.run(**valid_run_params.merge(verify_result: true,
+      args: ["echo 'emit a log'; test 1 = 0"]))
+    # assert stuff, including that "emit a log" only shown once
+  end
+
+  def test_run_with_verify_result_doesnt_miss_logs_across_pollings
+    deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"])
+    upper = 1_000
     task_runner = build_task_runner
     assert task_runner.run(**valid_run_params.merge(verify_result: true,
       args: ["i=0; while [ $i -lt #{upper} ]; do echo \"$i\"; sleep 0.001; i=$((i+1)); done"]))
@@ -76,6 +85,14 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     )
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
+  end
+
+  def test_run_with_verify_result_does_not_duplicate_logs
+    skip "todo"
+  end
+
+  def test_run_fails_gracefully_when_command_to_create_pod_fails
+    skip "todo"
   end
 
   def test_run_with_bad_restart_policy
@@ -168,7 +185,11 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   private
 
   def valid_run_params
-    { task_template: 'hello-cloud-template-runner', entrypoint: ['/bin/sh', '-c'], args: ["echo 'KUBERNETES-DEPLOY'"] }
+    {
+      task_template: 'hello-cloud-template-runner',
+      entrypoint: ['/bin/sh', '-c'],
+      args: ["echo 'KUBERNETES-DEPLOY'"]
+    }
   end
 
   def build_task_runner(ns: @namespace, max_watch_seconds: nil)

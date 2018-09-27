@@ -6,8 +6,7 @@ require 'shellwords'
 module KubernetesDeploy
   class KubernetesResource
     attr_reader :name, :namespace, :context, :definition
-    attr_writer :type
-    attr_accessor :deploy_started_at
+    attr_writer :type, :deploy_started_at
 
     GLOBAL = false
     TIMEOUT = 5.minutes
@@ -164,8 +163,7 @@ module KubernetesDeploy
 
     def sync_debug_info(kubectl)
       @events = fetch_events(kubectl) unless ENV[DISABLE_FETCHING_EVENT_INFO]
-      @logs = fetch_logs(kubectl) if supports_logs? && !ENV[DISABLE_FETCHING_EVENT_INFO]
-      @debug_info_synced = true
+      @logs = fetch_logs(kubectl) if print_debug_logs? && !ENV[DISABLE_FETCHING_LOG_INFO]
     end
 
     def debug_message(cause = nil, info_hash = {})
@@ -199,7 +197,7 @@ module KubernetesDeploy
         helpful_info << "  - Events: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
       end
 
-      if supports_logs?
+      if print_debug_logs?
         if ENV[DISABLE_FETCHING_LOG_INFO]
           helpful_info << "  - Logs: #{DISABLED_LOG_INFO_MESSAGE}"
         elsif @logs.blank? || @logs.values.all?(&:blank?)
@@ -356,8 +354,8 @@ module KubernetesDeploy
       file&.close
     end
 
-    def supports_logs?
-      respond_to?(:fetch_logs)
+    def print_debug_logs?
+      false
     end
 
     def statsd_tags
