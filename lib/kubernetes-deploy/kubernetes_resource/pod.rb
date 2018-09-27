@@ -8,6 +8,7 @@ module KubernetesDeploy
       Evicted
       Preempting
     )
+    attr_writer :stream_logs
 
     def initialize(namespace:, context:, definition:, logger:,
       statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false)
@@ -20,6 +21,7 @@ module KubernetesDeploy
         raise FatalDeploymentError, "Template is missing required field spec.containers"
       end
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
+      @stream_logs = stream_logs
       super(namespace: namespace, context: context, definition: definition,
             logger: logger, statsd_tags: statsd_tags)
     end
@@ -37,7 +39,9 @@ module KubernetesDeploy
     end
 
     def after_sync
-      if unmanaged? && deploy_succeeded?
+      if @stream_logs
+        logs.print_latest
+      elsif unmanaged? && deploy_succeeded?
         logs.print_all
       end
     end
