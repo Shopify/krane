@@ -23,7 +23,6 @@ module KubernetesDeploy
     def initialize(namespace:, context:, logger:, max_watch_seconds: nil)
       @logger = logger
       @namespace = namespace
-      @kubeclient = build_v1_kubeclient(context)
       @context = context
       @max_watch_seconds = max_watch_seconds
     end
@@ -65,7 +64,7 @@ module KubernetesDeploy
 
     def create_pod(pod)
       pod.deploy_started_at = Time.now.utc
-      @kubeclient.create_pod(Kubeclient::Resource.new(pod.definition))
+      kubeclient.create_pod(Kubeclient::Resource.new(pod.definition))
       @logger.info("Pod '#{pod.name}' created")
     end
 
@@ -110,7 +109,7 @@ module KubernetesDeploy
       end
 
       begin
-        @kubeclient.get_namespace(@namespace) if @namespace.present?
+        kubeclient.get_namespace(@namespace) if @namespace.present?
       rescue KubeException => e
         msg = e.error_code == 404 ? "Namespace was not found" : "Could not connect to kubernetes cluster"
         errors << msg
@@ -124,7 +123,7 @@ module KubernetesDeploy
     end
 
     def get_template(template_name)
-      pod_template = @kubeclient.get_pod_template(template_name, @namespace)
+      pod_template = kubeclient.get_pod_template(template_name, @namespace)
 
       pod_template.template
     rescue KubeException => error
@@ -174,6 +173,10 @@ module KubernetesDeploy
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+    end
+
+    def kubeclient
+      @kubeclient ||= build_v1_kubeclient(context)
     end
   end
 end
