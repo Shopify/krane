@@ -1,6 +1,4 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/pod_log_retriever'
-
 module KubernetesDeploy
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
@@ -12,19 +10,16 @@ module KubernetesDeploy
     )
 
     def initialize(namespace:, context:, definition:, logger:,
-      statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false)
+      statsd_tags: nil, parent: nil, deploy_started_at: nil)
       @parent = parent
       @deploy_started_at = deploy_started_at
-
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
         raise FatalDeploymentError, "Template is missing required field spec.containers"
       end
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
-      @stream_logs = stream_logs
-      @log_retriever = KubernetesDeploy::PodLogRetriever.new(logger: logger,
-        pod_name: definition.dig("metadata", "name"), container_names: @containers.map(&:name))
+      @logs_already_displayed = false
       super(namespace: namespace, context: context, definition: definition,
             logger: logger, statsd_tags: statsd_tags)
     end
@@ -38,12 +33,13 @@ module KubernetesDeploy
       else # reset
         @containers.each(&:reset_status)
       end
+    end
 
-      if unmanaged? && deploy_succeeded? && !@stream_logs
-        @log_retriever.print_all(kubectl: mediator.kubectl, since: @deploy_started_at, prevent_duplicate: true)
-      elsif @stream_logs
-        @log_retriever.print_latest(kubectl: mediator.kubectl)
-      end
+    def dump_success_logs(mediator)
+      return unless unmanaged? && deploy_succeeded?
+      return if @logs_already_displayed
+      display_logs(mediator)
+      @logs_already_displayed = true
     end
 
     def status
@@ -96,13 +92,18 @@ module KubernetesDeploy
     #   "nginx" => ["array of log lines", "received from nginx container"]
     # }
     def fetch_logs(kubectl)
-      return {} unless exists?
-      tail_limit = unmanaged? ? nil : KubernetesResource::LOG_LINE_COUNT
-      @log_retriever.fetch_logs(kubectl, since: @deploy_started_at, tail_limit: tail_limit)
-    end
-
-    def print_debug_logs?
-      unmanaged? && !@stream_logs
+      return {} unless exists? && @containers.present?
+      @containers.each_with_object({}) do |container, container_logs|
+        cmd = [
+          "logs",
+          @name,
+          "--container=#{container.name}",
+          "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
+        ]
+        cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
+        out, _err, _st = kubectl.run(*cmd, log_failure: false)
+        container_logs[container.name] = out.split("\n")
+      end
     end
 
     private
@@ -141,6 +142,26 @@ module KubernetesDeploy
 
     def unmanaged?
       @parent.blank?
+    end
+
+    def display_logs(mediator)
+      container_logs = fetch_logs(mediator.kubectl)
+
+      if container_logs.empty?
+        @logger.warn("No logs found for pod #{id}")
+        return
+      end
+
+      container_logs.each do |container_identifier, logs|
+        if logs.blank?
+          @logger.warn("No logs found for container '#{container_identifier}'")
+        else
+          @logger.blank_line
+          @logger.info("Logs from #{id} container '#{container_identifier}':")
+          logs.each { |line| @logger.info("\t#{line}") }
+          @logger.blank_line
+        end
+      end
     end
 
     def raise_predates_deploy_error

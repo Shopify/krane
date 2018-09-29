@@ -118,6 +118,9 @@ module KubernetesDeploy
       @instance_data = mediator.get_instance(kubectl_resource_type, name)
     end
 
+    def dump_success_logs(mediator)
+    end
+
     def deploy_failed?
       false
     end

@@ -16,7 +16,7 @@ module KubernetesDeploy
       @timeout = timeout
     end
 
-    def run(delay_sync: 3.seconds, reminder_interval: 30.seconds, record_summary: true)
+    def run(delay_sync: 3.seconds, reminder_interval: 30.seconds, record_summary: true, print_logs: true)
       delay_sync_until = last_message_logged_at = monitoring_started = Time.now.utc
       remainder = @resources.dup
 
@@ -35,7 +35,7 @@ module KubernetesDeploy
         new_timeouts, remainder = remainder.partition(&:deploy_timed_out?)
 
         if new_successes.present? || new_failures.present? || new_timeouts.present?
-          report_what_just_happened(new_successes, new_failures, new_timeouts)
+          report_what_just_happened(new_successes, new_failures, new_timeouts, print_logs: print_logs)
           report_what_is_left(remainder, reminder: false)
           last_message_logged_at = Time.now.utc
         elsif due_for_reminder?(last_message_logged_at, reminder_interval)
@@ -48,7 +48,7 @@ module KubernetesDeploy
 
     private
 
-    def report_what_just_happened(new_successes, new_failures, new_timeouts)
+    def report_what_just_happened(new_successes, new_failures, new_timeouts, print_logs:)
       watch_time = (Time.now.utc - @deploy_started_at).round(1)
       new_failures.each do |resource|
         resource.report_status_to_statsd(watch_time)
@@ -61,7 +61,10 @@ module KubernetesDeploy
       end
 
       if new_successes.present?
-        new_successes.each { |r| r.report_status_to_statsd(watch_time) }
+        new_successes.each do |r|
+          r.report_status_to_statsd(watch_time)
+          r.dump_success_logs(@sync_mediator) if print_logs
+        end
         success_string = ColorizedString.new("Successfully #{past_tense_operation} in #{watch_time}s:").green
         @logger.info("#{success_string} #{new_successes.map(&:id).join(', ')}")
       end

@@ -12,8 +12,8 @@ module KubernetesDeploy
       Result verification is disabled for this task.
       This means the desired pod was successfully created, but the runner did not make sure it actually succeeded.
     MSG
+    REQUIRED_CONTAINER_NAME = 'task-runner'
 
-    class FatalTaskRunError < FatalDeploymentError; end
     class TaskTemplateMissingError < FatalDeploymentError
       def initialize(task_template, namespace, context)
         super("Pod template `#{task_template}` cannot be found in namespace `#{namespace}`, context `#{context}`")
@@ -52,10 +52,12 @@ module KubernetesDeploy
         @logger.summary.add_paragraph(ColorizedString.new(RESULT_VERIFICATION_WARNING).yellow)
       end
       @logger.print_summary(:success)
-    rescue DeploymentTimeoutError
+    rescue DeploymentTimeoutError => e
+      @logger.summary.add_action(e.message) if e.message != e.class.to_s
       @logger.print_summary(:timed_out)
       raise
-    rescue FatalDeploymentError
+    rescue FatalDeploymentError => e
+      @logger.summary.add_action(e.message) if e.message != e.class.to_s
       @logger.print_summary(:failure)
       raise
     end
@@ -74,8 +76,8 @@ module KubernetesDeploy
       pod_template = build_pod_definition(task_template)
       set_container_overrides!(pod_template, entrypoint, args, env_vars)
       ensure_valid_restart_policy!(pod_template, verify_result)
-      Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
-                    definition: pod_template.to_hash.deep_stringify_keys, statsd_tags: [])
+      Pod.new(namespace: @namespace, context: @context, logger: @logger,
+        definition: pod_template.to_hash.deep_stringify_keys, statsd_tags: [])
     end
 
     def validate_pod(pod)
@@ -83,13 +85,9 @@ module KubernetesDeploy
     end
 
     def watch_pod(pod)
-      sm = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
-      rw = ResourceWatcher.new(resources: [pod], logger: @logger, timeout: @max_watch_seconds,
-        sync_mediator: sm, operation_name: "run")
-
-      rw.run(delay_sync: 1, reminder_interval: 1.day) # never print reminders
-      raise DeploymentTimeoutError if pod.deploy_timed_out?
-      raise FatalDeploymentError unless pod.deploy_succeeded?
+      mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
+      streamer = ContainerLogStreamer.new(pod, REQUIRED_CONTAINER_NAME, @context, @logger, mediator)
+      streamer.run(timeout: @max_watch_seconds)
     end
 
     def validate_configuration(task_template, args)
@@ -148,8 +146,10 @@ module KubernetesDeploy
     end
 
     def set_container_overrides!(pod_definition, entrypoint, args, env_vars)
-      container = pod_definition.spec.containers.find { |cont| cont.name == 'task-runner' }
-      raise FatalTaskRunError, "Pod spec does not contain a template container called 'task-runner'" if container.nil?
+      container = pod_definition.spec.containers.find { |cont| cont.name == REQUIRED_CONTAINER_NAME }
+      if container.nil?
+        raise FatalTaskRunError, "Pod spec does not contain a template container called '#{REQUIRED_CONTAINER_NAME}'"
+      end
 
       container.command = entrypoint
       container.args = args
@@ -176,7 +176,7 @@ module KubernetesDeploy
     end
 
     def kubeclient
-      @kubeclient ||= build_v1_kubeclient(context)
+      @kubeclient ||= build_v1_kubeclient(@context)
     end
   end
 end
