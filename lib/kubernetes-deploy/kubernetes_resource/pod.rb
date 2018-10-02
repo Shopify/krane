@@ -103,6 +103,7 @@ module KubernetesDeploy
     # }
     def fetch_debug_logs(kubectl)
       return {} unless exists?
+      return {} if @stream_logs # we already printed them
 
       logs.sync(kubectl)
       relevant_logs = logs.to_h

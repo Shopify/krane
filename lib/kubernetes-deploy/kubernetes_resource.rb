@@ -121,10 +121,6 @@ module KubernetesDeploy
     def post_sync
     end
 
-    def synchronous_script?
-      false
-    end
-
     def deploy_failed?
       false
     end

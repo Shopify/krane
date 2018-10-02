@@ -136,7 +136,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     task_runner = build_task_runner
     assert_raises(KubernetesDeploy::FatalDeploymentError) do
-      task_runner.run!(run_params.merge(args: ["echo 'emit a log'; FAKE"]))
+      task_runner.run!(run_params.merge(args: ["echo 'emit a log' && FAKE;"]))
     end
 
     assert_logs_match_all([
