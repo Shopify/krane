@@ -10,15 +10,13 @@ module KubernetesDeploy
 
     RESULT_VERIFICATION_WARNING = <<~MSG
       Result verification is disabled for this task.
-      This means the desired pod was successfully created, but the runner did not make sure it actually succeeded.
+      This means the desired pod was successfully registered with Kubernetes, but it may not have been scheduled or started yet.
     MSG
 
-    class FatalTaskRunError < FatalDeploymentError; end
-    class TaskTemplateMissingError < FatalDeploymentError
-      def initialize(task_template, namespace, context)
-        super("Pod template `#{task_template}` cannot be found in namespace `#{namespace}`, context `#{context}`")
-      end
-    end
+    class TaskConfigurationError < FatalDeploymentError; end
+    class TaskTemplateMissingError < TaskConfigurationError; end
+
+    attr_reader :pod_name
 
     def initialize(namespace:, context:, logger:, max_watch_seconds: nil)
       @logger = logger
@@ -49,6 +47,7 @@ module KubernetesDeploy
         @logger.phase_heading("Streaming logs")
         watch_pod(pod)
       else
+        @logger.summary.add_action("Pod created")
         @logger.summary.add_paragraph(ColorizedString.new(RESULT_VERIFICATION_WARNING).yellow)
       end
       @logger.print_summary(:success)
@@ -65,7 +64,12 @@ module KubernetesDeploy
     def create_pod(pod)
       pod.deploy_started_at = Time.now.utc
       kubeclient.create_pod(Kubeclient::Resource.new(pod.definition))
+      @pod_name = pod.name
       @logger.info("Pod '#{pod.name}' created")
+    rescue KubeException => e
+      @logger.summary.add_action("Failed to create pod")
+      @logger.summary.add_paragraph("#{e.class.name}: #{e.message}")
+      raise FatalDeploymentError, "Failed to create pod: #{e.class.name}: #{e.message}"
     end
 
     def build_pod(template_name, entrypoint, args, env_vars, verify_result)
@@ -83,13 +87,13 @@ module KubernetesDeploy
     end
 
     def watch_pod(pod)
-      sm = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
+      mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
       rw = ResourceWatcher.new(resources: [pod], logger: @logger, timeout: @max_watch_seconds,
-        sync_mediator: sm, operation_name: "run")
-
-      rw.run(delay_sync: 1, reminder_interval: 1.day) # never print reminders
+        sync_mediator: mediator, operation_name: "run")
+      rw.run(delay_sync: 1, reminder_interval: 30.seconds)
+      # TODO: try moving these raises into the watcher
       raise DeploymentTimeoutError if pod.deploy_timed_out?
-      raise FatalDeploymentError unless pod.deploy_succeeded?
+      raise FatalDeploymentError if pod.deploy_failed?
     end
 
     def validate_configuration(task_template, args)
@@ -115,7 +119,11 @@ module KubernetesDeploy
         errors << msg
       end
 
-      raise FatalTaskRunError, "Configuration invalid: #{errors.join(', ')}" unless errors.empty?
+      unless errors.empty?
+        @logger.summary.add_action("Configuration invalid")
+        @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
+        raise TaskConfigurationError, "Configuration invalid: #{errors.join(', ')}"
+      end
 
       if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
         @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
@@ -128,9 +136,11 @@ module KubernetesDeploy
       pod_template.template
     rescue KubeException => error
       if error.error_code == 404
-        raise TaskTemplateMissingError.new(template_name, @namespace, @context)
+        msg = "Pod template `#{template_name}` not found in namespace `#{@namespace}`, context `#{@context}`"
+        @logger.summary.add_paragraph msg
+        raise TaskTemplateMissingError, msg
       else
-        raise FatalDeploymentError, "Error communicating with the API server"
+        raise TaskConfigurationError, "Error communicating with the API server"
       end
     end
 
@@ -149,7 +159,9 @@ module KubernetesDeploy
 
     def set_container_overrides!(pod_definition, entrypoint, args, env_vars)
       container = pod_definition.spec.containers.find { |cont| cont.name == 'task-runner' }
-      raise FatalTaskRunError, "Pod spec does not contain a template container called 'task-runner'" if container.nil?
+      if container.nil?
+        raise TaskConfigurationError, "Pod spec does not contain a template container called 'task-runner'"
+      end
 
       container.command = entrypoint
       container.args = args
@@ -165,7 +177,7 @@ module KubernetesDeploy
     def ensure_valid_restart_policy!(template, verify)
       restart_policy = template.spec.restartPolicy
       if verify && restart_policy != "Never"
-        @logger.warn("Changed Pod RestartPolicy from '#{restart_policy}' to 'Never'. Disable"\
+        @logger.warn("Changed Pod RestartPolicy from '#{restart_policy}' to 'Never'. Disable "\
           "result verification to use '#{restart_policy}'.")
         template.spec.restartPolicy = "Never"
       end
@@ -176,7 +188,7 @@ module KubernetesDeploy
     end
 
     def kubeclient
-      @kubeclient ||= build_v1_kubeclient(context)
+      @kubeclient ||= build_v1_kubeclient(@context)
     end
   end
 end

@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/pod_log_retriever'
+require 'kubernetes-deploy/pod_logs'
 
 module KubernetesDeploy
   class Pod < KubernetesResource
@@ -10,6 +10,7 @@ module KubernetesDeploy
       Evicted
       Preempting
     )
+    attr_writer :stream_logs
 
     def initialize(namespace:, context:, definition:, logger:,
       statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false)
@@ -23,27 +24,32 @@ module KubernetesDeploy
       end
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
       @stream_logs = stream_logs
-      @log_retriever = KubernetesDeploy::PodLogRetriever.new(logger: logger,
-        pod_name: definition.dig("metadata", "name"), container_names: @containers.map(&:name))
       super(namespace: namespace, context: context, definition: definition,
             logger: logger, statsd_tags: statsd_tags)
     end
 
     def sync(mediator)
       super
-      raise_predates_deploy_error if exists? && unmanaged? && !deploy_started?
+      raise_predates_deploy_error if exists? && synchronous_script? && !deploy_started?
 
       if exists?
+        logs.sync(mediator.kubectl)
         update_container_statuses(@instance_data["status"])
       else # reset
         @containers.each(&:reset_status)
       end
+    end
 
-      if unmanaged? && deploy_succeeded? && !@stream_logs
-        @log_retriever.print_all(kubectl: mediator.kubectl, since: @deploy_started_at, prevent_duplicate: true)
-      elsif @stream_logs
-        @log_retriever.print_latest(kubectl: mediator.kubectl)
+    def post_sync
+      if @stream_logs
+        logs.print_latest
+      elsif synchronous_script? && deploy_succeeded?
+        logs.print_all
       end
+    end
+
+    def synchronous_script?
+      unmanaged?
     end
 
     def status
@@ -95,17 +101,24 @@ module KubernetesDeploy
     #   "app" => ["array of log lines", "received from app container"],
     #   "nginx" => ["array of log lines", "received from nginx container"]
     # }
-    def fetch_logs(kubectl)
+    def fetch_debug_logs(kubectl)
       return {} unless exists?
-      tail_limit = unmanaged? ? nil : KubernetesResource::LOG_LINE_COUNT
-      @log_retriever.fetch_logs(kubectl, since: @deploy_started_at, tail_limit: tail_limit)
-    end
 
-    def print_debug_logs?
-      unmanaged? && !@stream_logs
+      logs.sync(kubectl)
+      relevant_logs = logs.to_h
+      return relevant_logs if synchronous_script?
+
+      relevant_logs.each_key do |container|
+        relevant_logs[container] = relevant_logs[container].last(KubernetesResource::LOG_LINE_COUNT)
+      end
+      relevant_logs
     end
 
     private
+
+    def logs
+      @logs ||= KubernetesDeploy::PodLogs.new(logger: @logger, pod_name: name, container_names: @containers.map(&:name))
+    end
 
     def phase
       @instance_data.dig("status", "phase") || "Unknown"

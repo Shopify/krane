@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class DeployTaskTest < KubernetesDeploy::TestCase
+  include EnvTestHelper
+
   def test_that_it_has_a_version_number
     refute_nil ::KubernetesDeploy::VERSION
   end
@@ -31,18 +33,15 @@ class DeployTaskTest < KubernetesDeploy::TestCase
   def runner_with_env(value)
     # TODO: Switch to --kubeconfig for kubectl shell out and pass env var as arg to DeployTask init
     # Then fix this crappy env manipulation
-    original_env = ENV["KUBECONFIG"]
-    ENV["KUBECONFIG"] = value
-
-    deploy = KubernetesDeploy::DeployTask.new(
-      namespace: "",
-      context: "",
-      logger: logger,
-      current_sha: "",
-      template_dir: "unknown",
-    )
-    deploy.run
-  ensure
-    ENV["KUBECONFIG"] = original_env
+    with_env("KUBECONFIG", value) do
+      deploy = KubernetesDeploy::DeployTask.new(
+        namespace: "",
+        context: "",
+        logger: logger,
+        current_sha: "",
+        template_dir: "unknown",
+      )
+      deploy.run
+    end
   end
 end
