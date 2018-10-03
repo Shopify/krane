@@ -8,11 +8,6 @@ module KubernetesDeploy
   class RunnerTask
     include KubeclientBuilder
 
-    RESULT_VERIFICATION_WARNING = <<~MSG
-      Result verification is disabled for this task.
-      This means the desired pod was successfully registered with Kubernetes, but it may not have been scheduled or started yet.
-    MSG
-
     class TaskConfigurationError < FatalDeploymentError; end
     class TaskTemplateMissingError < TaskConfigurationError; end
 
@@ -47,8 +42,7 @@ module KubernetesDeploy
         @logger.phase_heading("Streaming logs")
         watch_pod(pod)
       else
-        @logger.summary.add_action("Pod created")
-        @logger.summary.add_paragraph(ColorizedString.new(RESULT_VERIFICATION_WARNING).yellow)
+        record_status_once(pod)
       end
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
@@ -62,19 +56,20 @@ module KubernetesDeploy
     private
 
     def create_pod(pod)
+      @logger.info "Creating pod '#{pod.name}'"
       pod.deploy_started_at = Time.now.utc
       kubeclient.create_pod(Kubeclient::Resource.new(pod.definition))
       @pod_name = pod.name
-      @logger.info("Pod '#{pod.name}' created")
+      @logger.info("Pod creation succeeded")
     rescue KubeException => e
-      @logger.summary.add_action("Failed to create pod")
-      @logger.summary.add_paragraph("#{e.class.name}: #{e.message}")
-      raise FatalDeploymentError, "Failed to create pod: #{e.class.name}: #{e.message}"
+      msg = "Failed to create pod: #{e.class.name}: #{e.message}"
+      @logger.summary.add_paragraph(msg)
+      raise FatalDeploymentError, msg
     end
 
     def build_pod(template_name, entrypoint, args, env_vars, verify_result)
-      @logger.info("Using template '#{template_name}' from namespace '#{@namespace}'")
       task_template = get_template(template_name)
+      @logger.info("Using template '#{template_name}'")
       pod_template = build_pod_definition(task_template)
       set_container_overrides!(pod_template, entrypoint, args, env_vars)
       ensure_valid_restart_policy!(pod_template, verify_result)
@@ -87,13 +82,22 @@ module KubernetesDeploy
     end
 
     def watch_pod(pod)
-      mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
       rw = ResourceWatcher.new(resources: [pod], logger: @logger, timeout: @max_watch_seconds,
-        sync_mediator: mediator, operation_name: "run")
+        sync_mediator: sync_mediator, operation_name: "run")
       rw.run(delay_sync: 1, reminder_interval: 30.seconds)
       # TODO: try moving these raises into the watcher
       raise DeploymentTimeoutError if pod.deploy_timed_out?
       raise FatalDeploymentError if pod.deploy_failed?
+    end
+
+    def record_status_once(pod)
+      pod.sync(sync_mediator)
+      warning = <<~STRING
+        #{ColorizedString.new('Result verification is disabled for this task.').yellow}
+        The following status was observed immediately after pod creation:
+        #{pod.pretty_status}
+      STRING
+      @logger.summary.add_paragraph(warning)
     end
 
     def validate_configuration(task_template, args)
@@ -114,6 +118,7 @@ module KubernetesDeploy
 
       begin
         kubeclient.get_namespace(@namespace) if @namespace.present?
+        @logger.info "Using namespace '#{@namespace}' in context '#{@context}'"
       rescue KubeException => e
         msg = e.error_code == 404 ? "Namespace was not found" : "Could not connect to kubernetes cluster"
         errors << msg
@@ -185,6 +190,10 @@ module KubernetesDeploy
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+    end
+
+    def sync_mediator
+      @sync_mediator ||= SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
     end
 
     def kubeclient

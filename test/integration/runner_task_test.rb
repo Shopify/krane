@@ -6,18 +6,21 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   include EnvTestHelper
 
   def test_run_without_verify_result_succeeds_as_soon_as_pod_is_successfully_created
-    deploy_task_template
+    deploy_unschedulable_task_template
 
     task_runner = build_task_runner
     result = task_runner.run(run_params(verify_result: false))
     assert_task_run_success(result)
 
     assert_logs_match_all([
-      /Pod 'task-runner-\w+' created/,
+      /Creating pod 'task-runner-\w+'/,
+      "Pod creation succeeded",
       "Result: SUCCESS",
-      "Pod created",
-      "Result verification is disabled for this task"
+      "Result verification is disabled for this task",
+      "The following status was observed immediately after pod creation:",
+      %r{Pod/task-runner-\w+\s+Pending},
     ], in_order: true)
+
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
   end
@@ -65,17 +68,17 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_task_template
 
     task_runner = build_task_runner
-    result = task_runner.run(run_params.merge(args: ["echo 'emit a log'; FAKE"]))
+    result = task_runner.run(run_params.merge(args: ["/not/a/command"]))
     assert_task_run_failure(result)
 
     assert_logs_match_all([
       "Streaming logs",
-      "emit a log",
-      "/bin/sh: FAKE: not found",
+      "/bin/sh: /not/a/command: not found",
       %r{Pod/task-runner-\w+ failed to run after \d+.\ds},
       "Result: FAILURE",
       "Pod status: Failed"
     ], in_order: true)
+    refute_logs_match("Logs: None found")
   end
 
   def test_run_with_verify_result_success
@@ -86,13 +89,17 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_task_run_success(result)
 
     assert_logs_match_all([
+      "Initializing task",
+      /Using namespace 'k8sdeploy-test-run-with-verify-result-success-\w+' in context '\w+'/,
+      "Using template 'hello-cloud-template-runner'",
       "Running pod",
-      /Pod 'task-runner-\w+' created/,
+      /Creating pod 'task-runner-\w+'/,
+      "Pod creation succeeded",
       "Streaming logs",
       "Line 1",
       "Line 8",
       "Result: SUCCESS",
-      "Successfully ran 1 resource",
+      %r{Pod/task-runner-\w+\s+Succeeded},
     ])
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
@@ -125,7 +132,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Phase 1: Initializing task",
-      "Using template 'hello-cloud-template-runner' from namespace '#{@namespace}'",
+      "Using template 'hello-cloud-template-runner'",
       "Changed Pod RestartPolicy from 'OnFailure' to 'Never'. Disable result verification to use 'OnFailure'.",
       "Phase 2: Running pod"
     ])
@@ -136,13 +143,12 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     task_runner = build_task_runner
     assert_raises(KubernetesDeploy::FatalDeploymentError) do
-      task_runner.run!(run_params.merge(args: ["echo 'emit a log' && FAKE;"]))
+      task_runner.run!(run_params.merge(args: ["/not/a/command"]))
     end
 
     assert_logs_match_all([
       "Streaming logs",
-      "emit a log",
-      "/bin/sh: FAKE: not found",
+      "/bin/sh: /not/a/command: not found",
       %r{Pod/task-runner-\w+ failed to run after \d+.\ds},
       "Result: FAILURE",
       "Pod status: Failed"
@@ -205,9 +211,23 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       result = deploy_fixtures("hello-cloud", subset: subset) do |fixtures|
         yield fixtures if block_given?
       end
-      assert_deploy_success(result)
+      logging_assertion do |logs|
+        assert_equal true, result, "Deploy failed when it was expected to succeed: \n#{logs}"
+      end
     end
     reset_logger
+  end
+
+  def deploy_unschedulable_task_template
+    deploy_task_template do |f|
+      way_too_fat = {
+        "requests" => {
+          "cpu" => 1000,
+          "memory" => "100Gi"
+        }
+      }
+      f["template-runner.yml"]["PodTemplate"].first["template"]["spec"]["containers"].first["resources"] = way_too_fat
+    end
   end
 
   def run_params(log_lines: 5, log_interval: 0.1, verify_result: true)

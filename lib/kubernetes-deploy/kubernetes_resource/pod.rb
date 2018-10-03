@@ -103,7 +103,6 @@ module KubernetesDeploy
     # }
     def fetch_debug_logs(kubectl)
       return {} unless exists?
-      return {} if @stream_logs # we already printed them
 
       logs.sync(kubectl)
       relevant_logs = logs.to_h
@@ -113,6 +112,10 @@ module KubernetesDeploy
         relevant_logs[container] = relevant_logs[container].last(KubernetesResource::LOG_LINE_COUNT)
       end
       relevant_logs
+    end
+
+    def supports_debug_logs?
+      !@stream_logs # don't print them a second time
     end
 
     private
