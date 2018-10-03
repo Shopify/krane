@@ -16,7 +16,7 @@ module KubernetesDeploy
       own_events.merge(most_useful_pod.fetch_events(kubectl))
     end
 
-    def fetch_logs(kubectl)
+    def fetch_debug_logs(kubectl)
       return {} unless pods.present? # the kubectl command times out if no pods exist
       container_names.each_with_object({}) do |container_name, container_logs|
         out, _err, _st = kubectl.run(

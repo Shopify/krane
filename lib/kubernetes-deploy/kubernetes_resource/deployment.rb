@@ -24,9 +24,9 @@ module KubernetesDeploy
       own_events.merge(@latest_rs.fetch_events(kubectl))
     end
 
-    def fetch_logs(kubectl)
+    def fetch_debug_logs(kubectl)
       return {} unless @latest_rs.present?
-      @latest_rs.fetch_logs(kubectl)
+      @latest_rs.fetch_debug_logs(kubectl)
     end
 
     def deploy_succeeded?

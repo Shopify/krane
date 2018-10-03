@@ -5,7 +5,7 @@ require 'shellwords'
 
 module KubernetesDeploy
   class KubernetesResource
-    attr_reader :name, :namespace, :context
+    attr_reader :name, :namespace, :context, :definition
     attr_writer :type, :deploy_started_at
 
     GLOBAL = false
@@ -118,6 +118,9 @@ module KubernetesDeploy
       @instance_data = mediator.get_instance(kubectl_resource_type, name)
     end
 
+    def post_sync
+    end
+
     def deploy_failed?
       false
     end
@@ -173,9 +176,8 @@ module KubernetesDeploy
     end
 
     def sync_debug_info(kubectl)
-      @events = fetch_events(kubectl) unless ENV[DISABLE_FETCHING_EVENT_INFO]
-      @logs = fetch_logs(kubectl) if supports_logs? && !ENV[DISABLE_FETCHING_EVENT_INFO]
-      @debug_info_synced = true
+      @debug_events = fetch_events(kubectl) unless ENV[DISABLE_FETCHING_EVENT_INFO]
+      @debug_logs = fetch_debug_logs(kubectl) if supports_debug_logs? && !ENV[DISABLE_FETCHING_LOG_INFO]
     end
 
     def debug_message(cause = nil, info_hash = {})
@@ -198,9 +200,9 @@ module KubernetesDeploy
       end
       helpful_info << "  - Final status: #{status}"
 
-      if @events.present?
+      if @debug_events.present?
         helpful_info << "  - Events (common success events excluded):"
-        @events.each do |identifier, event_hashes|
+        @debug_events.each do |identifier, event_hashes|
           event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
         end
       elsif ENV[DISABLE_FETCHING_EVENT_INFO]
@@ -209,13 +211,13 @@ module KubernetesDeploy
         helpful_info << "  - Events: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
       end
 
-      if supports_logs?
+      if supports_debug_logs?
         if ENV[DISABLE_FETCHING_LOG_INFO]
           helpful_info << "  - Logs: #{DISABLED_LOG_INFO_MESSAGE}"
-        elsif @logs.blank? || @logs.values.all?(&:blank?)
+        elsif @debug_logs.blank? || @debug_logs.values.all?(&:blank?)
           helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
         else
-          sorted_logs = @logs.sort_by { |_, log_lines| log_lines.length }
+          sorted_logs = @debug_logs.sort_by { |_, log_lines| log_lines.length }
           sorted_logs.each do |identifier, log_lines|
             if log_lines.empty?
               helpful_info << "  - Logs from container '#{identifier}': #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
@@ -366,8 +368,8 @@ module KubernetesDeploy
       file&.close
     end
 
-    def supports_logs?
-      respond_to?(:fetch_logs)
+    def supports_debug_logs?
+      respond_to?(:fetch_debug_logs)
     end
 
     def statsd_tags

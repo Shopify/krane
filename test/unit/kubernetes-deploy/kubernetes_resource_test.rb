@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class KubernetesResourceTest < KubernetesDeploy::TestCase
+  include EnvTestHelper
+
   class DummyResource < KubernetesDeploy::KubernetesResource
     attr_writer :succeeded, :deploy_failed
 
@@ -19,11 +21,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       @deploy_failed
     end
 
-    def supports_logs?
-      true
-    end
-
-    def fetch_logs
+    def fetch_debug_logs
       []
     end
 
@@ -203,6 +201,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_debug_message_with_no_log_info
     with_env(KubernetesDeploy::KubernetesResource::DISABLE_FETCHING_LOG_INFO, 'true') do
       dummy = DummyResource.new
+      dummy.expects(:fetch_debug_logs).never
       dummy.deploy_failed = true
 
       assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
@@ -213,6 +212,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_debug_message_with_no_event_info
     with_env(KubernetesDeploy::KubernetesResource::DISABLE_FETCHING_EVENT_INFO, 'true') do
       dummy = DummyResource.new
+      dummy.expects(:fetch_events).never
       dummy.deploy_failed = true
 
       assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
@@ -224,20 +224,6 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def kubectl
     @kubectl ||= build_runless_kubectl
-  end
-
-  def with_env(key, value)
-    old_env_id = ENV[key]
-
-    if value.nil?
-      ENV.delete(key)
-    else
-      ENV[key] = value.to_s
-    end
-
-    yield
-  ensure
-    ENV[key] = old_env_id
   end
 
   def timeout_override_err_prefix

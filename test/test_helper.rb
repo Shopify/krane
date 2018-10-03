@@ -69,7 +69,7 @@ module KubernetesDeploy
       end
       @logger_stream = StringIO.new
 
-      if ENV["PRINT_LOGS"]
+      if log_to_stderr?
         ColorizedString.disable_colorization = false
         # Allows you to view the integration test output as a series of tophat scenarios
         <<~MESSAGE.each_line { |l| $stderr.puts l }
@@ -86,7 +86,7 @@ module KubernetesDeploy
 
     def logger
       @logger ||= begin
-        device = ENV["PRINT_LOGS"] ? $stderr : @logger_stream
+        device = log_to_stderr? ? $stderr : @logger_stream
         KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::MINIKUBE_CONTEXT, device)
       end
     end
@@ -96,6 +96,7 @@ module KubernetesDeploy
     end
 
     def reset_logger
+      @logger = nil
       # Flush StringIO buffer if not closed
       unless @logger_stream.closed?
         @logger_stream.truncate(0)
@@ -104,7 +105,7 @@ module KubernetesDeploy
     end
 
     def assert_deploy_failure(result, cause = nil)
-      if ENV["PRINT_LOGS"]
+      if log_to_stderr?
         assert_equal false, result, "Deploy succeeded when it was expected to fail"
         return
       end
@@ -117,9 +118,10 @@ module KubernetesDeploy
       end
     end
     alias_method :assert_restart_failure, :assert_deploy_failure
+    alias_method :assert_task_run_failure, :assert_deploy_failure
 
     def assert_deploy_success(result)
-      if ENV["PRINT_LOGS"]
+      if log_to_stderr?
         assert_equal true, result, "Deploy failed when it was expected to succeed"
         return
       end
@@ -130,6 +132,7 @@ module KubernetesDeploy
       end
     end
     alias_method :assert_restart_success, :assert_deploy_success
+    alias_method :assert_task_run_success, :assert_deploy_success
 
     def assert_logs_match(regexp, times = nil)
       logging_assertion do |logs|
@@ -210,8 +213,12 @@ module KubernetesDeploy
 
     private
 
+    def log_to_stderr?
+      ENV["PRINT_LOGS"].to_s == "1"
+    end
+
     def logging_assertion
-      if ENV["PRINT_LOGS"]
+      if log_to_stderr?
         $stderr.puts("\033[0;33mWARNING: Skipping logging assertions while logs are redirected to stderr\033[0m")
       else
         @logger_stream.rewind
@@ -279,7 +286,7 @@ module KubernetesDeploy
         labels: { name: name }
       }
       pv.spec = {
-        accessModes: ["ReadWriteOnce"],
+        accessModes: %w(ReadWriteOnce),
         capacity: { storage: "150Mi" },
         hostPath: { path: "/data/#{name}" },
         persistentVolumeReclaimPolicy: "Recycle"

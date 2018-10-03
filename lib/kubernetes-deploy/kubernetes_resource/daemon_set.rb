@@ -28,10 +28,10 @@ module KubernetesDeploy
       observed_generation == current_generation
     end
 
-    def fetch_logs(kubectl)
+    def fetch_debug_logs(kubectl)
       return {} unless pods.present?
       most_useful_pod = pods.find(&:deploy_failed?) || pods.find(&:deploy_timed_out?) || pods.first
-      most_useful_pod.fetch_logs(kubectl)
+      most_useful_pod.fetch_debug_logs(kubectl)
     end
 
     private

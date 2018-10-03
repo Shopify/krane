@@ -47,11 +47,15 @@ module KubernetesDeploy
         level = :fatal
       end
 
-      public_send(level, summary.actions_sentence)
-      summary.paragraphs.each do |para|
+      if actions_sentence = summary.actions_sentence.presence
+        public_send(level, actions_sentence)
         blank_line(level)
+      end
+
+      summary.paragraphs.each do |para|
         msg_lines = para.split("\n")
         msg_lines.each { |line| public_send(level, line) }
+        blank_line(level) unless para == summary.paragraphs.last
       end
     end
 
@@ -64,11 +68,8 @@ module KubernetesDeploy
       end
 
       def actions_sentence
-        case @actions_taken.length
-        when 0 then "No actions taken"
-        else
-          @actions_taken.to_sentence.capitalize
-        end
+        return unless @actions_taken.present?
+        @actions_taken.to_sentence.capitalize
       end
 
       # Saves a sentence fragment to be displayed in the first sentence of the summary section

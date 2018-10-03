@@ -17,19 +17,16 @@ module KubernetesDeploy
     end
 
     def run(delay_sync: 3.seconds, reminder_interval: 30.seconds, record_summary: true)
-      delay_sync_until = last_message_logged_at = monitoring_started = Time.now.utc
+      last_message_logged_at = monitoring_started = Time.now.utc
       remainder = @resources.dup
 
       while remainder.present?
-        if @timeout && (Time.now.utc - monitoring_started > @timeout)
-          report_and_give_up(remainder)
-        end
-        if (sleep_duration = delay_sync_until - Time.now.utc) > 0
-          sleep(sleep_duration)
-        end
-        delay_sync_until = Time.now.utc + delay_sync # don't pummel the API if the sync is fast
+        report_and_give_up(remainder) if global_timeout?(monitoring_started)
+        sleep_until_next_sync(delay_sync)
 
         @sync_mediator.sync(remainder)
+        remainder.each(&:post_sync)
+
         new_successes, remainder = remainder.partition(&:deploy_succeeded?)
         new_failures, remainder = remainder.partition(&:deploy_failed?)
         new_timeouts, remainder = remainder.partition(&:deploy_timed_out?)
@@ -48,6 +45,18 @@ module KubernetesDeploy
 
     private
 
+    def global_timeout?(started_at)
+      @timeout && (Time.now.utc - started_at > @timeout)
+    end
+
+    def sleep_until_next_sync(min_interval)
+      @next_sync_time ||= Time.now.utc
+      if (sleep_duration = @next_sync_time - Time.now.utc) > 0
+        sleep(sleep_duration)
+      end
+      @next_sync_time = Time.now.utc + min_interval
+    end
+
     def report_what_just_happened(new_successes, new_failures, new_timeouts)
       watch_time = (Time.now.utc - @deploy_started_at).round(1)
       new_failures.each do |resource|
@@ -62,7 +71,7 @@ module KubernetesDeploy
 
       if new_successes.present?
         new_successes.each { |r| r.report_status_to_statsd(watch_time) }
-        success_string = ColorizedString.new("Successfully #{@operation_name}ed in #{watch_time}s:").green
+        success_string = ColorizedString.new("Successfully #{past_tense_operation} in #{watch_time}s:").green
         @logger.info("#{success_string} #{new_successes.map(&:id).join(', ')}")
       end
     end
@@ -120,7 +129,7 @@ module KubernetesDeploy
     def record_success_statuses(successful_resources)
       success_count = successful_resources.length
       if success_count > 0
-        @logger.summary.add_action("successfully #{@operation_name}ed #{success_count} "\
+        @logger.summary.add_action("successfully #{past_tense_operation} #{success_count} "\
           "#{'resource'.pluralize(success_count)}")
         final_statuses = successful_resources.map(&:pretty_status).join("\n")
         @logger.summary.add_paragraph("#{ColorizedString.new('Successful resources').green}\n#{final_statuses}")
@@ -129,6 +138,10 @@ module KubernetesDeploy
 
     def due_for_reminder?(last_message_logged_at, reminder_interval)
       (last_message_logged_at.to_f + reminder_interval.to_f) <= Time.now.utc.to_f
+    end
+
+    def past_tense_operation
+      @operation_name == "run" ? "ran" : "#{@operation_name}ed"
     end
   end
 end
