@@ -128,7 +128,7 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
     end
     assert_deploy_success(result)
   ensure
-    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
+    wait_for_all_crd_deletion
   end
 
   def test_crd_can_fail
@@ -153,8 +153,7 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
       'Final status: ListKindConflict ("Conflict" is already in use)'
     ])
   ensure
-    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
-    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("others.stable.example.io")
+    wait_for_all_crd_deletion
   end
 
   def test_crd_pruning
@@ -180,7 +179,14 @@ class RunSerialTest < KubernetesDeploy::IntegrationTest
       "Pruned 1 resource and successfully deployed 2 resource"
     ])
   ensure
-    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("mail.stable.example.io")
-    apiextensions_v1beta1_kubeclient.delete_custom_resource_definition("widgets.stable.example.io")
+    wait_for_all_crd_deletion
+  end
+
+  def wait_for_all_crd_deletion
+    crds = apiextensions_v1beta1_kubeclient.get_custom_resource_definitions
+    crds.each do |crd|
+      apiextensions_v1beta1_kubeclient.delete_custom_resource_definition(crd.metadata.name)
+    end
+    sleep 0.5 until apiextensions_v1beta1_kubeclient.get_custom_resource_definitions.none?
   end
 end
