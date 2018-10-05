@@ -20,22 +20,22 @@ module KubernetesDeploy
     end
 
     def empty?
-      @lines.empty?
+      lines.empty?
     end
 
     def print_latest(prefix: false)
       prefix_str = "[#{container_name}]  " if prefix
       start_at = @last_printed_index + 1
 
-      @lines[start_at..-1].each do |msg|
+      lines[start_at..-1].each do |msg|
         @logger.info "#{prefix_str}#{msg}"
       end
 
-      @last_printed_index = @lines.length - 1
+      @last_printed_index = lines.length - 1
     end
 
     def print_all
-      @lines.each { |line| @logger.info("\t#{line}") }
+      lines.each { |line| @logger.info("\t#{line}") }
     end
 
     private
@@ -43,7 +43,7 @@ module KubernetesDeploy
     def fetch_latest(kubectl)
       cmd = ["logs", @parent_id, "--container=#{container_name}", "--timestamps"]
       cmd << if @last_timestamp.present?
-        "--since-time=#{rfc3330_timestamp(@last_timestamp)}"
+        "--since-time=#{rfc3339_timestamp(@last_timestamp)}"
       else
         "--tail=#{DEFAULT_LINE_LIMIT}"
       end
@@ -51,7 +51,7 @@ module KubernetesDeploy
       out.split("\n")
     end
 
-    def rfc3330_timestamp(time)
+    def rfc3339_timestamp(time)
       time.strftime("%FT%T.%N%:z")
     end
 

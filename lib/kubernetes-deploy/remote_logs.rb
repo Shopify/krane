@@ -35,7 +35,7 @@ module KubernetesDeploy
 
       @container_logs.each do |cl|
         if cl.empty?
-          @logger.warn("No logs found for container '#{cl.container_name}'")
+          @logger.warn("No logs found for #{@parent_id} container '#{cl.container_name}'")
         else
           @logger.blank_line
           @logger.info("Logs from #{@parent_id} container '#{cl.container_name}':")
