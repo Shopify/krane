@@ -29,7 +29,7 @@ module KubernetesDeploy
       raise_predates_deploy_error if exists? && unmanaged? && !deploy_started?
 
       if exists?
-        logs.sync(mediator.kubectl)
+        logs.sync(mediator.kubectl) if unmanaged?
         update_container_statuses(@instance_data["status"])
       else # reset
         @containers.each(&:reset_status)

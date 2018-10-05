@@ -36,9 +36,9 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   def test_empty_delegated_to_lines
     kubectl = mock
     kubectl.stubs(:run).returns([logs_part_1, "", ""])
-    assert @logs.empty?
+    assert_predicate @logs, :empty?
     @logs.sync(kubectl)
-    refute @logs.empty?
+    refute_predicate @logs, :empty?
   end
 
   def test_print_latest_and_print_all_output_the_correct_chunks
