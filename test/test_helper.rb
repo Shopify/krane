@@ -214,7 +214,7 @@ module KubernetesDeploy
     private
 
     def log_to_stderr?
-      ENV["PRINT_LOGS"].to_s == "1"
+      ENV["PRINT_LOGS"] == "1"
     end
 
     def logging_assertion

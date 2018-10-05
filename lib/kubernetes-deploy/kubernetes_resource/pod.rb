@@ -8,7 +8,6 @@ module KubernetesDeploy
       Evicted
       Preempting
     )
-    attr_writer :stream_logs
 
     def initialize(namespace:, context:, definition:, logger:,
       statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false)

@@ -141,10 +141,10 @@ module KubernetesDeploy
     rescue KubeException => error
       if error.error_code == 404
         msg = "Pod template `#{template_name}` not found in namespace `#{@namespace}`, context `#{@context}`"
-        @logger.summary.add_paragraph msg
+        @logger.summary.add_paragraph(msg)
         raise TaskTemplateMissingError, msg
       else
-        raise TaskConfigurationError, "Error communicating with the API server"
+        raise FatalKubeAPIError, "Error retrieving pod template: #{error.class.name}: #{error.message}"
       end
     end
 

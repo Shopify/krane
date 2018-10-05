@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module EnvTestHelper
   def with_env(key, value)
-    old_env_id = ENV[key]
+    old_env_value = ENV[key]
 
     if value.nil?
       ENV.delete(key)
@@ -11,6 +11,6 @@ module EnvTestHelper
 
     yield
   ensure
-    ENV[key] = old_env_id
+    ENV[key] = old_env_value
   end
 end
