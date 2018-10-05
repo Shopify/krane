@@ -37,7 +37,6 @@ module KubernetesDeploy
         if cl.empty?
           @logger.warn("No logs found for #{@parent_id} container '#{cl.container_name}'")
         else
-          @logger.blank_line
           @logger.info("Logs from #{@parent_id} container '#{cl.container_name}':")
           cl.print_all
           @logger.blank_line

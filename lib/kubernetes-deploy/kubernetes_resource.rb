@@ -220,17 +220,17 @@ module KubernetesDeploy
           helpful_info << "  - Logs: #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
         else
           container_logs = @debug_logs.container_logs.sort_by { |c| c.lines.length }
-          container_logs.each do |c|
-            if c.empty?
-              helpful_info << "  - Logs from container '#{c.container_name}': #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
+          container_logs.each do |logs|
+            if logs.empty?
+              helpful_info << "  - Logs from container '#{logs.container_name}': #{DEBUG_RESOURCE_NOT_FOUND_MESSAGE}"
               next
             end
 
-            if c.lines.length == ContainerLogs::DEFAULT_LINE_LIMIT
+            if logs.lines.length == ContainerLogs::DEFAULT_LINE_LIMIT
               truncated = " (last #{ContainerLogs::DEFAULT_LINE_LIMIT} lines shown)"
             end
-            helpful_info << "  - Logs from container '#{c.container_name}'#{truncated}:"
-            c.lines.each do |line|
+            helpful_info << "  - Logs from container '#{logs.container_name}'#{truncated}:"
+            logs.lines.each do |line|
               helpful_info << "      #{line}"
             end
           end

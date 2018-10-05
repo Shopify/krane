@@ -10,32 +10,32 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   def test_sync_deduplicates_logs_emitted_fractional_seconds_apart
     kubectl = mock
     kubectl.stubs(:run)
-      .returns([logs_part_1, "", ""])
-      .then.returns([logs_part_2, "", ""])
-      .then.returns([logs_part_3, "", ""])
+      .returns([logs_response_1, "", ""])
+      .then.returns([logs_response_2, "", ""])
+      .then.returns([logs_response_3, "", ""])
     @logs.sync(kubectl)
     @logs.sync(kubectl)
     @logs.sync(kubectl)
 
-    assert_equal expected_log_lines(1..15), @logs.lines
+    assert_equal generate_log_messages(1..15), @logs.lines
   end
 
   def test_sync_handles_cycles_where_no_new_logs_available
     kubectl = mock
     kubectl.stubs(:run)
-      .returns([logs_part_1, "", ""])
+      .returns([logs_response_1, "", ""])
       .then.returns(["", "", ""])
-      .then.returns([logs_part_2, "", ""])
+      .then.returns([logs_response_2, "", ""])
     @logs.sync(kubectl)
     @logs.sync(kubectl)
     @logs.sync(kubectl)
 
-    assert_equal expected_log_lines(1..10), @logs.lines
+    assert_equal generate_log_messages(1..10), @logs.lines
   end
 
   def test_empty_delegated_to_lines
     kubectl = mock
-    kubectl.stubs(:run).returns([logs_part_1, "", ""])
+    kubectl.stubs(:run).returns([logs_response_1, "", ""])
     assert_predicate @logs, :empty?
     @logs.sync(kubectl)
     refute_predicate @logs, :empty?
@@ -44,31 +44,31 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   def test_print_latest_and_print_all_output_the_correct_chunks
     kubectl = mock
     kubectl.stubs(:run)
-      .returns([logs_part_1, "", ""])
-      .then.returns([logs_part_2, "", ""])
+      .returns([logs_response_1, "", ""])
+      .then.returns([logs_response_2, "", ""])
 
     @logs.sync(kubectl)
     @logs.print_latest
-    assert_logs_match_all(expected_log_lines(1..3), in_order: true)
+    assert_logs_match_all(generate_log_messages(1..3), in_order: true)
 
     reset_logger
     @logs.print_all
-    assert_logs_match_all(expected_log_lines(1..3), in_order: true)
+    assert_logs_match_all(generate_log_messages(1..3), in_order: true)
 
     reset_logger
     @logs.sync(kubectl)
     @logs.print_latest
-    assert_logs_match_all(expected_log_lines(4..10), in_order: true)
+    assert_logs_match_all(generate_log_messages(4..10), in_order: true)
     refute_logs_match("Line 3")
 
     reset_logger
     @logs.print_all
-    assert_logs_match_all(expected_log_lines(1..10), in_order: true)
+    assert_logs_match_all(generate_log_messages(1..10), in_order: true)
   end
 
   def test_print_latest_supports_prefixing
     kubectl = mock
-    kubectl.stubs(:run).returns([logs_part_1, "", ""])
+    kubectl.stubs(:run).returns([logs_response_1, "", ""])
     @logs.sync(kubectl)
     expected = [
       "[A]  Line 1",
@@ -79,13 +79,27 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     assert_logs_match_all(expected, in_order: true)
   end
 
+  def test_logs_without_timestamps_are_not_deduped
+    kubectl = mock
+    logs_response_1_with_anomaly = logs_response_1 + "Line 3.5"
+    logs_response_2_with_anomaly = "Line 3.5\n" + logs_response_2
+    kubectl.stubs(:run)
+      .returns([logs_response_1_with_anomaly, "", ""])
+      .then.returns([logs_response_2_with_anomaly, "", ""])
+
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
+    @logs.print_all
+    assert_logs_match("Line 3.5", 2)
+  end
+
   private
 
-  def expected_log_lines(range)
+  def generate_log_messages(range)
     range.map { |i| "Line #{i}" }
   end
 
-  def logs_part_1
+  def logs_response_1
     # beginning of logs from second 1
     <<~STRING
       2018-10-04T19:40:30.997382362Z Line 1
@@ -94,7 +108,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     STRING
   end
 
-  def logs_part_2
+  def logs_response_2
     # all logs from second 1, beginning of logs from second 2
     <<~STRING
       2018-10-04T19:40:30.997382362Z Line 1
@@ -110,7 +124,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     STRING
   end
 
-  def logs_part_3
+  def logs_response_3
     # all logs from second 2, beginning of logs from second 3
     <<~STRING
       2018-10-04T19:40:31.000440618Z Line 7

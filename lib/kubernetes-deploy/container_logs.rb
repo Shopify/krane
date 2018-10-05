@@ -56,19 +56,26 @@ module KubernetesDeploy
     end
 
     def deduplicate(logs)
-      logs.each_with_object([]) do |line, deduped|
+      deduped = []
+      timestamps = []
+
+      logs.each do |line|
         timestamp, msg = split_timestamped_line(line)
         next if likely_duplicate?(timestamp)
+        timestamps << timestamp if timestamp
         deduped << msg
-        @last_timestamp = timestamp
       end
+
+      @last_timestamp = timestamps.max
+      deduped
     end
 
     def split_timestamped_line(log_line)
       timestamp, message = log_line.split(" ", 2)
       [Time.parse(timestamp), message]
     rescue ArgumentError
-      nil
+      # If the log file can't be opened, k8s 1.8 writes an error message without a timestamp to stdout
+      [nil, log_line]
     end
 
     def likely_duplicate?(timestamp)
