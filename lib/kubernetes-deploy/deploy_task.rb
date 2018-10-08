@@ -82,10 +82,8 @@ module KubernetesDeploy
         apps/v1beta1/StatefulSet
         autoscaling/v1/HorizontalPodAutoscaler
         policy/v1beta1/PodDisruptionBudget
+        batch/v1beta1/CronJob
       )
-      if server_version >= Gem::Version.new('1.8.0')
-        wl << "batch/v1beta1/CronJob"
-      end
       wl + cluster_resource_discoverer.crds(@sync_mediator).select(&:prunable?).map(&:group_version_kind)
     end
 
