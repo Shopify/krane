@@ -228,26 +228,15 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_deploy_failure(result)
 
-    if KUBE_CLIENT_VERSION < Gem::Version.new("1.8.0")
-      assert_logs_match_all([
-        "Template validation failed",
-        /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
-        "> Error message:",
-        "error validating data: found invalid field myKey for v1.ObjectMeta",
-        "> Template content:",
-        "      myKey: uhOh"
-      ], in_order: true)
-    else
-      assert_logs_match_all([
-        "Template validation failed",
-        /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
-        "> Error message:",
-        "error validating data: ValidationError(ConfigMap.metadata): \
+    assert_logs_match_all([
+      "Template validation failed",
+      /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
+      "> Error message:",
+      "error validating data: ValidationError(ConfigMap.metadata): \
 unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
-        "> Template content:",
-        "      myKey: uhOh"
-      ], in_order: true)
-    end
+      "> Template content:",
+      "      myKey: uhOh"
+    ], in_order: true)
   end
 
   def test_dynamic_erb_collection_works
@@ -945,14 +934,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_cronjobs_can_be_deployed
-    skip if KUBE_SERVER_VERSION < Gem::Version.new('1.8.0')
     assert_deploy_success(deploy_fixtures("cronjobs"))
     cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
     cronjobs.assert_cronjob_present("my-cronjob")
   end
 
   def test_jobs_can_fail
-    skip if KUBE_SERVER_VERSION < Gem::Version.new('1.8.0') # backoffLimit added 1.8
     fixtures = deploy_fixtures("hello-cloud", subset: ["job.yml"]) do |f|
       spec = f["job.yml"]["Job"].first["spec"]
       spec["backoffLimit"] = 1
