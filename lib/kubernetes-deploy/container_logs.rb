@@ -10,7 +10,7 @@ module KubernetesDeploy
       @container_name = container_name
       @logger = logger
       @lines = []
-      @last_printed_index = -1
+      @next_print_index = 0
     end
 
     def sync(kubectl)
@@ -25,13 +25,12 @@ module KubernetesDeploy
 
     def print_latest(prefix: false)
       prefix_str = "[#{container_name}]  " if prefix
-      start_at = @last_printed_index + 1
 
-      lines[start_at..-1].each do |msg|
+      lines[@next_print_index..-1].each do |msg|
         @logger.info "#{prefix_str}#{msg}"
       end
 
-      @last_printed_index = lines.length - 1
+      @next_print_index = lines.length
     end
 
     def print_all
@@ -58,15 +57,17 @@ module KubernetesDeploy
     def deduplicate(logs)
       deduped = []
       timestamps = []
+      check_for_duplicate = true
 
       logs.each do |line|
         timestamp, msg = split_timestamped_line(line)
-        next if likely_duplicate?(timestamp)
+        next if check_for_duplicate && likely_duplicate?(timestamp)
+        check_for_duplicate = false # logs are ordered, so once we've seen a new one, assume all subsequent logs are new
         timestamps << timestamp if timestamp
         deduped << msg
       end
 
-      @last_timestamp = timestamps.max
+      @last_timestamp = timestamps.last
       deduped
     end
 

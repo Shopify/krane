@@ -23,7 +23,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       {}
     end
 
-    def supports_debug_logs?
+    def print_debug_logs?
       true
     end
 

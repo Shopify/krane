@@ -33,7 +33,7 @@ module KubernetesDeploy
       most_useful_pod.fetch_debug_logs(kubectl)
     end
 
-    def supports_debug_logs?
+    def print_debug_logs?
       pods.present? # the kubectl command times out if no pods exist
     end
 

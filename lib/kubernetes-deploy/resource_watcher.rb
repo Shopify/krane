@@ -25,7 +25,7 @@ module KubernetesDeploy
         sleep_until_next_sync(delay_sync)
 
         @sync_mediator.sync(remainder)
-        remainder.each(&:post_sync)
+        remainder.each(&:after_sync)
 
         new_successes, remainder = remainder.partition(&:deploy_succeeded?)
         new_failures, remainder = remainder.partition(&:deploy_failed?)

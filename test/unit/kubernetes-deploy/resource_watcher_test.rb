@@ -133,7 +133,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       @hits += 1
     end
 
-    def post_sync
+    def after_sync
     end
 
     def type

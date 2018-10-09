@@ -20,7 +20,7 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def test_run_constructs_the_expected_command_and_returns_the_correct_values
-    stub_open3(%w(kubectl get pods -a --output=json --namespace=testn --context=testc --request-timeout=30s),
+    stub_open3(%w(kubectl get pods -a --output=json --namespace=testn --context=testc --request-timeout=30),
       resp: "{ items: [] }")
 
     out, err, st = build_kubectl.run("get", "pods", "-a", "--output=json")
@@ -30,54 +30,54 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def test_run_omits_context_flag_if_use_context_is_false
-    stub_open3(%w(kubectl get pods -a --output=json --namespace=testn --request-timeout=30s),
+    stub_open3(%w(kubectl get pods -a --output=json --namespace=testn --request-timeout=30),
       resp: "{ items: [] }")
     build_kubectl.run("get", "pods", "-a", "--output=json", use_context: false)
   end
 
   def test_run_omits_namespace_flag_if_use_namespace_is_false
-    stub_open3(%w(kubectl get pods -a --output=json --context=testc --request-timeout=30s),
+    stub_open3(%w(kubectl get pods -a --output=json --context=testc --request-timeout=30),
       resp: "{ items: [] }")
     build_kubectl.run("get", "pods", "-a", "--output=json", use_namespace: false)
   end
 
   def test_run_logs_failures_when_log_failure_by_default_is_true_and_override_is_unspecified
-    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30s),
+    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: "oops", success: false)
     build_kubectl(log_failure_by_default: true).run("get", "pods")
     assert_logs_match("[WARN]", 2)
   end
 
   def test_run_logs_failures_when_log_failure_by_default_is_true_and_override_is_also_true
-    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30s),
+    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: "oops", success: false)
     build_kubectl(log_failure_by_default: true).run("get", "pods", log_failure: true)
     assert_logs_match("[WARN]", 2)
   end
 
   def test_run_does_not_log_failures_when_log_failure_by_default_is_true_and_override_is_false
-    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30s),
+    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: "oops", success: false)
     build_kubectl(log_failure_by_default: true).run("get", "pods", log_failure: false)
     refute_logs_match("[WARN]")
   end
 
   def test_run_does_not_log_failures_when_log_failure_by_default_is_false_and_override_is_unspecified
-    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30s),
+    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: "oops", success: false)
     build_kubectl(log_failure_by_default: false).run("get", "pods")
     refute_logs_match("[WARN]")
   end
 
   def test_run_does_not_log_failures_when_log_failure_by_default_is_false_and_override_is_also_false
-    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30s),
+    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: "oops", success: false)
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: false)
     refute_logs_match("[WARN]")
   end
 
   def test_run_logs_failures_when_log_failure_by_default_is_false_and_override_is_true
-    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30s),
+    stub_open3(%w(kubectl get pods --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: "oops", success: false)
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: true)
     assert_logs_match("[WARN]", 2)
@@ -130,7 +130,7 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def test_version_info_raises_if_command_fails
-    stub_open3(%w(kubectl version --context=testc --request-timeout=30s), resp: '', err: 'bad', success: false)
+    stub_open3(%w(kubectl version --context=testc --request-timeout=30), resp: '', err: 'bad', success: false)
     assert_raises_message(KubernetesDeploy::KubectlError, "Could not retrieve kubectl version info") do
       build_kubectl.version_info
     end
@@ -139,12 +139,12 @@ class KubectlTest < KubernetesDeploy::TestCase
   private
 
   def stub_version_request(client:, server:)
-    stub_open3(%w(kubectl version --context=testc --request-timeout=30s), resp:
+    stub_open3(%w(kubectl version --context=testc --request-timeout=30), resp:
       <<~STRING
         Client Version: #{client}
         Server Version: #{server}
       STRING
-    )
+  )
   end
 
   def version_info(maj, min, patch, git: nil)

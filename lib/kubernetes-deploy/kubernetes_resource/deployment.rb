@@ -24,7 +24,7 @@ module KubernetesDeploy
       own_events.merge(@latest_rs.fetch_events(kubectl))
     end
 
-    def supports_debug_logs?
+    def print_debug_logs?
       @latest_rs.present?
     end
 

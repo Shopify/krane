@@ -36,7 +36,7 @@ module KubernetesDeploy
       end
     end
 
-    def post_sync
+    def after_sync
       if unmanaged? && deploy_succeeded?
         logs.print_all
       end
@@ -91,7 +91,7 @@ module KubernetesDeploy
       logs
     end
 
-    def supports_debug_logs?
+    def print_debug_logs?
       exists? && !@stream_logs # don't print them a second time
     end
 

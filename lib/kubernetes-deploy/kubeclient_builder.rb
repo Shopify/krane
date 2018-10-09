@@ -89,7 +89,11 @@ module KubernetesDeploy
         "#{kube_context.api_endpoint}#{endpoint_path}",
         api_version,
         ssl_options: kube_context.ssl_options,
-        auth_options: kube_context.auth_options
+        auth_options: kube_context.auth_options,
+        timeouts: {
+          open: KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT,
+          read: KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT
+        }
       )
       client.discover
       client
