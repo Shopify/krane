@@ -89,6 +89,10 @@ module KubernetesDeploy
       @instance_data = {}
     end
 
+    def to_kubeclient_resource
+      Kubeclient::Resource.new(@definition)
+    end
+
     def validate_definition(kubectl)
       @validation_errors = []
       validate_timeout_annotation

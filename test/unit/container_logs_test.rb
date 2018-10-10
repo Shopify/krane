@@ -93,6 +93,22 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     assert_logs_match("Line 3.5", 2)
   end
 
+  def test_deduplication_works_when_exact_same_batch_is_returned_more_than_once
+    kubectl = mock
+    kubectl.stubs(:run)
+      .returns([logs_response_1, "", ""])
+      .then.returns([logs_response_1, "", ""])
+      .then.returns([logs_response_2, "", ""])
+
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
+
+    @logs.print_all
+    assert_logs_match_all(generate_log_messages(1..10), in_order: true)
+    assert_logs_match("Line 2", 1)
+  end
+
   private
 
   def generate_log_messages(range)

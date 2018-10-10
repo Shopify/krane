@@ -12,6 +12,7 @@ template:
       name: runner
       app: hello-cloud
   spec:
+    restartPolicy: Never
     containers:
     - name: task-runner
       image: busybox
