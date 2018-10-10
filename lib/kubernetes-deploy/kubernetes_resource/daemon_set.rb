@@ -28,10 +28,13 @@ module KubernetesDeploy
       observed_generation == current_generation
     end
 
-    def fetch_logs(kubectl)
-      return {} unless pods.present?
+    def fetch_debug_logs(kubectl)
       most_useful_pod = pods.find(&:deploy_failed?) || pods.find(&:deploy_timed_out?) || pods.first
-      most_useful_pod.fetch_logs(kubectl)
+      most_useful_pod.fetch_debug_logs(kubectl)
+    end
+
+    def print_debug_logs?
+      pods.present? # the kubectl command times out if no pods exist
     end
 
     private

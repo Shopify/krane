@@ -133,6 +133,9 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       @hits += 1
     end
 
+    def after_sync
+    end
+
     def type
       "MockResource"
     end

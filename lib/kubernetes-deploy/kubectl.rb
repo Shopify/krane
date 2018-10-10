@@ -2,7 +2,9 @@
 
 module KubernetesDeploy
   class Kubectl
-    def initialize(namespace:, context:, logger:, log_failure_by_default:, default_timeout: '30s',
+    DEFAULT_TIMEOUT = 30
+
+    def initialize(namespace:, context:, logger:, log_failure_by_default:, default_timeout: DEFAULT_TIMEOUT,
       output_is_sensitive: false)
       @namespace = namespace
       @context = context

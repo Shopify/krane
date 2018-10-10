@@ -279,7 +279,7 @@ module KubernetesDeploy
         labels: { name: name }
       }
       pv.spec = {
-        accessModes: ["ReadWriteOnce"],
+        accessModes: %w(ReadWriteOnce),
         capacity: { storage: "150Mi" },
         hostPath: { path: "/data/#{name}" },
         persistentVolumeReclaimPolicy: "Recycle"

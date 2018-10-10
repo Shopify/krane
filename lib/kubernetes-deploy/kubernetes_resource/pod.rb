@@ -13,6 +13,7 @@ module KubernetesDeploy
       statsd_tags: nil, parent: nil, deploy_started_at: nil)
       @parent = parent
       @deploy_started_at = deploy_started_at
+
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
@@ -28,12 +29,17 @@ module KubernetesDeploy
       raise_predates_deploy_error if exists? && unmanaged? && !deploy_started?
 
       if exists?
+        logs.sync(mediator.kubectl) if unmanaged?
         update_container_statuses(@instance_data["status"])
       else # reset
         @containers.each(&:reset_status)
       end
+    end
 
-      display_logs(mediator) if unmanaged? && deploy_succeeded?
+    def after_sync
+      if unmanaged? && deploy_succeeded?
+        logs.print_all
+      end
     end
 
     def status
@@ -80,27 +86,24 @@ module KubernetesDeploy
       "#{phase_problem}#{container_problems}".presence
     end
 
-    # Returns a hash in the following format:
-    # {
-    #   "app" => ["array of log lines", "received from app container"],
-    #   "nginx" => ["array of log lines", "received from nginx container"]
-    # }
-    def fetch_logs(kubectl)
-      return {} unless exists? && @containers.present?
-      @containers.each_with_object({}) do |container, container_logs|
-        cmd = [
-          "logs",
-          @name,
-          "--container=#{container.name}",
-          "--since-time=#{@deploy_started_at.to_datetime.rfc3339}",
-        ]
-        cmd << "--tail=#{LOG_LINE_COUNT}" unless unmanaged?
-        out, _err, _st = kubectl.run(*cmd, log_failure: false)
-        container_logs[container.name] = out.split("\n")
-      end
+    def fetch_debug_logs(kubectl)
+      logs.sync(kubectl)
+      logs
+    end
+
+    def print_debug_logs?
+      exists? && !@stream_logs # don't print them a second time
     end
 
     private
+
+    def logs
+      @logs ||= KubernetesDeploy::RemoteLogs.new(
+        logger: @logger,
+        parent_id: id,
+        container_names: @containers.map(&:name)
+      )
+    end
 
     def phase
       @instance_data.dig("status", "phase") || "Unknown"
@@ -136,29 +139,6 @@ module KubernetesDeploy
 
     def unmanaged?
       @parent.blank?
-    end
-
-    def display_logs(mediator)
-      return if @already_displayed
-      container_logs = fetch_logs(mediator.kubectl)
-
-      if container_logs.empty?
-        @logger.warn("No logs found for pod #{id}")
-        return
-      end
-
-      container_logs.each do |container_identifier, logs|
-        if logs.blank?
-          @logger.warn("No logs found for container '#{container_identifier}'")
-        else
-          @logger.blank_line
-          @logger.info("Logs from #{id} container '#{container_identifier}':")
-          logs.each { |line| @logger.info("\t#{line}") }
-          @logger.blank_line
-        end
-      end
-
-      @already_displayed = true
     end
 
     def raise_predates_deploy_error

@@ -19,12 +19,12 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       @deploy_failed
     end
 
-    def supports_logs?
-      true
+    def fetch_debug_logs(_kubectl)
+      {}
     end
 
-    def fetch_logs
-      []
+    def print_debug_logs?
+      true
     end
 
     def deploy_succeeded?
@@ -203,6 +203,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_debug_message_with_no_log_info
     with_env(KubernetesDeploy::KubernetesResource::DISABLE_FETCHING_LOG_INFO, 'true') do
       dummy = DummyResource.new
+      dummy.expects(:fetch_debug_logs).never
       dummy.deploy_failed = true
 
       assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
@@ -213,6 +214,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_debug_message_with_no_event_info
     with_env(KubernetesDeploy::KubernetesResource::DISABLE_FETCHING_EVENT_INFO, 'true') do
       dummy = DummyResource.new
+      dummy.expects(:fetch_events).never
       dummy.deploy_failed = true
 
       assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
