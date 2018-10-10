@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-require 'kubernetes-deploy/runner_task'
 class RunnerTaskTest < KubernetesDeploy::IntegrationTest
-  include EnvTestHelper
+  include TaskRunnerTestHelper
 
   def test_run_without_verify_result_succeeds_as_soon_as_pod_is_successfully_created
     deploy_unschedulable_task_template
@@ -25,30 +24,6 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
     assert_equal task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run"
-  end
-
-  def test_run_without_verify_result_fails_if_pod_was_not_created
-    deploy_task_template
-    task_runner = build_task_runner
-
-    # Sketchy, but stubbing the kubeclient doesn't work (and wouldn't be concurrency-friendly)
-    # Finding a way to reliably trigger a create failure would be much better, if possible
-    mock = mock()
-    mock.expects(:get_namespace)
-    template = kubeclient.get_pod_template('hello-cloud-template-runner', @namespace)
-    mock.expects(:get_pod_template).returns(template)
-    mock.expects(:create_pod).raises(Kubeclient::HttpError.new("409", "Pod with same name exists", {}))
-    task_runner.instance_variable_set(:@kubeclient, mock)
-
-    result = task_runner.run(run_params(verify_result: false))
-    assert_task_run_failure(result)
-
-    assert_logs_match_all([
-      "Running pod",
-      "Result: FAILURE",
-      "Failed to create pod",
-      "Kubeclient::HttpError: Pod with same name exists"
-    ], in_order: true)
   end
 
   def test_run_global_timeout_with_max_watch_seconds
@@ -219,18 +194,6 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
   private
 
-  def deploy_task_template(subset = ["template-runner.yml", "configmap-data.yml"])
-    with_env("PRINT_LOGS", "0") do
-      result = deploy_fixtures("hello-cloud", subset: subset) do |fixtures|
-        yield fixtures if block_given?
-      end
-      logging_assertion do |logs|
-        assert_equal true, result, "Deploy failed when it was expected to succeed: \n#{logs}"
-      end
-    end
-    reset_logger
-  end
-
   def deploy_unschedulable_task_template
     deploy_task_template do |fixtures|
       way_too_fat = {
@@ -242,26 +205,5 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       template = fixtures["template-runner.yml"]["PodTemplate"].first["template"]
       template["spec"]["containers"].first["resources"] = way_too_fat
     end
-  end
-
-  def run_params(log_lines: 5, log_interval: 0.1, verify_result: true)
-    {
-      task_template: 'hello-cloud-template-runner',
-      entrypoint: ['/bin/sh', '-c'],
-      args: [
-        "i=1; " \
-        "while [ $i -le #{log_lines} ]; do " \
-          "echo \"Line $i\"; " \
-          "sleep #{log_interval};" \
-          "i=$((i+1)); " \
-        "done"
-      ],
-      verify_result: verify_result
-    }
-  end
-
-  def build_task_runner(ns: @namespace, max_watch_seconds: nil)
-    KubernetesDeploy::RunnerTask.new(context: KubeclientHelper::MINIKUBE_CONTEXT, namespace: ns, logger: logger,
-      max_watch_seconds: max_watch_seconds)
   end
 end

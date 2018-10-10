@@ -196,6 +196,7 @@ class PodTest < KubernetesDeploy::TestCase
       logger: @logger, deploy_started_at: Time.now.utc)
     mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
     mediator.expects(:get_instance).with('Pod', anything).returns(template)
+    KubernetesDeploy::ContainerLogs.any_instance.stubs(:sync)
     pod.sync(mediator)
     pod
   end

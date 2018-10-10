@@ -3,8 +3,9 @@ require 'test_helper'
 
 class KubectlTest < KubernetesDeploy::TestCase
   def setup
-    Open3.expects(:capture3).never
     super
+    KubernetesDeploy::Kubectl.any_instance.unstub(:run)
+    Open3.expects(:capture3).never
   end
 
   def test_raises_if_initialized_with_null_context

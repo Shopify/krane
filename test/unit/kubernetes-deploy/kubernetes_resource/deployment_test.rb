@@ -2,11 +2,6 @@
 require 'test_helper'
 
 class DeploymentTest < KubernetesDeploy::TestCase
-  def setup
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).never
-    super
-  end
-
   def test_deploy_succeeded_with_none_annotation
     deployment_status = {
       "replicas" => 3,

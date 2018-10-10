@@ -2,11 +2,6 @@
 require 'test_helper'
 
 class ReplicaSetTest < KubernetesDeploy::TestCase
-  def setup
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).never
-    super
-  end
-
   def test_deploy_succeeded_is_true_when_generation_and_replica_counts_match
     template = build_rs_template(status: { "observedGeneration": 2 })
     rs = build_synced_rs(template: template)
