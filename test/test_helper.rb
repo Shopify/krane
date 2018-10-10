@@ -65,6 +65,7 @@ module KubernetesDeploy
 
     def setup
       unless is_a?(KubernetesDeploy::IntegrationTest)
+        Kubectl.any_instance.expects(:run).never
         WebMock.disable_net_connect!
       end
       @logger_stream = StringIO.new

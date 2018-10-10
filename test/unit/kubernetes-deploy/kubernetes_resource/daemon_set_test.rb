@@ -2,11 +2,6 @@
 require 'test_helper'
 
 class DaemonSetTest < KubernetesDeploy::TestCase
-  def setup
-    super
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).never
-  end
-
   def test_deploy_not_successful_when_updated_available_does_not_match
     ds_template = build_ds_template
     ds = build_synced_ds(template: ds_template)

@@ -2,11 +2,6 @@
 require 'test_helper'
 
 class PodDisruptionBudgetTest < KubernetesDeploy::TestCase
-  def setup
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).never
-    super
-  end
-
   def test_deploy_succeeded_is_true_as_soon_as_controller_observes_new_version
     template = build_pdb_template(status: { "observedGeneration": 2 })
     pdb = build_synced_pdb(template: template)

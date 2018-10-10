@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 module EnvTestHelper
+  extend self
+
   def with_env(key, value)
     old_env_value = ENV[key]
 

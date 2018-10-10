@@ -2,11 +2,6 @@
 require 'test_helper'
 
 class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
-  def setup
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).never
-    super
-  end
-
   def test_secret_changes_required_based_on_ejson_file_existence
     stub_kubectl_response("get", "secrets", "--output=json", resp: { items: [dummy_ejson_secret] })
 

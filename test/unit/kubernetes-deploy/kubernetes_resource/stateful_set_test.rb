@@ -2,11 +2,6 @@
 require 'test_helper'
 
 class StatefulSetTest < KubernetesDeploy::TestCase
-  def setup
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).never
-    super
-  end
-
   def test_deploy_succeeded_is_true_when_revision_and_replica_counts_match
     template = build_ss_template(status: { "observedGeneration": 2 })
     ss = build_synced_ss(template: template)

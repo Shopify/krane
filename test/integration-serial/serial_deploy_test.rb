@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class RunSerialTest < KubernetesDeploy::IntegrationTest
+class SerialDeployTest < KubernetesDeploy::IntegrationTest
   # This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace
   def test_deploying_to_protected_namespace_with_override_does_not_prune
     KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
