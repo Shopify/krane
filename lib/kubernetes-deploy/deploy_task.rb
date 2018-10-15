@@ -125,7 +125,7 @@ module KubernetesDeploy
 
       @logger.phase_heading("Initializing deploy")
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
-      confirm_context_exists
+      @logger.info("Context #{@context} found")
       confirm_namespace_exists
       @namespace_tags |= tags_from_namespace_labels
       resources = discover_resources
@@ -294,51 +294,15 @@ module KubernetesDeploy
     end
 
     def validate_configuration(allow_protected_ns:, prune:)
-      errors = []
-      if ENV["KUBECONFIG"].blank?
-        errors << "$KUBECONFIG not set"
-      elsif config_files.empty?
-        errors << "Kube config file name(s) not set in $KUBECONFIG"
-      else
-        config_files.each do |f|
-          unless File.file?(f)
-            errors << "Kube config not found at #{f}"
-          end
-        end
+      config = DeployTaskConfigurationValidator.new(@context, @namespace, required_args: { current_sha: @current_sha })
+
+      unless config.valid?
+        @logger.summary.add_paragraph(config.errors.map { |err| "- #{err}" }.join("\n"))
+        raise TaskConfigurationError, "Configuration invalid: #{config.errors.join(', ')}"
       end
 
-      if @current_sha.blank?
-        errors << "Current SHA must be specified"
-      end
-
-      if !File.directory?(@template_dir)
-        errors << "Template directory `#{@template_dir}` doesn't exist"
-      elsif Dir.entries(@template_dir).none? { |file| file =~ /\.ya?ml(\.erb)?$/ }
-        errors << "`#{@template_dir}` doesn't contain valid templates (postfix .yml or .yml.erb)"
-      end
-
-      if @namespace.blank?
-        errors << "Namespace must be specified"
-      elsif PROTECTED_NAMESPACES.include?(@namespace)
-        if allow_protected_ns && prune
-          errors << "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
-        elsif allow_protected_ns
-          @logger.warn("You're deploying to protected namespace #{@namespace}, which cannot be pruned.")
-          @logger.warn("Existing resources can only be removed manually with kubectl. " \
-            "Removing templates from the set deployed will have no effect.")
-          @logger.warn("***Please do not deploy to #{@namespace} unless you really know what you are doing.***")
-        else
-          errors << "Refusing to deploy to protected namespace '#{@namespace}'"
-        end
-      end
-
-      if @context.blank?
-        errors << "Context must be specified"
-      end
-
-      unless errors.empty?
-        @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
-        raise FatalDeploymentError, "Configuration invalid"
+      config.warnings.each do |warning|
+        @logger.warn(warning)
       end
 
       @logger.info("All required parameters and files are present")
@@ -463,34 +427,6 @@ module KubernetesDeploy
           content = File.read(path) if File.file?(path)
           bad_files << { filename: File.basename(path), err: line, content: content }
         end
-      end
-    end
-
-    def confirm_context_exists
-      out, err, st = kubectl.run("config", "get-contexts", "-o", "name",
-        use_namespace: false, use_context: false, log_failure: false)
-      available_contexts = out.split("\n")
-      if !st.success?
-        raise FatalDeploymentError, err
-      elsif !available_contexts.include?(@context)
-        raise FatalDeploymentError, "Context #{@context} is not available. Valid contexts: #{available_contexts}"
-      end
-      confirm_cluster_reachable
-      @logger.info("Context #{@context} found")
-    end
-
-    def confirm_cluster_reachable
-      success = false
-      with_retries(2) do
-        begin
-          success = kubectl.version_info
-        rescue KubectlError
-          success = false
-        end
-      end
-      raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn(KubernetesDeploy::Errors.server_version_warning(server_version))
       end
     end
 

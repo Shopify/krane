@@ -13,6 +13,23 @@ module KubernetesDeploy
 
     private
 
+    def with_kube_exception_retries(retries)
+      yield
+    rescue KubeException => e
+      throttled = e.error_code == 429
+      timeout = e.is_a?(Kubeclient::HttpError) && e.message =~ /time.*out/i
+
+      if retries > 0 && (throttled || timeout)
+        puts e
+        puts "Retrying in 1 second..."
+        sleep(1)
+        retries -= 1
+        retry
+      end
+
+      raise
+    end
+
     def build_v1_kubeclient(context)
       _build_kubeclient(
         api_version: "v1",
@@ -76,10 +93,22 @@ module KubernetesDeploy
       )
     end
 
-    def _build_kubeclient(api_version:, context:, endpoint_path: nil)
+    def kubeclient_configs
+      config_files.map { |f| GoogleFriendlyConfig.read(f) }
+    end
+
+    def build_raw_client(context)
+      _build_kubeclient(
+        api_version: "",
+        context: context,
+        discover: false,
+        endpoint_path: '/'
+      ).rest_client
+    end
+
+    def _build_kubeclient(api_version:, context:, endpoint_path: nil, discover: true)
       # Find a context defined in kube conf files that matches the input context by name
-      friendly_configs = config_files.map { |f| GoogleFriendlyConfig.read(f) }
-      config = friendly_configs.find { |c| c.contexts.include?(context) }
+      config = kubeclient_configs.find { |c| c.contexts.include?(context) }
 
       raise ContextMissingError, context unless config
 
@@ -95,7 +124,7 @@ module KubernetesDeploy
           read: KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT
         }
       )
-      client.discover
+      client.discover if discover
       client
     end
 

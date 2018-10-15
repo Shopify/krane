@@ -2,7 +2,7 @@
 
 module KubernetesDeploy
   class Kubectl
-    DEFAULT_TIMEOUT = 30
+    DEFAULT_TIMEOUT = 15
     NOT_FOUND_ERROR_TEXT = 'NotFound'
 
     class ResourceNotFoundError < StandardError; end

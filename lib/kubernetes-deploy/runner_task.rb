@@ -8,7 +8,6 @@ module KubernetesDeploy
   class RunnerTask
     include KubeclientBuilder
 
-    class TaskConfigurationError < FatalDeploymentError; end
     class TaskTemplateMissingError < TaskConfigurationError; end
 
     attr_reader :pod_name
@@ -101,51 +100,31 @@ module KubernetesDeploy
 
     def validate_configuration(task_template, args)
       @logger.info("Validating configuration")
-      errors = []
 
-      if task_template.blank?
-        errors << "Task template name can't be nil"
-      end
-
-      if @namespace.blank?
-        errors << "Namespace can't be empty"
-      end
-
-      if args.blank?
-        errors << "Args can't be nil"
-      end
-
-      begin
-        kubeclient.get_namespace(@namespace) if @namespace.present?
-        @logger.info "Using namespace '#{@namespace}' in context '#{@context}'"
-      rescue KubeException => e
-        msg = e.error_code == 404 ? "Namespace was not found" : "Could not connect to kubernetes cluster"
-        errors << msg
-      end
-
-      unless errors.empty?
+      required = { task_template: task_template, args: args }
+      config = TaskConfigurationValidator.new(@context, @namespace, require_args: required)
+      unless config.valid?
         @logger.summary.add_action("Configuration invalid")
-        @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
-        raise TaskConfigurationError, "Configuration invalid: #{errors.join(', ')}"
+        @logger.summary.add_paragraph(config.errors.map { |err| "- #{err}" }.join("\n"))
+        raise TaskConfigurationError, "Configuration invalid: #{config.errors.join(', ')}"
       end
 
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
+      config.warnings.each do |warning|
+        @logger.warn(warning)
       end
+
+      @logger.info "Using namespace '#{@namespace}' in context '#{@context}'"
     end
 
     def get_template(template_name)
-      pod_template = kubeclient.get_pod_template(template_name, @namespace)
-
+      pod_template = with_kube_exception_retries(2) { kubeclient.get_pod_template(template_name, @namespace) }
       pod_template.template
-    rescue KubeException => error
-      if error.error_code == 404
+    rescue Kubeclient::ResourceNotFoundError
         msg = "Pod template `#{template_name}` not found in namespace `#{@namespace}`, context `#{@context}`"
         @logger.summary.add_paragraph(msg)
         raise TaskTemplateMissingError, msg
-      else
-        raise FatalKubeAPIError, "Error retrieving pod template: #{error.class.name}: #{error.message}"
-      end
+    rescue Kubeclient::HttpError => error
+      raise FatalKubeAPIError, "Error retrieving pod template: #{error}"
     end
 
     def build_pod_definition(base_template)
