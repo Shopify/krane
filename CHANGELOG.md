@@ -1,6 +1,11 @@
-### Master
+## 0.21.0
 
-*Enhancements*
+*Features*
+- **[Breaking change]** `kubernetes-run` now streams container logs and waits for the pod to succeed or fail **by default**. You can disable this using `--skip-wait`, or you can use `--max-watch-seconds=seconds` to set a time limit on the watch. ([#337](https://github.com/Shopify/kubernetes-deploy/pull/337))
+
+
+*Other*
+- Kubernetes 1.7 is no longer officially supported as of this version
 
 ## 0.20.6
 
