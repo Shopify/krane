@@ -12,14 +12,16 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
   end
 
   def test_get_instance_retrieves_the_resource_and_leaves_the_cache_alone_when_cache_is_empty
-    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params, resp: @fake_cm.kubectl_response)
+    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params,
+      raise_on_404: false, resp: @fake_cm.kubectl_response)
     assert_equal @fake_cm.kubectl_response, mediator.get_instance('FakeConfigMap', @fake_cm.name)
 
     # get_instance shouldn't populate the cache, so these new calls should make new requests and return correct results
-    stub_kubectl_response('get', 'FakeConfigMap', 'does-not-exist', *@params, resp: {})
+    stub_kubectl_response('get', 'FakeConfigMap', 'does-not-exist', *@params, raise_on_404: false, resp: {})
     assert_equal({}, mediator.get_instance('FakeConfigMap', 'does-not-exist'))
 
-    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm2.name, *@params, resp: @fake_cm2.kubectl_response)
+    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm2.name, *@params,
+      raise_on_404: false, resp: @fake_cm2.kubectl_response)
     assert_equal @fake_cm2.kubectl_response, mediator.get_instance('FakeConfigMap', @fake_cm2.name)
   end
 
@@ -30,7 +32,7 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
 
     # Only configmap is cached, so we should still make a request and get a result for a Deployment
     stub_kubectl_response('get', 'FakeDeployment', @fake_deployment.name, *@params,
-      resp: @fake_deployment.kubectl_response)
+      raise_on_404: false, resp: @fake_deployment.kubectl_response)
     uncached = mediator.get_instance('FakeDeployment', @fake_deployment.name)
     assert_equal @fake_deployment.name, uncached.dig('metadata', 'name')
 
@@ -52,7 +54,8 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
 
   def test_get_all_does_not_cache_error_result_from_kubectl
     stub_kubectl_response('get', 'FakeConfigMap', *@params, success: false, resp: { "items" => [] }, err: 'no').times(2)
-    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params, resp: @fake_cm.kubectl_response, times: 1)
+    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params,
+      raise_on_404: false, resp: @fake_cm.kubectl_response, times: 1)
 
     # Neither the main code path nor the selector-based code path should cause error results to be cached
     assert_equal [], mediator.get_all('FakeConfigMap')
@@ -139,7 +142,8 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
     test_resources.each { |r| r.expects(:sync).once }
     mediator.sync(test_resources)
 
-    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params, resp: @fake_cm.kubectl_response, times: 1)
+    stub_kubectl_response('get', 'FakeConfigMap', @fake_cm.name, *@params,
+      raise_on_404: false, resp: @fake_cm.kubectl_response, times: 1)
     mediator.get_instance('FakeConfigMap', @fake_cm.name)
   end
 

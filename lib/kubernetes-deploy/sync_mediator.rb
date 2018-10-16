@@ -10,12 +10,16 @@ module KubernetesDeploy
       clear_cache
     end
 
-    def get_instance(kind, resource_name)
-      if @cache.key?(kind)
-        @cache.dig(kind, resource_name) || {}
-      else
-        request_instance(kind, resource_name)
+    def get_instance(kind, resource_name, raise_on_404: false)
+      unless @cache.key?(kind)
+        return request_instance(kind, resource_name, raise_on_404: raise_on_404)
       end
+
+      cached_instance = @cache[kind].fetch(resource_name, {})
+      if cached_instance.blank? && raise_on_404
+        raise KubernetesDeploy::Kubectl::ResourceNotFoundError, "Resource does not exist (used cache for kind #{kind})"
+      end
+      cached_instance
     end
 
     def get_all(kind, selector = nil)
@@ -55,8 +59,8 @@ module KubernetesDeploy
       @cache = {}
     end
 
-    def request_instance(kind, iname)
-      raw_json, _, st = kubectl.run("get", kind, iname, "-a", "--output=json")
+    def request_instance(kind, iname, raise_on_404:)
+      raw_json, _err, st = kubectl.run("get", kind, iname, "-a", "--output=json", raise_on_404: raise_on_404)
       st.success? ? JSON.parse(raw_json) : {}
     end
 

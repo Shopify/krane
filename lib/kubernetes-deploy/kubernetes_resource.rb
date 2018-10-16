@@ -85,6 +85,7 @@ module KubernetesDeploy
       @logger = logger
       @definition = definition
       @statsd_report_done = false
+      @disappeared = false
       @validation_errors = []
       @instance_data = {}
     end
@@ -121,10 +122,21 @@ module KubernetesDeploy
     end
 
     def sync(mediator)
-      @instance_data = mediator.get_instance(kubectl_resource_type, name)
+      @instance_data = mediator.get_instance(kubectl_resource_type, name, raise_on_404: true)
+    rescue KubernetesDeploy::Kubectl::ResourceNotFoundError
+      @disappeared = true if deploy_started?
+      @instance_data = {}
     end
 
     def after_sync
+    end
+
+    def deleted?
+      @instance_data.dig('metadata', 'deletionTimestamp').present?
+    end
+
+    def disappeared?
+      @disappeared
     end
 
     def deploy_failed?

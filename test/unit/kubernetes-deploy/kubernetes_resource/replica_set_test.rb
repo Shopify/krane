@@ -30,9 +30,9 @@ class ReplicaSetTest < KubernetesDeploy::TestCase
   def build_synced_rs(template:)
     rs = KubernetesDeploy::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
     sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    sync_mediator.kubectl.expects(:run).with("get", "ReplicaSet", "test", "-a", "--output=json").returns(
-      [template.to_json, "", SystemExit.new(0)]
-    )
+    sync_mediator.kubectl.expects(:run)
+      .with("get", "ReplicaSet", "test", "-a", "--output=json", raise_on_404: true)
+      .returns([template.to_json, "", SystemExit.new(0)])
     sync_mediator.kubectl.expects(:run).with("get", "Pod", "-a", "--output=json", anything).returns(
       ['{ "items": [] }', "", SystemExit.new(0)]
     )

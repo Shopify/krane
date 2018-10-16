@@ -18,7 +18,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "Result: SUCCESS",
       "Result verification is disabled for this task",
       "The following status was observed immediately after pod creation:",
-      %r{Pod/task-runner-\w+\s+Pending},
+      %r{Pod/task-runner-\w+\s+(Pending|Running)},
     ], in_order: true)
 
     pods = kubeclient.get_pods(namespace: @namespace)
@@ -37,7 +37,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "Result: TIMED OUT",
       "Timed out waiting for 1 resource to run",
       %r{Pod/task-runner-\w+: GLOBAL WATCH TIMEOUT \(5 seconds\)},
-      "Final status: Running"
+      /Final status\: (Pending|Running)/
     ], in_order: true)
   end
 
@@ -86,6 +86,40 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     pods = kubeclient.get_pods(namespace: @namespace)
     assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
     assert_equal task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run"
+  end
+
+  def test_run_with_verify_result_fails_quickly_if_the_pod_is_deleted_out_of_band
+    deploy_task_template
+
+    task_runner = build_task_runner
+    deleter_thread = Thread.new do
+      loop do
+        if task_runner.pod_name.present?
+          begin
+            kubeclient.delete_pod(task_runner.pod_name, @namespace)
+            break
+          rescue Kubeclient::ResourceNotFoundError
+            sleep 0.1
+            retry
+          end
+        end
+        sleep 0.1
+      end
+    end
+
+    result = task_runner.run(run_params(log_lines: 20, log_interval: 1))
+    assert_task_run_failure(result)
+
+    assert_logs_match_all([
+      "Pod creation succeeded",
+      "Result: FAILURE",
+      "Pod status: Terminating",
+    ])
+  ensure
+    if deleter_thread
+      deleter_thread.join
+      deleter_thread.kill
+    end
   end
 
   def test_run_with_verify_result_neither_misses_nor_duplicates_logs_across_pollings

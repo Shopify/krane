@@ -69,9 +69,18 @@ module KubernetesDeploy
       header + probe_failure_msgs.join("\n") + "\n"
     end
 
+    def permanent_failed_phase?
+      return false unless phase == FAILED_PHASE_NAME
+      unmanaged? || !TRANSIENT_FAILURE_REASONS.include?(reason)
+    end
+
     def failure_message
-      if phase == FAILED_PHASE_NAME && !TRANSIENT_FAILURE_REASONS.include?(reason)
-        phase_problem = "Pod status: #{status}. "
+      phase_problem = if permanent_failed_phase?
+        "Pod status: #{status}. "
+      elsif unmanaged? && deleted?
+        "Pod status: Terminating. "
+      elsif unmanaged? && disappeared?
+        "Pod status: Disappeared. "
       end
 
       doomed_containers = @containers.select(&:doomed?)

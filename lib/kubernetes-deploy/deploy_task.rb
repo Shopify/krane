@@ -93,8 +93,6 @@ module KubernetesDeploy
       kubectl.server_version
     end
 
-    NOT_FOUND_ERROR = 'NotFound'
-
     def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil)
       @namespace = namespace
@@ -399,7 +397,7 @@ module KubernetesDeploy
 
     def apply_all(resources, prune)
       return unless resources.present?
-      command = ["apply"]
+      command = %w(apply)
 
       Dir.mktmpdir do |tmp_dir|
         resources.each do |r|
@@ -500,7 +498,7 @@ module KubernetesDeploy
       st, err = nil
       with_retries(2) do
         _, err, st = kubectl.run("get", "namespace", @namespace, use_namespace: false, log_failure: true)
-        st.success? || err.include?(NOT_FOUND_ERROR)
+        st.success? || err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
       end
       raise FatalDeploymentError, "Failed to find namespace. #{err}" unless st.success?
       @logger.info("Namespace #{@namespace} found")

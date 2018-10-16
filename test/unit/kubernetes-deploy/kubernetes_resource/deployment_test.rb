@@ -367,9 +367,9 @@ class DeploymentTest < KubernetesDeploy::TestCase
   def build_synced_deployment(template:, replica_sets:, server_version: Gem::Version.new("1.8"))
     deploy = KubernetesDeploy::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
     sync_mediator = build_sync_mediator
-    sync_mediator.kubectl.expects(:run).with("get", "Deployment", "web", "-a", "--output=json").returns(
-      [template.to_json, "", SystemExit.new(0)]
-    )
+    sync_mediator.kubectl.expects(:run)
+      .with("get", "Deployment", "web", "-a", "--output=json", raise_on_404: true)
+      .returns([template.to_json, "", SystemExit.new(0)])
     sync_mediator.kubectl.expects(:server_version).returns(server_version)
 
     if replica_sets.present?

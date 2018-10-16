@@ -3,6 +3,9 @@
 module KubernetesDeploy
   class Kubectl
     DEFAULT_TIMEOUT = 30
+    NOT_FOUND_ERROR_TEXT = 'NotFound'
+
+    class ResourceNotFoundError < StandardError; end
 
     def initialize(namespace:, context:, logger:, log_failure_by_default:, default_timeout: DEFAULT_TIMEOUT,
       output_is_sensitive: false)
@@ -17,7 +20,7 @@ module KubernetesDeploy
       raise ArgumentError, "context is required" if context.blank?
     end
 
-    def run(*args, log_failure: nil, use_context: true, use_namespace: true)
+    def run(*args, log_failure: nil, use_context: true, use_namespace: true, raise_on_404: false)
       log_failure = @log_failure_by_default if log_failure.nil?
 
       args = args.unshift("kubectl")
@@ -29,10 +32,17 @@ module KubernetesDeploy
       out, err, st = Open3.capture3(*args)
       @logger.debug(out.shellescape) unless output_is_sensitive?
 
-      if !st.success? && log_failure
-        @logger.warn("The following command failed: #{Shellwords.join(args)}")
-        @logger.warn(err) unless output_is_sensitive?
+      unless st.success?
+        if log_failure
+          @logger.warn("The following command failed: #{Shellwords.join(args)}")
+          @logger.warn(err) unless output_is_sensitive?
+        end
+
+        if raise_on_404 && err.match(NOT_FOUND_ERROR_TEXT)
+          raise ResourceNotFoundError, err
+        end
       end
+
       [out.chomp, err.chomp, st]
     end
 

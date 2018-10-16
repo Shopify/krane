@@ -194,13 +194,12 @@ module KubernetesDeploy
       source_dir
     end
 
-    def stub_kubectl_response(*args, resp:, err: "", success: true, json: true, times: 1)
+    def stub_kubectl_response(*args, resp:, err: "", raise_on_404: nil, success: true, json: true, times: 1)
       resp = resp.to_json if json
       response = [resp, err, stub(success?: success)]
-      KubernetesDeploy::Kubectl.any_instance.expects(:run)
-        .with(*args)
-        .returns(response)
-        .times(times)
+      expectation = KubernetesDeploy::Kubectl.any_instance.expects(:run)
+      expectation = raise_on_404.nil? ? expectation.with(*args) : expectation.with(*args, raise_on_404: raise_on_404)
+      expectation.returns(response).times(times)
     end
 
     def build_runless_kubectl
