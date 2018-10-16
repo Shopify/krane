@@ -113,7 +113,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Pod creation succeeded",
       "Result: FAILURE",
-      "Pod status: Terminating",
+      /Pod status\: (Terminating|Disappeared)/,
     ])
   ensure
     if deleter_thread
