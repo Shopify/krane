@@ -14,7 +14,7 @@ class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
   def test_auth_use_default_gcp_success
     config = KubernetesDeploy::KubeclientBuilder::GoogleFriendlyConfig.new(kubeconfig, "")
 
-    stub_request(:post, 'https://www.googleapis.com/oauth2/v4/token')
+    stub_request(:post, 'https://oauth2.googleapis.com/token')
       .to_return(
         headers: { 'Content-Type' => 'application/json' },
         body: {
@@ -33,7 +33,7 @@ class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
   def test_auth_use_default_gcp_failure
     config = KubernetesDeploy::KubeclientBuilder::GoogleFriendlyConfig.new(kubeconfig, "")
 
-    stub_request(:post, 'https://www.googleapis.com/oauth2/v4/token')
+    stub_request(:post, 'https://oauth2.googleapis.com/token')
       .to_return(
         headers: { 'Content-Type' => 'application/json' },
         body: '',
