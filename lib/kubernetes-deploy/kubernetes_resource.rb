@@ -122,7 +122,7 @@ module KubernetesDeploy
     end
 
     def sync(mediator)
-      @instance_data = mediator.get_instance(kubectl_resource_type, name, raise_on_404: true)
+      @instance_data = mediator.get_instance(kubectl_resource_type, name, raise_if_not_found: true)
     rescue KubernetesDeploy::Kubectl::ResourceNotFoundError
       @disappeared = true if deploy_started?
       @instance_data = {}
@@ -131,7 +131,7 @@ module KubernetesDeploy
     def after_sync
     end
 
-    def deleted?
+    def terminating?
       @instance_data.dig('metadata', 'deletionTimestamp').present?
     end
 

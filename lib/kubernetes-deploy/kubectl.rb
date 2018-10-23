@@ -20,7 +20,7 @@ module KubernetesDeploy
       raise ArgumentError, "context is required" if context.blank?
     end
 
-    def run(*args, log_failure: nil, use_context: true, use_namespace: true, raise_on_404: false)
+    def run(*args, log_failure: nil, use_context: true, use_namespace: true, raise_if_not_found: false)
       log_failure = @log_failure_by_default if log_failure.nil?
 
       args = args.unshift("kubectl")
@@ -38,7 +38,7 @@ module KubernetesDeploy
           @logger.warn(err) unless output_is_sensitive?
         end
 
-        if raise_on_404 && err.match(NOT_FOUND_ERROR_TEXT)
+        if raise_if_not_found && err.match(NOT_FOUND_ERROR_TEXT)
           raise ResourceNotFoundError, err
         end
       end

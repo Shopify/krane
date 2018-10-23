@@ -25,7 +25,7 @@ class PodDisruptionBudgetTest < KubernetesDeploy::TestCase
       logger: logger, definition: template)
     sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
     sync_mediator.kubectl.expects(:run)
-      .with("get", "PodDisruptionBudget", "test", "-a", "--output=json", raise_on_404: true)
+      .with("get", "PodDisruptionBudget", "test", "-a", "--output=json", raise_if_not_found: true)
       .returns([template.to_json, "", SystemExit.new(0)])
     pdb.sync(sync_mediator)
     pdb

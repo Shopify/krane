@@ -215,22 +215,22 @@ class PodTest < KubernetesDeploy::TestCase
     assert_nil pod.failure_message
   end
 
-  def test_deploy_failed_is_true_for_deleted_unmanaged_pods
+  def test_deploy_failed_is_true_for_terminating_unmanaged_pods
     template = build_pod_template
-    template["metadata"] = template["metadata"].merge("deletionTimestamp" => "2018-04-13T22:43:23Z")
+    template["metadata"]["deletionTimestamp"] = "2018-04-13T22:43:23Z"
     pod = build_synced_pod(template)
 
-    assert_predicate pod, :deleted?
+    assert_predicate pod, :terminating?
     assert_predicate pod, :deploy_failed?
     assert_equal "Pod status: Terminating. ", pod.failure_message
   end
 
-  def test_deploy_failed_is_false_for_deleted_managed_pods
+  def test_deploy_failed_is_false_for_terminating_managed_pods
     template = build_pod_template
-    template["metadata"] = template["metadata"].merge("deletionTimestamp" => "2018-04-13T22:43:23Z")
+    template["metadata"]["deletionTimestamp"] = "2018-04-13T22:43:23Z"
     pod = build_synced_pod(template, parent: mock)
 
-    assert_predicate pod, :deleted?
+    assert_predicate pod, :terminating?
     refute_predicate pod, :deploy_failed?
     assert_nil pod.failure_message
   end
@@ -271,7 +271,7 @@ class PodTest < KubernetesDeploy::TestCase
     pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc, parent: parent)
     mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    mediator.expects(:get_instance).with('Pod', "unmanaged-pod-1", raise_on_404: true).returns(template)
+    mediator.expects(:get_instance).with('Pod', "unmanaged-pod-1", raise_if_not_found: true).returns(template)
     KubernetesDeploy::ContainerLogs.any_instance.stubs(:sync) unless parent.present?
     pod.sync(mediator)
     pod

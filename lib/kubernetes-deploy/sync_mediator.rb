@@ -10,13 +10,13 @@ module KubernetesDeploy
       clear_cache
     end
 
-    def get_instance(kind, resource_name, raise_on_404: false)
+    def get_instance(kind, resource_name, raise_if_not_found: false)
       unless @cache.key?(kind)
-        return request_instance(kind, resource_name, raise_on_404: raise_on_404)
+        return request_instance(kind, resource_name, raise_if_not_found: raise_if_not_found)
       end
 
       cached_instance = @cache[kind].fetch(resource_name, {})
-      if cached_instance.blank? && raise_on_404
+      if cached_instance.blank? && raise_if_not_found
         raise KubernetesDeploy::Kubectl::ResourceNotFoundError, "Resource does not exist (used cache for kind #{kind})"
       end
       cached_instance
@@ -59,17 +59,21 @@ module KubernetesDeploy
       @cache = {}
     end
 
-    def request_instance(kind, iname, raise_on_404:)
-      raw_json, _err, st = kubectl.run("get", kind, iname, "-a", "--output=json", raise_on_404: raise_on_404)
+    def request_instance(kind, iname, raise_if_not_found:)
+      raw_json, _err, st = kubectl.run("get", kind, iname, "-a", "--output=json", raise_if_not_found: raise_if_not_found)
       st.success? ? JSON.parse(raw_json) : {}
     end
 
     def fetch_by_kind(kind)
       raw_json, _, st = kubectl.run("get", kind, "-a", "--output=json")
       return unless st.success?
-      @cache[kind] = JSON.parse(raw_json)["items"].each_with_object({}) do |r, instances|
-        instances[r.dig("metadata", "name")] = r
+
+      instances = {}
+      JSON.parse(raw_json)["items"].each do |resource|
+        resource_name = resource.dig("metadata", "name")
+        instances[resource_name] = resource
       end
+      @cache[kind] = instances
     end
   end
 end

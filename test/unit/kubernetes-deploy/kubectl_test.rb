@@ -142,7 +142,7 @@ class KubectlTest < KubernetesDeploy::TestCase
     stub_open3(%w(kubectl get pod foobar --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: err, success: false)
     assert_raises_message(KubernetesDeploy::Kubectl::ResourceNotFoundError, err) do
-      build_kubectl.run("get", "pod", "foobar", raise_on_404: true)
+      build_kubectl.run("get", "pod", "foobar", raise_if_not_found: true)
     end
   end
 
@@ -150,7 +150,7 @@ class KubectlTest < KubernetesDeploy::TestCase
     err = 'Error from server (TooManyRequests): Please try again later'
     stub_open3(%w(kubectl get pod foobar --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: err, success: false)
-    build_kubectl.run("get", "pod", "foobar", raise_on_404: true)
+    build_kubectl.run("get", "pod", "foobar", raise_if_not_found: true)
   end
 
   private
