@@ -13,6 +13,9 @@ module KubernetesDeploy
     def deploy_failed?
       return false unless deploy_started?
       return false unless @instance_data.dig("spec", "backoffLimit").present?
+      (@instance_data.dig("status", "conditions") || []).each do |condition|
+        return true if condition["type"] == 'Failed' && condition['status'] == "True"
+      end
       (@instance_data.dig("status", "failed") || 0) >= @instance_data.dig("spec", "backoffLimit")
     end
 
