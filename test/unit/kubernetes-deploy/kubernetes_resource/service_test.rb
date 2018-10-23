@@ -13,7 +13,8 @@ class ServiceTest < KubernetesDeploy::TestCase
     refute svc.deploy_succeeded?
     assert_equal "Not found", svc.status
 
-    stub_kubectl_response("get", "Service", "external-name", "-a", "--output=json", resp: svc_def, raise_if_not_found: true)
+    stub_kubectl_response("get", "Service", "external-name", "-a", "--output=json",
+      resp: svc_def, raise_if_not_found: true)
     svc.sync(build_sync_mediator)
     assert svc.exists?
     assert svc.deploy_succeeded?
@@ -24,7 +25,8 @@ class ServiceTest < KubernetesDeploy::TestCase
     svc_def = service_fixture('selectorless')
     svc = build_service(svc_def)
 
-    stub_kubectl_response("get", "Service", "selectorless", "-a", "--output=json", resp: svc_def, raise_if_not_found: true)
+    stub_kubectl_response("get", "Service", "selectorless", "-a", "--output=json",
+      resp: svc_def, raise_if_not_found: true)
     svc.sync(build_sync_mediator)
     assert svc.exists?
     assert svc.deploy_succeeded?
@@ -94,7 +96,8 @@ class ServiceTest < KubernetesDeploy::TestCase
     svc_def = service_fixture('zero-replica')
     svc = build_service(svc_def)
 
-    stub_kubectl_response("get", "Service", "zero-replica", "-a", "--output=json", resp: svc_def, raise_if_not_found: true)
+    stub_kubectl_response("get", "Service", "zero-replica", "-a", "--output=json",
+      resp: svc_def, raise_if_not_found: true)
     stub_kubectl_response("get", "Deployment", "-a", "--output=json", resp: { items: deployment_fixtures })
     stub_kubectl_response("get", "Pod", "-a", "--output=json", resp: { items: [] })
     svc.sync(build_sync_mediator)

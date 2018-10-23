@@ -51,7 +51,8 @@ class DaemonSetTest < KubernetesDeploy::TestCase
   def build_synced_ds(template:)
     ds = KubernetesDeploy::DaemonSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
     sync_mediator = build_sync_mediator
-    sync_mediator.kubectl.expects(:run).with("get", "DaemonSet", "ds-app", "-a", "--output=json", raise_if_not_found: true)
+    sync_mediator.kubectl.expects(:run)
+      .with("get", "DaemonSet", "ds-app", "-a", "--output=json", raise_if_not_found: true)
       .returns([template.to_json, "", SystemExit.new(0)])
 
     sync_mediator.kubectl.expects(:run).with("get", "Pod", "-a", "--output=json", anything).returns(

@@ -197,8 +197,13 @@ module KubernetesDeploy
     def stub_kubectl_response(*args, resp:, err: "", raise_if_not_found: nil, success: true, json: true, times: 1)
       resp = resp.to_json if json
       response = [resp, err, stub(success?: success)]
-      expectation = KubernetesDeploy::Kubectl.any_instance.expects(:run)
-      expectation = raise_if_not_found.nil? ? expectation.with(*args) : expectation.with(*args, raise_if_not_found: raise_if_not_found)
+
+      expectation = if raise_if_not_found.nil?
+        KubernetesDeploy::Kubectl.any_instance.expects(:run).with(*args)
+      else
+        KubernetesDeploy::Kubectl.any_instance.expects(:run).with(*args, raise_if_not_found: raise_if_not_found)
+      end
+
       expectation.returns(response).times(times)
     end
 

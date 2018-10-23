@@ -60,7 +60,8 @@ module KubernetesDeploy
     end
 
     def request_instance(kind, iname, raise_if_not_found:)
-      raw_json, _err, st = kubectl.run("get", kind, iname, "-a", "--output=json", raise_if_not_found: raise_if_not_found)
+      raw_json, _err, st = kubectl.run("get", kind, iname, "-a", "--output=json",
+        raise_if_not_found: raise_if_not_found)
       st.success? ? JSON.parse(raw_json) : {}
     end
 
