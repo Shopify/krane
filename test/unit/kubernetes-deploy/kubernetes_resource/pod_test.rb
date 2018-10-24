@@ -270,7 +270,7 @@ class PodTest < KubernetesDeploy::TestCase
   def build_synced_pod(template, parent: nil)
     pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc, parent: parent)
-    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
+    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'nope', logger: @logger)
     mediator.expects(:get_instance).with('Pod', "unmanaged-pod-1", raise_if_not_found: true).returns(template)
     KubernetesDeploy::ContainerLogs.any_instance.stubs(:sync) unless parent.present?
     pod.sync(mediator)

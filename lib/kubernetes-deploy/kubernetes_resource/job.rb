@@ -12,6 +12,7 @@ module KubernetesDeploy
 
     def deploy_failed?
       return false unless deploy_started?
+      return true if failed_status_condition
       return false unless @instance_data.dig("spec", "backoffLimit").present?
       (@instance_data.dig("status", "failed") || 0) >= @instance_data.dig("spec", "backoffLimit")
     end
@@ -30,7 +31,19 @@ module KubernetesDeploy
       end
     end
 
+    def failure_message
+      if (condition = failed_status_condition.presence)
+        "#{condition['reason']} (#{condition['message']})"
+      end
+    end
+
     private
+
+    def failed_status_condition
+      @instance_data.dig("status", "conditions")&.detect do |condition|
+        condition["type"] == 'Failed' && condition['status'] == "True"
+      end
+    end
 
     def done?
       (@instance_data.dig("status", "succeeded") || 0) == @instance_data.dig("spec", "completions")
