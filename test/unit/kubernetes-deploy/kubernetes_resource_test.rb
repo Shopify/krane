@@ -224,6 +224,43 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_whitespace_in_debug_message
+    dummy = DummyResource.new
+    dummy.deploy_failed = true
+    expected_message = <<~STRING
+      DummyResource/test: FAILED
+        - Final status: Exists
+        - Events: None found. Please check your usual logging service (e.g. Splunk).
+        - Logs: None found. Please check your usual logging service (e.g. Splunk).
+    STRING
+    assert_equal expected_message.strip, dummy.debug_message
+
+    dummy.stubs(:failure_message).returns("Something went wrong I guess")
+
+    expected_message = <<~STRING
+      DummyResource/test: FAILED
+      Something went wrong I guess
+
+        - Final status: Exists
+        - Events: None found. Please check your usual logging service (e.g. Splunk).
+        - Logs: None found. Please check your usual logging service (e.g. Splunk).
+    STRING
+    assert_equal expected_message.strip, dummy.debug_message
+
+    dummy.stubs(:failure_message).returns("Something went wrong I guess\n> Some container: boom!\n")
+
+    expected_message = <<~STRING
+      DummyResource/test: FAILED
+      Something went wrong I guess
+      > Some container: boom!
+
+        - Final status: Exists
+        - Events: None found. Please check your usual logging service (e.g. Splunk).
+        - Logs: None found. Please check your usual logging service (e.g. Splunk).
+    STRING
+    assert_equal expected_message.strip, dummy.debug_message
+  end
+
   def test_disappeared_is_true_if_resource_has_been_deployed_and_404s
     dummy = DummyResource.new
     mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)

@@ -137,7 +137,7 @@ class KubectlTest < KubernetesDeploy::TestCase
     end
   end
 
-  def test_run_with_raise_err_on_404_raises_the_correct_thing
+  def test_run_with_raise_if_not_found_raises_the_correct_thing
     err = 'Error from server (NotFound): pods "foobar" not found'
     stub_open3(%w(kubectl get pod foobar --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: err, success: false)
@@ -146,7 +146,7 @@ class KubectlTest < KubernetesDeploy::TestCase
     end
   end
 
-  def test_run_with_raise_err_on_404_does_not_raise_on_other_errors
+  def test_run_with_raise_if_not_found_does_not_raise_on_other_errors
     err = 'Error from server (TooManyRequests): Please try again later'
     stub_open3(%w(kubectl get pod foobar --namespace=testn --context=testc --request-timeout=30),
       resp: "", err: err, success: false)

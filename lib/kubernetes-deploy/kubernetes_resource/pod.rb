@@ -66,7 +66,7 @@ module KubernetesDeploy
       return STANDARD_TIMEOUT_MESSAGE unless readiness_probe_failure?
       probe_failure_msgs = @containers.map(&:readiness_fail_reason).compact
       header = "The following containers have not passed their readiness probes on at least one pod:\n"
-      header + probe_failure_msgs.join("\n") + "\n"
+      header + probe_failure_msgs.join("\n")
     end
 
     def failure_message
@@ -82,7 +82,7 @@ module KubernetesDeploy
           container_problems += "> #{red_name}: #{c.doom_reason}\n"
         end
       end
-      "#{phase_failure_message} #{container_problems}".lstrip.presence
+      "#{phase_failure_message} #{container_problems}".strip.presence
     end
 
     def fetch_debug_logs(kubectl)

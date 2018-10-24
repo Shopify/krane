@@ -18,7 +18,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_missing_tag_error
@@ -38,7 +38,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_false_for_intermittent_image_error
@@ -72,7 +72,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_container_config_error_post_18
@@ -91,7 +91,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to generate container configuration: The reason it failed
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_container_config_error_pre_18
@@ -110,7 +110,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to generate container configuration: The reason it failed
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_crash_loop_backoffs
@@ -132,7 +132,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Crashing repeatedly (exit 1). See logs for more information.
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_container_cannot_run_error
@@ -152,7 +152,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to start (exit 127): /not/a/command: no such file or directory
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_evicted_unmanaged_pods
@@ -167,7 +167,7 @@ class PodTest < KubernetesDeploy::TestCase
     pod = build_synced_pod(template)
 
     assert_predicate pod, :deploy_failed?
-    assert_equal "Pod status: Failed (Reason: Evicted). ", pod.failure_message
+    assert_equal "Pod status: Failed (Reason: Evicted).", pod.failure_message
   end
 
   def test_deploy_failed_is_false_for_evicted_managed_pods
@@ -197,7 +197,7 @@ class PodTest < KubernetesDeploy::TestCase
     pod = build_synced_pod(template)
 
     assert_predicate pod, :deploy_failed?
-    assert_equal "Pod status: Failed (Reason: Preempting). ", pod.failure_message
+    assert_equal "Pod status: Failed (Reason: Preempting).", pod.failure_message
   end
 
   def test_deploy_failed_is_false_for_preempted_managed_pods
@@ -222,7 +222,7 @@ class PodTest < KubernetesDeploy::TestCase
 
     assert_predicate pod, :terminating?
     assert_predicate pod, :deploy_failed?
-    assert_equal "Pod status: Terminating. ", pod.failure_message
+    assert_equal "Pod status: Terminating.", pod.failure_message
   end
 
   def test_deploy_failed_is_false_for_terminating_managed_pods
@@ -245,7 +245,7 @@ class PodTest < KubernetesDeploy::TestCase
 
     assert_predicate pod, :disappeared?
     assert_predicate pod, :deploy_failed?
-    assert_equal "Pod status: Disappeared. ", pod.failure_message
+    assert_equal "Pod status: Disappeared.", pod.failure_message
   end
 
   def test_deploy_failed_is_false_for_disappeared_managed_pods

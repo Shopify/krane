@@ -117,7 +117,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     ])
   ensure
     if deleter_thread
-      deleter_thread.join
+      deleter_thread.join # make sure we see any error messages raised in the thread
       deleter_thread.kill
     end
   end
