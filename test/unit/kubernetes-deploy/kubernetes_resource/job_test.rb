@@ -26,7 +26,7 @@ class JobTest < KubernetesDeploy::TestCase
   end
 
   def test_job_fails_without_failed_status_condition
-    status = {
+    definition = {
       spec: {
         backoffLimit: 1
       },
@@ -35,7 +35,7 @@ class JobTest < KubernetesDeploy::TestCase
         startTime: "2018-10-12T19:49:28Z",
       }
     }
-    job = build_synced_job(job_spec.merge(status).deep_stringify_keys)
+    job = build_synced_job(job_spec.merge(definition).deep_stringify_keys)
 
     assert_predicate job, :deploy_failed?
   end
@@ -50,8 +50,8 @@ class JobTest < KubernetesDeploy::TestCase
     job = KubernetesDeploy::Job.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger)
     job.deploy_started_at = Time.now.utc
-    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    mediator.expects(:get_instance).with('Job', anything).returns(template)
+    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'nope', logger: @logger)
+    mediator.expects(:get_instance).with('Job', anything, anything).returns(template)
     job.sync(mediator)
     job
   end

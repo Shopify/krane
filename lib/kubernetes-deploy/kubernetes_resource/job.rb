@@ -40,7 +40,7 @@ module KubernetesDeploy
     private
 
     def failed_status_condition
-      (@instance_data.dig("status", "conditions") || []).detect do |condition|
+      @instance_data.dig("status", "conditions")&.detect do |condition|
         condition["type"] == 'Failed' && condition['status'] == "True"
       end
     end
