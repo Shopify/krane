@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'test_helper'
+require 'integration_test_helper'
 
 class SerialDeployTest < KubernetesDeploy::IntegrationTest
   # This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace

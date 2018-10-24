@@ -18,5 +18,6 @@ class StatsDTest < KubernetesDeploy::TestCase
     ENV['STATSD_ADDR'] = original_addr
     ENV['STATSD_IMPLEMENTATION'] = original_impl
     ENV['STATSD_DEV'] = original_dev
+    KubernetesDeploy::StatsD.build
   end
 end
