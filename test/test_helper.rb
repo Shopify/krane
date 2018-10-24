@@ -194,13 +194,17 @@ module KubernetesDeploy
       source_dir
     end
 
-    def stub_kubectl_response(*args, resp:, err: "", success: true, json: true, times: 1)
+    def stub_kubectl_response(*args, resp:, err: "", raise_if_not_found: nil, success: true, json: true, times: 1)
       resp = resp.to_json if json
       response = [resp, err, stub(success?: success)]
-      KubernetesDeploy::Kubectl.any_instance.expects(:run)
-        .with(*args)
-        .returns(response)
-        .times(times)
+
+      expectation = if raise_if_not_found.nil?
+        KubernetesDeploy::Kubectl.any_instance.expects(:run).with(*args)
+      else
+        KubernetesDeploy::Kubectl.any_instance.expects(:run).with(*args, raise_if_not_found: raise_if_not_found)
+      end
+
+      expectation.returns(response).times(times)
     end
 
     def build_runless_kubectl

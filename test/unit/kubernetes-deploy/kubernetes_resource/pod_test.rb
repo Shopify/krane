@@ -18,7 +18,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_missing_tag_error
@@ -38,7 +38,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_false_for_intermittent_image_error
@@ -72,7 +72,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_container_config_error_post_18
@@ -91,7 +91,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to generate container configuration: The reason it failed
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_container_config_error_pre_18
@@ -110,7 +110,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to generate container configuration: The reason it failed
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_crash_loop_backoffs
@@ -132,7 +132,7 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Crashing repeatedly (exit 1). See logs for more information.
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
   def test_deploy_failed_is_true_for_container_cannot_run_error
@@ -152,11 +152,11 @@ class PodTest < KubernetesDeploy::TestCase
       The following containers encountered errors:
       > hello-cloud: Failed to start (exit 127): /not/a/command: no such file or directory
     STRING
-    assert_equal expected_msg, pod.failure_message
+    assert_equal expected_msg.strip, pod.failure_message
   end
 
-  def test_deploy_failed_is_false_for_evicted
-    container_state = pod_spec.merge(
+  def test_deploy_failed_is_true_for_evicted_unmanaged_pods
+    template = pod_spec.merge(
       "status" => {
         "message" => "The node was low on resource: nodefsInodes.",
         "phase" => "Failed",
@@ -164,14 +164,29 @@ class PodTest < KubernetesDeploy::TestCase
         "startTime" => "2018-04-13T22:43:23Z"
       }
     )
-    pod = build_synced_pod(container_state)
+    pod = build_synced_pod(template)
 
-    refute pod.deploy_failed?
+    assert_predicate pod, :deploy_failed?
+    assert_equal "Pod status: Failed (Reason: Evicted).", pod.failure_message
+  end
+
+  def test_deploy_failed_is_false_for_evicted_managed_pods
+    template = pod_spec.merge(
+      "status" => {
+        "message" => "The node was low on resource: nodefsInodes.",
+        "phase" => "Failed",
+        "reason" => "Evicted",
+        "startTime" => "2018-04-13T22:43:23Z"
+      }
+    )
+    pod = build_synced_pod(template, parent: mock)
+
+    refute_predicate pod, :deploy_failed?
     assert_nil pod.failure_message
   end
 
-  def test_deploy_failed_is_false_for_preempting
-    container_state = pod_spec.merge(
+  def test_deploy_failed_is_true_for_preempted_unmanaged_pods
+    template = pod_spec.merge(
       "status" => {
         "message" => "Preempted in order to admit critical pod",
         "phase" => "Failed",
@@ -179,8 +194,69 @@ class PodTest < KubernetesDeploy::TestCase
         "startTime" => "2018-04-13T22:43:23Z"
       }
     )
-    pod = build_synced_pod(container_state)
+    pod = build_synced_pod(template)
 
+    assert_predicate pod, :deploy_failed?
+    assert_equal "Pod status: Failed (Reason: Preempting).", pod.failure_message
+  end
+
+  def test_deploy_failed_is_false_for_preempted_managed_pods
+    template = pod_spec.merge(
+      "status" => {
+        "message" => "Preempted in order to admit critical pod",
+        "phase" => "Failed",
+        "reason" => "Preempting",
+        "startTime" => "2018-04-13T22:43:23Z"
+      }
+    )
+    pod = build_synced_pod(template, parent: mock)
+
+    refute_predicate pod, :deploy_failed?
+    assert_nil pod.failure_message
+  end
+
+  def test_deploy_failed_is_true_for_terminating_unmanaged_pods
+    template = build_pod_template
+    template["metadata"]["deletionTimestamp"] = "2018-04-13T22:43:23Z"
+    pod = build_synced_pod(template)
+
+    assert_predicate pod, :terminating?
+    assert_predicate pod, :deploy_failed?
+    assert_equal "Pod status: Terminating.", pod.failure_message
+  end
+
+  def test_deploy_failed_is_false_for_terminating_managed_pods
+    template = build_pod_template
+    template["metadata"]["deletionTimestamp"] = "2018-04-13T22:43:23Z"
+    pod = build_synced_pod(template, parent: mock)
+
+    assert_predicate pod, :terminating?
+    refute_predicate pod, :deploy_failed?
+    assert_nil pod.failure_message
+  end
+
+  def test_deploy_failed_is_true_for_disappeared_unmanaged_pods
+    template = build_pod_template
+    pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
+      logger: @logger, deploy_started_at: Time.now.utc)
+    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
+    mediator.kubectl.expects(:run).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
+    pod.sync(mediator)
+
+    assert_predicate pod, :disappeared?
+    assert_predicate pod, :deploy_failed?
+    assert_equal "Pod status: Disappeared.", pod.failure_message
+  end
+
+  def test_deploy_failed_is_false_for_disappeared_managed_pods
+    template = build_pod_template
+    pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
+      logger: @logger, deploy_started_at: Time.now.utc, parent: mock)
+    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
+    mediator.kubectl.expects(:run).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
+    pod.sync(mediator)
+
+    assert_predicate pod, :disappeared?
     refute_predicate pod, :deploy_failed?
     assert_nil pod.failure_message
   end
@@ -191,17 +267,17 @@ class PodTest < KubernetesDeploy::TestCase
     @pod_spec ||= YAML.load_file(File.join(fixture_path('for_unit_tests'), 'pod_test.yml'))
   end
 
-  def build_synced_pod(template)
+  def build_synced_pod(template, parent: nil)
     pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
-      logger: @logger, deploy_started_at: Time.now.utc)
+      logger: @logger, deploy_started_at: Time.now.utc, parent: parent)
     mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    mediator.expects(:get_instance).with('Pod', anything).returns(template)
-    KubernetesDeploy::ContainerLogs.any_instance.stubs(:sync)
+    mediator.expects(:get_instance).with('Pod', "unmanaged-pod-1", raise_if_not_found: true).returns(template)
+    KubernetesDeploy::ContainerLogs.any_instance.stubs(:sync) unless parent.present?
     pod.sync(mediator)
     pod
   end
 
-  def build_pod_template(container_state:)
+  def build_pod_template(container_state: {})
     pod_spec.merge(
       "status" => {
         "phase" => "Pending",

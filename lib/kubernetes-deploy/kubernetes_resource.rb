@@ -85,6 +85,7 @@ module KubernetesDeploy
       @logger = logger
       @definition = definition
       @statsd_report_done = false
+      @disappeared = false
       @validation_errors = []
       @instance_data = {}
     end
@@ -121,10 +122,21 @@ module KubernetesDeploy
     end
 
     def sync(mediator)
-      @instance_data = mediator.get_instance(kubectl_resource_type, name)
+      @instance_data = mediator.get_instance(kubectl_resource_type, name, raise_if_not_found: true)
+    rescue KubernetesDeploy::Kubectl::ResourceNotFoundError
+      @disappeared = true if deploy_started?
+      @instance_data = {}
     end
 
     def after_sync
+    end
+
+    def terminating?
+      @instance_data.dig('metadata', 'deletionTimestamp').present?
+    end
+
+    def disappeared?
+      @disappeared
     end
 
     def deploy_failed?
@@ -189,22 +201,26 @@ module KubernetesDeploy
     def debug_message(cause = nil, info_hash = {})
       helpful_info = []
       if cause == :gave_up
-        helpful_info << ColorizedString.new("#{id}: GLOBAL WATCH TIMEOUT (#{info_hash[:timeout]} seconds)").yellow
+        debug_heading = ColorizedString.new("#{id}: GLOBAL WATCH TIMEOUT (#{info_hash[:timeout]} seconds)").yellow
         helpful_info << "If you expected it to take longer than #{info_hash[:timeout]} seconds for your deploy"\
         " to roll out, increase --max-watch-seconds."
       elsif deploy_failed?
-        helpful_info << ColorizedString.new("#{id}: FAILED").red
+        debug_heading = ColorizedString.new("#{id}: FAILED").red
         helpful_info << failure_message if failure_message.present?
       elsif deploy_timed_out?
-        helpful_info << ColorizedString.new("#{id}: TIMED OUT (#{pretty_timeout_type})").yellow
+        debug_heading = ColorizedString.new("#{id}: TIMED OUT (#{pretty_timeout_type})").yellow
         helpful_info << timeout_message if timeout_message.present?
       else
         # Arriving in debug_message when we neither failed nor timed out is very unexpected. Dump all available info.
-        helpful_info << ColorizedString.new("#{id}: MONITORING ERROR").red
+        debug_heading = ColorizedString.new("#{id}: MONITORING ERROR").red
         helpful_info << failure_message if failure_message.present?
         helpful_info << timeout_message if timeout_message.present? && timeout_message != STANDARD_TIMEOUT_MESSAGE
       end
-      helpful_info << "  - Final status: #{status}"
+
+      final_status = "  - Final status: #{status}"
+      final_status = "\n#{final_status}" if helpful_info.present? && !helpful_info.last.end_with?("\n")
+      helpful_info.prepend(debug_heading)
+      helpful_info << final_status
 
       if @debug_events.present?
         helpful_info << "  - Events (common success events excluded):"

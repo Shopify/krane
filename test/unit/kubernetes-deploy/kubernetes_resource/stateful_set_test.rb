@@ -34,9 +34,9 @@ class StatefulSetTest < KubernetesDeploy::TestCase
   def build_synced_ss(template:)
     ss = KubernetesDeploy::StatefulSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
     sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    sync_mediator.kubectl.expects(:run).with("get", "StatefulSet", "test-ss", "-a", "--output=json").returns(
-      [template.to_json, "", SystemExit.new(0)]
-    )
+    sync_mediator.kubectl.expects(:run)
+      .with("get", "StatefulSet", "test-ss", "-a", "--output=json", raise_if_not_found: true)
+      .returns([template.to_json, "", SystemExit.new(0)])
     sync_mediator.kubectl.expects(:run).with("get", "Pod", "-a", "--output=json", anything).returns(
       ['{ "items": [] }', "", SystemExit.new(0)]
     )

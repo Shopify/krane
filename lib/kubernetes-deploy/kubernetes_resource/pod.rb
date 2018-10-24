@@ -66,14 +66,10 @@ module KubernetesDeploy
       return STANDARD_TIMEOUT_MESSAGE unless readiness_probe_failure?
       probe_failure_msgs = @containers.map(&:readiness_fail_reason).compact
       header = "The following containers have not passed their readiness probes on at least one pod:\n"
-      header + probe_failure_msgs.join("\n") + "\n"
+      header + probe_failure_msgs.join("\n")
     end
 
     def failure_message
-      if phase == FAILED_PHASE_NAME && !TRANSIENT_FAILURE_REASONS.include?(reason)
-        phase_problem = "Pod status: #{status}. "
-      end
-
       doomed_containers = @containers.select(&:doomed?)
       if doomed_containers.present?
         container_problems = if unmanaged?
@@ -86,7 +82,7 @@ module KubernetesDeploy
           container_problems += "> #{red_name}: #{c.doom_reason}\n"
         end
       end
-      "#{phase_problem}#{container_problems}".presence
+      "#{phase_failure_message} #{container_problems}".strip.presence
     end
 
     def fetch_debug_logs(kubectl)
@@ -99,6 +95,29 @@ module KubernetesDeploy
     end
 
     private
+
+    def failed_phase?
+      phase == FAILED_PHASE_NAME
+    end
+
+    def transient_failure_reason?
+      return false if unmanaged?
+      TRANSIENT_FAILURE_REASONS.include?(reason)
+    end
+
+    def phase_failure_message
+      if failed_phase? && !transient_failure_reason?
+        return "Pod status: #{status}."
+      end
+
+      return unless unmanaged?
+
+      if terminating?
+        "Pod status: Terminating."
+      elsif disappeared?
+        "Pod status: Disappeared."
+      end
+    end
 
     def logs
       @logs ||= KubernetesDeploy::RemoteLogs.new(
