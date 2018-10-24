@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'test_helper'
+require 'integration_test_helper'
 
 class SerialDeployTest < KubernetesDeploy::IntegrationTest
   # This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace
@@ -57,10 +57,10 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   # This can be run in parallel when we switch to --kubeconfig (https://github.com/Shopify/kubernetes-deploy/issues/52)
-  def test_invalid_context
+  def test_unreachable_context
     old_config = ENV['KUBECONFIG']
     begin
-      ENV['KUBECONFIG'] = File.join(__dir__, '../fixtures/kube-config/invalid_config.yml')
+      ENV['KUBECONFIG'] = File.join(__dir__, '../fixtures/kube-config/dummy_config.yml')
       kubectl_instance = build_kubectl(timeout: '0.1s')
       result = deploy_fixtures('hello-cloud', kubectl_instance: kubectl_instance)
       assert_deploy_failure(result)
@@ -111,8 +111,8 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
     reset_logger
 
-    valid_config = File.join(__dir__, '../fixtures/kube-config/valid_config.yml')
-    ENV['KUBECONFIG'] = "#{old_config}:#{valid_config}"
+    extra_config = File.join(__dir__, '../fixtures/kube-config/dummy_config.yml')
+    ENV['KUBECONFIG'] = "#{old_config}:#{extra_config}"
     result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
     assert_deploy_success(result)
   ensure

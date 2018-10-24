@@ -145,7 +145,7 @@ module FixtureSetAssertions
     end
 
     def assert_role_binding_present(name)
-      role_bindings = rbac_v1beta1_kubeclient.get_role_bindings(namespace: namespace)
+      role_bindings = rbac_v1_kubeclient.get_role_bindings(namespace: namespace)
       desired = role_bindings.find { |sa| sa.metadata.name == name }
       assert desired.present?, "Role binding #{name} does not exist"
     end

@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: Config
-preferences: {}
-
-contexts:
-- context:
-    cluster: minikube
-    user: minikube
-  name: kb-test-context

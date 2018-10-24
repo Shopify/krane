@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'test_helper'
+require 'integration_test_helper'
 
 class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_full_hello_cloud_set_deploy_succeeds
@@ -545,7 +545,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_deploy_result_logging_for_mixed_result_deploy
     subset = ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml", "config_map.yml"]
     result = deploy_fixtures("invalid", subset: subset) do |f|
-      if KUBE_SERVER_VERSION >= Gem::Version.new("1.10.0") # https://github.com/kubernetes/kubernetes/issues/66135
+      if kube_server_version >= Gem::Version.new("1.10.0") # https://github.com/kubernetes/kubernetes/issues/66135
         f["bad_probe.yml"]["Deployment"].first["spec"]["progressDeadlineSeconds"] = 20
       end
     end
@@ -557,7 +557,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       %r{ConfigMap/test\s+Available}
     ], in_order: true)
 
-    if KUBE_SERVER_VERSION < Gem::Version.new("1.10.0")
+    if kube_server_version < Gem::Version.new("1.10.0")
       start_bad_probe_logs = [
         %r{Deployment/bad-probe: TIMED OUT \(timeout: \d+s\)},
         "Timeout reason: hard deadline for Deployment"
@@ -964,7 +964,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       max_watch_seconds: 20
     ) do |f|
       bad_probe = f["bad_probe.yml"]["Deployment"].first
-      if KUBE_SERVER_VERSION < Gem::Version.new("1.10.0") # https://github.com/kubernetes/kubernetes/issues/66135
+      if kube_server_version < Gem::Version.new("1.10.0") # https://github.com/kubernetes/kubernetes/issues/66135
         bad_probe["metadata"]["annotations"]["kubernetes-deploy.shopify.io/timeout-override"] = '5s'
       else
         bad_probe["spec"]["progressDeadlineSeconds"] = 5
@@ -974,7 +974,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
     assert_deploy_failure(result)
 
-    bad_probe_timeout = if KUBE_SERVER_VERSION < Gem::Version.new("1.10.0")
+    bad_probe_timeout = if kube_server_version < Gem::Version.new("1.10.0")
       "Deployment/bad-probe: TIMED OUT (timeout: 5s)"
     else
       "Deployment/bad-probe: TIMED OUT (progress deadline: 5s)"
@@ -1058,7 +1058,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_hpa_can_be_successful
-    skip if KUBE_SERVER_VERSION < Gem::Version.new('1.9.0')
+    skip if kube_server_version < Gem::Version.new('1.9.0')
     assert_deploy_success(deploy_fixtures("hpa"))
     assert_logs_match_all([
       "Deploying resources:",
@@ -1068,7 +1068,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_hpa_can_be_pruned
-    skip if KUBE_SERVER_VERSION < Gem::Version.new('1.9.0')
+    skip if kube_server_version < Gem::Version.new('1.9.0')
     assert_deploy_success(deploy_fixtures("hpa"))
     assert_deploy_success(deploy_fixtures("hpa", subset: ["deployment.yml"]))
     assert_logs_match_all([

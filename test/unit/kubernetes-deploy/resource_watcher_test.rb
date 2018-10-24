@@ -68,7 +68,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     fourth = build_mock_resource(final_status: "success", hits_to_complete: 4, name: "fourth")
 
     watcher = build_watcher([first, second, third, fourth])
-    watcher.run(delay_sync: 0.1)
+    watcher.run(delay_sync: 0.01)
 
     assert_logs_match_all([
       /Successfully deployed in \d.\ds: first/,
@@ -86,7 +86,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     resource2 = build_mock_resource(final_status: "success", hits_to_complete: 9, name: 'second')
     resource3 = build_mock_resource(final_status: "success", hits_to_complete: 9, name: 'third')
     watcher = build_watcher([resource1, resource2, resource3])
-    watcher.run(delay_sync: 0.1, reminder_interval: 0.5.seconds)
+    watcher.run(delay_sync: 0.01, reminder_interval: 0.05)
 
     assert_logs_match_all([
       /Successfully deployed in \d.\ds: first/,
@@ -111,9 +111,9 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     resource = build_mock_resource(hits_to_complete: 10**100)
     sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
     watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource], logger: logger,
-      timeout: 2, sync_mediator: sync_mediator)
+      timeout: 0.02, sync_mediator: sync_mediator)
 
-    assert_raises(KubernetesDeploy::DeploymentTimeoutError) { watcher.run(delay_sync: 0.1) }
+    assert_raises(KubernetesDeploy::DeploymentTimeoutError) { watcher.run(delay_sync: 0.01) }
   end
 
   private

@@ -57,14 +57,8 @@ end
 
 module KubernetesDeploy
   class TestCase < ::Minitest::Test
-    # Warning: running unit tests in parallel will not work!
-    if ENV["PARALLELIZE_ME"]
-      puts "Running tests in parallel!"
-      parallelize_me!
-    end
-
     def setup
-      unless is_a?(KubernetesDeploy::IntegrationTest)
+      if ban_net_connect?
         Kubectl.any_instance.expects(:run).never
         WebMock.disable_net_connect!
       end
@@ -83,6 +77,10 @@ module KubernetesDeploy
       else
         ColorizedString.disable_colorization = true
       end
+    end
+
+    def ban_net_connect?
+      true
     end
 
     def logger
@@ -231,90 +229,4 @@ module KubernetesDeploy
       end
     end
   end
-
-  class IntegrationTest < KubernetesDeploy::TestCase
-    include KubeclientHelper
-    include FixtureDeployHelper
-
-    def run
-      WebMock.allow_net_connect!
-      @namespace = TestProvisioner.claim_namespace(name)
-      super
-    ensure
-      TestProvisioner.delete_namespace(@namespace)
-    end
-
-    def prune_matcher(kind, group, name)
-      kind + '(.' + group + ')?[ \/]"?' + name + '"?'
-    end
-
-    logger = KubernetesDeploy::FormattedLogger.build("default", TEST_CONTEXT, $stderr)
-    kubectl = KubernetesDeploy::Kubectl.new(namespace: "default", context: TEST_CONTEXT, logger: logger,
-                                            log_failure_by_default: true, default_timeout: '5s')
-
-    KUBE_CLIENT_VERSION = kubectl.client_version
-    KUBE_SERVER_VERSION = kubectl.server_version
-  end
-
-  module TestProvisioner
-    extend KubeclientHelper
-
-    def self.claim_namespace(test_name)
-      test_name = test_name.gsub(/[^-a-z0-9]/, '-').slice(0, 36) # namespace name length must be <= 63 chars
-      ns = "k8sdeploy-#{test_name}-#{SecureRandom.hex(8)}"
-      create_namespace(ns)
-      ns
-    rescue KubeException => e
-      retry if e.to_s.include?("already exists")
-      raise
-    end
-
-    def self.create_namespace(namespace)
-      ns = Kubeclient::Resource.new(kind: 'Namespace')
-      ns.metadata = { name: namespace }
-      kubeclient.create_namespace(ns)
-    end
-
-    def self.delete_namespace(namespace)
-      kubeclient.delete_namespace(namespace) if namespace.present?
-    rescue KubeException => e
-      raise unless e.to_s.include?("not found")
-    end
-
-    def self.prepare_pv(name)
-      existing_pvs = kubeclient.get_persistent_volumes(label_selector: "name=#{name}")
-      return if existing_pvs.present?
-
-      pv = Kubeclient::Resource.new(kind: 'PersistentVolume')
-      pv.metadata = {
-        name: name,
-        labels: { name: name }
-      }
-      pv.spec = {
-        accessModes: %w(ReadWriteOnce),
-        capacity: { storage: "150Mi" },
-        hostPath: { path: "/data/#{name}" },
-        persistentVolumeReclaimPolicy: "Recycle"
-      }
-      kubeclient.create_persistent_volume(pv)
-    end
-
-    def self.deploy_metric_server
-      # Set-up the metric server that the HPA needs https://github.com/kubernetes-incubator/metrics-server
-      logger = KubernetesDeploy::FormattedLogger.build("default", KubeclientHelper::TEST_CONTEXT, $stderr)
-      kubectl = KubernetesDeploy::Kubectl.new(namespace: "kube-system", context: KubeclientHelper::TEST_CONTEXT,
-        logger: logger, log_failure_by_default: true, default_timeout: '5s')
-
-      Dir.glob("test/setup/metrics-server/*.{yml,yaml}*").map do |resource|
-        found = kubectl.run("get", "-f", resource, log_failure: false).last.success?
-        kubectl.run("create", "-f", resource) unless found
-      end
-    end
-  end
-
-  WebMock.allow_net_connect!
-  TestProvisioner.prepare_pv("pv0001")
-  TestProvisioner.prepare_pv("pv0002")
-  TestProvisioner.deploy_metric_server
-  WebMock.disable_net_connect!
 end
