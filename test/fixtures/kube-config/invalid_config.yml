@@ -3,18 +3,23 @@ clusters:
 - cluster:
     insecure-skip-tls-verify: true
     server: https://192.168.5.1
-  name: minikube
+  name: invalid
 contexts:
 - context:
-    cluster: minikube
-    namespace: default
-    user: minikube
+    cluster: invalid
+    user: test-user
   name: minikube
-current-context: ""
+- context:
+    cluster: invalid
+    user: test-user
+  name: dind
+- context:
+    cluster: invalid
+    user: test-user
+  name: docker-for-mac
 kind: Config
-preferences: {}
 users:
-- name: minikube
+- name: test-user
   user:
     username: username
     password: password

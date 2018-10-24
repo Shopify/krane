@@ -156,7 +156,7 @@ class SyncMediatorTest < KubernetesDeploy::TestCase
   private
 
   def mediator
-    @mediator ||= KubernetesDeploy::SyncMediator.new(namespace: 'test-ns', context: KubeclientHelper::MINIKUBE_CONTEXT,
+    @mediator ||= KubernetesDeploy::SyncMediator.new(namespace: 'test-ns', context: KubeclientHelper::TEST_CONTEXT,
       logger: logger)
   end
 

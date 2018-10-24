@@ -385,15 +385,22 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 
 ## Running the test suite locally
 
-1. Start [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (`minikube start [options]`)
-2. Make sure you have a context named "minikube" in your kubeconfig. Minikube adds this context for you when you run `minikube start`; please do not rename it. You can check for it using `kubectl config get-contexts`.
-3. Run `bundle exec rake test`
+Using minikube:
 
+1. Start [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (`minikube start [options]`).
+2. Make sure you have a context named "minikube" in your kubeconfig. Minikube adds this context for you when you run `minikube start`. You can check for it using `kubectl config get-contexts`.
+3. Run `bundle exec rake test` (or `dev test` if you work for Shopify).
 
+Using another local cluster:
 
-To see the full-color output of a specific integration test, you can use `PRINT_LOGS=1 bundle exec ruby -I test test/integration/kubernetes_deploy_test.rb -n/test_name/`.
+1. Start your cluster.
+2. Put the name of the context you want to use in a file named `.local-context` in the root of this project. For example: `echo "dind" > .local-context`.
+3. Run `bundle exec rake test` (or `dev test` if you work for Shopify).
 
 To make StatsD log what it would have emitted, run a test with `STATSD_DEV=1`.
+
+To see the full-color output of a specific integration test, you can use `PRINT_LOGS=1`. For example: `PRINT_LOGS=1 bundle exec ruby -I test test/integration/kubernetes_deploy_test.rb -n/test_name/`.
+
 
 
 

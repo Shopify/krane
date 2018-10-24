@@ -195,7 +195,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     task_runner = build_task_runner
     assert_task_run_failure(task_runner.run(run_params))
     message = "Pod template `hello-cloud-template-runner` not found in namespace `#{@namespace}`, " \
-      "context `#{KubeclientHelper::MINIKUBE_CONTEXT}`"
+      "context `#{KubeclientHelper::TEST_CONTEXT}`"
     assert_logs_match_all([
       "Result: FAILURE",
       message

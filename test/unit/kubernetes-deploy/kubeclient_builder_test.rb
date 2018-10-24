@@ -23,7 +23,7 @@ class KubeClientBuilderTest < KubernetesDeploy::TestCase
       build_v1_kubeclient(context_name)
     end
     # Build kubeclient for an existing context success
-    context_name = KubeclientHelper::MINIKUBE_CONTEXT
+    context_name = KubeclientHelper::TEST_CONTEXT
     client = build_v1_kubeclient(context_name)
     assert !client.nil?, "Expected Kubeclient is built for context " \
     	"#{context_name} with success."

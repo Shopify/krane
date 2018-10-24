@@ -15,7 +15,7 @@ module TaskRunnerTestHelper
   end
 
   def build_task_runner(ns: @namespace, max_watch_seconds: nil)
-    KubernetesDeploy::RunnerTask.new(context: KubeclientHelper::MINIKUBE_CONTEXT, namespace: ns, logger: logger,
+    KubernetesDeploy::RunnerTask.new(context: KubeclientHelper::TEST_CONTEXT, namespace: ns, logger: logger,
       max_watch_seconds: max_watch_seconds)
   end
 
