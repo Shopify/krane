@@ -106,6 +106,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
         sleep 0.1
       end
     end
+    deleter_thread.abort_on_exception = true
 
     result = task_runner.run(run_params(log_lines: 20, log_interval: 1))
     assert_task_run_failure(result)
@@ -116,10 +117,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       /Pod status\: (Terminating|Disappeared)/,
     ])
   ensure
-    if deleter_thread
-      deleter_thread.join # make sure we see any error messages raised in the thread
-      deleter_thread.kill
-    end
+    deleter_thread&.kill
   end
 
   def test_run_with_verify_result_neither_misses_nor_duplicates_logs_across_pollings
