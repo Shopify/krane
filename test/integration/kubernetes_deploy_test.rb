@@ -20,7 +20,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
       %r{Service/web\s+Selects at least 1 pod},
-      %r[DaemonSet/ds-app\s+#{num_ds} updatedNumberScheduled, #{num_ds} desiredNumberScheduled, #{num_ds} numberReady],
+      %r{DaemonSet/ds-app\s+#{num_ds} updatedNumberScheduled, #{num_ds} desiredNumberScheduled, #{num_ds} numberReady},
       %r{StatefulSet/stateful-busybox},
       %r{Service/redis-external\s+Doesn't require any endpoint},
       "- Job/hello-job (timeout: 600s)",
