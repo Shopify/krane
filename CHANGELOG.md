@@ -1,3 +1,12 @@
+## 0.21.1
+
+*Enhancements*
+- Improved failure detection for job resources. ([#355](https://github.com/Shopify/kubernetes-deploy/pull/355))
+- Unmanaged pods are now immediately identified as failed if they are evicted, preempted or deleted out of band. This is especially important to `kubernetes-run`. ([#353](https://github.com/Shopify/kubernetes-deploy/pull/353))
+
+*Other*
+- Relaxed our `googleauth` dependency. ([#333](https://github.com/Shopify/kubernetes-deploy/pull/333))
+
 ## 0.21.0
 
 *Features*
@@ -13,7 +22,6 @@
 - All resources marked as prunable will now be added to the prune whitelist ([#326](https://github.com/Shopify/kubernetes-deploy/pull/326))
 - Improve deploy status detection by ensuring we examine the correct generation ([#325](https://github.com/Shopify/kubernetes-deploy/pull/325))
 
-*Bug Fixes*
 
 ## 0.20.5
 *Enhancements*
