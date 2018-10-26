@@ -88,7 +88,7 @@ module KubernetesDeploy
     def logger
       @logger ||= begin
         device = log_to_stderr? ? $stderr : @logger_stream
-        KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::MINIKUBE_CONTEXT, device)
+        KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::TEST_CONTEXT, device)
       end
     end
 
@@ -208,7 +208,7 @@ module KubernetesDeploy
     end
 
     def build_runless_kubectl
-      obj = KubernetesDeploy::Kubectl.new(namespace: 'test', context: KubeclientHelper::MINIKUBE_CONTEXT,
+      obj = KubernetesDeploy::Kubectl.new(namespace: 'test', context: KubeclientHelper::TEST_CONTEXT,
         logger: logger, log_failure_by_default: false)
       def obj.run(*)
         ["", "", SystemExit.new(0)]
@@ -248,8 +248,8 @@ module KubernetesDeploy
       kind + '(.' + group + ')?[ \/]"?' + name + '"?'
     end
 
-    logger = KubernetesDeploy::FormattedLogger.build("default", MINIKUBE_CONTEXT, $stderr)
-    kubectl = KubernetesDeploy::Kubectl.new(namespace: "default", context: MINIKUBE_CONTEXT, logger: logger,
+    logger = KubernetesDeploy::FormattedLogger.build("default", TEST_CONTEXT, $stderr)
+    kubectl = KubernetesDeploy::Kubectl.new(namespace: "default", context: TEST_CONTEXT, logger: logger,
                                             log_failure_by_default: true, default_timeout: '5s')
 
     KUBE_CLIENT_VERSION = kubectl.client_version
@@ -301,8 +301,8 @@ module KubernetesDeploy
 
     def self.deploy_metric_server
       # Set-up the metric server that the HPA needs https://github.com/kubernetes-incubator/metrics-server
-      logger = KubernetesDeploy::FormattedLogger.build("default", KubeclientHelper::MINIKUBE_CONTEXT, $stderr)
-      kubectl = KubernetesDeploy::Kubectl.new(namespace: "kube-system", context: KubeclientHelper::MINIKUBE_CONTEXT,
+      logger = KubernetesDeploy::FormattedLogger.build("default", KubeclientHelper::TEST_CONTEXT, $stderr)
+      kubectl = KubernetesDeploy::Kubectl.new(namespace: "kube-system", context: KubeclientHelper::TEST_CONTEXT,
         logger: logger, log_failure_by_default: true, default_timeout: '5s')
 
       Dir.glob("test/setup/metrics-server/*.{yml,yaml}*").map do |resource|

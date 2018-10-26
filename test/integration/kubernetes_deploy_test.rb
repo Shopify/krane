@@ -15,11 +15,12 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Successfully deployed 19 resources"
     ], in_order: true)
 
+    num_ds = expected_daemonset_pod_count
     assert_logs_match_all([
       %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
       %r{Service/web\s+Selects at least 1 pod},
-      %r{DaemonSet/ds-app\s+1 updatedNumberScheduled, 1 desiredNumberScheduled, 1 numberReady},
+      %r{DaemonSet/ds-app\s+#{num_ds} updatedNumberScheduled, #{num_ds} desiredNumberScheduled, #{num_ds} numberReady},
       %r{StatefulSet/stateful-busybox},
       %r{Service/redis-external\s+Doesn't require any endpoint},
       "- Job/hello-job (timeout: 600s)",
@@ -771,11 +772,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_bad_container_on_daemon_sets_fails
     assert_deploy_failure(deploy_fixtures("invalid", subset: ["crash_loop_daemon_set.yml"]))
+    num_ds = expected_daemonset_pod_count
     assert_logs_match_all([
       "Failed to deploy 1 resource",
       "DaemonSet/crash-loop: FAILED",
       "crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
-      "Final status: 1 updatedNumberScheduled, 1 desiredNumberScheduled, 0 numberReady",
+      "Final status: #{num_ds} updatedNumberScheduled, #{num_ds} desiredNumberScheduled, 0 numberReady",
       "Events (common success events excluded):",
       "BackOff: Back-off restarting failed container",
       "Logs from container 'crash-loop-back-off':",
@@ -1014,7 +1016,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_adds_namespace_labels_to_statsd_tags
-    desired_tags = %W(context:#{KubeclientHelper::MINIKUBE_CONTEXT} namespace:#{@namespace} foo:bar)
+    desired_tags = %W(context:#{KubeclientHelper::TEST_CONTEXT} namespace:#{@namespace} foo:bar)
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     kubeclient.patch_namespace(hello_cloud.namespace, metadata: { labels: { foo: 'bar' } })
     metrics = capture_statsd_calls do
@@ -1077,5 +1079,15 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       /The following resources were pruned: #{pod_disruption_budget_matcher}/
     ])
+  end
+
+  private
+
+  def expected_daemonset_pod_count
+    nodes = kubeclient.get_nodes
+    return 1 if nodes.one?
+    nodes.count do |node|
+      !node.metadata.labels.to_h.keys.include?(:"node-role.kubernetes.io/master")
+    end
   end
 end

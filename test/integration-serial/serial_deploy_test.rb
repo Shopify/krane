@@ -70,7 +70,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
         'Unable to connect to the server',
         'Unable to connect to the server',
         'Result: FAILURE',
-        'Failed to reach server for minikube',
+        "Failed to reach server for #{TEST_CONTEXT}",
       ], in_order: true)
     ensure
       ENV['KUBECONFIG'] = old_config

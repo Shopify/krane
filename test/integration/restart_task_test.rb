@@ -141,14 +141,14 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
   def test_restart_not_existing_namespace
     restart = KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      context: KubeclientHelper::TEST_CONTEXT,
       namespace: "walrus",
       logger: logger
     )
     assert_restart_failure(restart.perform(["web"]))
     assert_logs_match_all([
       "Result: FAILURE",
-      "Namespace `walrus` not found in context `minikube`"
+      "Namespace `walrus` not found in context `#{TEST_CONTEXT}`"
     ],
       in_order: true)
   end
@@ -224,7 +224,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
   def build_restart_task
     KubernetesDeploy::RestartTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      context: KubeclientHelper::TEST_CONTEXT,
       namespace: @namespace,
       logger: logger
     )

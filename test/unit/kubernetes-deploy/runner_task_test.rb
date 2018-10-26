@@ -5,7 +5,7 @@ require 'kubernetes-deploy/runner_task'
 class RunnerTaskUnitTest < KubernetesDeploy::TestCase
   def test_run_with_invalid_configuration
     task_runner = KubernetesDeploy::RunnerTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      context: KubeclientHelper::TEST_CONTEXT,
       namespace: nil,
       logger: logger,
     )
@@ -18,7 +18,7 @@ class RunnerTaskUnitTest < KubernetesDeploy::TestCase
 
   def test_run_bang_with_invalid_configuration
     task_runner = KubernetesDeploy::RunnerTask.new(
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      context: KubeclientHelper::TEST_CONTEXT,
       namespace: nil,
       logger: logger,
     )

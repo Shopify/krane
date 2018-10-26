@@ -68,7 +68,7 @@ module FixtureDeployHelper
     deploy = KubernetesDeploy::DeployTask.new(
       namespace: @namespace,
       current_sha: current_sha,
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      context: KubeclientHelper::TEST_CONTEXT,
       template_dir: dir,
       logger: logger,
       kubectl_instance: kubectl_instance,
@@ -129,7 +129,7 @@ module FixtureDeployHelper
   end
 
   def build_kubectl(log_failure_by_default: true, timeout: '5s')
-    KubernetesDeploy::Kubectl.new(namespace: @namespace, context: KubeclientHelper::MINIKUBE_CONTEXT, logger: logger,
+    KubernetesDeploy::Kubectl.new(namespace: @namespace, context: KubeclientHelper::TEST_CONTEXT, logger: logger,
       log_failure_by_default: log_failure_by_default, default_timeout: timeout)
   end
 end

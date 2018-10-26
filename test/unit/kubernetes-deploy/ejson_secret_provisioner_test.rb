@@ -139,7 +139,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     dir ||= fixture_path('ejson-cloud')
     KubernetesDeploy::EjsonSecretProvisioner.new(
       namespace: 'test',
-      context: KubeclientHelper::MINIKUBE_CONTEXT,
+      context: KubeclientHelper::TEST_CONTEXT,
       template_dir: dir,
       logger: logger
     )

@@ -17,3 +17,4 @@ coverage/*
 dev/flamegraph.svg
 dev/profile
 dev/flamegraph.pl
+.local-context
