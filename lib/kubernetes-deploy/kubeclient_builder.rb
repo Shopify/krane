@@ -13,7 +13,7 @@ module KubernetesDeploy
 
     private
 
-    def with_kube_exception_retries(retries)
+    def with_kube_exception_retries(retries=2)
       yield
     rescue KubeException => e
       throttled = e.error_code == 429

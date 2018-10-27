@@ -40,24 +40,15 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
-      verify_namespace
+      validate_configuration(deployments_names)
       deployments = identify_target_deployments(deployments_names)
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
-      end
+
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
-      patch_kubeclient_deployments(deployments)
+      restart_deployments(deployments)
 
       @logger.phase_heading("Waiting for rollout")
-      resources = build_watchables(deployments, start)
-      ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
-        logger: @logger, operation_name: "restart", timeout: @max_watch_seconds).run
-      failed_resources = resources.reject(&:deploy_succeeded?)
-      success = failed_resources.empty?
-      if !success && failed_resources.all?(&:deploy_timed_out?)
-        raise DeploymentTimeoutError
-      end
-      raise FatalDeploymentError unless success
+      watch_rollout(deployments, start)
+
       ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
@@ -84,10 +75,10 @@ module KubernetesDeploy
           .select { |d| d.metadata.annotations[ANNOTATION] }
 
         if deployments.none?
-          raise FatalRestartError, "no deployments with the `#{ANNOTATION}` annotation found in namespace #{@namespace}"
+          raise TaskConfigurationError, "no deployments with the `#{ANNOTATION}` annotation found in namespace #{@namespace}"
         end
       elsif deployment_names.empty?
-        raise FatalRestartError, "Configured to restart deployments by name, but list of names was blank"
+        raise TaskConfigurationError, "Configured to restart deployments by name, but list of names was blank"
       else
         deployment_names = deployment_names.uniq
         list = deployment_names.join(', ')
@@ -95,10 +86,22 @@ module KubernetesDeploy
 
         deployments = fetch_deployments(deployment_names)
         if deployments.none?
-          raise FatalRestartError, "no deployments with names #{list} found in namespace #{@namespace}"
+          raise TaskConfigurationError, "no deployments with names #{list} found in namespace #{@namespace}"
         end
       end
       deployments
+    end
+
+    def watch_rollout(deployments, start)
+      resources = build_watchables(deployments, start)
+      ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
+        logger: @logger, operation_name: "restart", timeout: @max_watch_seconds).run
+      failed_resources = resources.reject(&:deploy_succeeded?)
+      success = failed_resources.empty?
+      if !success && failed_resources.all?(&:deploy_timed_out?)
+        raise DeploymentTimeoutError
+      end
+      raise FatalDeploymentError unless success
     end
 
     def build_watchables(kubeclient_resources, started)
@@ -110,14 +113,14 @@ module KubernetesDeploy
       end
     end
 
-    def verify_namespace
-      kubeclient.get_namespace(@namespace)
-      @logger.info("Namespace #{@namespace} found in context #{@context}")
-    rescue KubeException => error
-      if error.error_code == 404
-        raise NamespaceNotFoundError.new(@namespace, @context)
-      else
-        raise
+    def validate_configuration(deployment_names)
+      required = {}
+      required[:deployment_names] = deployment_names unless deployment_names.nil?
+      config = TaskValidator.new(@context, @namespace, required_args: required)
+
+      unless config.valid?
+        record_result(@logger)
+        raise TaskConfigurationError, config.error_sentence
       end
     end
 
@@ -129,7 +132,7 @@ module KubernetesDeploy
       )
     end
 
-    def patch_kubeclient_deployments(deployments)
+    def restart_deployments(deployments)
       deployments.each do |record|
         begin
           patch_deployment_with_restart(record)
@@ -144,7 +147,9 @@ module KubernetesDeploy
       list.map do |name|
         record = nil
         begin
-          record = v1beta1_kubeclient.get_deployment(name, @namespace)
+          record = with_kube_exception_retries do
+            v1beta1_kubeclient.get_deployment(name, @namespace)
+          end
         rescue KubeException => error
           if error.error_code == 404
             raise FatalRestartError, "Deployment `#{name}` not found in namespace `#{@namespace}`"

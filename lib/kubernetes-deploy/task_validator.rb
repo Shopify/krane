@@ -1,32 +1,27 @@
+# frozen_string_literal: true
 module KubernetesDeploy
-  class TaskConfigurationValidator
+  class TaskValidator
     include KubeclientBuilder
 
     attr_reader :errors, :warnings
 
-    def initialize(context, namespace, required_args: {})
+    def initialize(context, namespace, required_args: {}, extra_config: {})
       @context = context
       @namespace = namespace
       @required_args = required_args.merge(namespace: namespace, context: context)
-      reset_errors
+      @extra_config = extra_config
+      reset_results
     end
 
     def valid?
       validate
-      run_task_specific_validations
       errors.empty?
     end
 
     def validate
-      run_common_validations
-      run_task_specific_validations
-    end
-
-    private
-
-    def run_common_validations
-      reset_errors
+      reset_results
       validate_required_args
+      validate_extra_config
       validate_kubeconfig
       return if errors.present?
 
@@ -40,10 +35,27 @@ module KubernetesDeploy
       validate_namespace_exists
     end
 
-    def run_task_specific_validations
+    def record_result(logger)
+      warnings.each do |warning|
+        logger.warn(warning)
+      end
+
+      return unless errors.present?
+      logger.summary.add_action("Configuration invalid")
+      logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
     end
 
-    def reset_errors
+    def error_sentence
+      return "" if errors.empty?
+      "Configuration invalid: #{errors.join(', ')}"
+    end
+
+    private
+
+    def validate_extra_config
+    end
+
+    def reset_results
       @errors = []
       @warnings = []
     end
@@ -120,7 +132,7 @@ module KubernetesDeploy
 
     def validate_namespace_exists
       return unless @namespace.present?
-      with_kube_exception_retries(2) { kubeclient.get_namespace(@namespace) }
+      with_kube_exception_retries { kubeclient.get_namespace(@namespace) }
     rescue Kubeclient::ResourceNotFoundError
       @errors << "Namespace #{@namespace} not found"
     rescue Kubeclient::HttpError => error

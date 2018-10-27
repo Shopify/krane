@@ -102,22 +102,17 @@ module KubernetesDeploy
       @logger.info("Validating configuration")
 
       required = { task_template: task_template, args: args }
-      config = TaskConfigurationValidator.new(@context, @namespace, require_args: required)
+      config = TaskValidator.new(@context, @namespace, required_args: required)
       unless config.valid?
-        @logger.summary.add_action("Configuration invalid")
-        @logger.summary.add_paragraph(config.errors.map { |err| "- #{err}" }.join("\n"))
-        raise TaskConfigurationError, "Configuration invalid: #{config.errors.join(', ')}"
-      end
-
-      config.warnings.each do |warning|
-        @logger.warn(warning)
+        record_result(@logger)
+        raise TaskConfigurationError, config.error_sentence
       end
 
       @logger.info "Using namespace '#{@namespace}' in context '#{@context}'"
     end
 
     def get_template(template_name)
-      pod_template = with_kube_exception_retries(2) { kubeclient.get_pod_template(template_name, @namespace) }
+      pod_template = with_kube_exception_retries { kubeclient.get_pod_template(template_name, @namespace) }
       pod_template.template
     rescue Kubeclient::ResourceNotFoundError
         msg = "Pod template `#{template_name}` not found in namespace `#{@namespace}`, context `#{@context}`"

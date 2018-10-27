@@ -125,8 +125,6 @@ module KubernetesDeploy
 
       @logger.phase_heading("Initializing deploy")
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
-      @logger.info("Context #{@context} found")
-      confirm_namespace_exists
       @namespace_tags |= tags_from_namespace_labels
       resources = discover_resources
       validate_definitions(resources)
@@ -294,18 +292,17 @@ module KubernetesDeploy
     end
 
     def validate_configuration(allow_protected_ns:, prune:)
-      config = DeployTaskConfigurationValidator.new(@context, @namespace, required_args: { current_sha: @current_sha })
+      required = { current_sha: @current_sha, template_dir: @template_dir }
+      extra = { pruning_enabled: prune, protected_ns_allowed: allow_protected_ns }
+      config = DeployTaskValidator.new(@context, @namespace, required_args: required, extra_config: extra)
 
       unless config.valid?
-        @logger.summary.add_paragraph(config.errors.map { |err| "- #{err}" }.join("\n"))
-        raise TaskConfigurationError, "Configuration invalid: #{config.errors.join(', ')}"
-      end
-
-      config.warnings.each do |warning|
-        @logger.warn(warning)
+        record_result(@logger)
+        raise TaskConfigurationError, config.error_sentence
       end
 
       @logger.info("All required parameters and files are present")
+      @logger.info("Using namespace #{@namespace} in context #{@context}")
     end
 
     def deploy_resources(resources, prune: false, verify:, record_summary: true)
