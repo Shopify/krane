@@ -62,6 +62,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_configmap_data_present
     hello_cloud.assert_all_service_accounts_up
+    hello_cloud.assert_all_role_bindings_up
     hello_cloud.assert_unmanaged_pod_statuses("Succeeded")
     assert_logs_match_all([
       %r{Successfully deployed in \d.\ds: RoleBinding/role-binding},
