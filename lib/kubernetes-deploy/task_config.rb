@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 module KubernetesDeploy
-  class TaskValidator
+  class TaskConfig
     include KubeclientBuilder
 
     attr_reader :errors, :warnings
@@ -21,7 +21,6 @@ module KubernetesDeploy
     def validate
       reset_results
       validate_required_args
-      validate_extra_config
       validate_kubeconfig
       return if errors.present?
 
@@ -33,6 +32,7 @@ module KubernetesDeploy
 
       validate_server_version
       validate_namespace_exists
+      validate_task_specifics
     end
 
     def record_result(logger)
@@ -52,7 +52,7 @@ module KubernetesDeploy
 
     private
 
-    def validate_extra_config
+    def validate_task_specifics
     end
 
     def reset_results

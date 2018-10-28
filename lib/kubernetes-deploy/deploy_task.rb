@@ -294,7 +294,7 @@ module KubernetesDeploy
     def validate_configuration(allow_protected_ns:, prune:)
       required = { current_sha: @current_sha, template_dir: @template_dir }
       extra = { pruning_enabled: prune, protected_ns_allowed: allow_protected_ns }
-      config = DeployTaskValidator.new(@context, @namespace, required_args: required, extra_config: extra)
+      config = DeployTaskConfig.new(@context, @namespace, required_args: required, extra_config: extra)
 
       unless config.valid?
         record_result(@logger)

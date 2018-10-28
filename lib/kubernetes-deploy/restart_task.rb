@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/resource_watcher'
-require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class RestartTask
@@ -40,23 +39,22 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
-      validate_configuration(deployments_names)
-      deployments = identify_target_deployments(deployments_names)
+      config = validate_configuration(use_annotation: deployment_names.nil?, deployments_requested: deployments_names)
 
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
-      restart_deployments(deployments)
+      restart_deployments(config.deployments)
 
       @logger.phase_heading("Waiting for rollout")
-      watch_rollout(deployments, start)
+      watch_rollout(config.deployments, start)
 
-      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('success', config.deployments))
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
-      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('timeout', deployments))
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('timeout', config.deployments))
       @logger.print_summary(:timed_out)
       raise
     rescue FatalDeploymentError => error
-      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('failure', deployments))
+      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('failure', config.deployments))
       @logger.summary.add_action(error.message) if error.message != error.class.to_s
       @logger.print_summary(:failure)
       raise
@@ -66,30 +64,6 @@ module KubernetesDeploy
 
     def tags(status, deployments)
       %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
-    end
-
-    def identify_target_deployments(deployment_names)
-      if deployment_names.nil?
-        @logger.info("Configured to restart all deployments with the `#{ANNOTATION}` annotation")
-        deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
-          .select { |d| d.metadata.annotations[ANNOTATION] }
-
-        if deployments.none?
-          raise TaskConfigurationError, "no deployments with the `#{ANNOTATION}` annotation found in namespace #{@namespace}"
-        end
-      elsif deployment_names.empty?
-        raise TaskConfigurationError, "Configured to restart deployments by name, but list of names was blank"
-      else
-        deployment_names = deployment_names.uniq
-        list = deployment_names.join(', ')
-        @logger.info("Configured to restart deployments by name: #{list}")
-
-        deployments = fetch_deployments(deployment_names)
-        if deployments.none?
-          raise TaskConfigurationError, "no deployments with names #{list} found in namespace #{@namespace}"
-        end
-      end
-      deployments
     end
 
     def watch_rollout(deployments, start)
@@ -113,15 +87,20 @@ module KubernetesDeploy
       end
     end
 
-    def validate_configuration(deployment_names)
-      required = {}
-      required[:deployment_names] = deployment_names unless deployment_names.nil?
-      config = TaskValidator.new(@context, @namespace, required_args: required)
-
+    def validate_configuration(**params)
+      config = RestartTaskConfig.new(@context, @namespace, extra_config: params)
       unless config.valid?
-        record_result(@logger)
+        config.record_result(@logger)
         raise TaskConfigurationError, config.error_sentence
       end
+
+      list = config.deployment_names.join(', ')
+      if config.use_annotation?
+        @logger.info("Configured to restart all deployments with the `#{ANNOTATION}` annotation, found: #{list}")
+      else
+        @logger.info("Configured to restart the following deployments: #{list}")
+      end
+      config
     end
 
     def patch_deployment_with_restart(record)
@@ -140,24 +119,6 @@ module KubernetesDeploy
         rescue Kubeclient::ResourceNotFoundError, Kubeclient::HttpError => e
           raise RestartAPIError.new(record.metadata.name, e.message)
         end
-      end
-    end
-
-    def fetch_deployments(list)
-      list.map do |name|
-        record = nil
-        begin
-          record = with_kube_exception_retries do
-            v1beta1_kubeclient.get_deployment(name, @namespace)
-          end
-        rescue KubeException => error
-          if error.error_code == 404
-            raise FatalRestartError, "Deployment `#{name}` not found in namespace `#{@namespace}`"
-          else
-            raise
-          end
-        end
-        record
       end
     end
 
@@ -181,10 +142,6 @@ module KubernetesDeploy
 
     def kubeclient
       @kubeclient ||= build_v1_kubeclient(@context)
-    end
-
-    def kubectl
-      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
     end
 
     def v1beta1_kubeclient

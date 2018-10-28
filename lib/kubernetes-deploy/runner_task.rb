@@ -30,8 +30,8 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing task")
-      validate_configuration(task_template, args)
-      pod = build_pod(task_template, entrypoint, args, env_vars, verify_result)
+      config = validate_configuration(task_template, entrypoint, args, env_vars, verify_result)
+      pod = build_pod(config.pod_definition)
       validate_pod(pod)
 
       @logger.phase_heading("Running pod")
@@ -54,6 +54,11 @@ module KubernetesDeploy
 
     private
 
+    def build_pod(pod_template)
+      Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
+        definition: pod_template.to_hash.deep_stringify_keys, statsd_tags: [])
+    end
+
     def create_pod(pod)
       @logger.info "Creating pod '#{pod.name}'"
       pod.deploy_started_at = Time.now.utc
@@ -64,20 +69,6 @@ module KubernetesDeploy
       msg = "Failed to create pod: #{e.class.name}: #{e.message}"
       @logger.summary.add_paragraph(msg)
       raise FatalDeploymentError, msg
-    end
-
-    def build_pod(template_name, entrypoint, args, env_vars, verify_result)
-      task_template = get_template(template_name)
-      @logger.info("Using template '#{template_name}'")
-      pod_template = build_pod_definition(task_template)
-      set_container_overrides!(pod_template, entrypoint, args, env_vars)
-      ensure_valid_restart_policy!(pod_template, verify_result)
-      Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
-                    definition: pod_template.to_hash.deep_stringify_keys, statsd_tags: [])
-    end
-
-    def validate_pod(pod)
-      pod.validate_definition(kubectl)
     end
 
     def watch_pod(pod)
@@ -98,71 +89,25 @@ module KubernetesDeploy
       @logger.summary.add_paragraph(warning)
     end
 
-    def validate_configuration(task_template, args)
+    def validate_configuration(task_template, entrypoint, args, env_vars, verify_result)
       @logger.info("Validating configuration")
 
       required = { task_template: task_template, args: args }
-      config = TaskValidator.new(@context, @namespace, required_args: required)
+      extra = { entrypoint: entrypoint, env_vars: env_vars, verify_result: verify_result }
+      config = TaskConfig.new(@context, @namespace, required_args: required, extra_config: extra)
+
       unless config.valid?
         record_result(@logger)
         raise TaskConfigurationError, config.error_sentence
       end
 
       @logger.info "Using namespace '#{@namespace}' in context '#{@context}'"
+      @logger.info("Using template '#{template_name}'")
+      config
     end
 
-    def get_template(template_name)
-      pod_template = with_kube_exception_retries { kubeclient.get_pod_template(template_name, @namespace) }
-      pod_template.template
-    rescue Kubeclient::ResourceNotFoundError
-        msg = "Pod template `#{template_name}` not found in namespace `#{@namespace}`, context `#{@context}`"
-        @logger.summary.add_paragraph(msg)
-        raise TaskTemplateMissingError, msg
-    rescue Kubeclient::HttpError => error
-      raise FatalKubeAPIError, "Error retrieving pod template: #{error}"
-    end
-
-    def build_pod_definition(base_template)
-      pod_definition = base_template.dup
-      pod_definition.kind = 'Pod'
-      pod_definition.apiVersion = 'v1'
-      pod_definition.metadata.namespace = @namespace
-
-      unique_name = pod_definition.metadata.name + "-" + SecureRandom.hex(8)
-      @logger.warn("Name is too long, using '#{unique_name[0..62]}'") if unique_name.length > 63
-      pod_definition.metadata.name = unique_name[0..62]
-
-      pod_definition
-    end
-
-    def set_container_overrides!(pod_definition, entrypoint, args, env_vars)
-      container = pod_definition.spec.containers.find { |cont| cont.name == 'task-runner' }
-      if container.nil?
-        raise TaskConfigurationError, "Pod spec does not contain a template container called 'task-runner'"
-      end
-
-      container.command = entrypoint
-      container.args = args
-
-      env_args = env_vars.map do |env|
-        key, value = env.split('=', 2)
-        { name: key, value: value }
-      end
-      container.env ||= []
-      container.env = container.env.map(&:to_h) + env_args
-    end
-
-    def ensure_valid_restart_policy!(template, verify)
-      restart_policy = template.spec.restartPolicy
-      if verify && restart_policy != "Never"
-        @logger.warn("Changed Pod RestartPolicy from '#{restart_policy}' to 'Never'. Disable "\
-          "result verification to use '#{restart_policy}'.")
-        template.spec.restartPolicy = "Never"
-      end
-    end
-
-    def kubectl
-      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+    def validate_pod(pod)
+      pod.validate_definition(kubectl)
     end
 
     def sync_mediator
@@ -171,6 +116,13 @@ module KubernetesDeploy
 
     def kubeclient
       @kubeclient ||= build_v1_kubeclient(@context)
+    end
+
+    def kubectl
+      @kubectl ||= begin
+        logger = KubernetesDeploy::FormattedLogger.build(@namespace, @context)
+        Kubectl.new(namespace: @namespace, context: @context, logger: logger, log_failure_by_default: true)
+      end
     end
   end
 end

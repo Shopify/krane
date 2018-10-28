@@ -1,9 +1,10 @@
-module KubernetesDeploy
-  class DeployTaskValidator < TaskValidator
+# frozen_string_literal: true
 
+module KubernetesDeploy
+  class DeployTaskConfig < TaskConfig
     private
 
-    def validate_extra_config
+    def validate_task_specifics
       validate_template_dir(@required_args[:template_dir])
       validate_namespace_protection(@extra_config[:protected_ns_allowed], @extra_config[:pruning_enabled])
     end
@@ -34,6 +35,5 @@ module KubernetesDeploy
         @errors << "Refusing to deploy to protected namespace '#{@namespace}'"
       end
     end
-
   end
 end
