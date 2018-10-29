@@ -15,6 +15,7 @@ module FixtureSetAssertions
       assert_poddisruptionbudget
       assert_bare_replicaset_up
       assert_all_service_accounts_up
+      assert_all_role_bindings_up
       assert_daemon_set_up
       assert_stateful_set_up
       assert_job_up
@@ -86,6 +87,10 @@ module FixtureSetAssertions
 
     def assert_all_service_accounts_up
       assert_service_account_present("build-robot")
+    end
+
+    def assert_all_role_bindings_up
+      assert_role_binding_present("role-binding")
     end
 
     def assert_daemon_set_up

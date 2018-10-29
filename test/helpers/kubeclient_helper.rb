@@ -41,4 +41,8 @@ module KubeclientHelper
   def autoscaling_v1_kubeclient
     @autoscaling_v1_kubeclient ||= build_autoscaling_v1_kubeclient(TEST_CONTEXT)
   end
+
+  def rbac_v1beta1_kubeclient
+    @rbac_v1beta1_kubeclient ||= build_rbac_v1beta1_kubeclient(TEST_CONTEXT)
+  end
 end

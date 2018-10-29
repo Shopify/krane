@@ -144,6 +144,12 @@ module FixtureSetAssertions
       assert desired.present?, "Service account #{name} does not exist"
     end
 
+    def assert_role_binding_present(name)
+      role_bindings = rbac_v1beta1_kubeclient.get_role_bindings(namespace: namespace)
+      desired = role_bindings.find { |sa| sa.metadata.name == name }
+      assert desired.present?, "Role binding #{name} does not exist"
+    end
+
     def assert_annotated(obj, annotation)
       annotations = obj.metadata.annotations.to_h.stringify_keys
       assert annotations.key?(annotation), "Expected secret to have annotation #{annotation}, but it did not"
