@@ -345,7 +345,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Failed to deploy 1 resource",
       "Deployment/web: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
-      "app: Failed to generate container configuration: secrets \"monitoring-token\" not found",
+      /app: Failed to generate container configuration: secrets? \"monitoring-token\" not found/,
       "Final status: 3 replicas, 3 updatedReplicas, 3 unavailableReplicas"
     ], in_order: true)
 
@@ -587,7 +587,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Timeout reason: ProgressDeadlineExceeded",
       /Latest ReplicaSet: missing-volumes-\w+/,
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
-      /FailedMount.*secrets "catphotoscom" not found/, # event
+      /FailedMount.*secrets? "catphotoscom" not found/, # event
     ], in_order: true)
 
     # Debug info for failure
