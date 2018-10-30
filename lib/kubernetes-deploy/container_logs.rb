@@ -72,6 +72,9 @@ module KubernetesDeploy
     def split_timestamped_line(log_line)
       timestamp, message = log_line.split(" ", 2)
       [Time.parse(timestamp), message]
+    rescue ArgumentError
+      # Don't fail on unparsable timestamp
+      [nil, log_line]
     end
 
     def likely_duplicate?(timestamp)
