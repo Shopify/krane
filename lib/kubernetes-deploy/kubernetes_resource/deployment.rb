@@ -10,7 +10,6 @@ module KubernetesDeploy
     def sync(mediator)
       super
       @latest_rs = exists? ? find_latest_rs(mediator) : nil
-      @server_version ||= mediator.kubectl.server_version
     end
 
     def status
