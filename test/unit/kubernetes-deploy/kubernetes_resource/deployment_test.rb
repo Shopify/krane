@@ -364,7 +364,8 @@ class DeploymentTest < KubernetesDeploy::TestCase
     result
   end
 
-  def build_synced_deployment(template:, replica_sets:, server_version: Gem::Version.new("1.8"))
+  def build_synced_deployment(template:, replica_sets:,
+    server_version: Gem::Version.new(KubernetesDeploy::MIN_KUBE_VERSION))
     deploy = KubernetesDeploy::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
     sync_mediator = build_sync_mediator
     sync_mediator.kubectl.expects(:run)

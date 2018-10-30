@@ -72,9 +72,6 @@ module KubernetesDeploy
     def split_timestamped_line(log_line)
       timestamp, message = log_line.split(" ", 2)
       [Time.parse(timestamp), message]
-    rescue ArgumentError
-      # If the log file can't be opened, k8s 1.8 writes an error message without a timestamp to stdout
-      [nil, log_line]
     end
 
     def likely_duplicate?(timestamp)

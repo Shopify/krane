@@ -75,7 +75,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * Each app managed by `kubernetes-deploy` must have its own exclusive Kubernetes namespace.
 
 <sup>1</sup> We run integration tests against these Kubernetes versions.
-Kubernetes v1.8 was officially supported in gem versions < 0.21. Kubernetes v1.7 was
+Kubernetes v1.8 was officially supported in gem versions < 0.22. Kubernetes v1.7 was
 officially supported in gem versions < 0.21. Kubernetes v1.6 was officially supported in gem
 versions < 0.16. Kubernetes v1.5 was officially supported in gem versions < 0.12.
 
