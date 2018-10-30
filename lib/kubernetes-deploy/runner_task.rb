@@ -164,7 +164,9 @@ module KubernetesDeploy
     def set_container_overrides!(pod_definition, entrypoint, args, env_vars)
       container = pod_definition.spec.containers.find { |cont| cont.name == 'task-runner' }
       if container.nil?
-        raise TaskConfigurationError, "Pod spec does not contain a template container called 'task-runner'"
+        message = "Pod spec does not contain a template container called 'task-runner'"
+        @logger.summary.add_paragraph(message)
+        raise TaskConfigurationError, message
       end
 
       container.command = entrypoint

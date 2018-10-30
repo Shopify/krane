@@ -206,6 +206,26 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     end
   end
 
+  def test_run_with_pod_spec_template_missing
+    deploy_task_template do |fixtures|
+      template = fixtures["template-runner.yml"]["PodTemplate"].first["template"]
+      template["spec"]["containers"].first["name"] = "bad-name"
+    end
+
+    task_runner = build_task_runner
+    assert_task_run_failure(task_runner.run(run_params))
+    message = "Pod spec does not contain a template container called 'task-runner'"
+
+    assert_raises_message(KubernetesDeploy::RunnerTask::TaskConfigurationError, message) do
+      task_runner.run!(run_params)
+    end
+
+    assert_logs_match_all([
+      "Result: FAILURE",
+      message
+    ], in_order: true)
+  end
+
   def test_run_adds_env_vars_provided_to_the_task_container
     deploy_task_template
 
