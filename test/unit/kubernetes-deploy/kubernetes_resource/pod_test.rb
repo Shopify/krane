@@ -94,25 +94,6 @@ class PodTest < KubernetesDeploy::TestCase
     assert_equal expected_msg.strip, pod.failure_message
   end
 
-  def test_deploy_failed_is_true_for_container_config_error_pre_18
-    container_state = {
-      "state" => {
-        "waiting" => {
-          "message" => "Generate Container Config Failed",
-          "reason" => "The reason it failed"
-        }
-      }
-    }
-    pod = build_synced_pod(build_pod_template(container_state: container_state))
-
-    assert pod.deploy_failed?
-    expected_msg = <<~STRING
-      The following containers encountered errors:
-      > hello-cloud: Failed to generate container configuration: The reason it failed
-    STRING
-    assert_equal expected_msg.strip, pod.failure_message
-  end
-
   def test_deploy_failed_is_true_for_crash_loop_backoffs
     container_state = {
       "lastState" => {

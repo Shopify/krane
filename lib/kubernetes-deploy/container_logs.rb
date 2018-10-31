@@ -73,7 +73,7 @@ module KubernetesDeploy
       timestamp, message = log_line.split(" ", 2)
       [Time.parse(timestamp), message]
     rescue ArgumentError
-      # If the log file can't be opened, k8s 1.8 writes an error message without a timestamp to stdout
+      # Don't fail on unparsable timestamp
       [nil, log_line]
     end
 

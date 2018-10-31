@@ -40,7 +40,6 @@ class StatefulSetTest < KubernetesDeploy::TestCase
     sync_mediator.kubectl.expects(:run).with("get", "Pod", "-a", "--output=json", anything).returns(
       ['{ "items": [] }', "", SystemExit.new(0)]
     )
-    sync_mediator.kubectl.expects(:server_version).returns(Gem::Version.new("1.8"))
     ss.sync(sync_mediator)
     ss
   end

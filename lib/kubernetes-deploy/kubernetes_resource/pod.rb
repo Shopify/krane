@@ -210,10 +210,6 @@ module KubernetesDeploy
           limbo_message.match(/(?:not found)|(?:back-off)/i)
           "Failed to pull image #{@image}. "\
           "Did you wait for it to be built and pushed to the registry before deploying?"
-        elsif limbo_message == "Generate Container Config Failed"
-          # reason/message are backwards in <1.8.0 (next condition used by 1.8.0+)
-          # Fixed by https://github.com/kubernetes/kubernetes/commit/df41787b1a3f51b73fb6db8a2203f0a7c7c92931
-          "Failed to generate container configuration: #{limbo_reason}"
         elsif limbo_reason == "CreateContainerConfigError"
           "Failed to generate container configuration: #{limbo_message}"
         end

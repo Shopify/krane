@@ -22,6 +22,6 @@ require 'kubernetes-deploy/duration_parser'
 require 'kubernetes-deploy/sync_mediator'
 
 module KubernetesDeploy
-  MIN_KUBE_VERSION = '1.8.0'
+  MIN_KUBE_VERSION = '1.9.0'
   KubernetesDeploy::StatsD.build
 end
