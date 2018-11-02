@@ -28,6 +28,7 @@ module KubernetesDeploy
     end
 
     def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: true)
+      start = Time.now.utc
       @logger.reset
 
       @logger.phase_heading("Initializing task")
@@ -44,11 +45,14 @@ module KubernetesDeploy
       else
         record_status_once(pod)
       end
+      ::StatsD.distribution('task_runner.duration', StatsD.duration(start), tags: statsd_tags('success'))
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
+      ::StatsD.distribution('task_runner.duration', StatsD.duration(start), tags: statsd_tags('timeout'))
       @logger.print_summary(:timed_out)
       raise
     rescue FatalDeploymentError
+      ::StatsD.distribution('task_runner.duration', StatsD.duration(start), tags: statsd_tags('failure'))
       @logger.print_summary(:failure)
       raise
     end
@@ -199,6 +203,10 @@ module KubernetesDeploy
 
     def kubeclient
       @kubeclient ||= build_v1_kubeclient(@context)
+    end
+
+    def statsd_tags(status)
+      %W(namespace:#{@namespace} context:#{@context} status:#{status})
     end
   end
 end

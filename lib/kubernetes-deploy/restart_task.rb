@@ -58,14 +58,14 @@ module KubernetesDeploy
         raise DeploymentTimeoutError
       end
       raise FatalDeploymentError unless success
-      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
+      ::StatsD.distribution('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
-      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('timeout', deployments))
+      ::StatsD.distribution('restart.duration', StatsD.duration(start), tags: tags('timeout', deployments))
       @logger.print_summary(:timed_out)
       raise
     rescue FatalDeploymentError => error
-      ::StatsD.measure('restart.duration', StatsD.duration(start), tags: tags('failure', deployments))
+      ::StatsD.distribution('restart.duration', StatsD.duration(start), tags: tags('failure', deployments))
       @logger.summary.add_action(error.message) if error.message != error.class.to_s
       @logger.print_summary(:failure)
       raise

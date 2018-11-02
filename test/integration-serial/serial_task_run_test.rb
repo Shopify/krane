@@ -19,6 +19,7 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     task_runner.instance_variable_set(:@kubeclient, mock)
 
     result = task_runner.run(run_params(verify_result: false))
+
     assert_task_run_failure(result)
 
     assert_logs_match_all([
