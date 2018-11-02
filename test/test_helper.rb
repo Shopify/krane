@@ -57,45 +57,48 @@ end
 
 module KubernetesDeploy
   class TestCase < ::Minitest::Test
-    def setup
-      if ban_net_connect?
-        Kubectl.any_instance.expects(:run).never
-        WebMock.disable_net_connect!
-      end
-      @logger_stream = StringIO.new
+    attr_reader :logger
 
+    def run
+      ban_net_connect? ? WebMock.disable_net_connect! : WebMock.allow_net_connect!
+      yield if block_given?
+      super
+    end
+
+    def setup
+      Kubectl.any_instance.expects(:run).never if ban_net_connect? # can't use mocha in Minitest::Test#run
+      configure_logger
+    end
+
+    def configure_logger
       if log_to_stderr?
         ColorizedString.disable_colorization = false
+
         # Allows you to view the integration test output as a series of tophat scenarios
-        <<~MESSAGE.each_line { |l| $stderr.puts l }
+        test_header = <<~MESSAGE
 
           \033[0;35m***************************************************************************
-           Begin test: #{name}
+          Begin test: #{name}
           ***************************************************************************\033[0m
 
         MESSAGE
+        test_header.each_line { |l| $stderr.puts l }
+        device = $stderr
       else
         ColorizedString.disable_colorization = true
+        @logger_stream = StringIO.new
+        device = @logger_stream
       end
+
+      @logger = KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::TEST_CONTEXT, device)
     end
 
     def ban_net_connect?
       true
     end
 
-    def logger
-      @logger ||= begin
-        device = log_to_stderr? ? $stderr : @logger_stream
-        KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::TEST_CONTEXT, device)
-      end
-    end
-
-    def teardown
-      @logger_stream.close
-    end
-
     def reset_logger
-      @logger = nil
+      return if log_to_stderr?
       # Flush StringIO buffer if not closed
       unless @logger_stream.closed?
         @logger_stream.truncate(0)

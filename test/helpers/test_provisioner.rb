@@ -17,13 +17,13 @@ class TestProvisioner
     end
 
     def claim_namespace(test_name)
-      test_name = test_name.gsub(/[^-a-z0-9]/, '-').slice(0, 36) # namespace name length must be <= 63 chars
-      ns = "k8sdeploy-#{test_name}-#{SecureRandom.hex(8)}"
-      create_namespace(ns)
-      ns
-    rescue KubeException => e
-      retry if e.to_s.include?("already exists")
-      raise
+      prefix = "k8sdeploy-"
+      suffix = "-#{SecureRandom.hex(8)}"
+      max_base_length = 63 - (prefix + suffix).length # namespace name length must be <= 63 chars
+      ns_name = prefix + test_name.gsub(/[^-a-z0-9]/, '-').slice(0, max_base_length) + suffix
+
+      create_namespace(ns_name)
+      ns_name
     end
 
     def delete_namespace(namespace)

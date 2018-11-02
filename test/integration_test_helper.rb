@@ -15,9 +15,7 @@ module KubernetesDeploy
     end
 
     def run
-      WebMock.allow_net_connect!
-      @namespace = TestProvisioner.claim_namespace(name)
-      super
+      super { @namespace = TestProvisioner.claim_namespace(name) }
     ensure
       TestProvisioner.delete_namespace(@namespace)
     end
