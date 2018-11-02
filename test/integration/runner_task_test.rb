@@ -216,7 +216,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_task_run_failure(task_runner.run(run_params))
     message = "Pod spec does not contain a template container called 'task-runner'"
 
-    assert_raises_message(KubernetesDeploy::RunnerTask::TaskConfigurationError, message) do
+    assert_raises_message(KubernetesDeploy::TaskConfigurationError, message) do
       task_runner.run!(run_params)
     end
 
