@@ -68,10 +68,11 @@ module KubernetesDeploy
     def setup
       Kubectl.any_instance.expects(:run).never if ban_net_connect? # can't use mocha in Minitest::Test#run
       configure_logger
+      @test_output_stream = StringIO.new
     end
 
     def configure_logger
-      if log_to_stderr?
+      if log_to_real_fds?
         ColorizedString.disable_colorization = false
 
         # Allows you to view the integration test output as a series of tophat scenarios
@@ -98,7 +99,7 @@ module KubernetesDeploy
     end
 
     def reset_logger
-      return if log_to_stderr?
+      return if log_to_real_fds?
       # Flush StringIO buffer if not closed
       unless @logger_stream.closed?
         @logger_stream.truncate(0)
@@ -107,7 +108,7 @@ module KubernetesDeploy
     end
 
     def assert_deploy_failure(result, cause = nil)
-      if log_to_stderr?
+      if log_to_real_fds?
         assert_equal false, result, "Deploy succeeded when it was expected to fail"
         return
       end
@@ -123,7 +124,7 @@ module KubernetesDeploy
     alias_method :assert_task_run_failure, :assert_deploy_failure
 
     def assert_deploy_success(result)
-      if log_to_stderr?
+      if log_to_real_fds?
         assert_equal true, result, "Deploy failed when it was expected to succeed"
         return
       end
@@ -135,6 +136,10 @@ module KubernetesDeploy
     end
     alias_method :assert_restart_success, :assert_deploy_success
     alias_method :assert_task_run_success, :assert_deploy_success
+
+    def assert_render_success(result)
+      assert_equal true, result, "Render failed when it was expected to succeed"
+    end
 
     def assert_logs_match(regexp, times = nil)
       logging_assertion do |logs|
@@ -217,18 +222,34 @@ module KubernetesDeploy
       obj
     end
 
+    def test_output_stream
+      if log_to_real_fds?
+        $stdout
+      else
+        @test_output_stream
+      end
+    end
+
     private
 
-    def log_to_stderr?
+    def log_to_real_fds?
       ENV["PRINT_LOGS"] == "1"
     end
 
     def logging_assertion
-      if log_to_stderr?
+      if log_to_real_fds?
         $stderr.puts("\033[0;33mWARNING: Skipping logging assertions while logs are redirected to stderr\033[0m")
       else
         @logger_stream.rewind
         yield @logger_stream.read
+      end
+    end
+
+    def stdout_assertion
+      if log_to_real_fds?
+        $stderr.puts("\033[0;33mWARNING: Skipping stream assertions while logs are redirected to stderr\033[0m")
+      else
+        yield @test_output_stream.string
       end
     end
   end
