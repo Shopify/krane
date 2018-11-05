@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'test_helper'
+require 'integration_test_helper'
 
 class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   include TaskRunnerTestHelper

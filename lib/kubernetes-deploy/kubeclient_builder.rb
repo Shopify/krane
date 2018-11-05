@@ -76,7 +76,7 @@ module KubernetesDeploy
       )
     end
 
-    def build_rbac_v1beta1_kubeclient(context)
+    def build_rbac_v1_kubeclient(context)
       _build_kubeclient(
         api_version: "v1",
         context: context,

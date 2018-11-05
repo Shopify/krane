@@ -16,7 +16,7 @@ contexts:
 - context:
     cluster: invalid
     user: test-user
-  name: docker-for-mac
+  name: docker-for-desktop
 kind: Config
 users:
 - name: test-user
