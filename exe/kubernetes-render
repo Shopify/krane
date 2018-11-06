@@ -18,7 +18,7 @@ ARGV.options do |opts|
 end
 
 template = ARGV[0]
-logger = KubernetesDeploy::FormattedLogger.build('test', 'test', verbose_prefix: false)
+logger = KubernetesDeploy::FormattedLogger.build(verbose_prefix: false)
 revision = KubernetesDeploy::OptionsHelper.revision_from_environment
 
 if !template || template.empty?
