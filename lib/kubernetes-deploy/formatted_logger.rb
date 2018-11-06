@@ -6,12 +6,24 @@ module KubernetesDeploy
   class FormattedLogger < Logger
     include DeferredSummaryLogging
 
-    def self.build(namespace, context, stream = $stderr, verbose_prefix: false)
+    def self.build(namespace = nil, context = nil, stream = $stderr, verbose_prefix: false)
       l = new(stream)
       l.level = level_from_env
 
+      middle = if verbose_prefix
+        if namespace.blank?
+          raise ArgumentError, 'Must pass a namespace if logging verbosely'
+        end
+        if context.blank?
+          raise ArgumentError, 'Must pass a context if logging verbosely'
+        end
+
+        "[#{context}][#{namespace}]"
+      else
+        ""
+      end
+
       l.formatter = proc do |severity, datetime, _progname, msg|
-        middle = verbose_prefix ? "[#{context}][#{namespace}]" : ""
         colorized_line = ColorizedString.new("[#{severity}][#{datetime}]#{middle}\t#{msg}\n")
 
         case severity
