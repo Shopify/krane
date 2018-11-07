@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module KubernetesDeploy
-  class ResourceDiscovery
+  class ClusterResourceDiscovery
     def initialize(namespace:, context:, logger:, namespace_tags:)
       @namespace = namespace
       @context = context

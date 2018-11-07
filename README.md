@@ -387,11 +387,21 @@ Based on this specification `kubernetes-run` will create a new pod with the entr
 
 ## Usage
 
-`kubernetes-render <template name>`
+To render all templates in your template dir, run:
+
+```
+kubernetes-render --template-dir=./path/to/template/dir
+```
+
+To render some templates in a template dir, run kubernetes-render with the names of the templates to render:
+
+```
+kubernetes-render --template-dir=./path/to/template/dir this-template.yaml.erb that-template.yaml.erb
+```
 
 *Options:*
 
-- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`.
+- `--template-dir=DIR`: Used to set the directory to interpret template names relative to. This is often the same directory passed as `--template-dir` when running `kubernetes-deploy` to actually deploy templates. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`.
 - `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-render --bindings=color=blue,size=large some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
 
 
