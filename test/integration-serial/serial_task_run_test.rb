@@ -19,7 +19,6 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     task_runner.instance_variable_set(:@kubeclient, mock)
 
     result = task_runner.run(run_params(verify_result: false))
-
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -28,5 +27,58 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
       "Failed to create pod",
       "Kubeclient::HttpError: Pod with same name exists"
     ], in_order: true)
+  end
+
+  # We can't ensure that all the metrics are specific test when they are running in parallel
+  # so we run them serially
+  def test_failure_statsd_metric_emitted
+    deploy_task_template
+    task_runner = build_task_runner
+
+    result = false
+    metrics = capture_statsd_calls do
+      result = task_runner.run(run_params.merge(args: ["/not/a/command"]))
+    end
+
+    assert_task_run_failure(result)
+
+    metric_tags = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }.tags
+    assert_includes metric_tags, "namespace:#{@namespace}"
+    assert_includes metric_tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
+    assert_includes metric_tags, "status:failure"
+  end
+
+  def test_success_statsd_metric_emitted
+    deploy_task_template
+    task_runner = build_task_runner
+
+    result = false
+    metrics = capture_statsd_calls do
+      result = task_runner.run(run_params.merge(args: %w(ls)))
+    end
+
+    assert_task_run_success(result)
+
+    metric_tags = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }.tags
+    assert_includes metric_tags, "namespace:#{@namespace}"
+    assert_includes metric_tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
+    assert_includes metric_tags, "status:success"
+  end
+
+  def test_timedout_statsd_metric_emitted
+    deploy_task_template
+    task_runner = build_task_runner(max_watch_seconds: 5)
+
+    result = false
+    metrics = capture_statsd_calls do
+      result = task_runner.run(run_params.merge(args: ["sleep 600"]))
+    end
+
+    assert_task_run_failure(result, :timed_out)
+
+    metric_tags = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }.tags
+    assert_includes metric_tags, "namespace:#{@namespace}"
+    assert_includes metric_tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
+    assert_includes metric_tags, "status:timeout"
   end
 end

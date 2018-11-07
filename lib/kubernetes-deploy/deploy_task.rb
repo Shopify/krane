@@ -150,7 +150,8 @@ module KubernetesDeploy
         @logger.phase_heading("Predeploying priority resources")
         start_priority_resource = Time.now.utc
         predeploy_priority_resources(resources)
-        ::StatsD.distribution('priority_resources.duration', StatsD.duration(start_priority_resource), tags: statsd_tags)
+        ::StatsD.distribution('priority_resources.duration', StatsD.duration(start_priority_resource),
+          tags: statsd_tags)
       end
 
       @logger.phase_heading("Deploying all resources")
