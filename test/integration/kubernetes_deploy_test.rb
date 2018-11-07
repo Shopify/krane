@@ -232,7 +232,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Template validation failed",
       /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
       "> Error message:",
-      /error validating data: .*myKey.* v1.ObjectMeta/,
+      /error validating data: .* (invalid|unknown) field "?myKey"? .*v1.ObjectMeta/,
       "> Template content:",
       "      myKey: uhOh"
     ], in_order: true)
