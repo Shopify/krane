@@ -69,7 +69,7 @@ module KubernetesDeploy
     def setup
       Kubectl.any_instance.expects(:run).never if ban_net_connect? # can't use mocha in Minitest::Test#run
       configure_logger
-      @test_output_stream = StringIO.new
+      @mock_output_stream = StringIO.new
     end
 
     def configure_logger
@@ -109,38 +109,24 @@ module KubernetesDeploy
     end
 
     def assert_deploy_failure(result, cause = nil)
-      if log_to_real_fds?
-        assert_equal false, result, "Deploy succeeded when it was expected to fail"
-        return
-      end
-
+      assert_equal false, result, "Deploy succeeded when it was expected to fail.#{logs_message_if_captured}"
       logging_assertion do |logs|
         cause_string = cause == :timed_out ? "TIMED OUT" : "FAILURE"
         assert_match Regexp.new("Result: #{cause_string}"), logs,
           "'Result: #{cause_string}' not found in the following logs:\n#{logs}"
-        assert_equal false, result, "Deploy succeeded when it was expected to fail. Logs:\n#{logs}"
       end
     end
     alias_method :assert_restart_failure, :assert_deploy_failure
     alias_method :assert_task_run_failure, :assert_deploy_failure
 
     def assert_deploy_success(result)
-      if log_to_real_fds?
-        assert_equal true, result, "Deploy failed when it was expected to succeed"
-        return
-      end
-
+      assert_equal true, result, "Deploy failed when it was expected to succeed.#{logs_message_if_captured}"
       logging_assertion do |logs|
-        assert_equal true, result, "Deploy failed when it was expected to succeed. Logs:\n#{logs}"
         assert_match Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}"
       end
     end
     alias_method :assert_restart_success, :assert_deploy_success
     alias_method :assert_task_run_success, :assert_deploy_success
-
-    def assert_render_success(result)
-      assert_equal true, result, "Render failed when it was expected to succeed"
-    end
 
     def assert_logs_match(regexp, times = nil)
       logging_assertion do |logs|
@@ -219,11 +205,17 @@ module KubernetesDeploy
       obj
     end
 
-    def test_output_stream
+    def logs_message_if_captured
+      unless log_to_real_fds?
+        " Logs:\n#{@logger_stream.string}"
+      end
+    end
+
+    def mock_output_stream
       if log_to_real_fds?
         $stdout
       else
-        @test_output_stream
+        @mock_output_stream
       end
     end
 
@@ -246,7 +238,7 @@ module KubernetesDeploy
       if log_to_real_fds?
         $stderr.puts("\033[0;33mWARNING: Skipping stream assertions while logs are redirected to stderr\033[0m")
       else
-        yield @test_output_stream.string
+        yield @mock_output_stream.string
       end
     end
   end

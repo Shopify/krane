@@ -38,7 +38,8 @@ require 'kubernetes-deploy/kubectl'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
-require 'kubernetes-deploy/resource_discovery'
+require 'kubernetes-deploy/cluster_resource_discovery'
+require 'kubernetes-deploy/template_discovery'
 
 module KubernetesDeploy
   class DeployTask
@@ -184,7 +185,7 @@ module KubernetesDeploy
     private
 
     def cluster_resource_discoverer
-      @cluster_resource_discoverer ||= ResourceDiscovery.new(
+      @cluster_resource_discoverer ||= ClusterResourceDiscovery.new(
         namespace: @namespace,
         context: @context,
         logger: @logger,
@@ -255,9 +256,7 @@ module KubernetesDeploy
       resources = []
       @logger.info("Discovering templates:")
 
-      Dir.foreach(@template_dir) do |filename|
-        next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
-
+      TemplateDiscovery.new(@template_dir).templates.each do |filename|
         split_templates(filename) do |r_def|
           r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
                                        definition: r_def, statsd_tags: @namespace_tags)

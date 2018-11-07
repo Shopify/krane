@@ -17,15 +17,9 @@ ARGV.options do |opts|
   opts.parse!
 end
 
-template = ARGV[0]
+templates = ARGV
 logger = KubernetesDeploy::FormattedLogger.build(verbose_prefix: false)
 revision = KubernetesDeploy::OptionsHelper.revision_from_environment
-
-if !template || template.empty?
-  puts "A template must be provided as an argument to the program."
-  puts "Usage: kubernetes-render [--bindings=bindings...] [--template-dir=DIR] <template>"
-  exit 1
-end
 
 runner = KubernetesDeploy::RenderTask.new(
   logger: logger,
@@ -34,5 +28,5 @@ runner = KubernetesDeploy::RenderTask.new(
   bindings: bindings,
 )
 
-success = runner.run(template, STDOUT)
+success = runner.run(STDOUT, templates)
 exit 1 unless success
