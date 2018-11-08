@@ -29,21 +29,22 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   end
 
-  # We can't ensure that all the metrics are specific test when they are running in parallel
-  # so we run them serially
+  # Run statsd tests in serial because capture_statsd_calls modifies global state in a way
+  # that makes capturing metrics across parrallel runs unreliable
   def test_failure_statsd_metric_emitted
-    deploy_task_template
-    task_runner = build_task_runner
+    bad_ns = "missing"
+    task_runner = build_task_runner(ns: bad_ns)
 
     result = false
     metrics = capture_statsd_calls do
-      result = task_runner.run(run_params.merge(args: ["/not/a/command"]))
+      result = task_runner.run(run_params)
     end
 
     assert_task_run_failure(result)
 
-    metric_tags = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }.tags
-    assert_includes metric_tags, "namespace:#{@namespace}"
+    metric = metrics.detect { |m| m.tags.include? "namespace:#{bad_ns}" }
+    assert metric, "No metrics found for this test"
+    metric_tags = metric.tags
     assert_includes metric_tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
     assert_includes metric_tags, "status:failure"
   end
@@ -54,30 +55,32 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
 
     result = false
     metrics = capture_statsd_calls do
-      result = task_runner.run(run_params.merge(args: %w(ls)))
+      result = task_runner.run(run_params.merge(verify_result: false))
     end
 
     assert_task_run_success(result)
 
-    metric_tags = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }.tags
-    assert_includes metric_tags, "namespace:#{@namespace}"
+    metric = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }
+    assert metric, "No metrics found for this test"
+    metric_tags = metric.tags
     assert_includes metric_tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
     assert_includes metric_tags, "status:success"
   end
 
   def test_timedout_statsd_metric_emitted
     deploy_task_template
-    task_runner = build_task_runner(max_watch_seconds: 5)
+    task_runner = build_task_runner(max_watch_seconds: 0)
 
     result = false
     metrics = capture_statsd_calls do
-      result = task_runner.run(run_params.merge(args: ["sleep 600"]))
+      result = task_runner.run(run_params.merge(args: ["sleep 5"]))
     end
 
     assert_task_run_failure(result, :timed_out)
 
-    metric_tags = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }.tags
-    assert_includes metric_tags, "namespace:#{@namespace}"
+    metric = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }
+    assert metric, "No metrics found for this test"
+    metric_tags = metric.tags
     assert_includes metric_tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
     assert_includes metric_tags, "status:timeout"
   end
