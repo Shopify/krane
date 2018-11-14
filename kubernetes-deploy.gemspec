@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "googleauth", "~> 0.6.6" # https://github.com/google/google-auth-library-ruby/issues/153
   spec.add_dependency "ejson", "~> 1.0"
   spec.add_dependency "colorize", "~> 0.8"
-  spec.add_dependency "statsd-instrument", "~> 2.2"
+  spec.add_dependency "statsd-instrument", "~> 2.3"
 
   spec.add_development_dependency "bundler"
   spec.add_development_dependency "rake", "~> 10.0"
