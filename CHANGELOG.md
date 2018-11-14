@@ -1,3 +1,13 @@
+## 0.22.0
+
+*Features*
+- **[Breaking change]** `kubernetes-restart` now produces StatsD `distribution` instead of `metric`.
+Dashboards that used these metrics will need to be updated. ([#374](https://github.com/Shopify/kubernetes-deploy/pull/374))
+- `kubernetes-run` now produces StatsD `distribution` to aid in tracking usage ([#374](https://github.com/Shopify/kubernetes-deploy/pull/374))
+
+*Enhancements*
+- Predeploy RoleBinding before unmanaged pods ([#354](https://github.com/Shopify/kubernetes-deploy/pull/354))
+
 ## 0.21.1
 
 *Enhancements*
