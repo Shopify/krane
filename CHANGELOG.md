@@ -1,3 +1,21 @@
+## 0.22.0
+
+*Features*
+- **[Breaking change]** `kubernetes-restart` now produces StatsD `distribution` instead of `metric`.
+Dashboards that used these metrics will need to be updated. ([#374](https://github.com/Shopify/kubernetes-deploy/pull/374))
+- `kubernetes-run` now produces StatsD `distribution` to aid in tracking usage ([#374](https://github.com/Shopify/kubernetes-deploy/pull/374))
+
+*Enhancements*
+- Predeploy RoleBinding before unmanaged pods ([#354](https://github.com/Shopify/kubernetes-deploy/pull/354))
+
+*Bug Fixes*
+- Fixed bug in `kubernetes-restart` that caused "Pod spec does not contain a template
+ container called 'task-runner'" error message to not be printed
+ ([#371](https://github.com/Shopify/kubernetes-deploy/pull/371))
+
+*Other*
+- Kubernetes 1.8 is no longer officially supported as of this version
+
 ## 0.21.1
 
 *Enhancements*
