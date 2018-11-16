@@ -44,7 +44,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     refute fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment"
 
     restart = build_restart_task
-    assert_restart_success(restart.perform(["web"]))
+    assert_restart_success(restart.perform(%w(web)))
 
     assert_logs_match_all([
       "Configured to restart deployments by name: web",
@@ -61,7 +61,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert first_restarted_at, "RESTARTED_AT is present after first restart"
 
     Timecop.freeze(1.second.from_now) do
-      assert_restart_success(restart.perform(["web"]))
+      assert_restart_success(restart.perform(%w(web)))
     end
 
     second_restarted_at = fetch_restarted_at("web")
@@ -91,7 +91,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
   def test_restart_not_existing_deployment
     restart = build_restart_task
-    assert_restart_failure(restart.perform(["web"]))
+    assert_restart_failure(restart.perform(%w(web)))
     assert_logs_match_all([
       "Configured to restart deployments by name: web",
       "Result: FAILURE",
@@ -131,7 +131,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       namespace: @namespace,
       logger: logger
     )
-    assert_restart_failure(restart.perform(["web"]))
+    assert_restart_failure(restart.perform(%w(web)))
     assert_logs_match_all([
       "Result: FAILURE",
       "`walrus` context must be configured in your kubeconfig file(s)"
@@ -145,7 +145,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       namespace: "walrus",
       logger: logger
     )
-    assert_restart_failure(restart.perform(["web"]))
+    assert_restart_failure(restart.perform(%w(web)))
     assert_logs_match_all([
       "Result: FAILURE",
       "Namespace `walrus` not found in context `#{TEST_CONTEXT}`"
@@ -203,7 +203,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(result)
 
     restart = build_restart_task
-    assert_restart_success(restart.perform(["web"]))
+    assert_restart_success(restart.perform(%w(web)))
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=slow-cloud')
     new_pods = pods.select do |pod|
