@@ -268,7 +268,7 @@ module KubernetesDeploy
     def split_templates(filename)
       file_content = File.read(File.join(@template_dir, filename))
       rendered_content = @renderer.render_template(filename, file_content)
-      YAML.load_stream(rendered_content) do |doc|
+      YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
         next if doc.blank?
         unless doc.is_a?(Hash)
           raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
