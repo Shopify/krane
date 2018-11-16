@@ -9,3 +9,8 @@ Style/TrailingCommaInArrayLiteral:
 
 Style/TrailingCommaInHashLiteral:
   Enabled: false
+
+Naming/FileName:
+  Enabled: true
+  Exclude:
+    - lib/kubernetes-deploy.rb
