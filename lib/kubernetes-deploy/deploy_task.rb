@@ -275,46 +275,27 @@ module KubernetesDeploy
       crds = cluster_resource_discoverer.crds.group_by(&:kind)
       @logger.info("Discovering templates:")
 
-      TemplateDiscovery.new(@template_dir).templates.each do |filename|
-        split_templates(filename) do |r_def|
-          crd = crds[r_def["kind"]]&.first
-          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-            statsd_tags: @namespace_tags, crd: crd)
-          resources << r
-          @logger.info("  - #{r.id}")
-        end
+      template_discoverer = TemplateDiscovery.new(namespace: @namespace, context: @context, logger: @logger,
+        namespace_tags: @namespace_tags)
+      template_discoverer.resources(@template_dir, @renderer, crds).each do |r|
+        resources << r
+        @logger.info("  - #{r.id}")
       end
       secrets_from_ejson.each do |secret|
         resources << secret
         @logger.info("  - #{secret.id} (from ejson)")
       end
+
       if (global = resources.select(&:global?).presence)
         @logger.warn("Detected non-namespaced #{'resource'.pluralize(global.count)} which will never be pruned:")
         global.each { |r| @logger.warn("  - #{r.id}") }
       end
       resources.sort
+    rescue InvalidTemplateError => e
+      record_invalid_template(err: e.message, filename: e.filename, content: e.content)
+      raise FatalDeploymentError, "Failed to render and parse template: #{e}"
     end
     measure_method(:discover_resources)
-
-    def split_templates(filename)
-      file_content = File.read(File.join(@template_dir, filename))
-      rendered_content = @renderer.render_template(filename, file_content)
-      YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
-        next if doc.blank?
-        unless doc.is_a?(Hash)
-          raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
-            filename: filename, content: doc)
-        end
-        yield doc
-      end
-    rescue InvalidTemplateError => e
-      e.filename ||= filename
-      record_invalid_template(err: e.message, filename: e.filename, content: e.content)
-      raise FatalDeploymentError, "Failed to render and parse template"
-    rescue Psych::SyntaxError => e
-      record_invalid_template(err: e.message, filename: filename, content: rendered_content)
-      raise FatalDeploymentError, "Failed to render and parse template"
-    end
 
     def record_invalid_template(err:, filename:, content: nil)
       debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red

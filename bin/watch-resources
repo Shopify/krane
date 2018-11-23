@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'optparse'
+$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+require 'kubernetes-deploy'
+require 'kubernetes-deploy/watch_only_task'
+
+bindings = {}
+template_dir = nil
+
+ARGV.options do |opts|
+  opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
+    "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") do |binds|
+    bindings.merge!(KubernetesDeploy::BindingsParser.parse(binds))
+  end
+  opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
+
+  opts.on_tail("-h", "--help", "Print this help") do
+    puts opts
+    exit
+  end
+  opts.parse!
+end
+
+namespace = ARGV[0]
+context = ARGV[1]
+logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
+
+KubernetesDeploy::WatchOnlyTask.new(
+  namespace: namespace,
+  context: context,
+  template_dir: template_dir,
+  bindings: bindings,
+  logger: logger,
+  sha: ENV["REVISION"]
+).run

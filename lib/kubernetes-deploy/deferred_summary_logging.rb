@@ -36,15 +36,19 @@ module KubernetesDeploy
     # Outputs the deferred summary information saved via @logger.summary.add_action and @logger.summary.add_paragraph
     def print_summary(status)
       status_string = status.to_s.humanize.upcase
-      if status == :success
+      case status
+      when :success
         heading("Result: ", status_string, :green)
         level = :info
-      elsif status == :timed_out
+      when :timed_out
         heading("Result: ", status_string, :yellow)
         level = :fatal
-      else
+      when :fatal
         heading("Result: ", status_string, :red)
         level = :fatal
+      else
+        heading("Result: ", status_string, :magenta)
+        level = :info
       end
 
       if (actions_sentence = summary.actions_sentence.presence)

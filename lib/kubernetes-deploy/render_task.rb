@@ -29,7 +29,8 @@ module KubernetesDeploy
       @logger.phase_heading("Initializing render task")
 
       filenames = if only_filenames.empty?
-        TemplateDiscovery.new(@template_dir).templates
+        discovery = TemplateDiscovery.new(namespace: @namespace, context: @context, logger: @logger)
+        discovery.templates_from_dir(@template_dir)
       else
         only_filenames
       end
