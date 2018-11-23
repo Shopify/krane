@@ -32,12 +32,10 @@ module KubernetesDeploy
       private
 
       def json_error_message(body)
-        json_error_msg = begin
-          JSON.parse(body || '') || {}
-        rescue JSON::ParserError
-          {}
-        end
-        json_error_msg['message']
+        err = JSON.parse(body || '') || {}
+        err['message']
+      rescue JSON::ParserError
+        nil
       end
     end
   end
