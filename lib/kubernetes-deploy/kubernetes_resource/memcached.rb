@@ -12,6 +12,10 @@ module KubernetesDeploy
       @configmap = mediator.get_instance(ConfigMap.kind, CONFIGMAP_NAME)
     end
 
+    def sync_dependencies
+      SYNC_DEPENDENCIES
+    end
+
     def status
       deploy_succeeded? ? "Provisioned" : "Unknown"
     end

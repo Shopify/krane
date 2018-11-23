@@ -14,10 +14,13 @@ module KubernetesDeploy
             logger: logger, statsd_tags: statsd_tags)
     end
 
-    SYNC_DEPENDENCIES = %w(Pod)
     def sync(mediator)
       super
-      @pods = exists? ? find_pods(mediator) : []
+      @pods = huge_pod_set? ? [] : find_pods(mediator)
+    end
+
+    def sync_dependencies
+      huge_pod_set? ? [] : %w(Pod)
     end
 
     def status
@@ -41,6 +44,7 @@ module KubernetesDeploy
       return -1 unless exists?
       @instance_data["spec"]["replicas"].to_i
     end
+    alias_method :pods_desired, :desired_replicas
 
     def ready_replicas
       return -1 unless exists?

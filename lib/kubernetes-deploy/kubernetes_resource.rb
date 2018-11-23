@@ -128,6 +128,10 @@ module KubernetesDeploy
       @instance_data = {}
     end
 
+    def sync_dependencies
+      []
+    end
+
     def after_sync
     end
 

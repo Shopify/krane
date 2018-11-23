@@ -5,10 +5,13 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     attr_reader :pods
 
-    SYNC_DEPENDENCIES = %w(Pod)
     def sync(mediator)
       super
-      @pods = exists? ? find_pods(mediator) : []
+      @pods = huge_pod_set? ? [] : find_pods(mediator)
+    end
+
+    def sync_dependencies
+      huge_pod_set? ? [] : %w(Pod)
     end
 
     def status
@@ -18,7 +21,7 @@ module KubernetesDeploy
 
     def deploy_succeeded?
       return false unless exists?
-      rollout_data["desiredNumberScheduled"].to_i == rollout_data["updatedNumberScheduled"].to_i &&
+      desired_pods == rollout_data["updatedNumberScheduled"].to_i &&
       rollout_data["desiredNumberScheduled"].to_i == rollout_data["numberReady"].to_i &&
       current_generation == observed_generation
     end
@@ -38,6 +41,10 @@ module KubernetesDeploy
     end
 
     private
+
+    def pods_desired
+      rollout_data["desiredNumberScheduled"].to_i
+    end
 
     def rollout_data
       return { "currentNumberScheduled" => 0 } unless exists?

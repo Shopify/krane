@@ -10,6 +10,10 @@ module KubernetesDeploy
       @related_pods = selector.present? ? mediator.get_all(Pod.kind, selector) : []
     end
 
+    def sync_dependencies
+      SYNC_DEPENDENCIES
+    end
+
     def status
       if !exists?
         "Not found"

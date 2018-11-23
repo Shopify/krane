@@ -6,10 +6,13 @@ module KubernetesDeploy
     ONDELETE = 'OnDelete'
     attr_reader :pods
 
-    SYNC_DEPENDENCIES = %w(Pod)
     def sync(mediator)
       super
-      @pods = exists? ? find_pods(mediator) : []
+      @pods = huge_pod_set? ? [] : find_pods(mediator)
+    end
+
+    def sync_dependencies
+      huge_pod_set? ? [] : %w(Pod)
     end
 
     def status
@@ -61,6 +64,7 @@ module KubernetesDeploy
       return -1 unless exists?
       @instance_data["spec"]["replicas"].to_i
     end
+    alias_method :pods_desired, :desired_replicas
 
     def parent_of_pod?(pod_data)
       return false unless pod_data.dig("metadata", "ownerReferences")

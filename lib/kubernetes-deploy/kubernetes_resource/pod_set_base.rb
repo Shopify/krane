@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class PodSetBase < KubernetesResource
+    HUGE_SET_THRESHOLD = 50
+
     def failure_message
       pods.map(&:failure_message).compact.uniq.join("\n")
     end
@@ -27,6 +29,15 @@ module KubernetesDeploy
     end
 
     private
+
+    def huge_pod_set?
+      return true unless exists?
+      pods_desired >= HUGE_SET_THRESHOLD
+    end
+
+    def pods_desired
+      raise NotImplementedError, "Subclasses must define `pod_desired`"
+    end
 
     def pods
       raise NotImplementedError, "Subclasses must define a `pods` accessor"

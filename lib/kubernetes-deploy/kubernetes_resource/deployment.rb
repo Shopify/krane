@@ -5,11 +5,15 @@ module KubernetesDeploy
     REQUIRED_ROLLOUT_ANNOTATION = 'kubernetes-deploy.shopify.io/required-rollout'
     REQUIRED_ROLLOUT_TYPES = %w(maxUnavailable full none).freeze
     DEFAULT_REQUIRED_ROLLOUT = 'full'
+    HUGE_DEPLOYMENT_THRESHOLD = 50
 
-    SYNC_DEPENDENCIES = %w(Pod ReplicaSet)
     def sync(mediator)
       super
       @latest_rs = exists? ? find_latest_rs(mediator) : nil
+    end
+
+    def sync_dependencies
+      huge_deployment? ? [] : %w(Pod ReplicaSet)
     end
 
     def status
@@ -100,6 +104,10 @@ module KubernetesDeploy
     end
 
     private
+
+    def huge_deployment?
+      desired_replicas > HUGE_DEPLOYMENT_THRESHOLD
+    end
 
     def current_generation
       return -2 unless exists? # different default than observed

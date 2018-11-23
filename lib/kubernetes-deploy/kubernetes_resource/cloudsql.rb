@@ -10,6 +10,10 @@ module KubernetesDeploy
       @proxy_service = mediator.get_instance(Service.kind, "cloudsql-#{@name}")
     end
 
+    def sync_dependencies
+      SYNC_DEPENDENCIES
+    end
+
     def status
       deploy_succeeded? ? "Provisioned" : "Unknown"
     end

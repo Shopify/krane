@@ -15,6 +15,10 @@ module KubernetesDeploy
       @service = mediator.get_instance(Service.kind, deprecated_name) if @service.empty?
     end
 
+    def sync_dependencies
+      SYNC_DEPENDENCIES
+    end
+
     def status
       deploy_succeeded? ? "Provisioned" : "Unknown"
     end
