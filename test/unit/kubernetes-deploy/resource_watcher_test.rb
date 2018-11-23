@@ -116,7 +116,29 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     assert_raises(KubernetesDeploy::DeploymentTimeoutError) { watcher.run(delay_sync: 0.01) }
   end
 
+  def test_behaviour_with_huge_set_of_resources
+    watcher = build_watcher_for_resources_in_dir(fixture_path('huge_set'))
+    KubernetesDeploy::Deployment.any_instance.stubs(:deploy_succeeded? => true,  :exists? => true) # only do one sync cycle
+    KubernetesDeploy::Service.any_instance.stubs(:deploy_succeeded? => true,  :exists? => true) # only do one sync cycle
+
+    # we should only make each of these calls once
+    empty_set = { items: [] }
+    stub_kubectl_response("get", "Pod", "-a", "--output=json", resp: empty_set, times: 1)
+    stub_kubectl_response("get", "ReplicaSet", "-a", "--output=json", resp: empty_set, times: 1)
+    stub_kubectl_response("get", "Deployment", "-a", "--output=json", resp: empty_set, times: 1)
+    stub_kubectl_response("get", "Service", "-a", "--output=json", resp: empty_set, times: 1)
+
+    watcher.run(delay_sync: 0.1)
+  end
+
   private
+
+  def build_watcher_for_resources_in_dir(template_dir)
+    renderer = KubernetesDeploy::Renderer.new(current_sha: '123', template_dir: template_dir, logger: logger)
+    discovery = KubernetesDeploy::ResourceDiscovery.new(namespace: 'test', context: 'minikube', logger: logger)
+    resources = discovery.from_templates(template_dir, renderer)
+    build_watcher(resources)
+  end
 
   def build_watcher(resources)
     sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)

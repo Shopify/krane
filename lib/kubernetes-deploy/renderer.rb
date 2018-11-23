@@ -27,6 +27,12 @@ module KubernetesDeploy
       @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
     end
 
+    def render_files(filenames)
+      filenames.flat_map do |filename|
+        split_templates(filename)
+      end
+    end
+
     def render_template(filename, raw_template)
       return raw_template unless File.extname(filename) == ".erb"
 
@@ -71,6 +77,42 @@ module KubernetesDeploy
     end
 
     private
+
+    def split_templates(filename)
+      results = []
+      file_content = File.read(File.join(@template_dir, filename))
+      rendered_content = render_template(filename, file_content)
+
+      YAML.load_stream(rendered_content) do |doc|
+        next if doc.blank?
+        unless doc.is_a?(Hash)
+          raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
+            filename: filename, content: doc)
+        end
+        results << doc
+      end
+
+      results
+    rescue InvalidTemplateError => e
+      e.filename ||= filename
+      record_invalid_template(err: e.message, filename: e.filename, content: e.content)
+      raise FatalDeploymentError, "Failed to render and parse template: #{e}"
+    rescue Psych::SyntaxError => e
+      record_invalid_template(err: e.message, filename: filename, content: rendered_content)
+      raise FatalDeploymentError, "Failed to render and parse template: #{e}"
+    end
+
+    def record_invalid_template(err:, filename:, content:)
+      debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
+      debug_msg += "> Error message:\n#{indent_four(err)}"
+      debug_msg += "\n> Template content:\n#{indent_four(content)}"
+      @logger.summary.add_paragraph(debug_msg)
+    end
+
+    def indent_four(str)
+      return "" unless str.present?
+      "    " + str.gsub("\n", "\n    ")
+    end
 
     def template_variables
       {
