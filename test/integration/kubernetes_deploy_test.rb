@@ -1085,6 +1085,21 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
+  # def test_behaviour_with_huge_set_of_resources
+  #   watcher = build_watcher_for_resources_in_dir(fixture_path('huge_set'))
+  #   KubernetesDeploy::Deployment.any_instance.stubs(:deploy_succeeded?).returns(true) # only do one sync cycle
+  #   KubernetesDeploy::Service.any_instance.stubs(:deploy_succeeded?).returns(true) # only do one sync cycle
+  #
+  #   # we should only make each of these calls once
+  #   empty_set = { items: [] }
+  #   stub_kubectl_response("get", "Pod", "-a", "--output=json", resp: empty_set, times: 1)
+  #   stub_kubectl_response("get", "ReplicaSet", "-a", "--output=json", resp: empty_set, times: 1)
+  #   stub_kubectl_response("get", "Deployment", "-a", "--output=json", resp: empty_set, times: 1)
+  #   stub_kubectl_response("get", "Service", "-a", "--output=json", resp: empty_set, times: 1)
+  #
+  #   watcher.run(delay_sync: 0.1)
+  # end
+
   private
 
   def expected_daemonset_pod_count

@@ -7,6 +7,7 @@ module KubernetesDeploy
       @namespace = namespace
       @context = context
       @logger = logger
+      @mutexes = { mutex: Mutex.new }
       clear_cache
     end
 
@@ -23,7 +24,7 @@ module KubernetesDeploy
     end
 
     def get_all(kind, selector = nil)
-      fetch_by_kind(kind) unless @cache.key?(kind)
+      serial_fetch_by_kind(kind)
       instances = @cache.fetch(kind, {}).values
       return instances unless selector
 
@@ -54,6 +55,16 @@ module KubernetesDeploy
     end
 
     private
+
+    def serial_fetch_by_kind(kind)
+      @mutexes[:mutex].synchronize do
+        @mutexes[kind] ||= Mutex.new
+      end
+
+      @mutexes[kind].synchronize do
+        fetch_by_kind(kind) unless @cache.key?(kind)
+      end
+    end
 
     def clear_cache
       @cache = {}
