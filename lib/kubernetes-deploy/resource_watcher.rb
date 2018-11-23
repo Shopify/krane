@@ -26,7 +26,6 @@ module KubernetesDeploy
 
         @sync_mediator.sync(remainder)
         remainder.each(&:after_sync)
-
         new_successes, remainder = remainder.partition(&:deploy_succeeded?)
         new_failures, remainder = remainder.partition(&:deploy_failed?)
         new_timeouts, remainder = remainder.partition(&:deploy_timed_out?)

@@ -38,7 +38,6 @@ require 'kubernetes-deploy/kubectl'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
-require 'kubernetes-deploy/resource_discovery'
 
 module KubernetesDeploy
   class DeployTask
@@ -86,7 +85,7 @@ module KubernetesDeploy
         policy/v1beta1/PodDisruptionBudget
         batch/v1beta1/CronJob
       )
-      wl + cluster_resource_discoverer.crds(@sync_mediator).select(&:prunable?).map(&:group_version_kind)
+      wl + resource_discoverer.crds(@sync_mediator).select(&:prunable?).map(&:group_version_kind)
     end
 
     def server_version
@@ -183,8 +182,8 @@ module KubernetesDeploy
 
     private
 
-    def cluster_resource_discoverer
-      @cluster_resource_discoverer ||= ResourceDiscovery.new(
+    def resource_discoverer
+      @resource_discoverer ||= ResourceDiscovery.new(
         namespace: @namespace,
         context: @context,
         logger: @logger,
@@ -251,46 +250,22 @@ module KubernetesDeploy
     measure_method(:create_ejson_secrets)
 
     def discover_resources
-      resources = []
       @logger.info("Discovering templates:")
-
-      Dir.foreach(@template_dir) do |filename|
-        next unless filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb")
-
-        split_templates(filename) do |r_def|
-          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
-                                       definition: r_def, statsd_tags: @namespace_tags)
-          resources << r
-          @logger.info "  - #{r.id}"
-        end
+      resources = resource_discoverer.from_templates(@template_dir, @renderer)
+      resources.each do |r|
+        @logger.info "  - #{r.id}"
       end
+
       if (global = resources.select(&:global?).presence)
         @logger.warn("Detected non-namespaced #{'resource'.pluralize(global.count)} which will never be pruned:")
         global.each { |r| @logger.warn("  - #{r.id}") }
       end
       resources
+    rescue InvalidTemplateError => e
+      record_invalid_template(err: e.message, filename: e.filename, content: e.content)
+      raise FatalDeploymentError, "Failed to render and parse template: #{e}"
     end
     measure_method(:discover_resources)
-
-    def split_templates(filename)
-      file_content = File.read(File.join(@template_dir, filename))
-      rendered_content = @renderer.render_template(filename, file_content)
-      YAML.load_stream(rendered_content) do |doc|
-        next if doc.blank?
-        unless doc.is_a?(Hash)
-          raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
-            filename: filename, content: doc)
-        end
-        yield doc
-      end
-    rescue InvalidTemplateError => e
-      e.filename ||= filename
-      record_invalid_template(err: e.message, filename: e.filename, content: e.content)
-      raise FatalDeploymentError, "Failed to render and parse template"
-    rescue Psych::SyntaxError => e
-      record_invalid_template(err: e.message, filename: filename, content: rendered_content)
-      raise FatalDeploymentError, "Failed to render and parse template"
-    end
 
     def record_invalid_template(err:, filename:, content:)
       debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
@@ -300,6 +275,7 @@ module KubernetesDeploy
     end
 
     def indent_four(str)
+      return "" unless str.present?
       "    " + str.gsub("\n", "\n    ")
     end
 

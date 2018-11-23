@@ -1,0 +1,76 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'optparse'
+$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+require 'kubernetes-deploy'
+
+bindings = {}
+template_dir = nil
+
+ARGV.options do |opts|
+  opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
+    "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") do |binds|
+    bindings.merge!(KubernetesDeploy::BindingsParser.parse(binds))
+  end
+  opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
+
+  opts.on_tail("-h", "--help", "Print this help") do
+    puts opts
+    exit
+  end
+  opts.parse!
+end
+
+namespace = ARGV[0]
+context = ARGV[1]
+
+module KubernetesDeploy
+  class WatchOnlyTask
+    def initialize(namespace:, context:, template_dir:, bindings:)
+      @namespace = namespace
+      @context = context
+      @template_dir = template_dir
+      @logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
+      @sha = ENV.fetch("REVISION", 'irrelevant')
+      @bindings = bindings
+    end
+
+    def run
+      @logger.phase_heading("Initializing task")
+      resources = resources_from_templates
+
+      @logger.phase_heading("Simulating watch")
+      watch_resources(resources)
+
+      @logger.print_summary("Fake")
+    end
+
+    private
+
+    def watch_resources(resources)
+      mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
+      watcher = ResourceWatcher.new(resources: resources, logger: @logger, sync_mediator: mediator)
+      watcher.run
+    end
+
+    def resources_from_templates
+      discovery = ResourceDiscovery.new(namespace: @namespace, context: @context, logger: @logger)
+      renderer = Renderer.new(current_sha: @sha, template_dir: @template_dir, logger: @logger, bindings: @bindings)
+      resources = discovery.from_templates(@template_dir, renderer)
+      @logger.info("Will look for the following resources in #{@context}/#{@namespace}:")
+      resources.each do |r|
+        r.deploy_started_at = 5.minutes.ago # arbitrary time in the past
+        @logger.info "  - #{r.id}"
+      end
+      resources
+    end
+  end
+end
+
+KubernetesDeploy::WatchOnlyTask.new(
+  namespace: namespace,
+  context: context,
+  template_dir: template_dir,
+  bindings: bindings
+).run
