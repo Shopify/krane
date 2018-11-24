@@ -144,6 +144,12 @@ module FixtureSetAssertions
       assert desired.present?, "Service account #{name} does not exist"
     end
 
+    def assert_role_present(name)
+      roles = rbac_v1_kubeclient.get_roles(namespace: namespace)
+      desired = roles.find { |sa| sa.metadata.name == name }
+      assert desired.present?, "Role #{name} does not exist"
+    end
+
     def assert_role_binding_present(name)
       role_bindings = rbac_v1_kubeclient.get_role_bindings(namespace: namespace)
       desired = role_bindings.find { |sa| sa.metadata.name == name }

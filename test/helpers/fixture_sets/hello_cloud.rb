@@ -89,6 +89,10 @@ module FixtureSetAssertions
       assert_service_account_present("build-robot")
     end
 
+    def assert_all_roles_up
+      assert_role_present("role")
+    end
+
     def assert_all_role_bindings_up
       assert_role_binding_present("role-binding")
     end
