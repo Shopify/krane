@@ -47,7 +47,7 @@ module KubernetesDeploy
           c::SYNC_DEPENDENCIES if c.const_defined?('SYNC_DEPENDENCIES')
         end
         kinds = (resources.map(&:kubectl_resource_type) + dependencies).compact.uniq
-        kinds.each { |kind| fetch_by_kind(kind) }
+        kinds.each { |kind| fetch_by_kind(kind, attempts: 5) }
       end
 
       KubernetesDeploy::Concurrency.split_across_threads(resources) do |r|
@@ -76,8 +76,8 @@ module KubernetesDeploy
       st.success? ? JSON.parse(raw_json) : {}
     end
 
-    def fetch_by_kind(kind)
-      raw_json, _, st = kubectl.run("get", kind, "-a", "--output=json")
+    def fetch_by_kind(kind, attempts: 1)
+      raw_json, _, st = kubectl.run("get", kind, "-a", "--output=json", attempts: attempts)
       return unless st.success?
 
       instances = {}

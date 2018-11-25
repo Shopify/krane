@@ -84,6 +84,20 @@ class KubectlTest < KubernetesDeploy::TestCase
     assert_logs_match("[WARN]", 2)
   end
 
+  def test_run_with_multiple_attempts_retries_and_emits_failure_metrics
+    command = %w(kubectl get pods --namespace=testn --context=testc --request-timeout=15)
+    Open3.expects(:capture3) .with(*command) .times(5) .returns(["", "oops", stub(success?: false)])
+
+    KubernetesDeploy::Kubectl.stub_const(:RETRY_DELAY, 0) do
+      metrics = capture_statsd_calls do
+        _out, _err, st = build_kubectl.run("get", "pods", attempts: 5)
+        refute st.success?
+      end
+      assert_equal 5, metrics.length
+      assert_equal ["KubernetesDeploy.kubectl.error"], metrics.map(&:name).uniq
+    end
+  end
+
   def test_custom_timeout_is_used
     custom_kubectl = KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: logger,
     log_failure_by_default: true, default_timeout: '5s')
