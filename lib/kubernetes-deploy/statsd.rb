@@ -37,9 +37,9 @@ module KubernetesDeploy
         metric ||= "#{method_name}.duration"
 
         instrumentation_proxy.send(:define_method, method_name) do |*args, &block|
-          dynamic_tags = send(:statsd_tags) if respond_to?(:statsd_tags, true)
           start_time = Time.now.utc
           result = super(*args, &block)
+          dynamic_tags = send(:statsd_tags) if respond_to?(:statsd_tags, true)
           ::StatsD.distribution(metric, KubernetesDeploy::StatsD.duration(start_time), tags: dynamic_tags)
           result
         end

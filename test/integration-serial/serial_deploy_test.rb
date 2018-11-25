@@ -182,10 +182,40 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_expected_statsd_metrics_emitted_with_essential_tags
+  def test_stage_related_metrics_include_custom_tags_from_namespace
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    kubeclient.patch_namespace(hello_cloud.namespace, metadata: { labels: { foo: 'bar' } })
     metrics = capture_statsd_calls do
-      result = deploy_fixtures('hello-cloud', subset: ['configmap-data.yml'])
+      assert_deploy_success deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"], wait: false)
+    end
+
+    %w(
+      KubernetesDeploy.validate_configuration.duration
+      KubernetesDeploy.discover_resources.duration
+      KubernetesDeploy.validate_resources.duration
+      KubernetesDeploy.initial_status.duration
+      KubernetesDeploy.create_ejson_secrets.duration
+      KubernetesDeploy.priority_resources.duration
+      KubernetesDeploy.apply_all.duration
+      KubernetesDeploy.normal_resources.duration
+      KubernetesDeploy.all_resources.duration
+    ).each do |expected_metric|
+      metric = metrics.find { |m| m.name == expected_metric }
+      refute_nil metric, "Metric #{expected_metric} not emitted"
+      assert_includes metric.tags, "foo:bar", "Metric #{expected_metric} did not have custom tags"
+    end
+  end
+
+  def test_all_expected_statsd_metrics_emitted_with_essential_tags
+    metrics = capture_statsd_calls do
+      result = deploy_fixtures('hello-cloud', subset: ['configmap-data.yml'], wait: false)
       assert_deploy_success(result)
+    end
+
+    assert_equal 1, metrics.count { |m| m.type == :_e }, "Expected to find one event metric"
+    assert metrics.all? do |metric|
+      assert_includes metric.tags, "namespace:#{@namespace}"
+      assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
     end
 
     %w(
@@ -202,8 +232,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     ).each do |expected_metric|
       metric = metrics.find { |m| m.name == expected_metric }
       refute_nil metric, "Metric #{expected_metric} not emitted"
-      assert_includes metric.tags, "namespace:#{@namespace}"
-      assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
     end
   end
 
