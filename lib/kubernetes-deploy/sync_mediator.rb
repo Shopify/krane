@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class SyncMediator
+    extend KubernetesDeploy::StatsD::MeasureMethods
+
     LARGE_BATCH_THRESHOLD = Concurrency::MAX_THREADS * 3
 
     def initialize(namespace:, context:, logger:)
@@ -12,6 +14,7 @@ module KubernetesDeploy
 
     def get_instance(kind, resource_name, raise_if_not_found: false)
       unless @cache.key?(kind)
+        ::StatsD.increment("sync.cache_miss", tags: statsd_tags.merge(type: kind))
         return request_instance(kind, resource_name, raise_if_not_found: raise_if_not_found)
       end
 
@@ -23,7 +26,10 @@ module KubernetesDeploy
     end
 
     def get_all(kind, selector = nil)
-      fetch_by_kind(kind) unless @cache.key?(kind)
+      unless @cache.key?(kind)
+        ::StatsD.increment("sync.cache_miss", tags: statsd_tags.merge(type: kind))
+        fetch_by_kind(kind)
+      end
       instances = @cache.fetch(kind, {}).values
       return instances unless selector
 
@@ -48,12 +54,17 @@ module KubernetesDeploy
         r.sync(dup)
       end
     end
+    measure_method(:sync, "sync.duration")
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
     end
 
     private
+
+    def statsd_tags
+      { namespace: @namespace, context: @context }
+    end
 
     def clear_cache
       @cache = {}

@@ -2,7 +2,7 @@
 
 module KubernetesDeploy
   class Kubectl
-    DEFAULT_TIMEOUT = 30
+    DEFAULT_TIMEOUT = 15
     NOT_FOUND_ERROR_TEXT = 'NotFound'
 
     class ResourceNotFoundError < StandardError; end
@@ -38,8 +38,10 @@ module KubernetesDeploy
           @logger.warn(err) unless output_is_sensitive?
         end
 
-        if raise_if_not_found && err.match(NOT_FOUND_ERROR_TEXT)
-          raise ResourceNotFoundError, err
+        if err.match(NOT_FOUND_ERROR_TEXT)
+          raise(ResourceNotFoundError, err) if raise_if_not_found
+        else
+          ::StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: args[1] })
         end
       end
 

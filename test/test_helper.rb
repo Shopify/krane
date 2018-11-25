@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+require 'pry'
+
 if ENV["COVERAGE"]
   require 'simplecov'
   SimpleCov.start do
@@ -19,7 +21,6 @@ end
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'kubernetes-deploy'
 require 'kubeclient'
-require 'pry'
 require 'timecop'
 require 'minitest/autorun'
 require 'minitest/stub/const'

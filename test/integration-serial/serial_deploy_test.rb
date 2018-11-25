@@ -182,6 +182,33 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
+  def test_expected_statsd_metrics_emitted_with_essential_tags
+    metrics = capture_statsd_calls do
+      result = deploy_fixtures('hello-cloud', subset: ['configmap-data.yml'])
+      assert_deploy_success(result)
+    end
+
+    %w(
+      KubernetesDeploy.validate_configuration.duration
+      KubernetesDeploy.discover_resources.duration
+      KubernetesDeploy.validate_resources.duration
+      KubernetesDeploy.initial_status.duration
+      KubernetesDeploy.create_ejson_secrets.duration
+      KubernetesDeploy.priority_resources.duration
+      KubernetesDeploy.apply_all.duration
+      KubernetesDeploy.normal_resources.duration
+      KubernetesDeploy.sync.duration
+      KubernetesDeploy.all_resources.duration
+    ).each do |expected_metric|
+      metric = metrics.find { |m| m.name == expected_metric }
+      refute_nil metric, "Metric #{expected_metric} not emitted"
+      assert_includes metric.tags, "namespace:#{@namespace}"
+      assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
+    end
+  end
+
+  private
+
   def wait_for_all_crd_deletion
     crds = apiextensions_v1beta1_kubeclient.get_custom_resource_definitions
     crds.each do |crd|

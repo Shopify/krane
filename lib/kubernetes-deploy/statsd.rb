@@ -22,5 +22,30 @@ module KubernetesDeploy
       end
       ::StatsD.backend
     end
+
+    module MeasureMethods
+      def measure_method(method_name, metric = nil)
+        unless method_defined?(method_name) || private_method_defined?(method_name)
+          raise NotImplementedError, "Cannot instrument undefined method #{method_name}"
+        end
+
+        unless const_defined?("InstrumentationProxy")
+          const_set("InstrumentationProxy", Module.new)
+          should_prepend = true
+        end
+        instrumentation_proxy = const_get("InstrumentationProxy")
+        metric ||= "#{method_name}.duration"
+
+        instrumentation_proxy.send(:define_method, method_name) do |*args, &block|
+          dynamic_tags = send(:statsd_tags) if respond_to?(:statsd_tags, true)
+          start_time = Time.now.utc
+          result = super(*args, &block)
+          ::StatsD.distribution(metric, KubernetesDeploy::StatsD.duration(start_time), tags: dynamic_tags)
+          result
+        end
+
+        prepend(instrumentation_proxy) if should_prepend
+      end
+    end
   end
 end

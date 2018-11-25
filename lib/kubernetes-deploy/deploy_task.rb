@@ -43,6 +43,7 @@ require 'kubernetes-deploy/resource_discovery'
 module KubernetesDeploy
   class DeployTask
     include KubeclientBuilder
+    extend KubernetesDeploy::StatsD::MeasureMethods
 
     PREDEPLOY_SEQUENCE = %w(
       ResourceQuota
@@ -124,33 +125,16 @@ module KubernetesDeploy
 
       @logger.phase_heading("Initializing deploy")
       validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
-      confirm_context_exists
-      confirm_namespace_exists
-      @namespace_tags |= tags_from_namespace_labels
       resources = discover_resources
-      validate_definitions(resources)
+      validate_resources(resources)
 
       @logger.phase_heading("Checking initial resource statuses")
-      @sync_mediator.sync(resources)
-      resources.each { |r| @logger.info(r.pretty_status) }
-
-      ejson = EjsonSecretProvisioner.new(
-        namespace: @namespace,
-        context: @context,
-        template_dir: @template_dir,
-        logger: @logger,
-        prune: prune,
-      )
-      if ejson.secret_changes_required?
-        @logger.phase_heading("Deploying kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}")
-        ejson.run
-      end
+      check_initial_status(resources)
+      create_ejson_secrets(prune)
 
       if deploy_has_priority_resources?(resources)
         @logger.phase_heading("Predeploying priority resources")
-        start_priority_resource = Time.now.utc
         predeploy_priority_resources(resources)
-        ::StatsD.measure('priority_resources.duration', StatsD.duration(start_priority_resource), tags: statsd_tags)
       end
 
       @logger.phase_heading("Deploying all resources")
@@ -159,9 +143,7 @@ module KubernetesDeploy
       end
 
       if verify_result
-        start_normal_resource = Time.now.utc
-        deploy_resources(resources, prune: prune, verify: true)
-        ::StatsD.measure('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
+        deploy_all_resources(resources, prune: prune, verify: true)
         failed_resources = resources.reject(&:deploy_succeeded?)
         success = failed_resources.empty?
         if !success && failed_resources.all?(&:deploy_timed_out?)
@@ -169,7 +151,7 @@ module KubernetesDeploy
         end
         raise FatalDeploymentError unless success
       else
-        deploy_resources(resources, prune: prune, verify: false)
+        deploy_all_resources(resources, prune: prune, verify: false)
         @logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
         warning = <<~MSG
           Deploy result verification is disabled for this deploy.
@@ -227,8 +209,9 @@ module KubernetesDeploy
         @logger.blank_line
       end
     end
+    measure_method(:predeploy_priority_resources, 'priority_resources.duration')
 
-    def validate_definitions(resources)
+    def validate_resources(resources)
       KubernetesDeploy::Concurrency.split_across_threads(resources) { |r| r.validate_definition(kubectl) }
       failed_resources = resources.select(&:validation_failed?)
       return unless failed_resources.present?
@@ -239,6 +222,28 @@ module KubernetesDeploy
       end
       raise FatalDeploymentError, "Template validation failed"
     end
+    measure_method(:validate_resources)
+
+    def check_initial_status(resources)
+      @sync_mediator.sync(resources)
+      resources.each { |r| @logger.info(r.pretty_status) }
+    end
+    measure_method(:check_initial_status, "initial_status.duration")
+
+    def create_ejson_secrets(prune)
+      ejson = EjsonSecretProvisioner.new(
+        namespace: @namespace,
+        context: @context,
+        template_dir: @template_dir,
+        logger: @logger,
+        prune: prune,
+      )
+      return unless ejson.secret_changes_required?
+
+      @logger.phase_heading("Deploying kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}")
+      ejson.run
+    end
+    measure_method(:create_ejson_secrets)
 
     def discover_resources
       resources = []
@@ -260,6 +265,7 @@ module KubernetesDeploy
       end
       resources
     end
+    measure_method(:discover_resources)
 
     def split_templates(filename)
       file_content = File.read(File.join(@template_dir, filename))
@@ -340,8 +346,12 @@ module KubernetesDeploy
         raise FatalDeploymentError, "Configuration invalid"
       end
 
+      confirm_context_exists
+      confirm_namespace_exists
+      @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
     end
+    measure_method(:validate_configuration)
 
     def deploy_resources(resources, prune: false, verify:, record_summary: true)
       return if resources.empty?
@@ -394,6 +404,11 @@ module KubernetesDeploy
       end
     end
 
+    def deploy_all_resources(resources, prune: false, verify:, record_summary: true)
+      deploy_resources(resources, prune: prune, verify: verify, record_summary: record_summary)
+    end
+    measure_method(:deploy_all_resources, 'normal_resources.duration')
+
     def apply_all(resources, prune)
       return unless resources.present?
       command = %w(apply)
@@ -421,6 +436,7 @@ module KubernetesDeploy
         end
       end
     end
+    measure_method(:apply_all)
 
     def log_pruning(kubectl_output)
       pruned = kubectl_output.scan(/^(.*) pruned$/)
