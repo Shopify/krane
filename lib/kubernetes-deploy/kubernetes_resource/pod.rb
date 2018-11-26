@@ -25,12 +25,12 @@ module KubernetesDeploy
             logger: logger, statsd_tags: statsd_tags)
     end
 
-    def sync(mediator)
+    def sync(_cache)
       super
       raise_predates_deploy_error if exists? && unmanaged? && !deploy_started?
 
       if exists?
-        logs.sync(mediator.kubectl) if unmanaged?
+        logs.sync if unmanaged?
         update_container_statuses(@instance_data["status"])
       else # reset
         @containers.each(&:reset_status)
@@ -85,8 +85,8 @@ module KubernetesDeploy
       "#{phase_failure_message} #{container_problems}".strip.presence
     end
 
-    def fetch_debug_logs(kubectl)
-      logs.sync(kubectl)
+    def fetch_debug_logs
+      logs.sync
       logs
     end
 
@@ -123,7 +123,9 @@ module KubernetesDeploy
       @logs ||= KubernetesDeploy::RemoteLogs.new(
         logger: @logger,
         parent_id: id,
-        container_names: @containers.map(&:name)
+        container_names: @containers.map(&:name),
+        namespace: @namespace,
+        context: @context
       )
     end
 

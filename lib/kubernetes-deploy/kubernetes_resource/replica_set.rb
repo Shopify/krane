@@ -14,10 +14,9 @@ module KubernetesDeploy
             logger: logger, statsd_tags: statsd_tags)
     end
 
-    SYNC_DEPENDENCIES = %w(Pod)
-    def sync(mediator)
+    def sync(cache)
       super
-      @pods = exists? ? find_pods(mediator) : []
+      @pods = exists? ? find_pods(cache) : []
     end
 
     def status

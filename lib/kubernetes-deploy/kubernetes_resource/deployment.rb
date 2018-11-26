@@ -6,10 +6,9 @@ module KubernetesDeploy
     REQUIRED_ROLLOUT_TYPES = %w(maxUnavailable full none).freeze
     DEFAULT_REQUIRED_ROLLOUT = 'full'
 
-    SYNC_DEPENDENCIES = %w(Pod ReplicaSet)
-    def sync(mediator)
+    def sync(cache)
       super
-      @latest_rs = exists? ? find_latest_rs(mediator) : nil
+      @latest_rs = exists? ? find_latest_rs(cache) : nil
     end
 
     def status
@@ -27,8 +26,8 @@ module KubernetesDeploy
       @latest_rs.present?
     end
 
-    def fetch_debug_logs(kubectl)
-      @latest_rs.fetch_debug_logs(kubectl)
+    def fetch_debug_logs
+      @latest_rs.fetch_debug_logs
     end
 
     def deploy_succeeded?
@@ -151,8 +150,8 @@ module KubernetesDeploy
       progress_condition["status"] == 'False'
     end
 
-    def find_latest_rs(mediator)
-      all_rs_data = mediator.get_all(ReplicaSet.kind, @instance_data["spec"]["selector"]["matchLabels"])
+    def find_latest_rs(cache)
+      all_rs_data = cache.get_all(ReplicaSet.kind, @instance_data["spec"]["selector"]["matchLabels"])
       current_revision = @instance_data["metadata"]["annotations"]["deployment.kubernetes.io/revision"]
 
       latest_rs_data = all_rs_data.find do |rs|
@@ -170,7 +169,7 @@ module KubernetesDeploy
         parent: "#{@name.capitalize} deployment",
         deploy_started_at: @deploy_started_at
       )
-      rs.sync(mediator)
+      rs.sync(cache)
       rs
     end
 

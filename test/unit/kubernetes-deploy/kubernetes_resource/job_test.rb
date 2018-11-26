@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class JobTest < KubernetesDeploy::TestCase
+  include ResourceCacheTestHelper
+
   def test_job_fails_with_failed_status_condition
     status = {
       status: {
@@ -50,9 +52,8 @@ class JobTest < KubernetesDeploy::TestCase
     job = KubernetesDeploy::Job.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger)
     job.deploy_started_at = Time.now.utc
-    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'nope', logger: @logger)
-    mediator.expects(:get_instance).with('Job', anything, anything).returns(template)
-    job.sync(mediator)
+    stub_kind_get("Job", items: [template])
+    job.sync(build_resource_cache)
     job
   end
 end

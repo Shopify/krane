@@ -3,11 +3,15 @@ module KubernetesDeploy
   class Service < KubernetesResource
     TIMEOUT = 7.minutes
 
-    SYNC_DEPENDENCIES = %w(Pod Deployment)
-    def sync(mediator)
+    def sync(cache)
       super
-      @related_deployments = selector.present? ? mediator.get_all(Deployment.kind, selector) : []
-      @related_pods = selector.present? ? mediator.get_all(Pod.kind, selector) : []
+      if exists? && selector.present?
+        @related_deployments = cache.get_all(Deployment.kind, selector)
+        @related_pods = cache.get_all(Pod.kind, selector)
+      else
+        @related_deployments = []
+        @related_pods = []
+      end
     end
 
     def status

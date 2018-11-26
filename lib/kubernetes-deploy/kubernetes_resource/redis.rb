@@ -4,15 +4,14 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     UUID_ANNOTATION = "redis.stable.shopify.io/owner_uid"
 
-    SYNC_DEPENDENCIES = %w(Deployment Service)
-    def sync(mediator)
+    def sync(cache)
       super
 
-      @deployment = mediator.get_instance(Deployment.kind, name)
-      @deployment = mediator.get_instance(Deployment.kind, deprecated_name) if @deployment.empty?
+      @deployment = cache.get_instance(Deployment.kind, name)
+      @deployment = cache.get_instance(Deployment.kind, deprecated_name) if @deployment.empty?
 
-      @service = mediator.get_instance(Service.kind, name)
-      @service = mediator.get_instance(Service.kind, deprecated_name) if @service.empty?
+      @service = cache.get_instance(Service.kind, name)
+      @service = cache.get_instance(Service.kind, deprecated_name) if @service.empty?
     end
 
     def status

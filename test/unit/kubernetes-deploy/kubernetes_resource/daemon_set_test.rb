@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class DaemonSetTest < KubernetesDeploy::TestCase
+  include ResourceCacheTestHelper
+
   def test_deploy_not_successful_when_updated_available_does_not_match
     ds_template = build_ds_template
     ds = build_synced_ds(template: ds_template)
@@ -50,20 +52,9 @@ class DaemonSetTest < KubernetesDeploy::TestCase
 
   def build_synced_ds(template:)
     ds = KubernetesDeploy::DaemonSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
-    sync_mediator = build_sync_mediator
-    sync_mediator.kubectl.expects(:run)
-      .with("get", "DaemonSet", "ds-app", "-a", "--output=json", raise_if_not_found: true)
-      .returns([template.to_json, "", SystemExit.new(0)])
-
-    sync_mediator.kubectl.expects(:run).with("get", "Pod", "-a", "--output=json", anything).returns(
-      ['{ "items": [] }', "", SystemExit.new(0)]
-    )
-
-    ds.sync(sync_mediator)
+    stub_kind_get("DaemonSet", items: [template])
+    stub_kind_get("Pod", items: [])
+    ds.sync(build_resource_cache)
     ds
-  end
-
-  def build_sync_mediator
-    KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
   end
 end

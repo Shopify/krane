@@ -5,16 +5,18 @@ module KubernetesDeploy
 
     DEFAULT_LINE_LIMIT = 250
 
-    def initialize(parent_id:, container_name:, logger:)
+    def initialize(parent_id:, container_name:, namespace:, context:, logger:)
       @parent_id = parent_id
       @container_name = container_name
+      @namespace = namespace
+      @context = context
       @logger = logger
       @lines = []
       @next_print_index = 0
     end
 
-    def sync(kubectl)
-      new_logs = fetch_latest(kubectl)
+    def sync
+      new_logs = fetch_latest
       return unless new_logs.present?
       @lines += deduplicate(new_logs)
     end
@@ -39,15 +41,19 @@ module KubernetesDeploy
 
     private
 
-    def fetch_latest(kubectl)
+    def fetch_latest
       cmd = ["logs", @parent_id, "--container=#{container_name}", "--timestamps"]
       cmd << if @last_timestamp.present?
-        "--since-time=#{rfc3339_timestamp(@last_timestamp)}"
-      else
-        "--tail=#{DEFAULT_LINE_LIMIT}"
-      end
+               "--since-time=#{rfc3339_timestamp(@last_timestamp)}"
+             else
+               "--tail=#{DEFAULT_LINE_LIMIT}"
+             end
       out, _err, _st = kubectl.run(*cmd, log_failure: false)
       out.split("\n")
+    end
+
+    def kubectl
+      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
     end
 
     def rfc3339_timestamp(time)

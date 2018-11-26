@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class PodDisruptionBudgetTest < KubernetesDeploy::TestCase
+  include ResourceCacheTestHelper
+
   def test_deploy_succeeded_is_true_as_soon_as_controller_observes_new_version
     template = build_pdb_template(status: { "observedGeneration": 2 })
     pdb = build_synced_pdb(template: template)
@@ -23,11 +25,8 @@ class PodDisruptionBudgetTest < KubernetesDeploy::TestCase
   def build_synced_pdb(template:)
     pdb = KubernetesDeploy::PodDisruptionBudget.new(namespace: "test", context: "nope",
       logger: logger, definition: template)
-    sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    sync_mediator.kubectl.expects(:run)
-      .with("get", "PodDisruptionBudget", "test", "-a", "--output=json", raise_if_not_found: true)
-      .returns([template.to_json, "", SystemExit.new(0)])
-    pdb.sync(sync_mediator)
+    stub_kind_get("PodDisruptionBudget", items: [template])
+    pdb.sync(build_resource_cache)
     pdb
   end
 

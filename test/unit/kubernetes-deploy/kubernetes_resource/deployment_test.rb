@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class DeploymentTest < KubernetesDeploy::TestCase
+  include ResourceCacheTestHelper
+
   def test_deploy_succeeded_with_none_annotation
     deployment_status = {
       "replicas" => 3,
@@ -366,26 +368,15 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
   def build_synced_deployment(template:, replica_sets:)
     deploy = KubernetesDeploy::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
-    sync_mediator = build_sync_mediator
-    sync_mediator.kubectl.expects(:run)
-      .with("get", "Deployment", "web", "-a", "--output=json", raise_if_not_found: true)
-      .returns([template.to_json, "", SystemExit.new(0)])
+    stub_kind_get("Deployment", items: [template])
+    stub_kind_get("ReplicaSet", items: replica_sets)
 
     if replica_sets.present?
-      sync_mediator.kubectl.expects(:run).with("get", "Pod", "-a", "--output=json", anything).returns(
-        ['{ "items": [] }', "", SystemExit.new(0)]
-      )
+      stub_kind_get("Pod", items: [])
     end
 
-    sync_mediator.kubectl.expects(:run).with("get", "ReplicaSet", "-a", "--output=json", anything).returns(
-      [{ "items" => replica_sets }.to_json, "", SystemExit.new(0)]
-    )
-    deploy.sync(sync_mediator)
+    deploy.sync(build_resource_cache)
     deploy
-  end
-
-  def build_sync_mediator
-    KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
   end
 
   def kubectl
