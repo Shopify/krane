@@ -43,7 +43,9 @@ class ServiceTest < KubernetesDeploy::TestCase
     stub_kind_get("Deployment", resp: { items: deployment_fixtures })
     stub_kind_get("Pod", resp: { items: pod_fixtures })
 
-    build_sync_mediator.sync(all_services)
+    mediator = build_sync_mediator
+    all_services.each { |svc| svc.sync(mediator) }
+
     all_services.each do |svc|
       refute svc.exists?, "#{svc.name} should not have existed"
       refute svc.deploy_succeeded?, "#{svc.name} should not have succeeded"

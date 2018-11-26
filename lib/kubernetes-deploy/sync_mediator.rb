@@ -3,8 +3,6 @@ module KubernetesDeploy
   class SyncMediator
     extend KubernetesDeploy::StatsD::MeasureMethods
 
-    LARGE_BATCH_THRESHOLD = Concurrency::MAX_THREADS * 3
-
     def initialize(namespace:, context:, logger:)
       @namespace = namespace
       @context = context
@@ -45,13 +43,12 @@ module KubernetesDeploy
     def sync(resources)
       clear_cache
 
-      if resources.count > LARGE_BATCH_THRESHOLD
-        dependencies = resources.map(&:class).uniq.flat_map do |c|
-          c::SYNC_DEPENDENCIES if c.const_defined?('SYNC_DEPENDENCIES')
-        end
-        kinds = (resources.map(&:kubectl_resource_type) + dependencies).compact.uniq
-        kinds.each { |kind| fetch_by_kind(kind, attempts: 5) }
+      dependencies = resources.map(&:class).uniq.flat_map do |c|
+        c::SYNC_DEPENDENCIES if c.const_defined?('SYNC_DEPENDENCIES')
       end
+      kinds = (resources.map(&:kubectl_resource_type) + dependencies).compact.uniq
+      @logger.debug("Populating cache for kinds: #{kinds.join(', ')}")
+      kinds.each { |kind| fetch_by_kind(kind, attempts: 5) }
 
       KubernetesDeploy::Concurrency.split_across_threads(resources) do |r|
         r.sync(dup)
