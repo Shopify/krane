@@ -31,9 +31,9 @@ module KubernetesDeploy
       out, err, st = nil
 
       (1..attempts).to_a.each do |attempt|
-        @logger.debug Shellwords.join(args)
+        @logger.debug "Running command (attempt #{attempt}): #{args.join(' ')}"
         out, err, st = Open3.capture3(*args)
-        @logger.debug(out.shellescape) unless output_is_sensitive?
+        @logger.debug("Kubectl out: " + out.gsub(/\s+/, ' ')) unless output_is_sensitive?
 
         if st.success?
           break
@@ -46,6 +46,7 @@ module KubernetesDeploy
           if err.match(NOT_FOUND_ERROR_TEXT)
             raise(ResourceNotFoundError, err) if raise_if_not_found
           else
+            @logger.debug("Kubectl err: #{err}") unless output_is_sensitive?
             ::StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: args[1] })
           end
           sleep RETRY_DELAY unless attempt == attempts

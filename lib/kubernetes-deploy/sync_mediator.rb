@@ -15,6 +15,8 @@ module KubernetesDeploy
     def get_instance(kind, resource_name, raise_if_not_found: false)
       unless @cache.key?(kind)
         ::StatsD.increment("sync.cache_miss", tags: statsd_tags.merge(type: kind))
+        @logger.debug("Could not use the cache to fetch #{kind} instance #{resource_name}. "\
+          "Cached kinds: #{@cache.keys.join(',')}")
         return request_instance(kind, resource_name, raise_if_not_found: raise_if_not_found)
       end
 
@@ -28,6 +30,7 @@ module KubernetesDeploy
     def get_all(kind, selector = nil)
       unless @cache.key?(kind)
         ::StatsD.increment("sync.cache_miss", tags: statsd_tags.merge(type: kind))
+        @logger.debug("Kind #{kind} not cached. Cached kinds: #{@cache.keys.join(',')}")
         fetch_by_kind(kind)
       end
       instances = @cache.fetch(kind, {}).values
