@@ -54,7 +54,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_role_and_role_binding_predeployed_before_unmanaged_pod
-    result = deploy_fixtures("hello-cloud",
+    result = deploy_fixtures(
+      "hello-cloud",
       subset: [
         "configmap-data.yml",
         "unmanaged-pod.yml.erb",
