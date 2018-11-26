@@ -4,7 +4,6 @@ module KubernetesDeploy
   class Kubectl
     DEFAULT_TIMEOUT = 15
     NOT_FOUND_ERROR_TEXT = 'NotFound'
-    RETRY_DELAY = 1
 
     class ResourceNotFoundError < StandardError; end
 
@@ -35,25 +34,27 @@ module KubernetesDeploy
         out, err, st = Open3.capture3(*args)
         @logger.debug("Kubectl out: " + out.gsub(/\s+/, ' ')) unless output_is_sensitive?
 
-        if st.success?
-          break
-        else
-          if log_failure
-            @logger.warn("The following command failed: #{Shellwords.join(args)}")
-            @logger.warn(err) unless output_is_sensitive?
-          end
+        break if st.success?
 
-          if err.match(NOT_FOUND_ERROR_TEXT)
-            raise(ResourceNotFoundError, err) if raise_if_not_found
-          else
-            @logger.debug("Kubectl err: #{err}") unless output_is_sensitive?
-            ::StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: args[1] })
-          end
-          sleep RETRY_DELAY unless attempt == attempts
+        if log_failure
+          @logger.warn("The following command failed (attempt #{attempt}/#{attempts}): #{Shellwords.join(args)}")
+          @logger.warn(err) unless output_is_sensitive?
         end
+
+        if err.match(NOT_FOUND_ERROR_TEXT)
+          raise(ResourceNotFoundError, err) if raise_if_not_found
+        else
+          @logger.debug("Kubectl err: #{err}") unless output_is_sensitive?
+          ::StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: args[1] })
+        end
+        sleep retry_delay(attempt) unless attempt == attempts
       end
 
       [out.chomp, err.chomp, st]
+    end
+
+    def retry_delay(attempt)
+      attempt
     end
 
     def version_info

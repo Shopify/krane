@@ -54,7 +54,7 @@ module KubernetesDeploy
         r.sync(dup)
       end
     end
-    measure_method(:sync, "sync.duration")
+    measure_method(:sync)
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)

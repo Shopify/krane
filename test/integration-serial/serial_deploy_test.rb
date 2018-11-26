@@ -65,7 +65,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       result = deploy_fixtures('hello-cloud', kubectl_instance: kubectl_instance)
       assert_deploy_failure(result)
       assert_logs_match_all([
-        'The following command failed: kubectl version',
+        'The following command failed (attempt 1/1): kubectl version',
         'Unable to connect to the server',
         'Unable to connect to the server',
         'Unable to connect to the server',
@@ -213,7 +213,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
 
     assert_equal 1, metrics.count { |m| m.type == :_e }, "Expected to find one event metric"
-    assert metrics.all? do |metric|
+    assert_predicate metrics, :all? do |metric|
       assert_includes metric.tags, "namespace:#{@namespace}"
       assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
     end

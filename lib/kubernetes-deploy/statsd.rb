@@ -33,18 +33,27 @@ module KubernetesDeploy
           const_set("InstrumentationProxy", Module.new)
           should_prepend = true
         end
-        instrumentation_proxy = const_get("InstrumentationProxy")
-        metric ||= "#{method_name}.duration"
 
-        instrumentation_proxy.send(:define_method, method_name) do |*args, &block|
-          start_time = Time.now.utc
-          result = super(*args, &block)
-          dynamic_tags = send(:statsd_tags) if respond_to?(:statsd_tags, true)
-          ::StatsD.distribution(metric, KubernetesDeploy::StatsD.duration(start_time), tags: dynamic_tags)
-          result
+        metric ||= "#{method_name}.duration"
+        self::InstrumentationProxy.send(:define_method, method_name) do |*args, &block|
+          begin
+            start_time = Time.now.utc
+            super(*args, &block)
+          rescue
+            error = true
+            raise
+          ensure
+            dynamic_tags = send(:statsd_tags) if respond_to?(:statsd_tags, true)
+            dynamic_tags ||= {}
+            if error
+              dynamic_tags[:error] = error if dynamic_tags.is_a?(Hash)
+              dynamic_tags << "error:#{error}" if dynamic_tags.is_a?(Array)
+            end
+            ::StatsD.distribution(metric, KubernetesDeploy::StatsD.duration(start_time), tags: dynamic_tags)
+          end
         end
 
-        prepend(instrumentation_proxy) if should_prepend
+        prepend(self::InstrumentationProxy) if should_prepend
       end
     end
   end
