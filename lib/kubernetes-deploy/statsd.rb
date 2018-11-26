@@ -4,23 +4,36 @@ require 'logger'
 
 module KubernetesDeploy
   class StatsD
+    extend ::StatsD
     def self.duration(start_time)
       (Time.now.utc - start_time).round(1)
     end
 
     def self.build
-      ::StatsD.default_sample_rate = 1.0
-      ::StatsD.prefix = "KubernetesDeploy"
+      self.default_sample_rate = 1.0
+      self.prefix = "KubernetesDeploy"
 
       if ENV['STATSD_DEV'].present?
-        ::StatsD.backend = ::StatsD::Instrument::Backends::LoggerBackend.new(Logger.new($stderr))
+        self.backend = ::StatsD::Instrument::Backends::LoggerBackend.new(Logger.new($stderr))
       elsif ENV['STATSD_ADDR'].present?
         statsd_impl = ENV['STATSD_IMPLEMENTATION'].present? ? ENV['STATSD_IMPLEMENTATION'] : "datadog"
-        ::StatsD.backend = ::StatsD::Instrument::Backends::UDPBackend.new(ENV['STATSD_ADDR'], statsd_impl)
+        self.backend = ::StatsD::Instrument::Backends::UDPBackend.new(ENV['STATSD_ADDR'], statsd_impl)
       else
-        ::StatsD.backend = ::StatsD::Instrument::Backends::NullBackend.new
+        self.backend = ::StatsD::Instrument::Backends::NullBackend.new
       end
-      ::StatsD.backend
+    end
+
+    def self.capture_statsd_calls(&block)
+      mock_backend = ::StatsD::Instrument::Backends::CaptureBackend.new
+      old_backend, self.backend = self.backend, mock_backend
+      block.call
+      mock_backend.collected_metrics
+    ensure
+      if old_backend.kind_of?(::StatsD::Instrument::Backends::CaptureBackend)
+        old_backend.collected_metrics.concat(mock_backend.collected_metrics)
+      end
+
+      self.backend = old_backend
     end
 
     module MeasureMethods

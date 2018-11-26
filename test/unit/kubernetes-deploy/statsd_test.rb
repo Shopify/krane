@@ -40,7 +40,7 @@ class StatsDTest < KubernetesDeploy::TestCase
 
     KubernetesDeploy::StatsD.build
 
-    assert_equal :datadog, StatsD.backend.implementation
+    assert_equal :datadog, KubernetesDeploy::StatsD.backend.implementation
   ensure
     ENV['STATSD_ADDR'] = original_addr
     ENV['STATSD_IMPLEMENTATION'] = original_impl

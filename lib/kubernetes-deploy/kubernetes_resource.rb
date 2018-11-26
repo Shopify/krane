@@ -293,7 +293,7 @@ module KubernetesDeploy
 
     def report_status_to_statsd(watch_time)
       unless @statsd_report_done
-        ::StatsD.measure('resource.duration', watch_time, tags: statsd_tags)
+        StatsD.measure('resource.duration', watch_time, tags: statsd_tags)
         @statsd_report_done = true
       end
     end
