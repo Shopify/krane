@@ -150,7 +150,8 @@ module KubernetesDeploy
         @logger.phase_heading("Predeploying priority resources")
         start_priority_resource = Time.now.utc
         predeploy_priority_resources(resources)
-        ::StatsD.measure('priority_resources.duration', StatsD.duration(start_priority_resource), tags: statsd_tags)
+        ::StatsD.distribution('priority_resources.duration', StatsD.duration(start_priority_resource),
+          tags: statsd_tags)
       end
 
       @logger.phase_heading("Deploying all resources")
@@ -161,7 +162,7 @@ module KubernetesDeploy
       if verify_result
         start_normal_resource = Time.now.utc
         deploy_resources(resources, prune: prune, verify: true)
-        ::StatsD.measure('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
+        ::StatsD.distribution('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
         failed_resources = resources.reject(&:deploy_succeeded?)
         success = failed_resources.empty?
         if !success && failed_resources.all?(&:deploy_timed_out?)
@@ -180,14 +181,14 @@ module KubernetesDeploy
       ::StatsD.event("Deployment of #{@namespace} succeeded",
         "Successfully deployed all #{@namespace} resources to #{@context}",
         alert_type: "success", tags: statsd_tags << "status:success")
-      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:success")
+      ::StatsD.distribution('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:success")
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
       @logger.print_summary(:timed_out)
       ::StatsD.event("Deployment of #{@namespace} timed out",
         "One or more #{@namespace} resources failed to deploy to #{@context} in time",
         alert_type: "error", tags: statsd_tags << "status:timeout")
-      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:timeout")
+      ::StatsD.distribution('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:timeout")
       raise
     rescue FatalDeploymentError => error
       @logger.summary.add_action(error.message) if error.message != error.class.to_s
@@ -195,7 +196,7 @@ module KubernetesDeploy
       ::StatsD.event("Deployment of #{@namespace} failed",
         "One or more #{@namespace} resources failed to deploy to #{@context}",
         alert_type: "error", tags: statsd_tags << "status:failed")
-      ::StatsD.measure('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:failed")
+      ::StatsD.distribution('all_resources.duration', StatsD.duration(start), tags: statsd_tags << "status:failed")
       raise
     end
 
