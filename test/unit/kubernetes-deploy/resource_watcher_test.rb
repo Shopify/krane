@@ -99,7 +99,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_allows_success
     resource = build_mock_resource(hits_to_complete: 1)
-    sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
+    sync_mediator = MockMediator.new(build_runless_kubectl)
     watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource], logger: logger,
       timeout: 2, sync_mediator: sync_mediator)
 
@@ -109,7 +109,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_raises_after_timeout_seconds
     resource = build_mock_resource(hits_to_complete: 10**100)
-    sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
+    sync_mediator = MockMediator.new(build_runless_kubectl)
     watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource], logger: logger,
       timeout: 0.02, sync_mediator: sync_mediator)
 
@@ -119,8 +119,20 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   private
 
   def build_watcher(resources)
-    sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    KubernetesDeploy::ResourceWatcher.new(resources: resources, logger: logger, sync_mediator: sync_mediator)
+    mediator = MockMediator.new(build_runless_kubectl)
+    KubernetesDeploy::ResourceWatcher.new(resources: resources, logger: logger, sync_mediator: mediator)
+  end
+
+  class MockMediator
+    attr_reader :kubectl
+
+    def initialize(kubectl)
+      @kubectl = kubectl
+    end
+
+    def sync(resources)
+      resources.each { |r| r.sync(self) }
+    end
   end
 
   MockResource = Struct.new(:id, :hits_to_complete, :status) do
@@ -139,6 +151,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     def type
       "MockResource"
     end
+    alias_method :kubectl_resource_type, :type
 
     def deploy_succeeded?
       status == "success" && hits_complete?

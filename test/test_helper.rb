@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+require 'pry'
+
 if ENV["COVERAGE"]
   require 'simplecov'
   SimpleCov.start do
@@ -19,7 +21,6 @@ end
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'kubernetes-deploy'
 require 'kubeclient'
-require 'pry'
 require 'timecop'
 require 'minitest/autorun'
 require 'minitest/stub/const'
@@ -195,17 +196,13 @@ module KubernetesDeploy
       source_dir
     end
 
-    def stub_kubectl_response(*args, resp:, err: "", raise_if_not_found: nil, success: true, json: true, times: 1)
-      resp = resp.to_json if json
-      response = [resp, err, stub(success?: success)]
-
-      expectation = if raise_if_not_found.nil?
-        KubernetesDeploy::Kubectl.any_instance.expects(:run).with(*args)
-      else
-        KubernetesDeploy::Kubectl.any_instance.expects(:run).with(*args, raise_if_not_found: raise_if_not_found)
+    def stub_kubectl_response(*args, kwargs: {}, resp:, err: "", success: true, json: true, times: 1)
+      if json
+        args << "--output=json"
+        resp = resp.to_json
       end
-
-      expectation.returns(response).times(times)
+      response = [resp, err, stub(success?: success)]
+      KubernetesDeploy::Kubectl.any_instance.expects(:run).with(*args, kwargs.presence).returns(response).times(times)
     end
 
     def build_runless_kubectl

@@ -72,7 +72,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Initializing task",
-      /Using namespace 'k8sdeploy-test-run-with-verify-result-success-\w+' in context '\w+'/,
+      /Using namespace 'k8sdeploy-test-run-with-verify-result-success-\w+' in context '[\w-]+'/,
       "Using template 'hello-cloud-template-runner'",
       "Running pod",
       /Creating pod 'task-runner-\w+'/,

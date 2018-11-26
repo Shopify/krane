@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class SyncMediator
-    LARGE_BATCH_THRESHOLD = Concurrency::MAX_THREADS * 3
+    extend KubernetesDeploy::StatsD::MeasureMethods
 
     def initialize(namespace:, context:, logger:)
       @namespace = namespace
@@ -12,6 +12,9 @@ module KubernetesDeploy
 
     def get_instance(kind, resource_name, raise_if_not_found: false)
       unless @cache.key?(kind)
+        ::StatsD.increment("sync.cache_miss", tags: statsd_tags.merge(type: kind))
+        @logger.debug("Could not use the cache to fetch #{kind} instance #{resource_name}. "\
+          "Cached kinds: #{@cache.keys.join(',')}")
         return request_instance(kind, resource_name, raise_if_not_found: raise_if_not_found)
       end
 
@@ -23,7 +26,11 @@ module KubernetesDeploy
     end
 
     def get_all(kind, selector = nil)
-      fetch_by_kind(kind) unless @cache.key?(kind)
+      unless @cache.key?(kind)
+        ::StatsD.increment("sync.cache_miss", tags: statsd_tags.merge(type: kind))
+        @logger.debug("Kind #{kind} not cached. Cached kinds: #{@cache.keys.join(',')}")
+        fetch_by_kind(kind)
+      end
       instances = @cache.fetch(kind, {}).values
       return instances unless selector
 
@@ -36,24 +43,28 @@ module KubernetesDeploy
     def sync(resources)
       clear_cache
 
-      if resources.count > LARGE_BATCH_THRESHOLD
-        dependencies = resources.map(&:class).uniq.flat_map do |c|
-          c::SYNC_DEPENDENCIES if c.const_defined?('SYNC_DEPENDENCIES')
-        end
-        kinds = (resources.map(&:kubectl_resource_type) + dependencies).compact.uniq
-        kinds.each { |kind| fetch_by_kind(kind) }
+      dependencies = resources.map(&:class).uniq.flat_map do |c|
+        c::SYNC_DEPENDENCIES if c.const_defined?('SYNC_DEPENDENCIES')
       end
+      kinds = (resources.map(&:kubectl_resource_type) + dependencies).compact.uniq
+      @logger.debug("Populating cache for kinds: #{kinds.join(', ')}")
+      kinds.each { |kind| fetch_by_kind(kind, attempts: 5) }
 
       KubernetesDeploy::Concurrency.split_across_threads(resources) do |r|
         r.sync(dup)
       end
     end
+    measure_method(:sync)
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
     end
 
     private
+
+    def statsd_tags
+      { namespace: @namespace, context: @context }
+    end
 
     def clear_cache
       @cache = {}
@@ -65,8 +76,8 @@ module KubernetesDeploy
       st.success? ? JSON.parse(raw_json) : {}
     end
 
-    def fetch_by_kind(kind)
-      raw_json, _, st = kubectl.run("get", kind, "-a", "--output=json")
+    def fetch_by_kind(kind, attempts: 1)
+      raw_json, _, st = kubectl.run("get", kind, "-a", "--output=json", attempts: attempts)
       return unless st.success?
 
       instances = {}

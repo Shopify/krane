@@ -35,53 +35,50 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     bad_ns = "missing"
     task_runner = build_task_runner(ns: bad_ns)
 
-    result = false
     metrics = capture_statsd_calls do
       result = task_runner.run(run_params)
+      assert_task_run_failure(result)
     end
 
-    assert_task_run_failure(result)
-
-    metric = metrics.detect { |m| m.tags.include? "namespace:#{bad_ns}" }
-    assert metric, "No metrics found for this test"
-    metric_tags = metric.tags
-    assert_includes metric_tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
-    assert_includes metric_tags, "status:failure"
+    metric = metrics.find do |m|
+      m.name == "KubernetesDeploy.task_runner.duration" && m.tags.include?("namespace:#{bad_ns}")
+    end
+    assert metric, "No result metric found for this test"
+    assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
+    assert_includes metric.tags, "status:failure"
   end
 
   def test_success_statsd_metric_emitted
     deploy_task_template
     task_runner = build_task_runner
 
-    result = false
     metrics = capture_statsd_calls do
       result = task_runner.run(run_params.merge(verify_result: false))
+      assert_task_run_success(result)
     end
 
-    assert_task_run_success(result)
-
-    metric = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }
-    assert metric, "No metrics found for this test"
-    metric_tags = metric.tags
-    assert_includes metric_tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
-    assert_includes metric_tags, "status:success"
+    metric = metrics.find do |m|
+      m.name == "KubernetesDeploy.task_runner.duration" && m.tags.include?("namespace:#{@namespace}")
+    end
+    assert metric, "No result metric found for this test"
+    assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
+    assert_includes metric.tags, "status:success"
   end
 
   def test_timedout_statsd_metric_emitted
     deploy_task_template
     task_runner = build_task_runner(max_watch_seconds: 0)
 
-    result = false
     metrics = capture_statsd_calls do
       result = task_runner.run(run_params.merge(args: ["sleep 5"]))
+      assert_task_run_failure(result, :timed_out)
     end
 
-    assert_task_run_failure(result, :timed_out)
-
-    metric = metrics.detect { |m| m.tags.include? "namespace:#{@namespace}" }
-    assert metric, "No metrics found for this test"
-    metric_tags = metric.tags
-    assert_includes metric_tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
-    assert_includes metric_tags, "status:timeout"
+    metric = metrics.find do |m|
+      m.name == "KubernetesDeploy.task_runner.duration" && m.tags.include?("namespace:#{@namespace}")
+    end
+    assert metric, "No result metric found for this test"
+    assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
+    assert_includes metric.tags, "status:timeout"
   end
 end

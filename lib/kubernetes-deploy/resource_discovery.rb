@@ -10,7 +10,7 @@ module KubernetesDeploy
     end
 
     def crds(sync_mediator)
-      sync_mediator.get_all(CustomResourceDefinition.kind).map do |r_def|
+      @crds ||= sync_mediator.get_all(CustomResourceDefinition.kind).map do |r_def|
         CustomResourceDefinition.new(namespace: @namespace, context: @context, logger: @logger,
           definition: r_def, statsd_tags: @namespace_tags)
       end
