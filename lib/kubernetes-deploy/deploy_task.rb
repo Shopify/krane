@@ -184,7 +184,12 @@ module KubernetesDeploy
     private
 
     def cluster_resource_discoverer
-      ResourceDiscovery.new(namespace: @namespace, context: @context, logger: @logger, namespace_tags: @namespace_tags)
+      @cluster_resource_discoverer ||= ResourceDiscovery.new(
+        namespace: @namespace,
+        context: @context,
+        logger: @logger,
+        namespace_tags: @namespace_tags
+      )
     end
 
     def deploy_has_priority_resources?(resources)
