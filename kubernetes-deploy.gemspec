@@ -30,6 +30,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "colorize", "~> 0.8"
   spec.add_dependency "statsd-instrument", "~> 2.3"
   spec.add_dependency "oj", "~> 3.7"
+  spec.add_dependency "concurrent-ruby", "~> 1.1"
 
   spec.add_development_dependency "bundler"
   spec.add_development_dependency "rake", "~> 10.0"
