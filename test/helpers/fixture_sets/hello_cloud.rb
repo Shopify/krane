@@ -15,6 +15,7 @@ module FixtureSetAssertions
       assert_poddisruptionbudget
       assert_bare_replicaset_up
       assert_all_service_accounts_up
+      assert_all_roles_up
       assert_all_role_bindings_up
       assert_daemon_set_up
       assert_stateful_set_up
