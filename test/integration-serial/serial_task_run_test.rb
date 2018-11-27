@@ -29,7 +29,7 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   end
 
-  # Run statsd tests in serial because KubernetesDeploy::StatsD.capture_statsd_calls modifies global state in a way
+  # Run statsd tests in serial because StatsDHelper.capture_statsd_calls modifies global state in a way
   # that makes capturing metrics across parrallel runs unreliable
   def test_failure_statsd_metric_emitted
     bad_ns = "missing"

@@ -1033,7 +1033,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     desired_tags = %W(context:#{KubeclientHelper::TEST_CONTEXT} namespace:#{@namespace} foo:bar)
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     kubeclient.patch_namespace(hello_cloud.namespace, metadata: { labels: { foo: 'bar' } })
-    metrics = KubernetesDeploy::StatsD.capture_statsd_calls do
+    metrics = StatsDHelper.capture_statsd_calls do
       assert_deploy_success deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"])
     end
 
