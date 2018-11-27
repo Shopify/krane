@@ -109,5 +109,12 @@ class StatsDTest < KubernetesDeploy::TestCase
     assert_predicate metrics, :one?, "Expected 1 metric, got #{metrics.length}"
     assert_equal "KubernetesDeploy.measured_method_raises.duration", metrics.first.name
     assert_equal ["test:true", "error:true"], metrics.first.tags
+  def test_kubernetes_statsd_does_not_override_global_config
+    KubernetesDeploy::StatsD.build
+    ::StatsD.prefix = "test"
+    ::StatsD.default_sample_rate = 2.0
+    refute_equal KubernetesDeploy::StatsD.prefix, ::StatsD.prefix
+    refute_equal KubernetesDeploy::StatsD.default_sample_rate, ::StatsD.default_sample_rate
+    refute_equal KubernetesDeploy::StatsD.backend, ::StatsD.backend
   end
 end
