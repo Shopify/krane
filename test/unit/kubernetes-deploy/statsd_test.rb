@@ -26,8 +26,13 @@ class StatsDTest < KubernetesDeploy::TestCase
 
   class TestMeasureNoTags
     extend(KubernetesDeploy::StatsD::MeasureMethods)
+
     def thing_to_measure; end
     measure_method :thing_to_measure
+  end
+
+  def setup
+    KubernetesDeploy::StatsD.build
   end
 
   def test_build_when_statsd_addr_env_present_but_statsd_implementation_is_not
@@ -48,6 +53,15 @@ class StatsDTest < KubernetesDeploy::TestCase
     KubernetesDeploy::StatsD.build
   end
 
+  def test_kubernetes_statsd_does_not_override_global_config
+    KubernetesDeploy::StatsD.build
+    ::StatsD.prefix = "test"
+    ::StatsD.default_sample_rate = 2.0
+    refute_equal KubernetesDeploy::StatsD.prefix, ::StatsD.prefix
+    refute_equal KubernetesDeploy::StatsD.default_sample_rate, ::StatsD.default_sample_rate
+    refute_equal KubernetesDeploy::StatsD.backend, ::StatsD.backend
+  end
+
   def test_measuring_non_existent_method_raises
     assert_raises_message(NotImplementedError, "Cannot instrument undefined method bogus_method") do
       TestMeasureClass.measure_method(:bogus_method)
@@ -59,7 +73,7 @@ class StatsDTest < KubernetesDeploy::TestCase
   end
 
   def test_measure_method_uses_expected_name_and_tags
-    metrics = capture_statsd_calls do
+    metrics = StatsDHelper.capture_statsd_calls do
       TestMeasureClass.new.thing_to_measure
     end
     assert_predicate metrics, :one?, "Expected 1 metric, got #{metrics.length}"
@@ -68,7 +82,7 @@ class StatsDTest < KubernetesDeploy::TestCase
   end
 
   def test_measure_method_with_custom_metric_name
-    metrics = capture_statsd_calls do
+    metrics = StatsDHelper.capture_statsd_calls do
       TestMeasureClass.new.measure_with_custom_metric
     end
     assert_predicate metrics, :one?, "Expected 1 metric, got #{metrics.length}"
@@ -77,7 +91,7 @@ class StatsDTest < KubernetesDeploy::TestCase
   end
 
   def test_measure_method_with_statsd_tags_undefined
-    metrics = capture_statsd_calls do
+    metrics = StatsDHelper.capture_statsd_calls do
       TestMeasureNoTags.new.thing_to_measure
     end
     assert_predicate metrics, :one?, "Expected 1 metric, got #{metrics.length}"
@@ -86,7 +100,7 @@ class StatsDTest < KubernetesDeploy::TestCase
   end
 
   def test_measure_method_that_raises_with_hash_tags
-    metrics = capture_statsd_calls do
+    metrics = StatsDHelper.capture_statsd_calls do
       tester = TestMeasureClass.new
       tester.expects(:statsd_tags).returns(test: true)
       assert_raises(ArgumentError) do
@@ -99,7 +113,7 @@ class StatsDTest < KubernetesDeploy::TestCase
   end
 
   def test_measure_method_that_raises_with_array_tags
-    metrics = capture_statsd_calls do
+    metrics = StatsDHelper.capture_statsd_calls do
       tester = TestMeasureClass.new
       tester.expects(:statsd_tags).returns(["test:true"])
       assert_raises(ArgumentError) do

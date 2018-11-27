@@ -185,7 +185,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   def test_stage_related_metrics_include_custom_tags_from_namespace
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     kubeclient.patch_namespace(hello_cloud.namespace, metadata: { labels: { foo: 'bar' } })
-    metrics = capture_statsd_calls do
+    metrics = StatsDHelper.capture_statsd_calls do
       assert_deploy_success deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"], wait: false)
     end
 
@@ -207,7 +207,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_all_expected_statsd_metrics_emitted_with_essential_tags
-    metrics = capture_statsd_calls do
+    metrics = StatsDHelper.capture_statsd_calls do
       result = deploy_fixtures('hello-cloud', subset: ['configmap-data.yml'], wait: false)
       assert_deploy_success(result)
     end

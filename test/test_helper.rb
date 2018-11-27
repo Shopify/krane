@@ -67,6 +67,7 @@ module KubernetesDeploy
     end
 
     def setup
+      KubernetesDeploy::StatsD.build
       Kubectl.any_instance.expects(:run).never if ban_net_connect? # can't use mocha in Minitest::Test#run
       configure_logger
     end

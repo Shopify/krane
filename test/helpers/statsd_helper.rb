@@ -7,7 +7,7 @@ module StatsDHelper
     old_backend = KubernetesDeploy::StatsD.backend
     KubernetesDeploy::StatsD.backend = mock_backend
 
-    yield
+    block.call
 
     mock_backend.collected_metrics
   ensure
