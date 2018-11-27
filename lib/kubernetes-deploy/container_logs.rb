@@ -44,10 +44,10 @@ module KubernetesDeploy
     def fetch_latest
       cmd = ["logs", @parent_id, "--container=#{container_name}", "--timestamps"]
       cmd << if @last_timestamp.present?
-               "--since-time=#{rfc3339_timestamp(@last_timestamp)}"
-             else
-               "--tail=#{DEFAULT_LINE_LIMIT}"
-             end
+        "--since-time=#{rfc3339_timestamp(@last_timestamp)}"
+      else
+        "--tail=#{DEFAULT_LINE_LIMIT}"
+      end
       out, _err, _st = kubectl.run(*cmd, log_failure: false)
       out.split("\n")
     end
