@@ -2,12 +2,12 @@
 module StatsDHelper
   extend self
 
-  def capture_statsd_calls(&block)
+  def capture_statsd_calls
     mock_backend = ::StatsD::Instrument::Backends::CaptureBackend.new
     old_backend = KubernetesDeploy::StatsD.backend
     KubernetesDeploy::StatsD.backend = mock_backend
 
-    block.call
+    yield if block_given?
 
     mock_backend.collected_metrics
   ensure
