@@ -5,6 +5,7 @@ require 'logger'
 module KubernetesDeploy
   class StatsD
     extend ::StatsD
+
     def self.duration(start_time)
       (Time.now.utc - start_time).round(1)
     end
@@ -50,7 +51,7 @@ module KubernetesDeploy
               dynamic_tags << "error:#{error}" if dynamic_tags.is_a?(Array)
             end
 
-            StatsD.distribution(metric, StatsD.duration(start_time), tags: dynamic_tags)
+            StatsD.distribution(metric, KubernetesDeploy::StatsD.duration(start_time), tags: dynamic_tags, prefix: "KubernetesDeploy")
           end
         end
 
