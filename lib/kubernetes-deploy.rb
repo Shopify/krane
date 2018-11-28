@@ -11,6 +11,7 @@ require 'active_support/duration'
 require 'colorized_string'
 
 require 'kubernetes-deploy/version'
+require 'kubernetes-deploy/oj'
 require 'kubernetes-deploy/errors'
 require 'kubernetes-deploy/formatted_logger'
 require 'kubernetes-deploy/statsd'
