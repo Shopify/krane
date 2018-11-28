@@ -6,6 +6,8 @@ module KubernetesDeploy
   class StatsD
     extend ::StatsD
 
+    PREFIX = "KubernetesDeploy"
+
     def self.duration(start_time)
       (Time.now.utc - start_time).round(1)
     end
@@ -22,6 +24,27 @@ module KubernetesDeploy
       else
         self.backend = ::StatsD::Instrument::Backends::NullBackend.new
       end
+    end
+
+    def self.measure(key, value = nil, *metric_options, &block)
+      if metric_options && metric_options.first.is_a?(Hash)
+        metric_options.first[:prefix] = PREFIX
+      end
+      super
+    end
+
+    def self.increment(key, value = 1, *metric_options)
+      if metric_options && metric_options.first.is_a?(Hash)
+        metric_options.first[:prefix] = PREFIX
+      end
+      super
+    end
+
+    def self.distribution(key, value=nil, *metric_options, &block)
+      if metric_options && metric_options.first.is_a?(Hash)
+        metric_options.first[:prefix] = PREFIX
+      end
+      super
     end
 
     module MeasureMethods
@@ -55,7 +78,7 @@ module KubernetesDeploy
               metric,
               KubernetesDeploy::StatsD.duration(start_time),
               tags: dynamic_tags,
-              prefix: "KubernetesDeploy"
+              prefix: PREFIX
             )
           end
         end

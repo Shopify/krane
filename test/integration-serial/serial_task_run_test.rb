@@ -3,6 +3,7 @@ require 'integration_test_helper'
 
 class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
   include TaskRunnerTestHelper
+  include StatsDHelper
 
   # Mocha is not thread-safe: https://github.com/freerange/mocha#thread-safety
   def test_run_without_verify_result_fails_if_pod_was_not_created
@@ -29,13 +30,12 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   end
 
-  # Run statsd tests in serial because StatsDHelper.StatsDHelper.capture_statsd_calls modifies global state in a way
+  # Run statsd tests in serial because capture_statsd_calls modifies global state in a way
   # that makes capturing metrics across parrallel runs unreliable
   def test_failure_statsd_metric_emitted
     bad_ns = "missing"
     task_runner = build_task_runner(ns: bad_ns)
 
-    result = false
     metrics = capture_statsd_calls do
       result = task_runner.run(run_params)
       assert_task_run_failure(result)
@@ -53,7 +53,6 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     deploy_task_template
     task_runner = build_task_runner
 
-    result = false
     metrics = capture_statsd_calls do
       result = task_runner.run(run_params.merge(verify_result: false))
       assert_task_run_success(result)
@@ -71,7 +70,6 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     deploy_task_template
     task_runner = build_task_runner(max_watch_seconds: 0)
 
-    result = false
     metrics = capture_statsd_calls do
       result = task_runner.run(run_params.merge(args: ["sleep 5"]))
       assert_task_run_failure(result, :timed_out)

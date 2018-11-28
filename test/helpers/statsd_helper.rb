@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 module StatsDHelper
-  extend self
-
   def capture_statsd_calls
     mock_backend = ::StatsD::Instrument::Backends::CaptureBackend.new
     old_backend = KubernetesDeploy::StatsD.backend

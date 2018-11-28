@@ -135,7 +135,6 @@ module KubernetesDeploy
       if deploy_has_priority_resources?(resources)
         @logger.phase_heading("Predeploying priority resources")
         predeploy_priority_resources(resources)
-        StatsD.measure('priority_resources.duration', StatsD.duration(start_priority_resource), tags: statsd_tags)
       end
 
       @logger.phase_heading("Deploying all resources")
@@ -144,9 +143,7 @@ module KubernetesDeploy
       end
 
       if verify_result
-        start_normal_resource = Time.now.utc
-        deploy_resources(resources, prune: prune, verify: true)
-        StatsD.measure('normal_resources.duration', StatsD.duration(start_normal_resource), tags: statsd_tags)
+        deploy_all_resources(resources, prune: prune, verify: true)
         failed_resources = resources.reject(&:deploy_succeeded?)
         success = failed_resources.empty?
         if !success && failed_resources.all?(&:deploy_timed_out?)

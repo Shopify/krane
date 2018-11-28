@@ -23,5 +23,5 @@ require 'kubernetes-deploy/resource_cache'
 
 module KubernetesDeploy
   MIN_KUBE_VERSION = '1.9.0'
-  KubernetesDeploy::StatsD.build
+  StatsD.build
 end

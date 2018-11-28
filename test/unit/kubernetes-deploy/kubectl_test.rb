@@ -2,6 +2,7 @@
 require 'test_helper'
 
 class KubectlTest < KubernetesDeploy::TestCase
+  include StatsDHelper
   def setup
     super
     KubernetesDeploy::Kubectl.any_instance.unstub(:run)
@@ -90,7 +91,7 @@ class KubectlTest < KubernetesDeploy::TestCase
     kubectl = build_kubectl
     kubectl.expects(:retry_delay).returns(0).times(4)
 
-    metrics = StatsDHelper.capture_statsd_calls do
+    metrics = capture_statsd_calls do
       _out, _err, st = kubectl.run("get", "pods", attempts: 5)
       refute_predicate st, :success?
     end
