@@ -12,7 +12,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 20 resources"
+      "Successfully deployed 21 resources"
     ], in_order: true)
 
     num_ds = expected_daemonset_pod_count
@@ -53,18 +53,28 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   end
 
-  def test_role_binding_predeployed_before_unmanaged_pod
-    result = deploy_fixtures("hello-cloud",
-      subset: ["configmap-data.yml", "unmanaged-pod.yml.erb", "role-binding.yml", "service-account.yml"])
+  def test_role_and_role_binding_predeployed_before_unmanaged_pod
+    result = deploy_fixtures(
+      "hello-cloud",
+      subset: [
+        "configmap-data.yml",
+        "unmanaged-pod.yml.erb",
+        "role-binding.yml",
+        "role.yml",
+        "service-account.yml"
+      ]
+    )
 
     # Expect that role binding account is deployed before the unmanaged pod
     assert_deploy_success(result)
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_configmap_data_present
     hello_cloud.assert_all_service_accounts_up
+    hello_cloud.assert_all_roles_up
     hello_cloud.assert_all_role_bindings_up
     hello_cloud.assert_unmanaged_pod_statuses("Succeeded")
     assert_logs_match_all([
+      %r{Successfully deployed in \d.\ds: Role/role},
       %r{Successfully deployed in \d.\ds: RoleBinding/role-binding},
       %r{Successfully deployed in \d.\ds: Pod/unmanaged-pod-.*}
     ], in_order: true)

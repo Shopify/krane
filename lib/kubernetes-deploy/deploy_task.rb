@@ -53,6 +53,7 @@ module KubernetesDeploy
       ConfigMap
       PersistentVolumeClaim
       ServiceAccount
+      Role
       RoleBinding
       Pod
     )
