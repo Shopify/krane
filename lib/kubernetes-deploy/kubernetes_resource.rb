@@ -407,8 +407,7 @@ module KubernetesDeploy
       else
         "unknown"
       end
-      tags = %W(context:#{context} namespace:#{namespace} resource:#{id}
-                type:#{type} sha:#{ENV['REVISION']} status:#{status})
+      tags = %W(context:#{context} namespace:#{namespace} type:#{type} status:#{status})
       tags | @optional_statsd_tags
     end
   end
