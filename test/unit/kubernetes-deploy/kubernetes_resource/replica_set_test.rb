@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class ReplicaSetTest < KubernetesDeploy::TestCase
+  include ResourceCacheTestHelper
+
   def test_deploy_succeeded_is_true_when_generation_and_replica_counts_match
     template = build_rs_template(status: { "observedGeneration": 2 })
     rs = build_synced_rs(template: template)
@@ -29,14 +31,9 @@ class ReplicaSetTest < KubernetesDeploy::TestCase
 
   def build_synced_rs(template:)
     rs = KubernetesDeploy::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
-    sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    sync_mediator.kubectl.expects(:run)
-      .with("get", "ReplicaSet", "test", "-a", "--output=json", raise_if_not_found: true)
-      .returns([template.to_json, "", SystemExit.new(0)])
-    sync_mediator.kubectl.expects(:run).with("get", "Pod", "-a", "--output=json", anything).returns(
-      ['{ "items": [] }', "", SystemExit.new(0)]
-    )
-    rs.sync(sync_mediator)
+    stub_kind_get("ReplicaSet", items: [template])
+    stub_kind_get("Pod", items: [])
+    rs.sync(build_resource_cache)
     rs
   end
 

@@ -16,9 +16,15 @@ module KubernetesDeploy
       own_events.merge(most_useful_pod.fetch_events(kubectl))
     end
 
-    def fetch_debug_logs(kubectl)
-      logs = KubernetesDeploy::RemoteLogs.new(logger: @logger, parent_id: id, container_names: container_names)
-      logs.sync(kubectl)
+    def fetch_debug_logs
+      logs = KubernetesDeploy::RemoteLogs.new(
+        logger: @logger,
+        parent_id: id,
+        container_names: container_names,
+        namespace: @namespace,
+        context: @context
+      )
+      logs.sync
       logs
     end
 
@@ -42,8 +48,8 @@ module KubernetesDeploy
       regular_containers + init_containers
     end
 
-    def find_pods(mediator)
-      all_pods = mediator.get_all(Pod.kind, @instance_data["spec"]["selector"]["matchLabels"])
+    def find_pods(cache)
+      all_pods = cache.get_all(Pod.kind, @instance_data["spec"]["selector"]["matchLabels"])
 
       all_pods.each_with_object([]) do |pod_data, relevant_pods|
         next unless parent_of_pod?(pod_data)
@@ -55,7 +61,7 @@ module KubernetesDeploy
           parent: "#{name.capitalize} #{type}",
           deploy_started_at: @deploy_started_at
         )
-        pod.sync(mediator)
+        pod.sync(cache)
         relevant_pods << pod
       end
     end

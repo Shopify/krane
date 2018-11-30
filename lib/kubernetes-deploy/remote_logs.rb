@@ -5,11 +5,17 @@ module KubernetesDeploy
   class RemoteLogs
     attr_reader :container_logs
 
-    def initialize(logger:, parent_id:, container_names:)
+    def initialize(logger:, parent_id:, container_names:, namespace:, context:)
       @logger = logger
       @parent_id = parent_id
       @container_logs = container_names.map do |n|
-        ContainerLogs.new(logger: logger, container_name: n, parent_id: parent_id)
+        ContainerLogs.new(
+          logger: logger,
+          container_name: n,
+          parent_id: parent_id,
+          namespace: namespace,
+          context: context
+        )
       end
     end
 
@@ -17,8 +23,8 @@ module KubernetesDeploy
       @container_logs.all?(&:empty?)
     end
 
-    def sync(kubectl)
-      @container_logs.each { |cl| cl.sync(kubectl) }
+    def sync
+      @container_logs.each(&:sync)
     end
 
     def print_latest

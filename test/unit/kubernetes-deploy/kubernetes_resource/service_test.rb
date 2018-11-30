@@ -2,18 +2,20 @@
 require 'test_helper'
 
 class ServiceTest < KubernetesDeploy::TestCase
+  include ResourceCacheTestHelper
+
   def test_external_name_services_only_need_to_exist
     svc_def = service_fixture('external-name')
     svc = build_service(svc_def)
 
-    stub_instance_get("Service", "external-name")
-    svc.sync(build_sync_mediator)
+    stub_kind_get("Service", items: [])
+    svc.sync(build_resource_cache)
     refute svc.exists?
     refute svc.deploy_succeeded?
     assert_equal "Not found", svc.status
 
-    stub_instance_get("Service", "external-name", resp: svc_def)
-    svc.sync(build_sync_mediator)
+    stub_kind_get("Service", items: [svc_def])
+    svc.sync(build_resource_cache)
     assert svc.exists?
     assert svc.deploy_succeeded?
     assert_equal "Doesn't require any endpoints", svc.status
@@ -23,8 +25,8 @@ class ServiceTest < KubernetesDeploy::TestCase
     svc_def = service_fixture('selectorless')
     svc = build_service(svc_def)
 
-    stub_instance_get("Service", "selectorless", resp: svc_def)
-    svc.sync(build_sync_mediator)
+    stub_kind_get("Service", items: [svc_def])
+    svc.sync(build_resource_cache)
     assert svc.exists?
     assert svc.deploy_succeeded?
     assert_equal "Doesn't require any endpoints", svc.status # TODO: this is not strictly correct
@@ -37,14 +39,9 @@ class ServiceTest < KubernetesDeploy::TestCase
       build_service(service_fixture('zero-replica'))
     ]
 
-    stub_instance_get("Service", "zero-replica")
-    stub_instance_get("Service", "standard")
-    stub_instance_get("Service", "external-name")
-    stub_kind_get("Deployment", resp: { items: deployment_fixtures })
-    stub_kind_get("Pod", resp: { items: pod_fixtures })
-
-    mediator = build_sync_mediator
-    all_services.each { |svc| svc.sync(mediator) }
+    stub_kind_get("Service", items: [])
+    cache = build_resource_cache
+    all_services.each { |svc| svc.sync(cache) }
 
     all_services.each do |svc|
       refute svc.exists?, "#{svc.name} should not have existed"
@@ -58,19 +55,19 @@ class ServiceTest < KubernetesDeploy::TestCase
     svc_def = service_fixture('standard')
     svc = build_service(svc_def)
 
-    stub_instance_get("Service", "standard", resp: svc_def)
-    stub_kind_get("Deployment", resp: { items: deployment_fixtures })
-    stub_kind_get("Pod")
-    svc.sync(build_sync_mediator)
+    stub_kind_get("Service", items: [svc_def])
+    stub_kind_get("Deployment", items: deployment_fixtures)
+    stub_kind_get("Pod", items: [])
+    svc.sync(build_resource_cache)
 
     assert svc.exists?
     refute svc.deploy_succeeded?
     assert_equal "Selects 0 pods", svc.status
 
-    stub_instance_get("Service", "standard", resp: svc_def)
-    stub_kind_get("Deployment", resp: { items: deployment_fixtures })
-    stub_kind_get("Pod", resp: { items: pod_fixtures })
-    svc.sync(build_sync_mediator)
+    stub_kind_get("Service", items: [svc_def])
+    stub_kind_get("Deployment", items: deployment_fixtures)
+    stub_kind_get("Pod", items: pod_fixtures)
+    svc.sync(build_resource_cache)
 
     assert svc.exists?
     assert svc.deploy_succeeded?
@@ -81,10 +78,10 @@ class ServiceTest < KubernetesDeploy::TestCase
     svc_def = service_fixture('standard')
     svc = build_service(svc_def)
 
-    stub_instance_get("Service", "standard", resp: svc_def)
-    stub_kind_get("Deployment")
-    stub_kind_get("Pod")
-    svc.sync(build_sync_mediator)
+    stub_kind_get("Service", items: [svc_def])
+    stub_kind_get("Deployment", items: [])
+    stub_kind_get("Pod", items: [])
+    svc.sync(build_resource_cache)
 
     assert svc.exists?
     refute svc.deploy_succeeded?
@@ -95,10 +92,10 @@ class ServiceTest < KubernetesDeploy::TestCase
     svc_def = service_fixture('zero-replica')
     svc = build_service(svc_def)
 
-    stub_instance_get("Service", "zero-replica", resp: svc_def)
-    stub_kind_get("Deployment", resp: { items: deployment_fixtures })
-    stub_kind_get("Pod", resp: { items: [] })
-    svc.sync(build_sync_mediator)
+    stub_kind_get("Service", items: [svc_def])
+    stub_kind_get("Deployment", items: deployment_fixtures)
+    stub_kind_get("Pod", items: [])
+    svc.sync(build_resource_cache)
 
     assert svc.exists?
     assert svc.deploy_succeeded?
@@ -106,16 +103,6 @@ class ServiceTest < KubernetesDeploy::TestCase
   end
 
   private
-
-  def stub_instance_get(kind, name, resp: {})
-    kwargs = { raise_if_not_found: true }
-    stub_kubectl_response("get", kind, name, "-a", resp: resp, kwargs: kwargs)
-  end
-
-  def stub_kind_get(kind, resp: { items: [] })
-    kwargs = { attempts: 1 }
-    stub_kubectl_response("get", kind, "-a", resp: resp, kwargs: kwargs)
-  end
 
   def build_service(definition)
     KubernetesDeploy::Service.new(namespace: 'test', context: 'test', logger: logger, definition: definition)
@@ -131,10 +118,6 @@ class ServiceTest < KubernetesDeploy::TestCase
 
   def pod_fixtures
     fixtures.select { |f| f["kind"] == "Pod" }
-  end
-
-  def build_sync_mediator
-    KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
   end
 
   def fixtures

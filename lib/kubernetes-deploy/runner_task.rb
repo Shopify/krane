@@ -87,14 +87,15 @@ module KubernetesDeploy
 
     def watch_pod(pod)
       rw = ResourceWatcher.new(resources: [pod], logger: @logger, timeout: @max_watch_seconds,
-        sync_mediator: sync_mediator, operation_name: "run")
+        operation_name: "run", namespace: @namespace, context: @context)
       rw.run(delay_sync: 1, reminder_interval: 30.seconds)
       raise DeploymentTimeoutError if pod.deploy_timed_out?
       raise FatalDeploymentError if pod.deploy_failed?
     end
 
     def record_status_once(pod)
-      pod.sync(sync_mediator)
+      cache = ResourceCache.new(@namespace, @context, @logger)
+      pod.sync(cache)
       warning = <<~STRING
         #{ColorizedString.new('Result verification is disabled for this task.').yellow}
         The following status was observed immediately after pod creation:
@@ -195,10 +196,6 @@ module KubernetesDeploy
 
     def kubectl
       @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
-    end
-
-    def sync_mediator
-      @sync_mediator ||= SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
     end
 
     def kubeclient

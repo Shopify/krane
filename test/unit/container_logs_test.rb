@@ -4,50 +4,52 @@ require 'test_helper'
 class ContainerLogsTest < KubernetesDeploy::TestCase
   def setup
     super
-    @logs = KubernetesDeploy::ContainerLogs.new(parent_id: 'pod/pod-123-456', container_name: 'A', logger: logger)
+    @logs = KubernetesDeploy::ContainerLogs.new(
+      parent_id: 'pod/pod-123-456',
+      container_name: 'A',
+      logger: logger,
+      namespace: 'test',
+      context: KubeclientHelper::TEST_CONTEXT
+    )
   end
 
   def test_sync_deduplicates_logs_emitted_fractional_seconds_apart
-    kubectl = mock
-    kubectl.stubs(:run)
+    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1, "", ""])
       .then.returns([logs_response_2, "", ""])
       .then.returns([logs_response_3, "", ""])
-    @logs.sync(kubectl)
-    @logs.sync(kubectl)
-    @logs.sync(kubectl)
+    @logs.sync
+    @logs.sync
+    @logs.sync
 
     assert_equal generate_log_messages(1..15), @logs.lines
   end
 
   def test_sync_handles_cycles_where_no_new_logs_available
-    kubectl = mock
-    kubectl.stubs(:run)
+    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1, "", ""])
       .then.returns(["", "", ""])
       .then.returns([logs_response_2, "", ""])
-    @logs.sync(kubectl)
-    @logs.sync(kubectl)
-    @logs.sync(kubectl)
+    @logs.sync
+    @logs.sync
+    @logs.sync
 
     assert_equal generate_log_messages(1..10), @logs.lines
   end
 
   def test_empty_delegated_to_lines
-    kubectl = mock
-    kubectl.stubs(:run).returns([logs_response_1, "", ""])
+    KubernetesDeploy::Kubectl.any_instance.stubs(:run).returns([logs_response_1, "", ""])
     assert_predicate @logs, :empty?
-    @logs.sync(kubectl)
+    @logs.sync
     refute_predicate @logs, :empty?
   end
 
   def test_print_latest_and_print_all_output_the_correct_chunks
-    kubectl = mock
-    kubectl.stubs(:run)
+    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1, "", ""])
       .then.returns([logs_response_2, "", ""])
 
-    @logs.sync(kubectl)
+    @logs.sync
     @logs.print_latest
     assert_logs_match_all(generate_log_messages(1..3), in_order: true)
 
@@ -56,7 +58,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     assert_logs_match_all(generate_log_messages(1..3), in_order: true)
 
     reset_logger
-    @logs.sync(kubectl)
+    @logs.sync
     @logs.print_latest
     assert_logs_match_all(generate_log_messages(4..10), in_order: true)
     refute_logs_match("Line 3")
@@ -67,9 +69,8 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_print_latest_supports_prefixing
-    kubectl = mock
-    kubectl.stubs(:run).returns([logs_response_1, "", ""])
-    @logs.sync(kubectl)
+    KubernetesDeploy::Kubectl.any_instance.stubs(:run).returns([logs_response_1, "", ""])
+    @logs.sync
     expected = [
       "[A]  Line 1",
       "[A]  Line 2",
@@ -80,29 +81,27 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_logs_without_timestamps_are_not_deduped
-    kubectl = mock
     logs_response_1_with_anomaly = logs_response_1 + "Line 3.5"
     logs_response_2_with_anomaly = "Line 3.5\n" + logs_response_2
-    kubectl.stubs(:run)
+    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1_with_anomaly, "", ""])
       .then.returns([logs_response_2_with_anomaly, "", ""])
 
-    @logs.sync(kubectl)
-    @logs.sync(kubectl)
+    @logs.sync
+    @logs.sync
     @logs.print_all
     assert_logs_match("Line 3.5", 2)
   end
 
   def test_deduplication_works_when_exact_same_batch_is_returned_more_than_once
-    kubectl = mock
-    kubectl.stubs(:run)
+    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1, "", ""])
       .then.returns([logs_response_1, "", ""])
       .then.returns([logs_response_2, "", ""])
 
-    @logs.sync(kubectl)
-    @logs.sync(kubectl)
-    @logs.sync(kubectl)
+    @logs.sync
+    @logs.sync
+    @logs.sync
 
     @logs.print_all
     assert_logs_match_all(generate_log_messages(1..10), in_order: true)

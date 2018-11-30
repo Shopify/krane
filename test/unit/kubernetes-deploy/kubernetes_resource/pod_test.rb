@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class PodTest < KubernetesDeploy::TestCase
+  include ResourceCacheTestHelper
+
   def test_deploy_failed_is_true_for_missing_image_error
     container_state = {
       "state" => {
@@ -220,9 +222,9 @@ class PodTest < KubernetesDeploy::TestCase
     template = build_pod_template
     pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc)
-    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    mediator.kubectl.expects(:run).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
-    pod.sync(mediator)
+    cache = build_resource_cache
+    cache.expects(:get_instance).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
+    pod.sync(cache)
 
     assert_predicate pod, :disappeared?
     assert_predicate pod, :deploy_failed?
@@ -233,9 +235,9 @@ class PodTest < KubernetesDeploy::TestCase
     template = build_pod_template
     pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc, parent: mock)
-    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    mediator.kubectl.expects(:run).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
-    pod.sync(mediator)
+    cache = build_resource_cache
+    cache.expects(:get_instance).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
+    pod.sync(cache)
 
     assert_predicate pod, :disappeared?
     refute_predicate pod, :deploy_failed?
@@ -251,10 +253,9 @@ class PodTest < KubernetesDeploy::TestCase
   def build_synced_pod(template, parent: nil)
     pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc, parent: parent)
-    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'nope', logger: @logger)
-    mediator.expects(:get_instance).with('Pod', "unmanaged-pod-1", raise_if_not_found: true).returns(template)
+    stub_kind_get("Pod", items: [template])
     KubernetesDeploy::ContainerLogs.any_instance.stubs(:sync) unless parent.present?
-    pod.sync(mediator)
+    pod.sync(build_resource_cache)
     pod
   end
 

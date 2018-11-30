@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class StatefulSetTest < KubernetesDeploy::TestCase
+  include ResourceCacheTestHelper
+
   def test_deploy_succeeded_is_true_when_revision_and_replica_counts_match
     template = build_ss_template(status: { "observedGeneration": 2 })
     ss = build_synced_ss(template: template)
@@ -33,14 +35,9 @@ class StatefulSetTest < KubernetesDeploy::TestCase
 
   def build_synced_ss(template:)
     ss = KubernetesDeploy::StatefulSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
-    sync_mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    sync_mediator.kubectl.expects(:run)
-      .with("get", "StatefulSet", "test-ss", "-a", "--output=json", raise_if_not_found: true)
-      .returns([template.to_json, "", SystemExit.new(0)])
-    sync_mediator.kubectl.expects(:run).with("get", "Pod", "-a", "--output=json", anything).returns(
-      ['{ "items": [] }', "", SystemExit.new(0)]
-    )
-    ss.sync(sync_mediator)
+    stub_kind_get("StatefulSet", items: [template])
+    stub_kind_get("Pod", items: [])
+    ss.sync(build_resource_cache)
     ss
   end
 

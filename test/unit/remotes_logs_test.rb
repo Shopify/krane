@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class ContainerLogsTest < KubernetesDeploy::TestCase
+class RemoteLogsTest < KubernetesDeploy::TestCase
   def test_print_latest_uses_prefix_if_multiple_containers
-    logs = KubernetesDeploy::RemoteLogs.new(parent_id: 'pod/pod-123-456', logger: logger,
-      container_names: %w(Container1 ContainerA))
+    logs = build_remote_logs(container_names: %w(Container1 ContainerA))
     logs.container_logs.first.expects(:lines).returns(mock_lines(1..4)).at_least_once
     logs.container_logs.last.expects(:lines).returns(mock_lines('A'..'D')).at_least_once
 
@@ -22,7 +21,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_print_latest_does_not_use_prefix_if_one_container
-    logs = KubernetesDeploy::RemoteLogs.new(parent_id: 'pod/pod-123-456', container_names: %w(A), logger: logger)
+    logs = build_remote_logs(container_names: %w(A))
     logs.container_logs.first.expects(:lines).returns(mock_lines(1..4)).at_least_once
 
     logs.print_latest
@@ -31,14 +30,13 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_print_all_prints_custom_message_if_no_logs_at_all
-    logs = KubernetesDeploy::RemoteLogs.new(parent_id: 'pod/pod-123-456', container_names: %w(A), logger: logger)
+    logs = build_remote_logs(container_names: %w(A))
     logs.print_all
     assert_logs_match(%r{No logs found for pod/pod-123-456})
   end
 
   def test_print_all_prints_custom_message_if_one_container_has_no_logs
-    logs = KubernetesDeploy::RemoteLogs.new(parent_id: 'pod/pod-123-456', logger: logger,
-      container_names: %w(Container1 ContainerA))
+    logs = build_remote_logs(container_names: %w(Container1 ContainerA))
     logs.container_logs.first.expects(:lines).returns([]).at_least_once
     logs.container_logs.last.expects(:lines).returns(mock_lines('A'..'D')).at_least_once
 
@@ -54,8 +52,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_print_all_identifies_logs_from_all_containers
-    logs = KubernetesDeploy::RemoteLogs.new(parent_id: 'pod/pod-123-456', logger: logger,
-      container_names: %w(Container1 ContainerA))
+    logs = build_remote_logs(container_names: %w(Container1 ContainerA))
     logs.container_logs.first.expects(:lines).returns(mock_lines(1..4)).at_least_once
     logs.container_logs.last.expects(:lines).returns(mock_lines('A'..'D')).at_least_once
 
@@ -75,8 +72,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_print_all_suppresses_duplicate_output_by_default
-    logs = KubernetesDeploy::RemoteLogs.new(parent_id: 'pod/pod-123-456', logger: logger,
-      container_names: %w(Container1))
+    logs = build_remote_logs(container_names: %w(Container1))
     logs.container_logs.first.expects(:lines).returns(mock_lines(1..4)).at_least_once
 
     logs.print_all
@@ -88,6 +84,11 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   private
+
+  def build_remote_logs(container_names:)
+    KubernetesDeploy::RemoteLogs.new(parent_id: 'pod/pod-123-456', logger: logger,
+      container_names: container_names, namespace: 'test', context: KubeclientHelper::TEST_CONTEXT)
+  end
 
   def mock_lines(range)
     range.map { |i| "Line #{i}" }

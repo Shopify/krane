@@ -99,9 +99,8 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_allows_success
     resource = build_mock_resource(hits_to_complete: 1)
-    sync_mediator = MockMediator.new(build_runless_kubectl)
     watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource], logger: logger,
-      timeout: 2, sync_mediator: sync_mediator)
+      timeout: 2, namespace: 'test', context: KubeclientHelper::TEST_CONTEXT)
 
     watcher.run(delay_sync: 0.1)
     assert_logs_match(/Successfully deployed in \d.\ds: web-pod/)
@@ -109,9 +108,8 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_raises_after_timeout_seconds
     resource = build_mock_resource(hits_to_complete: 10**100)
-    sync_mediator = MockMediator.new(build_runless_kubectl)
     watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource], logger: logger,
-      timeout: 0.02, sync_mediator: sync_mediator)
+      timeout: 0.02, namespace: 'test', context: KubeclientHelper::TEST_CONTEXT)
 
     assert_raises(KubernetesDeploy::DeploymentTimeoutError) { watcher.run(delay_sync: 0.01) }
   end
@@ -119,20 +117,12 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   private
 
   def build_watcher(resources)
-    mediator = MockMediator.new(build_runless_kubectl)
-    KubernetesDeploy::ResourceWatcher.new(resources: resources, logger: logger, sync_mediator: mediator)
-  end
-
-  class MockMediator
-    attr_reader :kubectl
-
-    def initialize(kubectl)
-      @kubectl = kubectl
-    end
-
-    def sync(resources)
-      resources.each { |r| r.sync(self) }
-    end
+    KubernetesDeploy::ResourceWatcher.new(
+      resources: resources,
+      logger: logger,
+      namespace: 'test',
+      context: KubeclientHelper::TEST_CONTEXT
+    )
   end
 
   MockResource = Struct.new(:id, :hits_to_complete, :status) do
@@ -140,7 +130,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       @debug_message
     end
 
-    def sync(_mediator)
+    def sync(_cache)
       @hits ||= 0
       @hits += 1
     end

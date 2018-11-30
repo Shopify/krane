@@ -19,7 +19,7 @@ require 'kubernetes-deploy/deploy_task'
 require 'kubernetes-deploy/concurrency'
 require 'kubernetes-deploy/bindings_parser'
 require 'kubernetes-deploy/duration_parser'
-require 'kubernetes-deploy/sync_mediator'
+require 'kubernetes-deploy/resource_cache'
 
 module KubernetesDeploy
   MIN_KUBE_VERSION = '1.9.0'

@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class ResourceWatcher
-    def initialize(resources:, sync_mediator:, logger:, deploy_started_at: Time.now.utc,
-      operation_name: "deploy", timeout: nil)
+    extend KubernetesDeploy::StatsD::MeasureMethods
+
+    def initialize(resources:, logger:, context:, namespace:,
+      deploy_started_at: Time.now.utc, operation_name: "deploy", timeout: nil)
       unless resources.is_a?(Enumerable)
         raise ArgumentError, <<~MSG
           ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
@@ -10,7 +12,8 @@ module KubernetesDeploy
       end
       @resources = resources
       @logger = logger
-      @sync_mediator = sync_mediator
+      @namespace = namespace
+      @context = context
       @deploy_started_at = deploy_started_at
       @operation_name = operation_name
       @timeout = timeout
@@ -24,8 +27,7 @@ module KubernetesDeploy
         report_and_give_up(remainder) if global_timeout?(monitoring_started)
         sleep_until_next_sync(delay_sync)
 
-        @sync_mediator.sync(remainder)
-        remainder.each(&:after_sync)
+        sync_resources(remainder)
 
         new_successes, remainder = remainder.partition(&:deploy_succeeded?)
         new_failures, remainder = remainder.partition(&:deploy_failed?)
@@ -44,6 +46,13 @@ module KubernetesDeploy
     end
 
     private
+
+    def sync_resources(resources)
+      cache = ResourceCache.new(@namespace, @context, @logger)
+      KubernetesDeploy::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
+      resources.each(&:after_sync)
+    end
+    measure_method(:sync_resources, "sync.duration")
 
     def global_timeout?(started_at)
       @timeout && (Time.now.utc - started_at > @timeout)
@@ -118,9 +127,12 @@ module KubernetesDeploy
             "failed to #{@operation_name} #{failures.length} #{'resource'.pluralize(failures.length)}"
           )
         end
+
+        kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
         KubernetesDeploy::Concurrency.split_across_threads(failed_resources + global_timeouts) do |r|
-          r.sync_debug_info(@sync_mediator.kubectl)
+          r.sync_debug_info(kubectl)
         end
+
         failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
         global_timeouts.each { |r| @logger.summary.add_paragraph(r.debug_message(:gave_up, timeout: @timeout)) }
       end

@@ -87,7 +87,7 @@ module KubernetesDeploy
         policy/v1beta1/PodDisruptionBudget
         batch/v1beta1/CronJob
       )
-      wl + cluster_resource_discoverer.crds(@sync_mediator).select(&:prunable?).map(&:group_version_kind)
+      wl + cluster_resource_discoverer.crds.select(&:prunable?).map(&:group_version_kind)
     end
 
     def server_version
@@ -110,7 +110,6 @@ module KubernetesDeploy
         logger: @logger,
         bindings: bindings,
       )
-      @sync_mediator = SyncMediator.new(namespace: @namespace, context: @context, logger: @logger)
     end
 
     def run(*args)
@@ -207,7 +206,7 @@ module KubernetesDeploy
         fail_count = failed_resources.length
         if fail_count > 0
           KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
-            r.sync_debug_info(@sync_mediator.kubectl)
+            r.sync_debug_info(kubectl)
           end
           failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
           raise FatalDeploymentError, "Failed to deploy #{fail_count} priority #{'resource'.pluralize(fail_count)}"
@@ -231,7 +230,8 @@ module KubernetesDeploy
     measure_method(:validate_resources)
 
     def check_initial_status(resources)
-      @sync_mediator.sync(resources)
+      cache = ResourceCache.new(@namespace, @context, @logger)
+      KubernetesDeploy::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
       resources.each { |r| @logger.info(r.pretty_status) }
     end
     measure_method(:check_initial_status, "initial_status.duration")
@@ -404,8 +404,8 @@ module KubernetesDeploy
       apply_all(applyables, prune)
 
       if verify
-        watcher = ResourceWatcher.new(resources: resources, sync_mediator: @sync_mediator,
-          logger: @logger, deploy_started_at: deploy_started_at, timeout: @max_watch_seconds)
+        watcher = ResourceWatcher.new(resources: resources, logger: @logger, deploy_started_at: deploy_started_at,
+          timeout: @max_watch_seconds, namespace: @namespace, context: @context)
         watcher.run(record_summary: record_summary)
       end
     end

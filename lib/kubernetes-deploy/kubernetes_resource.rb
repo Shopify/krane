@@ -121,8 +121,8 @@ module KubernetesDeploy
       file.path
     end
 
-    def sync(mediator)
-      @instance_data = mediator.get_instance(kubectl_resource_type, name, raise_if_not_found: true)
+    def sync(cache)
+      @instance_data = cache.get_instance(kubectl_resource_type, name, raise_if_not_found: true)
     rescue KubernetesDeploy::Kubectl::ResourceNotFoundError
       @disappeared = true if deploy_started?
       @instance_data = {}
@@ -195,7 +195,7 @@ module KubernetesDeploy
 
     def sync_debug_info(kubectl)
       @debug_events = fetch_events(kubectl) unless ENV[DISABLE_FETCHING_EVENT_INFO]
-      @debug_logs = fetch_debug_logs(kubectl) if print_debug_logs? && !ENV[DISABLE_FETCHING_LOG_INFO]
+      @debug_logs = fetch_debug_logs if print_debug_logs? && !ENV[DISABLE_FETCHING_LOG_INFO]
     end
 
     def debug_message(cause = nil, info_hash = {})

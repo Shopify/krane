@@ -10,6 +10,9 @@ Style/TrailingCommaInArrayLiteral:
 Style/TrailingCommaInHashLiteral:
   Enabled: false
 
+Style/MethodCallWithArgsParentheses:
+  Enabled: false
+
 Naming/FileName:
   Enabled: true
   Exclude:

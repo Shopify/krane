@@ -263,27 +263,27 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_disappeared_is_true_if_resource_has_been_deployed_and_404s
     dummy = DummyResource.new
-    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    mediator.kubectl.expects(:run).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError).twice
+    cache = KubernetesDeploy::ResourceCache.new('test', 'minikube', logger)
+    cache.expects(:get_instance).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError).twice
 
-    dummy.sync(mediator)
+    dummy.sync(cache)
     refute_predicate dummy, :disappeared?
 
     dummy.deploy_started_at = Time.now.utc
-    dummy.sync(mediator)
+    dummy.sync(cache)
     assert_predicate dummy, :disappeared?
   end
 
   def test_disappeared_is_false_if_resource_has_been_deployed_and_we_get_a_server_error
     dummy = DummyResource.new
-    mediator = KubernetesDeploy::SyncMediator.new(namespace: 'test', context: 'minikube', logger: logger)
-    mediator.kubectl.expects(:run).returns(["", "NotFound", stub(success?: false)]).twice
+    cache = KubernetesDeploy::ResourceCache.new('test', 'minikube', logger)
+    KubernetesDeploy::Kubectl.any_instance.expects(:run).returns(["", "NotFound", stub(success?: false)]).twice
 
-    dummy.sync(mediator)
+    dummy.sync(cache)
     refute_predicate dummy, :disappeared?
 
     dummy.deploy_started_at = Time.now.utc
-    dummy.sync(mediator)
+    dummy.sync(cache)
     refute_predicate dummy, :disappeared?
   end
 
