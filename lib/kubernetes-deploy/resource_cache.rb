@@ -50,7 +50,7 @@ module KubernetesDeploy
     end
 
     def fetch_by_kind(kind)
-      raw_json, _, st = @kubectl.run("get", kind, "-a", "--output=json", attempts: 5)
+      raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", "--output=json", attempts: 5)
       raise KubectlError unless st.success?
 
       instances = {}
