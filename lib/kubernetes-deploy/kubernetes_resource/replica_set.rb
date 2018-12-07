@@ -16,7 +16,7 @@ module KubernetesDeploy
 
     def sync(cache)
       super
-      @pods = exists? ? find_pods(cache) : []
+      @pods = check_pods? ? find_pods(cache) : []
     end
 
     def status
@@ -25,7 +25,7 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      observed_generation == current_generation &&
+      return false if stale_status?
       desired_replicas == rollout_data["availableReplicas"].to_i &&
       desired_replicas == rollout_data["readyReplicas"].to_i
     end
@@ -33,7 +33,7 @@ module KubernetesDeploy
     def deploy_failed?
       pods.present? &&
       pods.all?(&:deploy_failed?) &&
-      observed_generation == current_generation
+      !stale_status?
     end
 
     def desired_replicas
@@ -52,6 +52,17 @@ module KubernetesDeploy
     end
 
     private
+
+    def stale_status?
+      observed_generation != current_generation
+    end
+
+    def check_pods?
+      # We're only using pods in deploy_failed? to check that they aren't ALL bad,
+      # so if we can already tell that from the RS data, don't bother looking at (or expensively fetching) them
+      return false if !exists? || stale_status?
+      ready_replicas < [2, desired_replicas].min
+    end
 
     def rollout_data
       return { "replicas" => 0 } unless exists?
