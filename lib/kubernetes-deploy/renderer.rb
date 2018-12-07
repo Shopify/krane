@@ -52,7 +52,7 @@ module KubernetesDeploy
       template = File.read(partial_path)
       expanded_template = ERB.new(template, nil, '-').result(erb_binding)
 
-      docs = Psych.parse_stream(expanded_template)
+      docs = Psych.parse_stream(expanded_template, partial_path)
       # If the partial contains multiple documents or has an explicit document header,
       # we know it cannot validly be indented in the parent, so return it immediately.
       return expanded_template unless docs.children.one? && docs.children.first.implicit

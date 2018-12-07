@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'kubernetes-deploy'
+require 'kubernetes-deploy/render_task'
+require 'optparse'
+
+template_dir = nil
+bindings = {}
+
+ARGV.options do |opts|
+  opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
+    "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") do |binds|
+    bindings.merge!(KubernetesDeploy::BindingsParser.parse(binds))
+  end
+  opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
+  opts.parse!
+end
+
+templates = ARGV
+logger = KubernetesDeploy::FormattedLogger.build(verbose_prefix: false)
+revision = KubernetesDeploy::OptionsHelper.revision_from_environment
+
+runner = KubernetesDeploy::RenderTask.new(
+  logger: logger,
+  current_sha: revision,
+  template_dir: template_dir,
+  bindings: bindings,
+)
+
+success = runner.run(STDOUT, templates)
+exit 1 unless success

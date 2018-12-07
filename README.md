@@ -50,6 +50,10 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * [Prerequisites](#prerequisites-1)
 * [Usage](#usage-2)
 
+**KUBERNETES-RENDER**
+* [Prerequisites](#prerequisites-2)
+* [Usage](#usage-3)
+
 **DEVELOPMENT**
 * [Setup](#setup)
 * [Running the test suite locally](#running-the-test-suite-locally)
@@ -371,6 +375,34 @@ Based on this specification `kubernetes-run` will create a new pod with the entr
 
 
 
+# kubernetes-render
+
+`kubernetes-render` is a tool for rendering ERB templates to raw Kubernetes YAML. It's useful for seeing what `kubernetes-deploy` does before actually invoking `kubectl` on the rendered YAML. It's also useful for outputting YAML that can be passed to other tools, for validation or introspection purposes.
+
+
+## Prerequisites
+
+ * `kubernetes-render` does __not__ require a running cluster or an active kubernetes context, which is nice if you want to run it in a CI environment, potentially alongside something like https://github.com/garethr/kubeval to make sure your configuration is sound.
+ * Like the other `kubernetes-deploy` commands, `kubernetes-render` requires the `$REVISION` environment variable to be set, and will make it available as `current_sha` in your ERB templates.
+
+## Usage
+
+To render all templates in your template dir, run:
+
+```
+kubernetes-render --template-dir=./path/to/template/dir
+```
+
+To render some templates in a template dir, run kubernetes-render with the names of the templates to render:
+
+```
+kubernetes-render --template-dir=./path/to/template/dir this-template.yaml.erb that-template.yaml.erb
+```
+
+*Options:*
+
+- `--template-dir=DIR`: Used to set the directory to interpret template names relative to. This is often the same directory passed as `--template-dir` when running `kubernetes-deploy` to actually deploy templates. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`.
+- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-render --bindings=color=blue,size=large some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
 
 
 # Development

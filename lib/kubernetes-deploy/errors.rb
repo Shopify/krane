@@ -3,6 +3,7 @@ module KubernetesDeploy
   class FatalDeploymentError < StandardError; end
   class FatalKubeAPIError < FatalDeploymentError; end
   class KubectlError < StandardError; end
+  class TaskConfigurationError < FatalDeploymentError; end
 
   class InvalidTemplateError < FatalDeploymentError
     attr_reader :content

@@ -69,10 +69,11 @@ module KubernetesDeploy
     def setup
       Kubectl.any_instance.expects(:run).never if ban_net_connect? # can't use mocha in Minitest::Test#run
       configure_logger
+      @mock_output_stream = StringIO.new
     end
 
     def configure_logger
-      if log_to_stderr?
+      if log_to_real_fds?
         ColorizedString.disable_colorization = false
 
         # Allows you to view the integration test output as a series of tophat scenarios
@@ -99,7 +100,7 @@ module KubernetesDeploy
     end
 
     def reset_logger
-      return if log_to_stderr?
+      return if log_to_real_fds?
       # Flush StringIO buffer if not closed
       unless @logger_stream.closed?
         @logger_stream.truncate(0)
@@ -108,29 +109,19 @@ module KubernetesDeploy
     end
 
     def assert_deploy_failure(result, cause = nil)
-      if log_to_stderr?
-        assert_equal false, result, "Deploy succeeded when it was expected to fail"
-        return
-      end
-
+      assert_equal false, result, "Deploy succeeded when it was expected to fail.#{logs_message_if_captured}"
       logging_assertion do |logs|
         cause_string = cause == :timed_out ? "TIMED OUT" : "FAILURE"
         assert_match Regexp.new("Result: #{cause_string}"), logs,
           "'Result: #{cause_string}' not found in the following logs:\n#{logs}"
-        assert_equal false, result, "Deploy succeeded when it was expected to fail. Logs:\n#{logs}"
       end
     end
     alias_method :assert_restart_failure, :assert_deploy_failure
     alias_method :assert_task_run_failure, :assert_deploy_failure
 
     def assert_deploy_success(result)
-      if log_to_stderr?
-        assert_equal true, result, "Deploy failed when it was expected to succeed"
-        return
-      end
-
+      assert_equal true, result, "Deploy failed when it was expected to succeed.#{logs_message_if_captured}"
       logging_assertion do |logs|
-        assert_equal true, result, "Deploy failed when it was expected to succeed. Logs:\n#{logs}"
         assert_match Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}"
       end
     end
@@ -214,18 +205,40 @@ module KubernetesDeploy
       obj
     end
 
+    def logs_message_if_captured
+      unless log_to_real_fds?
+        " Logs:\n#{@logger_stream.string}"
+      end
+    end
+
+    def mock_output_stream
+      if log_to_real_fds?
+        $stdout
+      else
+        @mock_output_stream
+      end
+    end
+
     private
 
-    def log_to_stderr?
+    def log_to_real_fds?
       ENV["PRINT_LOGS"] == "1"
     end
 
     def logging_assertion
-      if log_to_stderr?
+      if log_to_real_fds?
         $stderr.puts("\033[0;33mWARNING: Skipping logging assertions while logs are redirected to stderr\033[0m")
       else
         @logger_stream.rewind
         yield @logger_stream.read
+      end
+    end
+
+    def stdout_assertion
+      if log_to_real_fds?
+        $stderr.puts("\033[0;33mWARNING: Skipping stream assertions while logs are redirected to stderr\033[0m")
+      else
+        yield @mock_output_stream.string
       end
     end
   end
