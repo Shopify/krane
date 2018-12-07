@@ -185,7 +185,7 @@ module KubernetesDeploy
     private
 
     def cluster_resource_discoverer
-      ClusterResourceDiscovery.new(
+      @cluster_resource_discoverer ||= ClusterResourceDiscovery.new(
         namespace: @namespace,
         context: @context,
         logger: @logger,
