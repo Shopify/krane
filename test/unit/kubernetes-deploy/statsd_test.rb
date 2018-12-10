@@ -59,7 +59,7 @@ class StatsDTest < KubernetesDeploy::TestCase
     refute_equal(KubernetesDeploy::StatsD.prefix, ::StatsD.prefix)
     refute_equal(KubernetesDeploy::StatsD.default_sample_rate, ::StatsD.default_sample_rate)
     refute_equal(KubernetesDeploy::StatsD.backend, ::StatsD.backend)
-
+  ensure
     ::StatsD.prefix = old_prefix
     ::StatsD.default_sample_rate = old_sample_rate
   end
