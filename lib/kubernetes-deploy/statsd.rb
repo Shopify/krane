@@ -13,8 +13,6 @@ module KubernetesDeploy
     end
 
     def self.build
-      self.default_sample_rate = 1.0
-
       if ENV['STATSD_DEV'].present?
         self.backend = ::StatsD::Instrument::Backends::LoggerBackend.new(Logger.new($stderr))
       elsif ENV['STATSD_ADDR'].present?
@@ -25,11 +23,10 @@ module KubernetesDeploy
       end
     end
 
-    def self.measure(key, value = nil, **metric_options, &block)
-      metric_options[:prefix] = PREFIX
-      super
-    end
-
+    # It is not sufficient to set the prefix field on the KubernetesDeploy::StatsD singleton itself, since its value
+    # is overridden in the underlying calls to the ::StatsD library, hence the need to pass it in as a custom prefix
+    # via the metric_options hash. This is done since KubernetesDeploy may be included as a library and should not
+    # change the global StatsD configuration of the importing application.
     def self.increment(key, value = 1, **metric_options)
       metric_options[:prefix] = PREFIX
       super
