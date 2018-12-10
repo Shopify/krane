@@ -26,17 +26,17 @@ module KubernetesDeploy
     end
 
     def self.measure(key, value = nil, **metric_options, &block)
-      metric_options.merge!(prefix: PREFIX)
+      metric_options[:prefix] = PREFIX
       super
     end
 
     def self.increment(key, value = 1, **metric_options)
-      metric_options.merge!(prefix: PREFIX)
+      metric_options[:prefix] = PREFIX
       super
     end
 
     def self.distribution(key, value = nil, **metric_options, &block)
-      metric_options.merge!(prefix: PREFIX)
+      metric_options[:prefix] = PREFIX
       super
     end
 
