@@ -60,8 +60,10 @@ module KubernetesDeploy
     def check_pods?
       # We're only using pods in deploy_failed? to check that they aren't ALL bad,
       # so if we can already tell that from the RS data, don't bother looking at (or expensively fetching) them
-      return false if !exists? || stale_status?
-      ready_replicas < [2, desired_replicas].min
+      return false unless exists?
+      return false if stale_status?
+      return false if desired_replicas == 0
+      ready_replicas < 2
     end
 
     def rollout_data
