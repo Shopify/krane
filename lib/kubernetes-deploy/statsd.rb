@@ -27,23 +27,17 @@ module KubernetesDeploy
     end
 
     def self.measure(key, value = nil, *metric_options, &block)
-      if metric_options && metric_options.first.is_a?(Hash)
-        metric_options.first[:prefix] = PREFIX
-      end
+      metric_options.first[:prefix] = PREFIX if metric_options.first.is_a?(Hash)
       super
     end
 
     def self.increment(key, value = 1, *metric_options)
-      if metric_options && metric_options.first.is_a?(Hash)
-        metric_options.first[:prefix] = PREFIX
-      end
+      metric_options.first[:prefix] = PREFIX if metric_options.first.is_a?(Hash)
       super
     end
 
     def self.distribution(key, value = nil, *metric_options, &block)
-      if metric_options && metric_options.first.is_a?(Hash)
-        metric_options.first[:prefix] = PREFIX
-      end
+      metric_options.first[:prefix] = PREFIX if metric_options.first.is_a?(Hash)
       super
     end
 
