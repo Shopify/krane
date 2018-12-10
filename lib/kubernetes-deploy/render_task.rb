@@ -33,14 +33,29 @@ module KubernetesDeploy
       else
         only_filenames
       end
-
+      exceptions = []
       validate_configuration(filenames)
+
       @logger.phase_heading("Rendering template(s)")
 
-      filenames.each { |filename| render_filename(filename, stream) }
+      filenames.each do |filename|
+        begin
+          render_filename(filename, stream)
+        rescue KubernetesDeploy::InvalidTemplateError => exception
+          exceptions << exception
+          log_invalid_template(filename, exception)
+        rescue KubernetesDeploy::FatalDeploymentError => exception
+          exceptions << exception
+          log_render_failure(exception)
+        end
+      end
 
-      @logger.summary.add_action("Successfully rendered #{filenames.size} template(s)")
-      @logger.print_summary(:success)
+      if !exceptions.empty?
+        raise exceptions[0]
+      else
+        @logger.summary.add_action("Successfully rendered #{filenames.size} template(s)")
+        @logger.print_summary(:success)
+      end
     rescue KubernetesDeploy::FatalDeploymentError
       @logger.print_summary(:failure)
       raise
@@ -55,13 +70,8 @@ module KubernetesDeploy
         stream.puts YAML.dump(doc)
       end
       @logger.info("Rendered #{File.basename(filename)}")
-
-    rescue KubernetesDeploy::InvalidTemplateError => exception
-      log_invalid_template(filename, exception)
-      raise
     rescue Psych::SyntaxError => exception
-      log_invalid_template(filename, exception)
-      raise InvalidTemplateError.new("Template is not valid YAML", filename: filename)
+      raise InvalidTemplateError.new("Template is not valid YAML. #{exception.message}", filename: filename)
     end
 
     def validate_configuration(filenames)
@@ -90,6 +100,12 @@ module KubernetesDeploy
         @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
         raise KubernetesDeploy::TaskConfigurationError, "Configuration invalid: #{errors.join(', ')}"
       end
+    end
+
+    def log_render_failure(filename, exception)
+      debug_msg = ColorizedString.new("Render failure for #{filename}\n").red
+      debug_msg += "Error message: #{exception}"
+      @logger.error(debug_msg)
     end
 
     def log_invalid_template(filename, exception)

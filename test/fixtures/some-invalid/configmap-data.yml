@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-cloud-configmap-data
+  labels:
+    name: hello-cloud-configmap-data
+    app: hello-cloud
+data:
+  datapoint1: value1
+  datapoint2: value2

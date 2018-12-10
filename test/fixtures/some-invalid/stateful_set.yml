@@ -1,0 +1,21 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: stateful-busybox
+spec:
+  serviceName: "stateful-busybox"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: hello-cloud
+        name: stateful-busybox
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        ports:
+        - containerPort: 80

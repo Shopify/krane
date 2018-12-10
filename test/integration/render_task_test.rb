@@ -180,6 +180,24 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_render_task_multiple_templates_with_middle_failure
+    render = build_render_task(fixture_path('some-invalid'))
+    assert_render_failure render.run(mock_output_stream, [
+      'configmap-data.yml',
+      'yaml-error.yml',
+      'stateful_set.yml',
+    ])
+
+    stdout_assertion do |output|
+      assert_match(/name: hello-cloud-configmap-data/, output)
+      assert_match(/name: stateful-busybox/, output)
+    end
+
+    logging_assertion do |logs|
+      assert_match(/Invalid template: yaml-error.yml/, logs)
+    end
+  end
+
   def test_render_invalid_binding
     render = build_render_task(fixture_path('test-partials'), 'a': 'binding-a', 'b': 'binding-b')
     fixture = 'deployment.yaml.erb'
