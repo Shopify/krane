@@ -40,7 +40,7 @@ module KubernetesDeploy
       super
     end
 
-    def self.distribution(key, value=nil, *metric_options, &block)
+    def self.distribution(key, value = nil, *metric_options, &block)
       if metric_options && metric_options.first.is_a?(Hash)
         metric_options.first[:prefix] = PREFIX
       end
@@ -77,8 +77,7 @@ module KubernetesDeploy
             StatsD.distribution(
               metric,
               KubernetesDeploy::StatsD.duration(start_time),
-              tags: dynamic_tags,
-              prefix: PREFIX
+              tags: dynamic_tags
             )
           end
         end
