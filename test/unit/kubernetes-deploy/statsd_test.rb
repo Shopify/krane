@@ -50,12 +50,18 @@ class StatsDTest < KubernetesDeploy::TestCase
   end
 
   def test_kubernetes_statsd_does_not_override_global_config
-    KubernetesDeploy::StatsD.build
+    old_prefix = ::StatsD.prefix
+    old_sample_rate = ::StatsD.default_sample_rate
+
     ::StatsD.prefix = "test"
     ::StatsD.default_sample_rate = 2.0
+    KubernetesDeploy::StatsD.build
     refute_equal(KubernetesDeploy::StatsD.prefix, ::StatsD.prefix)
     refute_equal(KubernetesDeploy::StatsD.default_sample_rate, ::StatsD.default_sample_rate)
     refute_equal(KubernetesDeploy::StatsD.backend, ::StatsD.backend)
+
+    ::StatsD.prefix = old_prefix
+    ::StatsD.default_sample_rate = old_sample_rate
   end
 
   def test_measuring_non_existent_method_raises
