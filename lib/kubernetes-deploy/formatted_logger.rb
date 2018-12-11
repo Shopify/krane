@@ -19,8 +19,6 @@ module KubernetesDeploy
         end
 
         "[#{context}][#{namespace}]"
-      else
-        ""
       end
 
       l.formatter = proc do |severity, datetime, _progname, msg|
