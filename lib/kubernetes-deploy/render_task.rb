@@ -64,6 +64,7 @@ module KubernetesDeploy
     private
 
     def render_filename(filename, stream)
+      @logger.info("Rendering #{File.basename(filename)} ...")
       file_content = File.read(File.join(@template_dir, filename))
       rendered_content = @renderer.render_template(filename, file_content)
       YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
