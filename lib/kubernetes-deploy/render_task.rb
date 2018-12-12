@@ -55,7 +55,7 @@ module KubernetesDeploy
           render_filename(filename, stream)
         rescue KubernetesDeploy::InvalidTemplateError => exception
           exceptions << exception
-          log_invalid_template(filename, exception)
+          log_invalid_template(exception)
         end
       end
 
@@ -105,11 +105,14 @@ module KubernetesDeploy
       end
     end
 
-    def log_invalid_template(filename, exception)
-      @logger.error("Failed to render #{filename}")
+    def log_invalid_template(exception)
+      @logger.error("Failed to render #{exception.filename}")
 
-      debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
-      debug_msg += "Error message: #{exception}"
+      debug_msg = ColorizedString.new("Invalid template: #{exception.filename}\n").red
+      debug_msg += "> Error message: #{exception}"
+      if exception.content
+        debug_msg += "> Template content:\n#{exception.content}"
+      end
       @logger.summary.add_paragraph(debug_msg)
     end
   end
