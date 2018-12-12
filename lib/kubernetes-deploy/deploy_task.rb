@@ -71,7 +71,7 @@ module KubernetesDeploy
         Pod
       )
 
-      cluster_resource_discoverer.crds(@sync_mediator).map(&:kind) + base_sequence
+      cluster_resource_discoverer.crds.map(&:kind) + base_sequence
     end
 
     def prune_whitelist
@@ -255,7 +255,7 @@ module KubernetesDeploy
 
     def discover_resources
       resources = []
-      crds = cluster_resource_discoverer.crds(@sync_mediator).each_with_object({}) { |crd, memo| memo[crd.kind] = crd }
+      crds = cluster_resource_discoverer.crds.each_with_object({}) { |crd, memo| memo[crd.kind] = crd }
       @logger.info("Discovering templates:")
 
       TemplateDiscovery.new(@template_dir).templates.each do |filename|
