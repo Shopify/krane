@@ -252,7 +252,8 @@ class DeploymentTest < KubernetesDeploy::TestCase
     }
     deploy = build_synced_deployment(
       template: build_deployment_template(status: deployment_status, rollout: 'full', max_unavailable: 1),
-      replica_sets: [build_rs_template(status: rs_status)]
+      replica_sets: [build_rs_template(status: rs_status)],
+      expect_pod_get: false
     )
     refute_predicate deploy, :deploy_succeeded?
   end
@@ -366,12 +367,13 @@ class DeploymentTest < KubernetesDeploy::TestCase
     result
   end
 
-  def build_synced_deployment(template:, replica_sets:)
+  def build_synced_deployment(template:, replica_sets:, expect_pod_get: nil)
     deploy = KubernetesDeploy::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
     stub_kind_get("Deployment", items: [template])
     stub_kind_get("ReplicaSet", items: replica_sets)
 
-    if replica_sets.present?
+    expect_pod_get = replica_sets.present? if expect_pod_get.nil?
+    if expect_pod_get
       stub_kind_get("Pod", items: [])
     end
 

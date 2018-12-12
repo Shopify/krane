@@ -16,7 +16,7 @@ module KubernetesDeploy
 
     def sync(cache)
       super
-      @pods = exists? ? find_pods(cache) : []
+      @pods = fetch_pods_if_needed(cache) || []
     end
 
     def status
@@ -25,7 +25,7 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      observed_generation == current_generation &&
+      return false if stale_status?
       desired_replicas == rollout_data["availableReplicas"].to_i &&
       desired_replicas == rollout_data["readyReplicas"].to_i
     end
@@ -33,7 +33,7 @@ module KubernetesDeploy
     def deploy_failed?
       pods.present? &&
       pods.all?(&:deploy_failed?) &&
-      observed_generation == current_generation
+      !stale_status?
     end
 
     def desired_replicas
@@ -52,6 +52,25 @@ module KubernetesDeploy
     end
 
     private
+
+    def stale_status?
+      observed_generation != current_generation
+    end
+
+    def fetch_pods_if_needed(cache)
+      # If the ReplicaSet doesn't exist, its pods won't either
+      return unless exists?
+      # If the status hasn't been updated yet, we're not going to make a determination anyway
+      return if stale_status?
+      # If we don't want any pods at all, we don't need to look for them
+      return if desired_replicas == 0
+      # We only need to fetch pods so that deploy_failed? can check that they aren't ALL bad.
+      # If we can already tell some pods are ok from the RS data, don't bother fetching them (which can be expensive)
+      # Lower numbers here make us more susceptible to being fooled by replicas without probes briefly appearing ready
+      return if ready_replicas > 1
+
+      find_pods(cache)
+    end
 
     def rollout_data
       return { "replicas" => 0 } unless exists?
