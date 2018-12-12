@@ -45,7 +45,7 @@ module KubernetesDeploy
           raise(ResourceNotFoundError, err) if raise_if_not_found
         else
           @logger.debug("Kubectl err: #{err}") unless output_is_sensitive?
-          ::StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: args[1] })
+          StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: args[1] })
         end
         sleep retry_delay(attempt) unless attempt == attempts
       end

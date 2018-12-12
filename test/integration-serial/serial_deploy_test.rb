@@ -2,6 +2,7 @@
 require 'integration_test_helper'
 
 class SerialDeployTest < KubernetesDeploy::IntegrationTest
+  include StatsDHelper
   # This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace
   def test_deploying_to_protected_namespace_with_override_does_not_prune
     KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do

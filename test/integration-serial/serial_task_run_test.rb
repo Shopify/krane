@@ -3,6 +3,7 @@ require 'integration_test_helper'
 
 class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
   include TaskRunnerTestHelper
+  include StatsDHelper
 
   # Mocha is not thread-safe: https://github.com/freerange/mocha#thread-safety
   def test_run_without_verify_result_fails_if_pod_was_not_created

@@ -2,6 +2,7 @@
 require 'test_helper'
 
 class KubectlTest < KubernetesDeploy::TestCase
+  include StatsDHelper
   def setup
     super
     KubernetesDeploy::Kubectl.any_instance.unstub(:run)

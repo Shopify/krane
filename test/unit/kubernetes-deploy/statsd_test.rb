@@ -3,6 +3,7 @@
 require 'test_helper'
 
 class StatsDTest < KubernetesDeploy::TestCase
+  include StatsDHelper
   class TestMeasureClass
     extend(KubernetesDeploy::StatsD::MeasureMethods)
 
@@ -40,12 +41,27 @@ class StatsDTest < KubernetesDeploy::TestCase
 
     KubernetesDeploy::StatsD.build
 
-    assert_equal :datadog, StatsD.backend.implementation
+    assert_equal(:datadog, KubernetesDeploy::StatsD.backend.implementation)
   ensure
     ENV['STATSD_ADDR'] = original_addr
     ENV['STATSD_IMPLEMENTATION'] = original_impl
     ENV['STATSD_DEV'] = original_dev
     KubernetesDeploy::StatsD.build
+  end
+
+  def test_kubernetes_statsd_does_not_override_global_config
+    old_prefix = ::StatsD.prefix
+    old_sample_rate = ::StatsD.default_sample_rate
+
+    ::StatsD.prefix = "test"
+    ::StatsD.default_sample_rate = 2.0
+    KubernetesDeploy::StatsD.build
+    refute_equal(KubernetesDeploy::StatsD.prefix, ::StatsD.prefix)
+    refute_equal(KubernetesDeploy::StatsD.default_sample_rate, ::StatsD.default_sample_rate)
+    refute_equal(KubernetesDeploy::StatsD.backend, ::StatsD.backend)
+  ensure
+    ::StatsD.prefix = old_prefix
+    ::StatsD.default_sample_rate = old_sample_rate
   end
 
   def test_measuring_non_existent_method_raises
