@@ -229,8 +229,7 @@ module KubernetesDeploy
       if log_to_real_fds?
         $stderr.puts("\033[0;33mWARNING: Skipping logging assertions while logs are redirected to stderr\033[0m")
       else
-        @logger_stream.rewind
-        yield @logger_stream.read
+        yield @logger_stream.string
       end
     end
 
