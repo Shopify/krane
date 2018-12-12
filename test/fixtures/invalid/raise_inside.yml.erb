@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-cloud-raise-data
+  labels:
+    name: hello-cloud-raise-data
+    app: hello-cloud
+data:
+  datapoint1: <% raise RuntimeError, "mock error when evaluating erb" %>

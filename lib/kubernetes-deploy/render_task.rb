@@ -33,9 +33,21 @@ module KubernetesDeploy
       else
         only_filenames
       end
-      exceptions = []
-      validate_configuration(filenames)
 
+      validate_configuration(filenames)
+      render_filenames(stream, filenames)
+
+      @logger.summary.add_action("Successfully rendered #{filenames.size} template(s)")
+      @logger.print_summary(:success)
+    rescue KubernetesDeploy::FatalDeploymentError
+      @logger.print_summary(:failure)
+      raise
+    end
+
+    private
+
+    def render_filenames(stream, filenames)
+      exceptions = []
       @logger.phase_heading("Rendering template(s)")
 
       filenames.each do |filename|
@@ -44,24 +56,13 @@ module KubernetesDeploy
         rescue KubernetesDeploy::InvalidTemplateError => exception
           exceptions << exception
           log_invalid_template(filename, exception)
-        rescue KubernetesDeploy::FatalDeploymentError => exception
-          exceptions << exception
-          log_render_failure(exception)
         end
       end
 
-      if !exceptions.empty?
+      unless exceptions.empty?
         raise exceptions[0]
-      else
-        @logger.summary.add_action("Successfully rendered #{filenames.size} template(s)")
-        @logger.print_summary(:success)
       end
-    rescue KubernetesDeploy::FatalDeploymentError
-      @logger.print_summary(:failure)
-      raise
     end
-
-    private
 
     def render_filename(filename, stream)
       @logger.info("Rendering #{File.basename(filename)} ...")
@@ -92,7 +93,8 @@ module KubernetesDeploy
         elsif !File.file?(absolute_file)
           errors << "Filename \"#{absolute_file}\" is not a file"
         elsif !absolute_file.start_with?(absolute_template_dir)
-          errors << "Filename \"#{absolute_file}\" is outside the template directory"
+          errors << "Filename \"#{absolute_file}\" is outside the template directory," \
+          " which was resolved as #{absolute_template_dir}"
         end
       end
 
@@ -103,13 +105,9 @@ module KubernetesDeploy
       end
     end
 
-    def log_render_failure(filename, exception)
-      debug_msg = ColorizedString.new("Render failure for #{filename}\n").red
-      debug_msg += "Error message: #{exception}"
-      @logger.error(debug_msg)
-    end
-
     def log_invalid_template(filename, exception)
+      @logger.error("Failed to render #{filename}")
+
       debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
       debug_msg += "Error message: #{exception}"
       @logger.summary.add_paragraph(debug_msg)

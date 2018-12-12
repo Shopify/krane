@@ -209,6 +209,16 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     ])
   end
 
+  def test_render_runtime_error_when_rendering
+    render = build_render_task(fixture_path('invalid'))
+
+    assert_render_failure render.run(mock_output_stream, ['raise_inside.yml.erb'])
+    assert_logs_match_all([
+      /Invalid template: .*raise_inside.yml.erb/,
+      /mock error when evaluating erb/
+    ])
+  end
+
   def test_render_invalid_arguments
     render = build_render_task(fixture_path('test-partials'), 'a': 'binding-a')
 
