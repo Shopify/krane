@@ -46,6 +46,7 @@ module KubernetesDeploy
     extend KubernetesDeploy::StatsD::MeasureMethods
 
     PREDEPLOY_SEQUENCE = %w(
+      CustomResourceDefinition
       ResourceQuota
       Cloudsql
       Redis
