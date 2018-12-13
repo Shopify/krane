@@ -62,16 +62,23 @@ module KubernetesDeploy
 
     def deduplicate(logs)
       deduped = []
-      check_for_duplicate = true
 
-      logs.each do |line|
-        timestamp, msg = split_timestamped_line(line)
-        next if check_for_duplicate && likely_duplicate?(timestamp)
-        check_for_duplicate = false # logs are ordered, so once we've seen a new one, assume all subsequent logs are new
+      parsed_lines = logs.map { |line| split_timestamped_line(line) }
+      sorted_lines = parsed_lines.sort do |a, b|
+        if a[0].nil? || b[0].nil?
+          0
+        else
+          a[0] <=> b[0]
+        end
+      end
+
+      sorted_lines.each do |line|
+        timestamp = line[0]
+        msg = line[1]
+        next if likely_duplicate?(timestamp)
         @last_timestamp = timestamp if timestamp
         deduped << msg
       end
-
       deduped
     end
 
