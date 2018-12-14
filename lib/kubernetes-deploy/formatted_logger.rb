@@ -7,7 +7,7 @@ module KubernetesDeploy
     include DeferredSummaryLogging
 
     def self.indent_four(str)
-      "    " + str.gsub("\n", "\n    ")
+      "    " + str.to_s.gsub("\n", "\n    ")
     end
 
     def self.build(namespace = nil, context = nil, stream = $stderr, verbose_prefix: false)

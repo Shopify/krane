@@ -205,8 +205,11 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     assert_render_failure render.run(mock_output_stream, [fixture])
     assert_logs_match_all([
       /Invalid template: .*deployment.yaml.erb/,
-      /undefined local variable or method `supports_partials'/
-    ])
+      "> Error message:",
+      /undefined local variable or method `supports_partials'/,
+      "> Template content:",
+      'supports_partials: "<%= supports_partials %>"'
+    ], in_order: true)
   end
 
   def test_render_runtime_error_when_rendering
@@ -215,8 +218,11 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     assert_render_failure render.run(mock_output_stream, ['raise_inside.yml.erb'])
     assert_logs_match_all([
       /Invalid template: .*raise_inside.yml.erb/,
-      /mock error when evaluating erb/
-    ])
+      "> Error message:",
+      /mock error when evaluating erb/,
+      "> Template content:",
+      'datapoint1: <% raise RuntimeError, "mock error when evaluating erb" %>'
+    ], in_order: true)
   end
 
   def test_render_invalid_arguments
@@ -253,8 +259,9 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     assert_render_failure render.run(mock_output_stream, [fixture])
     assert_logs_match_all([
       /Invalid template: .*yaml-error.yml/,
-      /mapping values are not allowed/
-    ])
+      "> Error message:",
+      /mapping values are not allowed/,
+    ], in_order: true)
   end
 
   def test_render_valid_fixtures
