@@ -294,13 +294,9 @@ module KubernetesDeploy
 
     def record_invalid_template(err:, filename:, content:)
       debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
-      debug_msg += "> Error message:\n#{indent_four(err)}"
-      debug_msg += "\n> Template content:\n#{indent_four(content)}"
+      debug_msg += "> Error message:\n#{FormattedLogger.indent_four(err)}"
+      debug_msg += "\n> Template content:\n#{FormattedLogger.indent_four(content)}"
       @logger.summary.add_paragraph(debug_msg)
-    end
-
-    def indent_four(str)
-      "    " + str.gsub("\n", "\n    ")
     end
 
     def validate_configuration(allow_protected_ns:, prune:)
@@ -467,8 +463,9 @@ module KubernetesDeploy
       end
 
       if unidentified_errors.present?
-        msg = "#{ColorizedString.new('Unidentified error(s):').red}\n#{indent_four(unidentified_errors.join)}"
-        @logger.summary.add_paragraph(msg)
+        heading = ColorizedString.new('Unidentified error(s):').red
+        msg = FormattedLogger.indent_four(unidentified_errors.join)
+        @logger.summary.add_paragraph("#{heading}\n#{msg}")
       end
     end
 

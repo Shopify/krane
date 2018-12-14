@@ -190,7 +190,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "Failed to render and parse template",
       %r{Invalid template: .*/partials/invalid.yml.erb \(#{included_from}\)},
       "> Error message:",
-      "(<unknown>): mapping values are not allowed in this context",
+      %r{fixtures/partials/invalid.yml.erb\)\: mapping values are not allowed in this context},
       "> Template content:",
       "containers:",
       "- name: invalid-container",

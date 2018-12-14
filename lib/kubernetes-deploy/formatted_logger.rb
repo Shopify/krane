@@ -6,6 +6,10 @@ module KubernetesDeploy
   class FormattedLogger < Logger
     include DeferredSummaryLogging
 
+    def self.indent_four(str)
+      "    " + str.to_s.gsub("\n", "\n    ")
+    end
+
     def self.build(namespace = nil, context = nil, stream = $stderr, verbose_prefix: false)
       l = new(stream)
       l.level = level_from_env
