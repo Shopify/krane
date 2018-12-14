@@ -81,8 +81,8 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_logs_without_timestamps_are_not_deduped
-    logs_response_1_with_anomaly = logs_response_1 + "Line 3.5"
-    logs_response_2_with_anomaly = "Line 3.5\n" + logs_response_2
+    logs_response_1_with_anomaly = logs_response_1 + "No timestamp"
+    logs_response_2_with_anomaly = "No timestamp 2\n" + logs_response_2
     KubernetesDeploy::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1_with_anomaly, "", ""])
       .then.returns([logs_response_2_with_anomaly, "", ""])
@@ -90,7 +90,14 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     @logs.sync
     @logs.sync
     @logs.print_all
-    assert_logs_match("Line 3.5", 2)
+    assert_logs_match_all([
+      "No timestamp", # moved to start of batch 1
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "No timestamp 2", # moved to start of batch 2
+      "Line 4"
+    ], in_order: true)
   end
 
   def test_deduplication_works_when_exact_same_batch_is_returned_more_than_once

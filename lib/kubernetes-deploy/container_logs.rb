@@ -18,7 +18,7 @@ module KubernetesDeploy
     def sync
       new_logs = fetch_latest
       return unless new_logs.present?
-      @lines += deduplicate(new_logs)
+      @lines += sort_and_deduplicate(new_logs)
     end
 
     def empty?
@@ -60,21 +60,20 @@ module KubernetesDeploy
       time.strftime("%FT%T.%N%:z")
     end
 
-    def deduplicate(logs)
-      deduped = []
-
+    def sort_and_deduplicate(logs)
       parsed_lines = logs.map { |line| split_timestamped_line(line) }
-      sorted_lines = parsed_lines.sort do |a, b|
-        if a[0].nil? || b[0].nil?
-          0
+      sorted_lines = parsed_lines.sort do |(timestamp1, _msg1), (timestamp2, _msg2)|
+        if timestamp1.nil?
+          -1
+        elsif timestamp2.nil?
+          1
         else
-          a[0] <=> b[0]
+          timestamp1 <=> timestamp2
         end
       end
 
-      sorted_lines.each do |line|
-        timestamp = line[0]
-        msg = line[1]
+      deduped = []
+      sorted_lines.each do |timestamp, msg|
         next if likely_duplicate?(timestamp)
         @last_timestamp = timestamp if timestamp
         deduped << msg
