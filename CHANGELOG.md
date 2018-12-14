@@ -1,3 +1,19 @@
+## 0.23.0
+
+*Features*
+- New command: `kubernetes-render` is a tool for rendering ERB templates to raw Kubernetes YAML. It's useful for seeing what `kubernetes-deploy` does before actually invoking `kubectl` on the rendered YAML. It's also useful for outputting YAML that can be passed to other tools, for validation or introspection purposes. ([#375](https://github.com/Shopify/kubernetes-deploy/pull/375/files))
+- **[Breaking change]** This release completes the conversion of `kubernetes-deploy` StatsD metrics to `distribution`s, which was done for `kubernetes-restart` and `kubernetes-run` in v0.22.0.
+- Several new distribution metrics are available to give insight into the timing of each step of the deploy process: `KubernetesDeploy.validate_configuration.duration`, `KubernetesDeploy.discover_resources.duration`, `KubernetesDeploy.validate_resources.duration`, `KubernetesDeploy.initial_status.duration`, `KubernetesDeploy.create_ejson_secrets.duration`, `KubernetesDeploy.apply_all.duration`, `KubernetesDeploy.sync.duration`
+- **[Breaking change]** `KubernetesDeploy.resource.duration` no longer includes `sha` or `resource` tags. ([#392](https://github.com/Shopify/kubernetes-deploy/pull/392))
+
+*Enhancements*
+- Roles are now predeployed before RoleBindings ([#380](https://github.com/Shopify/kubernetes-deploy/pull/380))
+- Several performance enhancements for deploys to namespaces with hundreds of resources.
+- KubernetesDeploy no longer modifies the global StatsD configuration when used as a gem ([#384](https://github.com/Shopify/kubernetes-deploy/pull/384))
+
+*Bug fixes*
+- Handle out-of-order arrival of entries from different streams when processing logs ([#401](https://github.com/Shopify/kubernetes-deploy/pull/401))
+
 ## 0.22.0
 
 *Features*
