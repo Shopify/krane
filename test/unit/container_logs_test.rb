@@ -81,8 +81,8 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_logs_without_timestamps_are_not_deduped
-    logs_response_1_with_anomaly = logs_response_1 + "Line 3.5"
-    logs_response_2_with_anomaly = "Line 3.5\n" + logs_response_2
+    logs_response_1_with_anomaly = logs_response_1 + "No timestamp"
+    logs_response_2_with_anomaly = "No timestamp 2\n" + logs_response_2
     KubernetesDeploy::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1_with_anomaly, "", ""])
       .then.returns([logs_response_2_with_anomaly, "", ""])
@@ -90,7 +90,14 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     @logs.sync
     @logs.sync
     @logs.print_all
-    assert_logs_match("Line 3.5", 2)
+    assert_logs_match_all([
+      "No timestamp", # moved to start of batch 1
+      "Line 1",
+      "Line 2",
+      "Line 3",
+      "No timestamp 2", # moved to start of batch 2
+      "Line 4"
+    ], in_order: true)
   end
 
   def test_deduplication_works_when_exact_same_batch_is_returned_more_than_once
@@ -106,6 +113,43 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     @logs.print_all
     assert_logs_match_all(generate_log_messages(1..10), in_order: true)
     assert_logs_match("Line 2", 1)
+  end
+
+  def test_deduplication_works_when_last_line_is_out_of_order
+    regression_data = <<~STRING
+      2018-12-13T12:17:23.727605598Z Line 1
+      2018-12-13T12:17:23.727696012Z Line 2
+      2018-12-13T12:17:23.728538913Z Line 3
+      2018-12-13T12:17:23.7287293Z Line 4
+      2018-12-13T12:17:23.729694842Z Line 5
+      2018-12-13T12:17:23.731259592Z Line 7
+      2018-12-13T12:17:23.73127007Z Line 8
+      2018-12-13T12:17:23.731273672Z Line 9
+      2018-12-13T12:17:23.731276862Z Line 10
+      2018-12-13T12:17:23.731284069Z Line 11
+      2018-12-13T12:17:23.731287054Z Line 12
+      2018-12-13T12:17:23.731289959Z Line 13
+      2018-12-13T12:17:23.731292814Z Line 14
+      2018-12-13T12:17:23.731295298Z Line 15
+      2018-12-13T12:17:23.731297747Z Line 16
+      2018-12-13T12:17:23.731297748Z Line 17
+      2018-12-13T12:17:23.729851532Z Line 6
+    STRING
+
+    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
+      .returns([regression_data, "", ""]).times(12)
+
+    12.times do
+      @logs.sync
+      @logs.print_latest
+    end
+
+    expected_lines = generate_log_messages(1..17)
+
+    expected_lines.each do |line|
+      assert_logs_match(/#{line}$/, 1) # no duplicates
+    end
+    assert_logs_match_all(expected_lines, in_order: true) # sorted correctly
   end
 
   private
