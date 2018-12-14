@@ -405,7 +405,7 @@ module KubernetesDeploy
 
       if verify
         watcher = ResourceWatcher.new(resources: resources, logger: @logger, deploy_started_at: deploy_started_at,
-          timeout: @max_watch_seconds, namespace: @namespace, context: @context)
+          timeout: @max_watch_seconds, namespace: @namespace, context: @context, sha: @current_sha)
         watcher.run(record_summary: record_summary)
       end
     end

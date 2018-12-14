@@ -209,15 +209,11 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
 
   def test_all_expected_statsd_metrics_emitted_with_essential_tags
     metrics = capture_statsd_calls do
-      result = deploy_fixtures('hello-cloud', subset: ['configmap-data.yml'], wait: false)
+      result = deploy_fixtures('hello-cloud', subset: ['configmap-data.yml'], wait: false, sha: 'test-sha')
       assert_deploy_success(result)
     end
 
     assert_equal 1, metrics.count { |m| m.type == :_e }, "Expected to find one event metric"
-    assert_predicate metrics, :all? do |metric|
-      assert_includes metric.tags, "namespace:#{@namespace}"
-      assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
-    end
 
     %w(
       KubernetesDeploy.validate_configuration.duration
@@ -233,6 +229,9 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     ).each do |expected_metric|
       metric = metrics.find { |m| m.name == expected_metric }
       refute_nil metric, "Metric #{expected_metric} not emitted"
+      assert_includes metric.tags, "namespace:#{@namespace}", "#{metric.name} is missing namespace tag"
+      assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}", "#{metric.name} is missing context tag"
+      assert_includes metric.tags, "sha:test-sha", "#{metric.name} is missing sha tag"
     end
   end
 
