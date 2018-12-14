@@ -8,7 +8,6 @@ module KubernetesDeploy
   class RunnerTask
     include KubeclientBuilder
 
-    class TaskConfigurationError < FatalDeploymentError; end
     class TaskTemplateMissingError < TaskConfigurationError; end
 
     attr_reader :pod_name
