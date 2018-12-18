@@ -10,7 +10,7 @@ class RunnerTaskUnitTest < KubernetesDeploy::TestCase
       logger: logger,
     )
 
-    refute task_runner.run(task_template: nil, entrypoint: nil, args: nil)
+    refute(task_runner.run(task_template: nil, entrypoint: nil, args: nil))
     assert_logs_match(/Task template name can't be nil/)
     assert_logs_match(/Namespace can't be empty/)
     assert_logs_match(/Args can't be nil/)

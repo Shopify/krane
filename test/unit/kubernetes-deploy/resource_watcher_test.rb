@@ -21,7 +21,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
     assert_logs_match_all([
       /Successfully deployed in \d.\ds: web-pod/,
       "Successfully deployed 1 resource",
-      /web-pod\s+success \(1 hits\)/
+      /web-pod\s+success \(1 hits\)/,
     ], in_order: true)
   end
 
@@ -48,7 +48,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       /web-pod failed to deploy after \d\.\ds/,
       "Result: FAILURE",
       "Failed to deploy 1 resource",
-      "Something went wrong"
+      "Something went wrong",
     ], in_order: true)
   end
 
@@ -77,7 +77,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       /Continuing to wait for: third, fourth/,
       /third failed to deploy after \d.\ds/,
       /Continuing to wait for: fourth/,
-      /Successfully deployed in \d.\ds: fourth/
+      /Successfully deployed in \d.\ds: fourth/,
     ], in_order: true)
   end
 
@@ -92,7 +92,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
       /Successfully deployed in \d.\ds: first/,
       /Continuing to wait for: second, third/,
       /Still waiting for: second, third/,
-      /Successfully deployed in \d.\ds: second, third/
+      /Successfully deployed in \d.\ds: second, third/,
     ], in_order: true)
     assert_logs_match(/Continuing to wait for: second, third/, 1) # only once
   end

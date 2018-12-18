@@ -5,7 +5,7 @@ class DeployTaskTest < KubernetesDeploy::TestCase
   include EnvTestHelper
 
   def test_that_it_has_a_version_number
-    refute_nil ::KubernetesDeploy::VERSION
+    refute_nil(::KubernetesDeploy::VERSION)
   end
 
   def test_error_message_when_kubeconfig_not_set

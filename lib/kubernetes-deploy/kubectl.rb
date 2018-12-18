@@ -30,7 +30,7 @@ module KubernetesDeploy
       out, err, st = nil
 
       (1..attempts).to_a.each do |attempt|
-        @logger.debug "Running command (attempt #{attempt}): #{args.join(' ')}"
+        @logger.debug("Running command (attempt #{attempt}): #{args.join(' ')}")
         out, err, st = Open3.capture3(*args)
         @logger.debug("Kubectl out: " + out.gsub(/\s+/, ' ')) unless output_is_sensitive?
 
@@ -47,7 +47,7 @@ module KubernetesDeploy
           @logger.debug("Kubectl err: #{err}") unless output_is_sensitive?
           StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: args[1] })
         end
-        sleep retry_delay(attempt) unless attempt == attempts
+        sleep(retry_delay(attempt)) unless attempt == attempts
       end
 
       [out.chomp, err.chomp, st]

@@ -13,7 +13,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       hello_cloud.assert_poddisruptionbudget
       assert_logs_match_all([
         /cannot be pruned/,
-        /Please do not deploy to #{@namespace} unless you really know what you are doing/
+        /Please do not deploy to #{@namespace} unless you really know what you are doing/,
       ])
 
       result = deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"],
@@ -36,7 +36,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       /Creating secret catphotoscom/,
       /Creating secret unused-secret/,
-      /Creating secret monitoring-token/
+      /Creating secret monitoring-token/,
     ])
 
     refute_logs_match(ejson_cloud.test_private_key)
@@ -88,7 +88,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       'Result: FAILURE',
       'Configuration invalid',
-      "Kube config not found at #{config_file}"
+      "Kube config not found at #{config_file}",
     ], in_order: true)
     reset_logger
 
@@ -98,7 +98,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       'Result: FAILURE',
       'Configuration invalid',
-      "Kube config file name(s) not set in $KUBECONFIG"
+      "Kube config file name(s) not set in $KUBECONFIG",
     ], in_order: true)
     reset_logger
 
@@ -108,7 +108,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       'Result: FAILURE',
       'Configuration invalid',
-      "$KUBECONFIG not set"
+      "$KUBECONFIG not set",
     ], in_order: true)
     reset_logger
 
@@ -151,7 +151,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Deploying CustomResourceDefinition/others.stable.example.io (timeout: 120s)",
       "CustomResourceDefinition/others.stable.example.io: FAILED",
-      'Final status: ListKindConflict ("Conflict" is already in use)'
+      'Final status: ListKindConflict ("Conflict" is already in use)',
     ])
   ensure
     wait_for_all_crd_deletion
@@ -165,19 +165,19 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       " - CustomResourceDefinition/mail.stable.example.io",
       "Phase 3: Deploying all resources",
       "CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
-      %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted}
+      %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted},
     ])
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml widgets_cr.yml configmap-data.yml)))
     # Deploy any other non-priority (predeployable) resource to trigger pruning
     assert_deploy_success(deploy_fixtures("crd", subset: %w(configmap-data.yml configmap2.yml)))
 
-    assert_predicate build_kubectl.run("get", "mail.stable.example.io", "my-first-mail").last, :success?
+    assert_predicate(build_kubectl.run("get", "mail.stable.example.io", "my-first-mail").last, :success?)
     refute_logs_match(
       /The following resources were pruned: #{prune_matcher("mail", "stable.example.io", "my-first-mail")}/
     )
     assert_logs_match_all([
       /The following resources were pruned: #{prune_matcher("widget", "stable.example.io", "my-first-widget")}/,
-      "Pruned 1 resource and successfully deployed 2 resource"
+      "Pruned 1 resource and successfully deployed 2 resource",
     ])
   ensure
     wait_for_all_crd_deletion
@@ -213,7 +213,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       assert_deploy_success(result)
     end
 
-    assert_equal 1, metrics.count { |m| m.type == :_e }, "Expected to find one event metric"
+    assert_equal(1, metrics.count { |m| m.type == :_e }, "Expected to find one event metric")
 
     %w(
       KubernetesDeploy.validate_configuration.duration
@@ -242,6 +242,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     crds.each do |crd|
       apiextensions_v1beta1_kubeclient.delete_custom_resource_definition(crd.metadata.name)
     end
-    sleep 0.5 until apiextensions_v1beta1_kubeclient.get_custom_resource_definitions.none?
+    sleep(0.5) until apiextensions_v1beta1_kubeclient.get_custom_resource_definitions.none?
   end
 end

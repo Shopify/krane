@@ -9,7 +9,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     render = build_render_task(fixture_path('hello-cloud'))
     fixture = 'configmap-data.yml'
 
-    assert_render_success render.run(mock_output_stream, [fixture])
+    assert_render_success(render.run(mock_output_stream, [fixture]))
 
     stdout_assertion do |output|
       assert_equal output, <<~RENDERED
@@ -32,7 +32,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     SecureRandom.expects(:hex).with(4).returns('aaaa')
     SecureRandom.expects(:hex).with(6).returns('bbbbbb')
     render = build_render_task(fixture_path('hello-cloud'))
-    assert_render_success render.run(mock_output_stream, ['configmap-data.yml', 'unmanaged-pod.yml.erb'])
+    assert_render_success(render.run(mock_output_stream, ['configmap-data.yml', 'unmanaged-pod.yml.erb']))
 
     stdout_assertion do |output|
       assert_equal output, <<~RENDERED
@@ -83,7 +83,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     render = build_render_task(fixture_path('test-partials'), 'supports_partials': 'yep')
     fixture = 'deployment.yaml.erb'
 
-    assert_render_success render.run(mock_output_stream, [fixture])
+    assert_render_success(render.run(mock_output_stream, [fixture]))
     stdout_assertion do |output|
       assert_equal output, <<~RENDERED
         ---
@@ -162,7 +162,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   def test_render_task_rendering_all_files
     render = build_render_task(fixture_path('hello-cloud'))
 
-    assert_render_success render.run(mock_output_stream, [])
+    assert_render_success(render.run(mock_output_stream, []))
     stdout_assertion do |output|
       assert_match(/name: bare-replica-set/, output)
       assert_match(/name: hello-cloud-configmap-data/, output)
@@ -182,11 +182,11 @@ class RenderTaskTest < KubernetesDeploy::TestCase
 
   def test_render_task_multiple_templates_with_middle_failure
     render = build_render_task(fixture_path('some-invalid'))
-    assert_render_failure render.run(mock_output_stream, [
+    assert_render_failure(render.run(mock_output_stream, [
       'configmap-data.yml',
       'yaml-error.yml',
       'stateful_set.yml',
-    ])
+    ]))
 
     stdout_assertion do |output|
       assert_match(/name: hello-cloud-configmap-data/, output)
@@ -202,53 +202,53 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     render = build_render_task(fixture_path('test-partials'), 'a': 'binding-a', 'b': 'binding-b')
     fixture = 'deployment.yaml.erb'
 
-    assert_render_failure render.run(mock_output_stream, [fixture])
+    assert_render_failure(render.run(mock_output_stream, [fixture]))
     assert_logs_match_all([
       /Invalid template: .*deployment.yaml.erb/,
       "> Error message:",
       /undefined local variable or method `supports_partials'/,
       "> Template content:",
-      'supports_partials: "<%= supports_partials %>"'
+      'supports_partials: "<%= supports_partials %>"',
     ], in_order: true)
   end
 
   def test_render_runtime_error_when_rendering
     render = build_render_task(fixture_path('invalid'))
 
-    assert_render_failure render.run(mock_output_stream, ['raise_inside.yml.erb'])
+    assert_render_failure(render.run(mock_output_stream, ['raise_inside.yml.erb']))
     assert_logs_match_all([
       /Invalid template: .*raise_inside.yml.erb/,
       "> Error message:",
       /mock error when evaluating erb/,
       "> Template content:",
-      'datapoint1: <% raise RuntimeError, "mock error when evaluating erb" %>'
+      'datapoint1: <% raise RuntimeError, "mock error when evaluating erb" %>',
     ], in_order: true)
   end
 
   def test_render_invalid_arguments
     render = build_render_task(fixture_path('test-partials'), 'a': 'binding-a')
 
-    assert_render_failure render.run(mock_output_stream, ["../"])
+    assert_render_failure(render.run(mock_output_stream, ["../"]))
     assert_logs_match_all([
-      %r{test/fixtures" is not a file}
+      %r{test/fixtures" is not a file},
     ])
   end
 
   def test_render_path_outside_template_dir
     render = build_render_task(fixture_path('test-partials'), 'a': 'binding-a')
 
-    assert_render_failure render.run(mock_output_stream, ["../hello-cloud/configmap-data.yml"])
+    assert_render_failure(render.run(mock_output_stream, ["../hello-cloud/configmap-data.yml"]))
     assert_logs_match_all([
-      %r{test/fixtures/hello-cloud/configmap-data.yml" is outside the template dir}
+      %r{test/fixtures/hello-cloud/configmap-data.yml" is outside the template dir},
     ])
   end
 
   def test_render_empty_template_dir
     render = build_render_task(Dir.mktmpdir)
 
-    assert_render_failure render.run(mock_output_stream)
+    assert_render_failure(render.run(mock_output_stream))
     assert_logs_match_all([
-      /no templates found in template dir/
+      /no templates found in template dir/,
     ])
   end
 
@@ -256,7 +256,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     render = build_render_task(fixture_path('invalid'))
     fixture = 'yaml-error.yml'
 
-    assert_render_failure render.run(mock_output_stream, [fixture])
+    assert_render_failure(render.run(mock_output_stream, [fixture]))
     assert_logs_match_all([
       /Invalid template: .*yaml-error.yml/,
       "> Error message:",
@@ -286,14 +286,14 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def assert_render_success(result)
-    assert_equal true, result, "Render failed when it was expected to succeed.#{logs_message_if_captured}"
+    assert_equal(true, result, "Render failed when it was expected to succeed.#{logs_message_if_captured}")
     logging_assertion do |logs|
       assert_match Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}"
     end
   end
 
   def assert_render_failure(result)
-    assert_equal false, result, "Render succeeded when it was expected to fail.#{logs_message_if_captured}"
+    assert_equal(false, result, "Render succeeded when it was expected to fail.#{logs_message_if_captured}")
     logging_assertion do |logs|
       assert_match Regexp.new("Result: FAILURE"), logs, "'Result: FAILURE' not found in the following logs:\n#{logs}"
     end

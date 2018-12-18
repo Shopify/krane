@@ -24,13 +24,13 @@ module FixtureSetAssertions
 
     def assert_unmanaged_pod_statuses(status, count = 1)
       pods = kubeclient.get_pods(namespace: namespace, label_selector: "type=unmanaged-pod,app=#{app_name}")
-      assert_equal count, pods.size, "Expected to find #{count} unmanaged pod(s), found #{pods.size}"
-      assert pods.all? { |pod| pod.status.phase == status }
+      assert_equal(count, pods.size, "Expected to find #{count} unmanaged pod(s), found #{pods.size}")
+      assert(pods.all? { |pod| pod.status.phase == status })
     end
 
     def refute_unmanaged_pod_exists
       pods = kubeclient.get_pods(namespace: namespace, label_selector: "type=unmanaged-pod,app=#{app_name}")
-      assert_equal 0, pods.size, "Expected to find 0 unmanaged pods, found #{pods.size}"
+      assert_equal(0, pods.size, "Expected to find 0 unmanaged pods, found #{pods.size}")
     end
 
     def assert_configmap_data_present
@@ -77,13 +77,13 @@ module FixtureSetAssertions
 
     def assert_poddisruptionbudget
       budgets = policy_v1beta1_kubeclient.get_pod_disruption_budgets(namespace: namespace)
-      assert_equal 1, budgets.size, "Expected 1 PodDisruptionBudget"
-      assert_equal 2, budgets[0].spec.minAvailable, "Unexpected value in PodDisruptionBudget spec"
+      assert_equal(1, budgets.size, "Expected 1 PodDisruptionBudget")
+      assert_equal(2, budgets[0].spec.minAvailable, "Unexpected value in PodDisruptionBudget spec")
     end
 
     def assert_bare_replicaset_up
       assert_pod_status("bare-replica-set", "Running")
-      assert assert_replica_set_up("bare-replica-set", replicas: 1)
+      assert(assert_replica_set_up("bare-replica-set", replicas: 1))
     end
 
     def assert_all_service_accounts_up

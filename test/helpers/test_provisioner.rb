@@ -8,7 +8,7 @@ class TestProvisioner
   class << self
     def prepare_cluster
       WebMock.allow_net_connect!
-      $stderr.print "Preparing test cluster... "
+      $stderr.print("Preparing test cluster... ")
       prepare_pv("pv0001")
       prepare_pv("pv0002")
       deploy_metric_server
@@ -47,13 +47,13 @@ class TestProvisioner
       pv = Kubeclient::Resource.new(kind: 'PersistentVolume')
       pv.metadata = {
         name: name,
-        labels: { name: name }
+        labels: { name: name },
       }
       pv.spec = {
         accessModes: %w(ReadWriteOnce),
         capacity: { storage: "150Mi" },
         hostPath: { path: "/data/#{name}" },
-        persistentVolumeReclaimPolicy: "Recycle"
+        persistentVolumeReclaimPolicy: "Recycle",
       }
       kubeclient.create_persistent_volume(pv)
     end

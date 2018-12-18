@@ -5,22 +5,22 @@ require 'json'
 class BindingsParserTest < ::Minitest::Test
   def test_parse_json
     expected = { "foo" => 42, "bar" => "hello" }
-    assert_equal expected, parse(expected.to_json)
+    assert_equal(expected, parse(expected.to_json))
   end
 
   def test_parse_json_file
     expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f" }
-    assert_equal expected, parse("@test/fixtures/for_unit_tests/bindings.json")
+    assert_equal(expected, parse("@test/fixtures/for_unit_tests/bindings.json"))
   end
 
   def test_parse_yaml_file_with_yml_ext
     expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f" }
-    assert_equal expected, parse("@test/fixtures/for_unit_tests/bindings.yml")
+    assert_equal(expected, parse("@test/fixtures/for_unit_tests/bindings.yml"))
   end
 
   def test_parse_yaml_file_with_yaml_ext
     expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f" }
-    assert_equal expected, parse("@test/fixtures/for_unit_tests/bindings.yaml")
+    assert_equal(expected, parse("@test/fixtures/for_unit_tests/bindings.yaml"))
   end
 
   def test_parse_nonexistent_file
@@ -37,7 +37,7 @@ class BindingsParserTest < ::Minitest::Test
 
   def test_parse_complex_json
     expected = { "foo" => 42, "bar" => [1, 2, 3], "bla" => { "hello" => 17 } }
-    assert_equal expected, parse(expected.to_json)
+    assert_equal(expected, parse(expected.to_json))
   end
 
   def test_parse_json_not_hash
@@ -48,22 +48,22 @@ class BindingsParserTest < ::Minitest::Test
 
   def test_parse_csv
     expected = { "foo" => "42", "bar" => "17" }
-    assert_equal expected, parse("foo=42,bar=17")
+    assert_equal(expected, parse("foo=42,bar=17"))
   end
 
   def test_parse_csv_with_comma_in_values
     expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f" }
-    assert_equal expected, parse('"foo=a,b,c",bar=d,"bla=e,f"')
+    assert_equal(expected, parse('"foo=a,b,c",bar=d,"bla=e,f"'))
   end
 
   def test_parse_csv_with_equality_sign
     expected = { "foo" => "1=2=3", "bar" => "3", "bla" => "4=7" }
-    assert_equal expected, parse("foo=1=2=3,bar=3,bla=4=7")
+    assert_equal(expected, parse("foo=1=2=3,bar=3,bla=4=7"))
   end
 
   def test_parse_csv_with_no_value
     expected = { "bla" => nil, "foo" => "" }
-    assert_equal expected, parse("bla,foo=")
+    assert_equal(expected, parse("bla,foo="))
   end
 
   def test_parse_csv_with_no_key

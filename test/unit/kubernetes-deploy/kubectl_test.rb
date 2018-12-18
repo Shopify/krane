@@ -26,9 +26,9 @@ class KubectlTest < KubernetesDeploy::TestCase
       resp: "{ items: [] }")
 
     out, err, st = build_kubectl.run("get", "pods", "-a", "--output=json")
-    assert st.success?
-    assert_equal "{ items: [] }", out
-    assert_equal "", err
+    assert(st.success?)
+    assert_equal("{ items: [] }", out)
+    assert_equal("", err)
   end
 
   def test_run_omits_context_flag_if_use_context_is_false
@@ -95,8 +95,8 @@ class KubectlTest < KubernetesDeploy::TestCase
       _out, _err, st = kubectl.run("get", "pods", attempts: 5)
       refute_predicate st, :success?
     end
-    assert_equal 5, metrics.length
-    assert_equal ["KubernetesDeploy.kubectl.error"], metrics.map(&:name).uniq
+    assert_equal(5, metrics.length)
+    assert_equal(["KubernetesDeploy.kubectl.error"], metrics.map(&:name).uniq)
   end
 
   def test_custom_timeout_is_used
@@ -112,24 +112,24 @@ class KubectlTest < KubernetesDeploy::TestCase
     stub_version_request(server: version_info(1, 7, 8), client: version_info(1, 7, 10))
     kubectl = build_kubectl
     expected_version_info = { server: Gem::Version.new('1.7.8'), client: Gem::Version.new('1.7.10') }
-    assert_equal expected_version_info, kubectl.version_info
+    assert_equal(expected_version_info, kubectl.version_info)
   end
 
   def test_client_version_and_server_version_return_the_correct_result
     stub_version_request(server: version_info(1, 7, 8), client: version_info(1, 7, 10))
 
     kubectl = build_kubectl
-    assert_equal "1.7.10", kubectl.client_version.to_s
-    assert_equal "1.7.8", kubectl.server_version.to_s
+    assert_equal("1.7.10", kubectl.client_version.to_s)
+    assert_equal("1.7.8", kubectl.server_version.to_s)
   end
 
   def test_version_comparisons_are_accurate
     stub_version_request(server: version_info(1, 7, 8), client: version_info(1, 7, 8))
     kubectl = build_kubectl
-    assert_equal kubectl.server_version, kubectl.client_version
-    assert kubectl.server_version < Gem::Version.new('1.7.10')
-    assert kubectl.server_version > Gem::Version.new('1.7.1')
-    assert kubectl.server_version < Gem::Version.new('1.8.0')
+    assert_equal(kubectl.server_version, kubectl.client_version)
+    assert(kubectl.server_version < Gem::Version.new('1.7.10'))
+    assert(kubectl.server_version > Gem::Version.new('1.7.1'))
+    assert(kubectl.server_version < Gem::Version.new('1.8.0'))
   end
 
   def test_version_methods_work_with_gke_versions
@@ -140,9 +140,9 @@ class KubectlTest < KubernetesDeploy::TestCase
 
     kubectl = build_kubectl
     expected_version_info = { client: Gem::Version.new('1.7.10'), server: Gem::Version.new('1.7.6') }
-    assert_equal expected_version_info, kubectl.version_info
-    assert_equal "1.7.10", kubectl.client_version.to_s
-    assert_equal "1.7.6", kubectl.server_version.to_s
+    assert_equal(expected_version_info, kubectl.version_info)
+    assert_equal("1.7.10", kubectl.client_version.to_s)
+    assert_equal("1.7.6", kubectl.server_version.to_s)
   end
 
   def test_version_info_raises_if_command_fails

@@ -261,7 +261,7 @@ module KubernetesDeploy
           r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
                                        definition: r_def, statsd_tags: @namespace_tags)
           resources << r
-          @logger.info "  - #{r.id}"
+          @logger.info("  - #{r.id}")
         end
       end
       if (global = resources.select(&:global?).presence)

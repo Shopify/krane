@@ -5,8 +5,8 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def test_secret_changes_required_based_on_ejson_file_existence
     stub_kubectl_response("get", "secrets", resp: { items: [dummy_ejson_secret] })
 
-    refute build_provisioner(fixture_path('hello-cloud')).secret_changes_required?
-    assert build_provisioner(fixture_path('ejson-cloud')).secret_changes_required?
+    refute(build_provisioner(fixture_path('hello-cloud')).secret_changes_required?)
+    assert(build_provisioner(fixture_path('ejson-cloud')).secret_changes_required?)
   end
 
   def test_secret_changes_required_based_on_managed_secret_existence
@@ -14,7 +14,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       "get", "secrets",
       resp: { items: [dummy_secret_hash(managed: true), dummy_ejson_secret] }
     )
-    assert build_provisioner(fixture_path('hello-cloud')).secret_changes_required?
+    assert(build_provisioner(fixture_path('hello-cloud')).secret_changes_required?)
   end
 
   def test_run_with_no_secrets_file_or_managed_secrets_no_ops
@@ -34,7 +34,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def test_run_with_ejson_keypair_mismatch
     wrong_public = {
       "2200e55f22dd0c93fac3832ba14842cc75fa5a99a2e01696daa30e188d465036" =>
-        "139d5c2a30901dd8ae186be582ccc0a882c16f8e0bb5429884dbc7296e80669e"
+        "139d5c2a30901dd8ae186be582ccc0a882c16f8e0bb5429884dbc7296e80669e",
     }
     stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret(wrong_public))
 
@@ -79,7 +79,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret)
     new_content = {
       "_public_key" => fixture_public_key,
-      "kubernetes_secrets" => { "foobar" => {} }
+      "kubernetes_secrets" => { "foobar" => {} },
     }
 
     msg = "Ejson incomplete for secret foobar: secret type unspecified, no data provided"
@@ -94,7 +94,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def correct_ejson_key_secret_data
     {
-      fixture_public_key => "fedcc95132e9b399ee1f404364fdbc81bdbe4feb5b8292b061f1022481157d5a"
+      fixture_public_key => "fedcc95132e9b399ee1f404364fdbc81bdbe4feb5b8292b061f1022481157d5a",
     }
   end
 
@@ -125,9 +125,9 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       'metadata' => {
         "name" => name,
         "labels" => { "name" => name },
-        "namespace" => 'test'
+        "namespace" => 'test',
       },
-      "data" => encoded_data
+      "data" => encoded_data,
     }
     if managed
       secret['metadata']['annotations'] = { KubernetesDeploy::EjsonSecretProvisioner::MANAGEMENT_ANNOTATION => true }

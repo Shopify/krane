@@ -29,4 +29,4 @@ runner = KubernetesDeploy::RenderTask.new(
 )
 
 success = runner.run(STDOUT, templates)
-exit 1 unless success
+exit(1) unless success

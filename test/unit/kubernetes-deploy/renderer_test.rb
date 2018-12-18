@@ -39,7 +39,7 @@ class RendererTest < KubernetesDeploy::TestCase
     actual = YAML.load_stream(render("partials_test.yaml.erb")).map do |t|
       YAML.dump(t)
     end.join
-    assert_equal expected, actual
+    assert_equal(expected, actual)
   end
 
   def test_invalid_partial_raises
@@ -47,9 +47,9 @@ class RendererTest < KubernetesDeploy::TestCase
       render('broken-partial-inclusion.yaml.erb')
     end
     included_from = "partial included from: broken-partial-inclusion.yaml.erb -> broken.yml.erb"
-    assert_match "undefined local variable or method `foo'", err.message
-    assert_match %r{.*/partials/simple.yaml.erb \(#{included_from}\)}, err.filename
-    assert_equal "c: c3\nd: d4\nfoo: <%= foo %>\n", err.content
+    assert_match("undefined local variable or method `foo'", err.message)
+    assert_match(%r{.*/partials/simple.yaml.erb \(#{included_from}\)}, err.filename)
+    assert_equal("c: c3\nd: d4\nfoo: <%= foo %>\n", err.content)
   end
 
   def test_non_existent_partial_raises
@@ -57,9 +57,9 @@ class RendererTest < KubernetesDeploy::TestCase
       render('including-non-existent-partial.yaml.erb')
     end
     base = "Could not find partial 'foobarbaz' in any of"
-    assert_match %r{#{base} .*/fixtures/for_unit_tests/partials:.*/fixtures/partials}, err.message
-    assert_equal "including-non-existent-partial.yaml.erb", err.filename
-    assert_equal "---\n<%= partial 'foobarbaz' %>\n", err.content
+    assert_match(%r{#{base} .*/fixtures/for_unit_tests/partials:.*/fixtures/partials}, err.message)
+    assert_equal("including-non-existent-partial.yaml.erb", err.filename)
+    assert_equal("---\n<%= partial 'foobarbaz' %>\n", err.content)
   end
 
   def test_nesting_fields
@@ -71,9 +71,9 @@ class RendererTest < KubernetesDeploy::TestCase
         foo: bar
       EOY
     actual = YAML.dump(YAML.load(render('nest-as-rhs.yaml.erb')))
-    assert_equal expected, actual
+    assert_equal(expected, actual)
     actual = YAML.dump(YAML.load(render('nest-indented.yaml.erb')))
-    assert_equal expected, actual
+    assert_equal(expected, actual)
   end
 
   private

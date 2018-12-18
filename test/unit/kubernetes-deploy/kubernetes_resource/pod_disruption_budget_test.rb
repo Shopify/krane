@@ -7,13 +7,13 @@ class PodDisruptionBudgetTest < KubernetesDeploy::TestCase
   def test_deploy_succeeded_is_true_as_soon_as_controller_observes_new_version
     template = build_pdb_template(status: { "observedGeneration": 2 })
     pdb = build_synced_pdb(template: template)
-    assert_predicate pdb, :deploy_succeeded?
+    assert_predicate(pdb, :deploy_succeeded?)
   end
 
   def test_deploy_succeeded_not_fooled_by_stale_status
     template = build_pdb_template(status: { "observedGeneration": 1 })
     pdb = build_synced_pdb(template: template)
-    refute_predicate pdb, :deploy_succeeded?
+    refute_predicate(pdb, :deploy_succeeded?)
   end
 
   private

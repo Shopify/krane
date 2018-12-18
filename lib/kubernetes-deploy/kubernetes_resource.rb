@@ -319,7 +319,7 @@ module KubernetesDeploy
           '(ne .reason "SuccessfulCreate")',
           '(ne .reason "Scheduled")',
           '(ne .reason "Pulling")',
-          '(ne .reason "Pulled")'
+          '(ne .reason "Pulled")',
         ]
         condition_start = "{{if and #{and_conditions.join(' ')}}}"
         field_part = FIELDS.map { |f| "{{#{f}}}" }.join(%({{print "#{FIELD_SEPARATOR}"}}))

@@ -71,34 +71,34 @@ class StatsDTest < KubernetesDeploy::TestCase
   end
 
   def test_measure_method_does_not_change_the_return_value
-    assert_equal 123, TestMeasureClass.new.thing_to_measure
+    assert_equal(123, TestMeasureClass.new.thing_to_measure)
   end
 
   def test_measure_method_uses_expected_name_and_tags
     metrics = capture_statsd_calls do
       TestMeasureClass.new.thing_to_measure
     end
-    assert_predicate metrics, :one?, "Expected 1 metric, got #{metrics.length}"
-    assert_equal "KubernetesDeploy.thing_to_measure.duration", metrics.first.name
-    assert_equal ["test:true"], metrics.first.tags
+    assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
+    assert_equal("KubernetesDeploy.thing_to_measure.duration", metrics.first.name)
+    assert_equal(["test:true"], metrics.first.tags)
   end
 
   def test_measure_method_with_custom_metric_name
     metrics = capture_statsd_calls do
       TestMeasureClass.new.measure_with_custom_metric
     end
-    assert_predicate metrics, :one?, "Expected 1 metric, got #{metrics.length}"
-    assert_equal "KubernetesDeploy.customized", metrics.first.name
-    assert_equal ["test:true"], metrics.first.tags
+    assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
+    assert_equal("KubernetesDeploy.customized", metrics.first.name)
+    assert_equal(["test:true"], metrics.first.tags)
   end
 
   def test_measure_method_with_statsd_tags_undefined
     metrics = capture_statsd_calls do
       TestMeasureNoTags.new.thing_to_measure
     end
-    assert_predicate metrics, :one?, "Expected 1 metric, got #{metrics.length}"
-    assert_equal "KubernetesDeploy.thing_to_measure.duration", metrics.first.name
-    assert_empty metrics.first.tags
+    assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
+    assert_equal("KubernetesDeploy.thing_to_measure.duration", metrics.first.name)
+    assert_empty(metrics.first.tags)
   end
 
   def test_measure_method_that_raises_with_hash_tags
@@ -109,9 +109,9 @@ class StatsDTest < KubernetesDeploy::TestCase
         tester.measured_method_raises
       end
     end
-    assert_predicate metrics, :one?, "Expected 1 metric, got #{metrics.length}"
-    assert_equal "KubernetesDeploy.measured_method_raises.duration", metrics.first.name
-    assert_equal ["test:true", "error:true"], metrics.first.tags
+    assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
+    assert_equal("KubernetesDeploy.measured_method_raises.duration", metrics.first.name)
+    assert_equal(["test:true", "error:true"], metrics.first.tags)
   end
 
   def test_measure_method_that_raises_with_array_tags
@@ -122,8 +122,8 @@ class StatsDTest < KubernetesDeploy::TestCase
         tester.measured_method_raises
       end
     end
-    assert_predicate metrics, :one?, "Expected 1 metric, got #{metrics.length}"
-    assert_equal "KubernetesDeploy.measured_method_raises.duration", metrics.first.name
-    assert_equal ["test:true", "error:true"], metrics.first.tags
+    assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
+    assert_equal("KubernetesDeploy.measured_method_raises.duration", metrics.first.name)
+    assert_equal(["test:true", "error:true"], metrics.first.tags)
   end
 end

@@ -59,7 +59,7 @@ module KubernetesDeploy
     private
 
     def create_pod(pod)
-      @logger.info "Creating pod '#{pod.name}'"
+      @logger.info("Creating pod '#{pod.name}'")
       pod.deploy_started_at = Time.now.utc
       kubeclient.create_pod(pod.to_kubeclient_resource)
       @pod_name = pod.name
@@ -121,7 +121,7 @@ module KubernetesDeploy
 
       begin
         kubeclient.get_namespace(@namespace) if @namespace.present?
-        @logger.info "Using namespace '#{@namespace}' in context '#{@context}'"
+        @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
       rescue KubeException => e
         msg = e.error_code == 404 ? "Namespace was not found" : "Could not connect to kubernetes cluster"
         errors << msg

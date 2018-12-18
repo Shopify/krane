@@ -10,15 +10,15 @@ class ServiceTest < KubernetesDeploy::TestCase
 
     stub_kind_get("Service", items: [])
     svc.sync(build_resource_cache)
-    refute svc.exists?
-    refute svc.deploy_succeeded?
-    assert_equal "Not found", svc.status
+    refute(svc.exists?)
+    refute(svc.deploy_succeeded?)
+    assert_equal("Not found", svc.status)
 
     stub_kind_get("Service", items: [svc_def])
     svc.sync(build_resource_cache)
-    assert svc.exists?
-    assert svc.deploy_succeeded?
-    assert_equal "Doesn't require any endpoints", svc.status
+    assert(svc.exists?)
+    assert(svc.deploy_succeeded?)
+    assert_equal("Doesn't require any endpoints", svc.status)
   end
 
   def test_selectorless_cluster_ip_svc
@@ -27,16 +27,16 @@ class ServiceTest < KubernetesDeploy::TestCase
 
     stub_kind_get("Service", items: [svc_def])
     svc.sync(build_resource_cache)
-    assert svc.exists?
-    assert svc.deploy_succeeded?
-    assert_equal "Doesn't require any endpoints", svc.status # TODO: this is not strictly correct
+    assert(svc.exists?)
+    assert(svc.deploy_succeeded?)
+    assert_equal("Doesn't require any endpoints", svc.status) # TODO: this is not strictly correct
   end
 
   def test_status_not_found_for_all_types_before_exist
     all_services = [
       build_service(service_fixture('external-name')),
       build_service(service_fixture('standard')),
-      build_service(service_fixture('zero-replica'))
+      build_service(service_fixture('zero-replica')),
     ]
 
     stub_kind_get("Service", items: [])
@@ -60,18 +60,18 @@ class ServiceTest < KubernetesDeploy::TestCase
     stub_kind_get("Pod", items: [])
     svc.sync(build_resource_cache)
 
-    assert svc.exists?
-    refute svc.deploy_succeeded?
-    assert_equal "Selects 0 pods", svc.status
+    assert(svc.exists?)
+    refute(svc.deploy_succeeded?)
+    assert_equal("Selects 0 pods", svc.status)
 
     stub_kind_get("Service", items: [svc_def])
     stub_kind_get("Deployment", items: deployment_fixtures)
     stub_kind_get("Pod", items: pod_fixtures)
     svc.sync(build_resource_cache)
 
-    assert svc.exists?
-    assert svc.deploy_succeeded?
-    assert_equal "Selects at least 1 pod", svc.status
+    assert(svc.exists?)
+    assert(svc.deploy_succeeded?)
+    assert_equal("Selects at least 1 pod", svc.status)
   end
 
   def test_assumes_endpoints_required_when_related_deployment_not_found
@@ -83,9 +83,9 @@ class ServiceTest < KubernetesDeploy::TestCase
     stub_kind_get("Pod", items: [])
     svc.sync(build_resource_cache)
 
-    assert svc.exists?
-    refute svc.deploy_succeeded?
-    assert_equal "Selects 0 pods", svc.status
+    assert(svc.exists?)
+    refute(svc.deploy_succeeded?)
+    assert_equal("Selects 0 pods", svc.status)
   end
 
   def test_services_for_zero_replica_deployments_do_not_require_endpoints
@@ -97,9 +97,9 @@ class ServiceTest < KubernetesDeploy::TestCase
     stub_kind_get("Pod", items: [])
     svc.sync(build_resource_cache)
 
-    assert svc.exists?
-    assert svc.deploy_succeeded?
-    assert_equal "Doesn't require any endpoints", svc.status
+    assert(svc.exists?)
+    assert(svc.deploy_succeeded?)
+    assert_equal("Doesn't require any endpoints", svc.status)
   end
 
   private
