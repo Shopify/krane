@@ -132,7 +132,7 @@ module KubernetesDeploy
       deployments.each do |record|
         begin
           patch_deployment_with_restart(record)
-          @logger.info "Triggered `#{record.metadata.name}` restart"
+          @logger.info("Triggered `#{record.metadata.name}` restart")
         rescue Kubeclient::ResourceNotFoundError, Kubeclient::HttpError => e
           raise RestartAPIError.new(record.metadata.name, e.message)
         end
@@ -164,12 +164,12 @@ module KubernetesDeploy
               containers: containers.map do |container|
                 {
                   name: container.name,
-                  env: [{ name: "RESTARTED_AT", value: Time.now.to_i.to_s }]
+                  env: [{ name: "RESTARTED_AT", value: Time.now.to_i.to_s }],
                 }
-              end
-            }
-          }
-        }
+              end,
+            },
+          },
+        },
       }
     end
 

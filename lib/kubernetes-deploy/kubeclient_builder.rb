@@ -100,7 +100,7 @@ module KubernetesDeploy
         auth_options: kube_context.auth_options,
         timeouts: {
           open: KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT,
-          read: KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT
+          read: KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT,
         }
       )
       client.discover

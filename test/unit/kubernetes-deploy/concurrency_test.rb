@@ -57,10 +57,10 @@ class ConcurrencyTest < KubernetesDeploy::TestCase
   private
 
   def assert_work_distribution(all_work, expected)
-    assert all_work.all? { |w| w.worked_by_threads.length == 1 }, "Same work done by multiple threads somehow"
+    assert(all_work.all? { |w| w.worked_by_threads.length == 1 }, "Same work done by multiple threads somehow")
     thread_map = all_work.each_with_object(Hash.new { |hash, key| hash[key] = 0 }) do |w, threads|
       threads[w.worked_by_threads.first] += 1
     end
-    assert_equal thread_map.values.sort, expected.sort
+    assert_equal(thread_map.values.sort, expected.sort)
   end
 end

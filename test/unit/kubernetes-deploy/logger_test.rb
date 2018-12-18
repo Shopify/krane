@@ -4,16 +4,16 @@ require 'test_helper'
 class FormattedLoggerTest < KubernetesDeploy::TestCase
   def test_build
     new_logger = KubernetesDeploy::FormattedLogger.build('test-ns', 'minikube', @logger_stream)
-    assert new_logger.is_a?(::Logger)
-    assert_equal ::Logger::INFO, new_logger.level
-    refute_nil new_logger.formatter
+    assert(new_logger.is_a?(::Logger))
+    assert_equal(::Logger::INFO, new_logger.level)
+    refute_nil(new_logger.formatter)
   end
 
   def test_debug_log_level_from_env
     original_env = ENV["DEBUG"]
     ENV["DEBUG"] = "lol"
     new_logger = KubernetesDeploy::FormattedLogger.build('test-ns', 'minikube', @logger_stream)
-    assert_equal ::Logger::DEBUG, new_logger.level
+    assert_equal(::Logger::DEBUG, new_logger.level)
   ensure
     ENV["DEBUG"] = original_env
   end
@@ -22,7 +22,7 @@ class FormattedLoggerTest < KubernetesDeploy::TestCase
     original_env = ENV["LEVEL"]
     ENV["LEVEL"] = "warn"
     new_logger = KubernetesDeploy::FormattedLogger.build('test-ns', 'minikube', @logger_stream)
-    assert_equal ::Logger::WARN, new_logger.level
+    assert_equal(::Logger::WARN, new_logger.level)
   ensure
     ENV["LEVEL"] = original_env
   end
@@ -59,7 +59,7 @@ class FormattedLoggerTest < KubernetesDeploy::TestCase
       /^\[WARN\].*\]\t$/,
       /^\[ERROR\].*\]\tError$/,
       /^\[FATAL\].*\]\t$/,
-      /^\[FATAL\].*\]\tFatal$/
+      /^\[FATAL\].*\]\tFatal$/,
     ]
     assert_logs_match_all(entries, in_order: true)
   end

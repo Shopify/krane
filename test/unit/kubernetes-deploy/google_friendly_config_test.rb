@@ -21,13 +21,13 @@ class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
           "access_token" => "bearer_token",
           "token_type" => "Bearer",
           "expires_in" => 3600,
-          "id_token" => "identity_token"
+          "id_token" => "identity_token",
         }.to_json,
         status: 200
       )
 
     context = config.context("google")
-    assert_equal 'bearer_token', context.auth_options[:bearer_token]
+    assert_equal('bearer_token', context.auth_options[:bearer_token])
   end
 
   def test_auth_use_default_gcp_failure
@@ -50,29 +50,29 @@ class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
 
     context = config.context("minikube")
 
-    assert_equal 'test', context.auth_options[:password]
-    assert_equal 'admin', context.auth_options[:username]
+    assert_equal('test', context.auth_options[:password])
+    assert_equal('admin', context.auth_options[:username])
   end
 
   def kubeconfig
     {
       'apiVersion' => 'v1',
       'clusters' => [
-        { 'cluster' => { 'server' => 'https://192.168.64.3:8443' }, 'name' => 'test' }
+        { 'cluster' => { 'server' => 'https://192.168.64.3:8443' }, 'name' => 'test' },
       ],
       'contexts' => [
         {
           'context' => {
             'cluster' => 'test',
-            'user' => 'google'
+            'user' => 'google',
           },
-          'name' => 'google'
+          'name' => 'google',
         },
         {
           'context' => {
             'cluster' => 'test', 'user' => 'minikube'
           },
-          'name' => 'minikube'
+          'name' => 'minikube',
         },
       ],
       'users' => [
@@ -81,18 +81,18 @@ class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
           'user' => {
             'auth-provider' => {
               'name' => 'gcp',
-              'config' => { 'access_token' => 'test' }
-            }
-          }
+              'config' => { 'access_token' => 'test' },
+            },
+          },
         },
         {
           'name' => 'minikube',
           'user' => {
             'password' => 'test',
-            'username' => 'admin'
-          }
-        }
-      ]
+            'username' => 'admin',
+          },
+        },
+      ],
     }.stringify_keys
   end
 

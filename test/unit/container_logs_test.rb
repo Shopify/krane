@@ -22,7 +22,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     @logs.sync
     @logs.sync
 
-    assert_equal generate_log_messages(1..15), @logs.lines
+    assert_equal(generate_log_messages(1..15), @logs.lines)
   end
 
   def test_sync_handles_cycles_where_no_new_logs_available
@@ -34,14 +34,14 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     @logs.sync
     @logs.sync
 
-    assert_equal generate_log_messages(1..10), @logs.lines
+    assert_equal(generate_log_messages(1..10), @logs.lines)
   end
 
   def test_empty_delegated_to_lines
     KubernetesDeploy::Kubectl.any_instance.stubs(:run).returns([logs_response_1, "", ""])
-    assert_predicate @logs, :empty?
+    assert_predicate(@logs, :empty?)
     @logs.sync
-    refute_predicate @logs, :empty?
+    refute_predicate(@logs, :empty?)
   end
 
   def test_print_latest_and_print_all_output_the_correct_chunks
@@ -74,7 +74,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
     expected = [
       "[A]  Line 1",
       "[A]  Line 2",
-      "[A]  Line 3"
+      "[A]  Line 3",
     ]
     @logs.print_latest(prefix: true)
     assert_logs_match_all(expected, in_order: true)
@@ -96,7 +96,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
       "Line 2",
       "Line 3",
       "No timestamp 2", # moved to start of batch 2
-      "Line 4"
+      "Line 4",
     ], in_order: true)
   end
 

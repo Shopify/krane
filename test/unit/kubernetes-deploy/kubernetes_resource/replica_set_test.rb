@@ -7,20 +7,20 @@ class ReplicaSetTest < KubernetesDeploy::TestCase
   def test_deploy_succeeded_is_true_when_generation_and_replica_counts_match
     template = build_rs_template(status: { "observedGeneration": 2 })
     rs = build_synced_rs(template: template)
-    assert_predicate rs, :deploy_succeeded?
+    assert_predicate(rs, :deploy_succeeded?)
   end
 
   def test_deploy_succeeded_not_fooled_by_stale_status
     template = build_rs_template(status: { "observedGeneration": 1 })
     rs = build_synced_rs(template: template)
-    refute_predicate rs, :deploy_succeeded?
+    refute_predicate(rs, :deploy_succeeded?)
   end
 
   def test_deploy_failed_ensures_controller_has_observed_deploy
     template = build_rs_template(status: { "observedGeneration": 1, "readyReplicas": 0, "availableReplicas": 0 })
     rs = build_synced_rs(template: template)
     rs.stubs(:pods).returns([stub(deploy_failed?: true)])
-    refute_predicate rs, :deploy_failed?
+    refute_predicate(rs, :deploy_failed?)
   end
 
   def test_sync_does_not_request_pods_if_we_already_know_they_are_fine

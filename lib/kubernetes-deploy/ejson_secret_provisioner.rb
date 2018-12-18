@@ -145,9 +145,9 @@ module KubernetesDeploy
           "name" => secret_name,
           "labels" => { "name" => secret_name },
           "namespace" => @namespace,
-          "annotations" => { MANAGEMENT_ANNOTATION => "true" }
+          "annotations" => { MANAGEMENT_ANNOTATION => "true" },
         },
-        "data" => encoded_data
+        "data" => encoded_data,
       }
       secret.to_yaml
     end

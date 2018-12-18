@@ -26,7 +26,7 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
       "Running pod",
       "Result: FAILURE",
       "Failed to create pod",
-      "Kubeclient::HttpError: Pod with same name exists"
+      "Kubeclient::HttpError: Pod with same name exists",
     ], in_order: true)
   end
 
@@ -44,9 +44,9 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     metric = metrics.find do |m|
       m.name == "KubernetesDeploy.task_runner.duration" && m.tags.include?("namespace:#{bad_ns}")
     end
-    assert metric, "No result metric found for this test"
-    assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
-    assert_includes metric.tags, "status:failure"
+    assert(metric, "No result metric found for this test")
+    assert_includes(metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}")
+    assert_includes(metric.tags, "status:failure")
   end
 
   def test_success_statsd_metric_emitted
@@ -61,9 +61,9 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     metric = metrics.find do |m|
       m.name == "KubernetesDeploy.task_runner.duration" && m.tags.include?("namespace:#{@namespace}")
     end
-    assert metric, "No result metric found for this test"
-    assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
-    assert_includes metric.tags, "status:success"
+    assert(metric, "No result metric found for this test")
+    assert_includes(metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}")
+    assert_includes(metric.tags, "status:success")
   end
 
   def test_timedout_statsd_metric_emitted
@@ -78,8 +78,8 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     metric = metrics.find do |m|
       m.name == "KubernetesDeploy.task_runner.duration" && m.tags.include?("namespace:#{@namespace}")
     end
-    assert metric, "No result metric found for this test"
-    assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}"
-    assert_includes metric.tags, "status:timeout"
+    assert(metric, "No result metric found for this test")
+    assert_includes(metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}")
+    assert_includes(metric.tags, "status:timeout")
   end
 end

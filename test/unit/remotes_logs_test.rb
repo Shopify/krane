@@ -47,7 +47,7 @@ class RemoteLogsTest < KubernetesDeploy::TestCase
       "Line A",
       "Line B",
       "Line C",
-      "Line D"
+      "Line D",
     ], in_order: true)
   end
 
@@ -67,7 +67,7 @@ class RemoteLogsTest < KubernetesDeploy::TestCase
       "Line A",
       "Line B",
       "Line C",
-      "Line D"
+      "Line D",
     ], in_order: true)
   end
 

@@ -59,7 +59,7 @@ module KubernetesDeploy
       {
         namespace: @namespace,
         context: @context,
-        sha: @sha
+        sha: @sha,
       }
     end
 

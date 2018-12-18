@@ -25,8 +25,8 @@ class KubeClientBuilderTest < KubernetesDeploy::TestCase
     # Build kubeclient for a context present in the dummy config succeeds
     context_name = "docker-for-desktop"
     client = build_v1_kubeclient(context_name)
-    assert !client.nil?, "Expected Kubeclient is built for context " \
-    	"#{context_name} with success."
+    assert(!client.nil?, "Expected Kubeclient is built for context " \
+    	"#{context_name} with success.")
   ensure
     ENV['KUBECONFIG'] = old_config
   end

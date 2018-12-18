@@ -11,7 +11,7 @@ module KubernetesDeploy
         puts "Template directory is unknown. " \
           "Either specify --template-dir argument or set $ENVIRONMENT to use config/deploy/$ENVIRONMENT " \
         + "as a default path."
-        exit 1
+        exit(1)
       end
 
       template_dir

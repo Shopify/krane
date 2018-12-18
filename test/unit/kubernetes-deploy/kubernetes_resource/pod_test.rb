@@ -9,18 +9,18 @@ class PodTest < KubernetesDeploy::TestCase
       "state" => {
         "waiting" => {
           "message" => "rpc error: code = 2 desc = Error: image library/some-invalid-image not found",
-          "reason" => "ImagePullBackOff"
-        }
-      }
+          "reason" => "ImagePullBackOff",
+        },
+      },
     }
     pod = build_synced_pod(build_pod_template(container_state: container_state))
-    assert pod.deploy_failed?
+    assert(pod.deploy_failed?)
 
     expected_msg = <<~STRING
       The following containers encountered errors:
       > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
-    assert_equal expected_msg.strip, pod.failure_message
+    assert_equal(expected_msg.strip, pod.failure_message)
   end
 
   def test_deploy_failed_is_true_for_missing_tag_error
@@ -29,18 +29,18 @@ class PodTest < KubernetesDeploy::TestCase
       "state" => {
         "waiting" => {
           "message" => message,
-          "reason" => "ErrImagePull"
-        }
-      }
+          "reason" => "ErrImagePull",
+        },
+      },
     }
     pod = build_synced_pod(build_pod_template(container_state: container_state))
-    assert pod.deploy_failed?
+    assert(pod.deploy_failed?)
 
     expected_msg = <<~STRING
       The following containers encountered errors:
       > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
-    assert_equal expected_msg.strip, pod.failure_message
+    assert_equal(expected_msg.strip, pod.failure_message)
   end
 
   def test_deploy_failed_is_false_for_intermittent_image_error
@@ -48,14 +48,14 @@ class PodTest < KubernetesDeploy::TestCase
       "state" => {
         "waiting" => {
           "message" => "Failed to pull image 'gcr.io/*': rpc error: code = 2 desc = net/http: request canceled",
-          "reason" => "ImagePullBackOff"
-        }
-      }
+          "reason" => "ImagePullBackOff",
+        },
+      },
     }
     pod = build_synced_pod(build_pod_template(container_state: container_state))
 
-    refute pod.deploy_failed?
-    assert_nil pod.failure_message
+    refute(pod.deploy_failed?)
+    assert_nil(pod.failure_message)
   end
 
   def test_deploy_failed_is_true_for_image_pull_backoff
@@ -63,18 +63,18 @@ class PodTest < KubernetesDeploy::TestCase
       "state" => {
         "waiting" => {
           "message" => "Back-off pulling image 'docker.io/library/hello-world'",
-          "reason" => "ImagePullBackOff"
-        }
-      }
+          "reason" => "ImagePullBackOff",
+        },
+      },
     }
     pod = build_synced_pod(build_pod_template(container_state: container_state))
 
-    assert pod.deploy_failed?
+    assert(pod.deploy_failed?)
     expected_msg = <<~STRING
       The following containers encountered errors:
       > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
     STRING
-    assert_equal expected_msg.strip, pod.failure_message
+    assert_equal(expected_msg.strip, pod.failure_message)
   end
 
   def test_deploy_failed_is_true_for_container_config_error_post_18
@@ -82,40 +82,40 @@ class PodTest < KubernetesDeploy::TestCase
       "state" => {
         "waiting" => {
           "message" => "The reason it failed",
-          "reason" => "CreateContainerConfigError"
-        }
-      }
+          "reason" => "CreateContainerConfigError",
+        },
+      },
     }
     pod = build_synced_pod(build_pod_template(container_state: container_state))
 
-    assert pod.deploy_failed?
+    assert(pod.deploy_failed?)
     expected_msg = <<~STRING
       The following containers encountered errors:
       > hello-cloud: Failed to generate container configuration: The reason it failed
     STRING
-    assert_equal expected_msg.strip, pod.failure_message
+    assert_equal(expected_msg.strip, pod.failure_message)
   end
 
   def test_deploy_failed_is_true_for_crash_loop_backoffs
     container_state = {
       "lastState" => {
-        "terminated" => { "exitCode" => 1 }
+        "terminated" => { "exitCode" => 1 },
       },
       "state" => {
         "waiting" => {
           "message" => "Back-off 10s restarting failed container=init-crash-loop-back-off pod=init-crash-74b6dfcdc5",
-          "reason" => "CrashLoopBackOff"
-        }
-      }
+          "reason" => "CrashLoopBackOff",
+        },
+      },
     }
     pod = build_synced_pod(build_pod_template(container_state: container_state))
 
-    assert pod.deploy_failed?
+    assert(pod.deploy_failed?)
     expected_msg = <<~STRING
       The following containers encountered errors:
       > hello-cloud: Crashing repeatedly (exit 1). See logs for more information.
     STRING
-    assert_equal expected_msg.strip, pod.failure_message
+    assert_equal(expected_msg.strip, pod.failure_message)
   end
 
   def test_deploy_failed_is_true_for_container_cannot_run_error
@@ -124,18 +124,18 @@ class PodTest < KubernetesDeploy::TestCase
         "terminated" => {
           "message" => "/not/a/command: no such file or directory",
           "reason" => "ContainerCannotRun",
-          "exitCode" => 127
-        }
-      }
+          "exitCode" => 127,
+        },
+      },
     }
     pod = build_synced_pod(build_pod_template(container_state: container_state))
 
-    assert pod.deploy_failed?
+    assert(pod.deploy_failed?)
     expected_msg = <<~STRING
       The following containers encountered errors:
       > hello-cloud: Failed to start (exit 127): /not/a/command: no such file or directory
     STRING
-    assert_equal expected_msg.strip, pod.failure_message
+    assert_equal(expected_msg.strip, pod.failure_message)
   end
 
   def test_deploy_failed_is_true_for_evicted_unmanaged_pods
@@ -144,13 +144,13 @@ class PodTest < KubernetesDeploy::TestCase
         "message" => "The node was low on resource: nodefsInodes.",
         "phase" => "Failed",
         "reason" => "Evicted",
-        "startTime" => "2018-04-13T22:43:23Z"
+        "startTime" => "2018-04-13T22:43:23Z",
       }
     )
     pod = build_synced_pod(template)
 
-    assert_predicate pod, :deploy_failed?
-    assert_equal "Pod status: Failed (Reason: Evicted).", pod.failure_message
+    assert_predicate(pod, :deploy_failed?)
+    assert_equal("Pod status: Failed (Reason: Evicted).", pod.failure_message)
   end
 
   def test_deploy_failed_is_false_for_evicted_managed_pods
@@ -159,13 +159,13 @@ class PodTest < KubernetesDeploy::TestCase
         "message" => "The node was low on resource: nodefsInodes.",
         "phase" => "Failed",
         "reason" => "Evicted",
-        "startTime" => "2018-04-13T22:43:23Z"
+        "startTime" => "2018-04-13T22:43:23Z",
       }
     )
     pod = build_synced_pod(template, parent: mock)
 
-    refute_predicate pod, :deploy_failed?
-    assert_nil pod.failure_message
+    refute_predicate(pod, :deploy_failed?)
+    assert_nil(pod.failure_message)
   end
 
   def test_deploy_failed_is_true_for_preempted_unmanaged_pods
@@ -174,13 +174,13 @@ class PodTest < KubernetesDeploy::TestCase
         "message" => "Preempted in order to admit critical pod",
         "phase" => "Failed",
         "reason" => "Preempting",
-        "startTime" => "2018-04-13T22:43:23Z"
+        "startTime" => "2018-04-13T22:43:23Z",
       }
     )
     pod = build_synced_pod(template)
 
-    assert_predicate pod, :deploy_failed?
-    assert_equal "Pod status: Failed (Reason: Preempting).", pod.failure_message
+    assert_predicate(pod, :deploy_failed?)
+    assert_equal("Pod status: Failed (Reason: Preempting).", pod.failure_message)
   end
 
   def test_deploy_failed_is_false_for_preempted_managed_pods
@@ -189,13 +189,13 @@ class PodTest < KubernetesDeploy::TestCase
         "message" => "Preempted in order to admit critical pod",
         "phase" => "Failed",
         "reason" => "Preempting",
-        "startTime" => "2018-04-13T22:43:23Z"
+        "startTime" => "2018-04-13T22:43:23Z",
       }
     )
     pod = build_synced_pod(template, parent: mock)
 
-    refute_predicate pod, :deploy_failed?
-    assert_nil pod.failure_message
+    refute_predicate(pod, :deploy_failed?)
+    assert_nil(pod.failure_message)
   end
 
   def test_deploy_failed_is_true_for_terminating_unmanaged_pods
@@ -203,9 +203,9 @@ class PodTest < KubernetesDeploy::TestCase
     template["metadata"]["deletionTimestamp"] = "2018-04-13T22:43:23Z"
     pod = build_synced_pod(template)
 
-    assert_predicate pod, :terminating?
-    assert_predicate pod, :deploy_failed?
-    assert_equal "Pod status: Terminating.", pod.failure_message
+    assert_predicate(pod, :terminating?)
+    assert_predicate(pod, :deploy_failed?)
+    assert_equal("Pod status: Terminating.", pod.failure_message)
   end
 
   def test_deploy_failed_is_false_for_terminating_managed_pods
@@ -213,9 +213,9 @@ class PodTest < KubernetesDeploy::TestCase
     template["metadata"]["deletionTimestamp"] = "2018-04-13T22:43:23Z"
     pod = build_synced_pod(template, parent: mock)
 
-    assert_predicate pod, :terminating?
-    refute_predicate pod, :deploy_failed?
-    assert_nil pod.failure_message
+    assert_predicate(pod, :terminating?)
+    refute_predicate(pod, :deploy_failed?)
+    assert_nil(pod.failure_message)
   end
 
   def test_deploy_failed_is_true_for_disappeared_unmanaged_pods
@@ -226,9 +226,9 @@ class PodTest < KubernetesDeploy::TestCase
     cache.expects(:get_instance).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
     pod.sync(cache)
 
-    assert_predicate pod, :disappeared?
-    assert_predicate pod, :deploy_failed?
-    assert_equal "Pod status: Disappeared.", pod.failure_message
+    assert_predicate(pod, :disappeared?)
+    assert_predicate(pod, :deploy_failed?)
+    assert_equal("Pod status: Disappeared.", pod.failure_message)
   end
 
   def test_deploy_failed_is_false_for_disappeared_managed_pods
@@ -239,9 +239,9 @@ class PodTest < KubernetesDeploy::TestCase
     cache.expects(:get_instance).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
     pod.sync(cache)
 
-    assert_predicate pod, :disappeared?
-    refute_predicate pod, :deploy_failed?
-    assert_nil pod.failure_message
+    assert_predicate(pod, :disappeared?)
+    refute_predicate(pod, :deploy_failed?)
+    assert_nil(pod.failure_message)
   end
 
   private
@@ -269,9 +269,9 @@ class PodTest < KubernetesDeploy::TestCase
             "state" => {},
             "name" => "hello-cloud",
             "ready" => false,
-            "restartCount" => 0
-          }.merge(container_state)
-        ]
+            "restartCount" => 0,
+          }.merge(container_state),
+        ],
       }
     )
   end

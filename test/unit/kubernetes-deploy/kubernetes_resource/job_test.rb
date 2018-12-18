@@ -17,29 +17,29 @@ class JobTest < KubernetesDeploy::TestCase
         }],
         failed: 2,
         startTime: "2018-10-12T19:49:28Z",
-      }
+      },
     }
     job = build_synced_job(job_spec.merge(status).deep_stringify_keys)
 
-    assert_predicate job, :deploy_failed?
+    assert_predicate(job, :deploy_failed?)
 
     expected_msg = "BackoffLimitExceeded (Job has reached the specified backoff limit)"
-    assert_equal expected_msg, job.failure_message
+    assert_equal(expected_msg, job.failure_message)
   end
 
   def test_job_fails_without_failed_status_condition
     definition = {
       spec: {
-        backoffLimit: 1
+        backoffLimit: 1,
       },
       status: {
         failed: 2,
         startTime: "2018-10-12T19:49:28Z",
-      }
+      },
     }
     job = build_synced_job(job_spec.merge(definition).deep_stringify_keys)
 
-    assert_predicate job, :deploy_failed?
+    assert_predicate(job, :deploy_failed?)
   end
 
   private

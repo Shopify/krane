@@ -56,7 +56,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_service_and_deployment_timeouts_are_equal
     message = "Service and Deployment timeouts have to match since services are waiting to get endpoints " \
       "from their backing deployments"
-    assert_equal KubernetesDeploy::Service.timeout, KubernetesDeploy::Deployment.timeout, message
+    assert_equal(KubernetesDeploy::Service.timeout, KubernetesDeploy::Deployment.timeout, message)
   end
 
   def test_fetch_events_parses_tricky_events_correctly
@@ -65,7 +65,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     dummy.deploy_started_at = start_time
 
     tricky_events = dummy_events(start_time)
-    assert tricky_events.first[:message].count("\n") > 1, "Sanity check failed: inadequate newlines in test events"
+    assert(tricky_events.first[:message].count("\n") > 1, "Sanity check failed: inadequate newlines in test events")
 
     kubectl.expects(:run).returns([build_event_jsonpath(tricky_events), "", SystemExit.new(0)])
     events = dummy.fetch_events(kubectl)
@@ -90,65 +90,66 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
     kubectl.expects(:run).returns(["", "", SystemExit.new(0)])
     events = dummy.fetch_events(kubectl)
-    assert_operator events, :empty?
+    assert_operator(events, :empty?)
   end
 
   def test_can_override_hardcoded_timeout_via_an_annotation
     basic_resource = DummyResource.new
-    assert_equal 300, basic_resource.timeout
+    assert_equal(300, basic_resource.timeout)
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("60S"))
-    assert_equal 60, customized_resource.timeout
+    assert_equal(60, customized_resource.timeout)
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("60M"))
-    assert_equal 3600, customized_resource.timeout
+    assert_equal(3600, customized_resource.timeout)
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("1H"))
-    assert_equal 3600, customized_resource.timeout
+    assert_equal(3600, customized_resource.timeout)
   end
 
   def test_blank_timeout_annotation_is_invalid
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata(""))
     customized_resource.validate_definition(kubectl)
-    assert customized_resource.validation_failed?, "Blank annotation was valid"
-    assert_equal "#{timeout_override_err_prefix}: Invalid ISO 8601 duration: \"\" is empty duration",
-      customized_resource.validation_error_msg
+    assert(customized_resource.validation_failed?, "Blank annotation was valid")
+    assert_equal("#{timeout_override_err_prefix}: Invalid ISO 8601 duration: \"\" is empty duration",
+      customized_resource.validation_error_msg)
   end
 
   def test_lack_of_timeout_annotation_does_not_fail_validation
     basic_resource = DummyResource.new
-    assert_equal 300, basic_resource.timeout
+    assert_equal(300, basic_resource.timeout)
     basic_resource.validate_definition(kubectl)
-    refute basic_resource.validation_failed?
+    refute(basic_resource.validation_failed?)
   end
 
   def test_timeout_override_lower_bound_validation
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("-1S"))
     customized_resource.validate_definition(kubectl)
-    assert customized_resource.validation_failed?, "Annotation with '-1' was valid"
-    assert_equal "#{timeout_override_err_prefix}: Value must be greater than 0",
-      customized_resource.validation_error_msg
+    assert(customized_resource.validation_failed?, "Annotation with '-1' was valid")
+    assert_equal("#{timeout_override_err_prefix}: Value must be greater than 0",
+      customized_resource.validation_error_msg)
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("0S"))
     customized_resource.validate_definition(kubectl)
-    assert customized_resource.validation_failed?, "Annotation with '0' was valid"
-    assert_equal "#{timeout_override_err_prefix}: Value must be greater than 0",
-      customized_resource.validation_error_msg
+    assert(customized_resource.validation_failed?, "Annotation with '0' was valid")
+    assert_equal("#{timeout_override_err_prefix}: Value must be greater than 0",
+      customized_resource.validation_error_msg)
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("1S"))
     customized_resource.validate_definition(kubectl)
-    refute customized_resource.validation_failed?, "Annotation with '1' was invalid"
+    refute(customized_resource.validation_failed?, "Annotation with '1' was invalid")
   end
 
   def test_timeout_override_upper_bound_validation
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H1S"))
     customized_resource.validate_definition(kubectl)
-    assert customized_resource.validation_failed?, "Annotation with '24H1S' was valid"
-    assert_equal "#{timeout_override_err_prefix}: Value must be less than 24h", customized_resource.validation_error_msg
+    assert(customized_resource.validation_failed?, "Annotation with '24H1S' was valid")
+    expected_message = "#{timeout_override_err_prefix}: Value must be less than 24h"
+    assert_equal(expected_message, customized_resource.validation_error_msg)
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H"))
     customized_resource.validate_definition(kubectl)
-    refute customized_resource.validation_failed?, "Annotation with '24H' was invalid"
+    refute(customized_resource.validation_failed?, "Annotation with '24H' was invalid")
   end
 
   def test_annotation_and_kubectl_error_messages_are_combined
@@ -156,22 +157,22 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     kubectl.expects(:run).returns([
       "{}",
       "Error from kubectl: Something else in this template was not valid",
-      stub(success?: false)
+      stub(success?: false),
     ])
 
     customized_resource.validate_definition(kubectl)
-    assert customized_resource.validation_failed?, "Expected resource to be invalid"
+    assert(customized_resource.validation_failed?, "Expected resource to be invalid")
     expected = <<~STRING.strip
       #{timeout_override_err_prefix}: Invalid ISO 8601 duration: "BAD"
       Error from kubectl: Something else in this template was not valid
     STRING
-    assert_equal expected, customized_resource.validation_error_msg
+    assert_equal(expected, customized_resource.validation_error_msg)
   end
 
   def test_calling_timeout_before_validation_with_invalid_annotation_does_not_raise
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("bad"))
-    assert_equal 300, customized_resource.timeout
-    assert_nil customized_resource.timeout_override
+    assert_equal(300, customized_resource.timeout)
+    assert_nil(customized_resource.timeout_override)
   end
 
   def test_deploy_timed_out_respects_hardcoded_timeouts
@@ -233,7 +234,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
         - Events: None found. Please check your usual logging service (e.g. Splunk).
         - Logs: None found. Please check your usual logging service (e.g. Splunk).
     STRING
-    assert_equal expected_message.strip, dummy.debug_message
+    assert_equal(expected_message.strip, dummy.debug_message)
 
     dummy.stubs(:failure_message).returns("Something went wrong I guess")
 
@@ -245,7 +246,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
         - Events: None found. Please check your usual logging service (e.g. Splunk).
         - Logs: None found. Please check your usual logging service (e.g. Splunk).
     STRING
-    assert_equal expected_message.strip, dummy.debug_message
+    assert_equal(expected_message.strip, dummy.debug_message)
 
     dummy.stubs(:failure_message).returns("Something went wrong I guess\n> Some container: boom!\n")
 
@@ -258,7 +259,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
         - Events: None found. Please check your usual logging service (e.g. Splunk).
         - Logs: None found. Please check your usual logging service (e.g. Splunk).
     STRING
-    assert_equal expected_message.strip, dummy.debug_message
+    assert_equal(expected_message.strip, dummy.debug_message)
   end
 
   def test_disappeared_is_true_if_resource_has_been_deployed_and_404s
@@ -267,11 +268,11 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     cache.expects(:get_instance).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError).twice
 
     dummy.sync(cache)
-    refute_predicate dummy, :disappeared?
+    refute_predicate(dummy, :disappeared?)
 
     dummy.deploy_started_at = Time.now.utc
     dummy.sync(cache)
-    assert_predicate dummy, :disappeared?
+    assert_predicate(dummy, :disappeared?)
   end
 
   def test_disappeared_is_false_if_resource_has_been_deployed_and_we_get_a_server_error
@@ -280,11 +281,11 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     KubernetesDeploy::Kubectl.any_instance.expects(:run).returns(["", "NotFound", stub(success?: false)]).twice
 
     dummy.sync(cache)
-    refute_predicate dummy, :disappeared?
+    refute_predicate(dummy, :disappeared?)
 
     dummy.deploy_started_at = Time.now.utc
     dummy.sync(cache)
-    refute_predicate dummy, :disappeared?
+    refute_predicate(dummy, :disappeared?)
   end
 
   private
@@ -302,15 +303,15 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       "metadata" => {
         "name" => "customized",
         "annotations" => {
-          KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => value
-        }
-      }
+          KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => value,
+        },
+      },
     }
   end
 
   def assert_includes_dummy_events(events, first:, second:)
     unless first || second
-      assert_operator events, :empty?
+      assert_operator(events, :empty?)
       return
     end
 
@@ -325,7 +326,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       "(00cfb839-4k2p-11e7-a12d-73972af001c2)\" (5 events)"
     expected[key] << second_event if second
 
-    assert_equal expected, events
+    assert_equal(expected, events)
   end
 
   def dummy_events(start_time)
@@ -351,7 +352,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
           Error syncing pod, skipping: failed to \"StartContainer\" for \"test\" with CrashLoopBackOff: \"Back-
           off 1m20s restarting failed container=test pod=test-299526239-5vlj9_test(00cfb839-4k2p-11e7-a12d-73972af001c2)\"
         STRING
-      }
+      },
     ]
   end
 

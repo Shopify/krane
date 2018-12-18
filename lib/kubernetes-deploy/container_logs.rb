@@ -29,7 +29,7 @@ module KubernetesDeploy
       prefix_str = "[#{container_name}]  " if prefix
 
       lines[@next_print_index..-1].each do |msg|
-        @logger.info "#{prefix_str}#{msg}"
+        @logger.info("#{prefix_str}#{msg}")
       end
 
       @next_print_index = lines.length

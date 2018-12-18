@@ -8,7 +8,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_unschedulable_task_template
 
     task_runner = build_task_runner
-    assert_nil task_runner.pod_name
+    assert_nil(task_runner.pod_name)
     result = task_runner.run(run_params(verify_result: false))
     assert_task_run_success(result)
 
@@ -22,8 +22,8 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
 
     pods = kubeclient.get_pods(namespace: @namespace)
-    assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
-    assert_equal task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run"
+    assert_equal(1, pods.length, "Expected 1 pod to exist, found #{pods.length}")
+    assert_equal(task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run")
   end
 
   def test_run_global_timeout_with_max_watch_seconds
@@ -37,7 +37,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "Result: TIMED OUT",
       "Timed out waiting for 1 resource to run",
       %r{Pod/task-runner-\w+: GLOBAL WATCH TIMEOUT \(5 seconds\)},
-      /Final status\: (Pending|Running)/
+      /Final status\: (Pending|Running)/,
     ], in_order: true)
   end
 
@@ -53,20 +53,20 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "/bin/sh: /not/a/command: not found",
       %r{Pod/task-runner-\w+ failed to run after \d+.\ds},
       "Result: FAILURE",
-      "Pod status: Failed"
+      "Pod status: Failed",
     ], in_order: true)
     refute_logs_match("Logs: None found")
 
     pods = kubeclient.get_pods(namespace: @namespace)
-    assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
-    assert_equal task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run"
+    assert_equal(1, pods.length, "Expected 1 pod to exist, found #{pods.length}")
+    assert_equal(task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run")
   end
 
   def test_run_with_verify_result_success
     deploy_task_template
 
     task_runner = build_task_runner
-    assert_nil task_runner.pod_name
+    assert_nil(task_runner.pod_name)
     result = task_runner.run(run_params(log_lines: 8, log_interval: 0.25))
     assert_task_run_success(result)
 
@@ -84,8 +84,8 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       %r{Pod/task-runner-\w+\s+Succeeded},
     ])
     pods = kubeclient.get_pods(namespace: @namespace)
-    assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
-    assert_equal task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run"
+    assert_equal(1, pods.length, "Expected 1 pod to exist, found #{pods.length}")
+    assert_equal(task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run")
   end
 
   def test_run_with_verify_result_fails_quickly_if_the_pod_is_deleted_out_of_band
@@ -99,7 +99,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
             kubeclient.delete_pod(task_runner.pod_name, @namespace)
             break
           rescue Kubeclient::ResourceNotFoundError
-            sleep 0.1
+            sleep(0.1)
             retry
           end
         end
@@ -154,7 +154,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "Phase 1: Initializing task",
       "Using template 'hello-cloud-template-runner'",
       "Changed Pod RestartPolicy from 'OnFailure' to 'Never'. Disable result verification to use 'OnFailure'.",
-      "Phase 2: Running pod"
+      "Phase 2: Running pod",
     ])
   end
 
@@ -171,11 +171,11 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "/bin/sh: /not/a/command: not found",
       %r{Pod/task-runner-\w+ failed to run after \d+.\ds},
       "Result: FAILURE",
-      "Pod status: Failed"
+      "Pod status: Failed",
     ], in_order: true)
 
     pods = kubeclient.get_pods(namespace: @namespace)
-    assert_equal 1, pods.length, "Expected 1 pod to exist, found #{pods.length}"
+    assert_equal(1, pods.length, "Expected 1 pod to exist, found #{pods.length}")
   end
 
   def test_run_fails_if_namespace_is_missing
@@ -187,7 +187,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "Validating configuration",
       "Result: FAILURE",
       "Configuration invalid",
-      "- Namespace was not found"
+      "- Namespace was not found",
     ], in_order: true)
   end
 
@@ -198,7 +198,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "context `#{KubeclientHelper::TEST_CONTEXT}`"
     assert_logs_match_all([
       "Result: FAILURE",
-      message
+      message,
     ], in_order: true)
 
     assert_raises_message(KubernetesDeploy::RunnerTask::TaskTemplateMissingError, message) do
@@ -222,7 +222,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Result: FAILURE",
-      message
+      message,
     ], in_order: true)
   end
 
@@ -240,7 +240,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     assert_logs_match_all([
       "Streaming logs",
-      "The value is: MITTENS"
+      "The value is: MITTENS",
     ], in_order: true)
   end
 
@@ -251,8 +251,8 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       way_too_fat = {
         "requests" => {
           "cpu" => 1000,
-          "memory" => "100Gi"
-        }
+          "memory" => "100Gi",
+        },
       }
       template = fixtures["template-runner.yml"]["PodTemplate"].first["template"]
       template["spec"]["containers"].first["resources"] = way_too_fat

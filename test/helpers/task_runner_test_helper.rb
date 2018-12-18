@@ -29,9 +29,9 @@ module TaskRunnerTestHelper
           "echo \"Line $i\"; " \
           "sleep #{log_interval};" \
           "i=$((i+1)); " \
-        "done"
+        "done",
       ],
-      verify_result: verify_result
+      verify_result: verify_result,
     }
   end
 end

@@ -7,13 +7,13 @@ class StatefulSetTest < KubernetesDeploy::TestCase
   def test_deploy_succeeded_is_true_when_revision_and_replica_counts_match
     template = build_ss_template(status: { "observedGeneration": 2 })
     ss = build_synced_ss(template: template)
-    assert_predicate ss, :deploy_succeeded?
+    assert_predicate(ss, :deploy_succeeded?)
   end
 
   def test_deploy_failed_ensures_controller_has_observed_deploy
     template = build_ss_template(status: { "observedGeneration": 1 })
     ss = build_synced_ss(template: template)
-    refute_predicate ss, :deploy_succeeded?
+    refute_predicate(ss, :deploy_succeeded?)
   end
 
   def test_deploy_failed_not_fooled_by_stale_status
@@ -24,7 +24,7 @@ class StatefulSetTest < KubernetesDeploy::TestCase
     template = build_ss_template(status: status)
     ss = build_synced_ss(template: template)
     ss.stubs(:pods).returns([stub(deploy_failed?: true)])
-    refute_predicate ss, :deploy_failed?
+    refute_predicate(ss, :deploy_failed?)
   end
 
   private
