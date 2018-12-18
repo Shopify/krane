@@ -4,15 +4,6 @@ inherit_from:
 AllCops:
   TargetRubyVersion: 2.3
 
-Style/TrailingCommaInArrayLiteral:
-  Enabled: false
-
-Style/TrailingCommaInHashLiteral:
-  Enabled: false
-
-Style/MethodCallWithArgsParentheses:
-  Enabled: false
-
 Naming/FileName:
   Enabled: true
   Exclude:
