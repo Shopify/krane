@@ -32,7 +32,7 @@ module KubernetesDeploy
         next unless query[:path].on(@instance_data) == query[:value]
         if query[:custom_error_msg]
           query[:custom_error_msg]
-        else
+        elsif query[:error_msg_path]
           query[:error_msg_path].on(@instance_data).first if query[:error_msg_path]
         end
       end.compact

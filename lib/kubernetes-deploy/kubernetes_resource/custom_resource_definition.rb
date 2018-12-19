@@ -57,13 +57,14 @@ module KubernetesDeploy
       }.deep_symbolize_keys
 
       # Preemptively create JsonPath objects
-      params[:success_queries].map do |query|
+      params[:success_queries].map! do |query|
         query.update(query) { |k, v| k == :path ? JsonPath.new(v) : v }
       end
-      params[:failure_queries].map do |query|
+      params[:failure_queries].map! do |query|
         query.update(query) { |k, v| k == :path || k == :error_msg_path ?  JsonPath.new(v) : v }
       end
 
+      validate_params(params)
       params
     rescue JSON::ParserError
       raise FatalDeploymentError, "custom rollout params are not valid JSON: '#{rollout_params_string}'"
@@ -97,6 +98,13 @@ module KubernetesDeploy
         value: "True",
         error_msg_path: '$.status.Conditions[?(@.type == "Failed")].message'
       }]
+    end
+
+    def validate_params(params)
+      unless params[:success_queries].all? { |query| query[:path] } && params[:failure_queries].all? { |query| query[:path] }
+        raise FatalDeploymentError,
+          "all success_queries and failure_queries for custom resources must have a 'path' key that is a valid jsonpath expression"
+      end
     end
   end
 end
