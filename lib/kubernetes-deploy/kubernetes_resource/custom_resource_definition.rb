@@ -98,11 +98,9 @@ module KubernetesDeploy
         JsonPath.new(query[:path])
         JsonPath.new(query[:error_msg_path]) if query[:error_msg_path]
         if query[:custom_error_msg] && !query[:custom_error_msg].is_a?(String)
-          raise RuntimeError, "custom_error_msg must be a string, but found #{query[:custom_error_msg]}"
+          raise FatalDeploymentError, "custom_error_msg must be a string, but found #{query[:custom_error_msg]}"
         end
       end
-    rescue RuntimeError => e
-      raise FatalDeploymentError, "error validating custom rollout params: #{e.message}"
     end
   end
 end
