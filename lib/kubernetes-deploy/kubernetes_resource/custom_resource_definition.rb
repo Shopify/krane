@@ -55,9 +55,16 @@ module KubernetesDeploy
         success_queries: raw_params["success_queries"] || default_success_query,
         failure_queries: raw_params["failure_queries"] || default_failure_query,
       }.deep_symbolize_keys
-      # Preemptively check if the supplied JsonPath expressions are valid
-      params if validate_params(params)
 
+      # Preemptively create JsonPath objects
+      params[:success_queries].map do |query|
+        query.update(query) { |k, v| k == :path ? JsonPath.new(v) : v }
+      end
+      params[:failure_queries].map do |query|
+        query.update(query) { |k, v| k == :path || k == :error_msg_path ?  JsonPath.new(v) : v }
+      end
+
+      params
     rescue JSON::ParserError
       raise FatalDeploymentError, "custom rollout params are not valid JSON: '#{rollout_params_string}'"
     end
@@ -90,17 +97,6 @@ module KubernetesDeploy
         value: "True",
         error_msg_path: '$.status.Conditions[?(@.type == "Failed")].message'
       }]
-    end
-
-    def validate_params(params)
-      params[:success_queries].each { |query| JsonPath.new(query[:path]) }
-      params[:failure_queries].each do |query|
-        JsonPath.new(query[:path])
-        JsonPath.new(query[:error_msg_path]) if query[:error_msg_path]
-        if query[:custom_error_msg] && !query[:custom_error_msg].is_a?(String)
-          raise FatalDeploymentError, "custom_error_msg must be a string, but found #{query[:custom_error_msg]}"
-        end
-      end
     end
   end
 end
