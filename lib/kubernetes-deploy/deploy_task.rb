@@ -255,7 +255,7 @@ module KubernetesDeploy
 
     def discover_resources
       resources = []
-      crds = cluster_resource_discoverer.crds.each_with_object({}) { |crd, memo| memo[crd.kind] = crd }
+      crds = cluster_resource_discoverer.crds.group_by(&:kind)
       @logger.info("Discovering templates:")
 
       TemplateDiscovery.new(@template_dir).templates.each do |filename|
