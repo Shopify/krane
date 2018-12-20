@@ -69,7 +69,7 @@ module KubernetesDeploy
     rescue JSON::ParserError
       raise FatalDeploymentError, "custom rollout params are not valid JSON: '#{rollout_params_string}'"
     rescue RuntimeError => e
-      raise FatalDeploymentError "error creating jsonpath objects, failed with: #{e}"
+      raise FatalDeploymentError, "error creating jsonpath objects, failed with: #{e}"
     end
 
     private
