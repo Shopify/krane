@@ -15,6 +15,8 @@ module KubernetesDeploy
 
     def deploy_succeeded?
       return super unless rollout_params
+      return false unless observed_generation == current_generation
+
       rollout_params[:success_queries].all? do |query|
         query[:path].on(@instance_data).first == query[:value]
       end
@@ -22,6 +24,8 @@ module KubernetesDeploy
 
     def deploy_failed?
       return super unless rollout_params
+      return false unless observed_generation == current_generation
+
       rollout_params[:failure_queries].any? do |query|
         query[:path].on(@instance_data).first == query[:value]
       end
@@ -48,6 +52,16 @@ module KubernetesDeploy
     end
 
     private
+
+    def current_generation
+      return -2 unless exists? # different default than observed
+      @instance_data.dig('metadata', 'generation')
+    end
+
+    def observed_generation
+      return -1 unless exists? # different default than current
+      @instance_data.dig('status', 'observedGeneration')
+    end
 
     def kind
       @definition["kind"]
