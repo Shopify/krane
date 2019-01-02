@@ -79,7 +79,7 @@ class TestProvisioner
           service = JSON.parse(service)
           available = service.dig("status", "conditions")&.detect { |s| s["type"] == "Available" }
           if available["status"] == "True"
-            metrics, _, status = kubectl.run(*raw_metrics_command)
+            _, _, status = kubectl.run(*raw_metrics_command)
             break if status.success?
           end
         end
