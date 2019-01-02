@@ -77,7 +77,7 @@ class TestProvisioner
           available = service.dig("status", "conditions")&.detect { |s| s["type"] == "Available" }
           break if available["status"] == "True"
         end
-        sleep(2 ** (round+1))
+        sleep(2**(round + 1))
       end
     end
   end
