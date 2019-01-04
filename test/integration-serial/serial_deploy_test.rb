@@ -235,18 +235,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
   end
 
-  def test_cr_deploys_without_rollout_params_when_version_less_than_1_11
-    skip if kube_server_version >= Gem::Version.new('1.11.0')
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params.yml"]))
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params_cr.yml"]))
-    assert_logs_match_all([
-      "Don't know how to monitor resources of type Parameterized. " \
-        "Assuming Parameterized/with-default-params deployed successfully.",
-    ])
-  ensure
-    wait_for_all_crd_deletion
-  end
-
   def test_cr_deploys_without_rollout_params_when_none_present
     skip if kube_server_version < Gem::Version.new('1.11.0')
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets.yml)))
