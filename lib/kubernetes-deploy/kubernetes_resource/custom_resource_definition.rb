@@ -61,7 +61,7 @@ module KubernetesDeploy
         query.update(query) { |k, v| k == :path ? JsonPath.new(v) : v }
       end
       params[:failure_queries].map! do |query|
-        query.update(query) { |k, v| k == :path || k == :error_msg_path ?  JsonPath.new(v) : v }
+        query.update(query) { |k, v| k == :path || k == :error_msg_path ? JsonPath.new(v) : v }
       end
 
       validate_params(params)
@@ -90,7 +90,7 @@ module KubernetesDeploy
     def default_success_query
       [{
         path: '$.status.conditions[?(@.type == "Ready")].status',
-        value: "True"
+        value: "True",
       }]
     end
 
@@ -98,14 +98,16 @@ module KubernetesDeploy
       [{
         path: '$.status.conditions[?(@.type == "Failed")].status',
         value: "True",
-        error_msg_path: '$.status.conditions[?(@.type == "Failed")].message'
+        error_msg_path: '$.status.conditions[?(@.type == "Failed")].message',
       }]
     end
 
     def validate_params(params)
-      unless params[:success_queries].all? { |query| query[:path] } && params[:failure_queries].all? { |query| query[:path] }
+      unless params[:success_queries].all? { |query| query[:path] && query[:value] } &&
+        params[:failure_queries].all? { |query| query[:path] && query[:value] }
         raise FatalDeploymentError,
-          "all success_queries and failure_queries for custom resources must have a 'path' key that is a valid jsonpath expression"
+          "all success_queries and failure_queries for custom resources must have a ' +
+          'path' and 'value' key that is a valid jsonpath expression"
       end
     end
   end

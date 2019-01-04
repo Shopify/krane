@@ -1,0 +1,7 @@
+apiVersion: stable.shopify.io/v1
+kind: Redis
+metadata:
+  creationTimestamp: 2017-10-11T20:28:39Z
+  name: my-redis
+spec:
+  max_memory: 2Gi

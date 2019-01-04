@@ -2,7 +2,6 @@
 require 'jsonpath'
 module KubernetesDeploy
   class CustomResource < KubernetesResource
-
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], crd:)
       @crd = crd
       super(namespace: namespace, context: context, definition: definition,
@@ -33,11 +32,11 @@ module KubernetesDeploy
 
     def failure_message
       messages = rollout_params[:failure_queries].map do |query|
-        next unless query[:path].on(@instance_data) == query[:value]
+        next unless query[:path].on(@instance_data).first == query[:value]
         if query[:custom_error_msg]
           query[:custom_error_msg]
         elsif query[:error_msg_path]
-          query[:error_msg_path].on(@instance_data).first if query[:error_msg_path]
+          query[:error_msg_path]&.on(@instance_data)&.first
         end
       end.compact
       messages.present? ? messages.join("\n") : "error deploying #{id}"
@@ -52,16 +51,6 @@ module KubernetesDeploy
     end
 
     private
-
-    def current_generation
-      return -2 unless exists? # different default than observed
-      @instance_data.dig('metadata', 'generation')
-    end
-
-    def observed_generation
-      return -1 unless exists? # different default than current
-      @instance_data.dig('status', 'observedGeneration')
-    end
 
     def kind
       @definition["kind"]

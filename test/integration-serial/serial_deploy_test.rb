@@ -235,6 +235,121 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
   end
 
+  def test_cr_deploys_without_rollout_params_when_version_less_than_1_11
+    skip if kube_server_version >= Gem::Version.new('1.11.0')
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params.yml"]))
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params_cr.yml"]))
+    assert_logs_match_all([
+      "Don't know how to monitor resources of type Parameterized. " \
+        "Assuming Parameterized/with-default-params deployed successfully.",
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_cr_deploys_without_rollout_params_when_none_present
+    skip if kube_server_version < Gem::Version.new('1.11.0')
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets.yml)))
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
+    assert_logs_match_all([
+      "Don't know how to monitor resources of type Widget. Assuming Widget/my-first-widget deployed successfully.",
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_cr_success_with_default_rollout_params
+    skip if kube_server_version < Gem::Version.new('1.11.0')
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params.yml"]))
+    success_patch = {
+      "status": {
+        "observedGeneration": 1,
+        "conditions": [
+          {
+            "type": "Ready",
+            "reason": "test",
+            "message": "test",
+            "status": "True",
+          },
+        ],
+      },
+    }.to_json
+
+    thread = Thread.new { get_and_patch_cr(kind: "parameterized", name: "with-default-params", patch: success_patch) }
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params_cr.yml"]))
+    thread.join
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_cr_failure_with_default_rollout_params
+    skip if kube_server_version < Gem::Version.new('1.11.0')
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params.yml"]))
+    failure_patch = {
+      "status": {
+        "observedGeneration": 1,
+        "conditions": [
+          {
+            "type": "Failed",
+            "reason": "test",
+            "message": "test",
+            "status": "True",
+          },
+        ],
+      },
+    }.to_json
+    thread = Thread.new { get_and_patch_cr(kind: "parameterized", name: "with-default-params", patch: failure_patch) }
+    assert_deploy_failure(deploy_fixtures("crd", subset: ["with_default_params_cr.yml"]))
+    thread.join
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_cr_success_with_arbitrary_rollout_params
+    skip if kube_server_version < Gem::Version.new('1.11.0')
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_params.yml"]))
+
+    success_patch = {
+      "spec": {
+        "test_field": "success_value",
+      },
+      "status": {
+        "observedGeneration": 1,
+        "condition": "success_value",
+      },
+    }.to_json
+    thread = Thread.new { get_and_patch_cr(kind: "customized", name: "with-customized-params", patch: success_patch) }
+
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_params_cr.yml"]))
+    thread.join
+  end
+
+  def test_cr_failure_with_arbitrary_rollout_params
+    skip if kube_server_version < Gem::Version.new('1.11.0')
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_params.yml"]))
+
+    failure_patch = {
+      "spec": {
+        "test_field": "failure_value",
+        "error_msg": "test error message jsonpath",
+      },
+      "status": {
+        "observedGeneration": 1,
+        "condition": "failure_value",
+      },
+    }.to_json
+    thread = Thread.new { get_and_patch_cr(kind: "customized", name: "with-customized-params", patch: failure_patch) }
+
+    assert_deploy_failure(deploy_fixtures("crd", subset: ["with_custom_params_cr.yml"]))
+    thread.join
+    assert_logs_match_all([
+      /test error message jsonpath/,
+      /test custom error message/,
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
   private
 
   def wait_for_all_crd_deletion
@@ -243,5 +358,12 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       apiextensions_v1beta1_kubeclient.delete_custom_resource_definition(crd.metadata.name)
     end
     sleep(0.5) until apiextensions_v1beta1_kubeclient.get_custom_resource_definitions.none?
+  end
+
+  def get_and_patch_cr(kind:, name:, patch:)
+    kubectl_instance = build_kubectl(timeout: '0.1s')
+    kubectl_instance.run("-n", @namespace, "get", kind, name, "-o", "json", attempts: 5)
+    _, _, st = kubectl_instance.run("-n", @namespace, "patch", kind, name, "--type=merge", "--patch", patch)
+    assert(st.success?)
   end
 end

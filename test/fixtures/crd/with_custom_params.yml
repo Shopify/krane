@@ -1,0 +1,38 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: customizeds.stable.example.io
+  annotations:
+    kubernetes-deploy.shopify.io/cr-rollout-params: '{
+      "success_queries": [
+        {
+          "path": "$.status.condition",
+          "value":"success_value"
+        },
+        {
+          "path":"$.spec.test_field",
+          "value":"success_value"
+        }
+      ],
+      "failure_queries": [
+        {
+          "path":"$.status.condition",
+          "value":"failure_value",
+          "custom_error_msg":"test custom error message"
+        },
+        {
+          "path":"$.spec.test_field",
+          "value":"failure_value",
+          "error_msg_path":"$.spec.error_msg"
+        }
+      ]
+    }'
+spec:
+  group: stable.example.io
+  names:
+    kind: Customized
+    listKind: CustomizedList
+    plural: customizeds
+    singular: customized
+  scope: Namespaced
+  version: v1

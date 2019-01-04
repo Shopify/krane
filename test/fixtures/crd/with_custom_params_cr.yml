@@ -1,0 +1,5 @@
+---
+apiVersion: "stable.example.io/v1"
+kind: Customized
+metadata:
+  name: with-customized-params

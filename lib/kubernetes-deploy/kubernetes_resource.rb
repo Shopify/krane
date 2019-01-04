@@ -31,11 +31,21 @@ module KubernetesDeploy
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
 
     class << self
-      def build(namespace:, context:, definition:, logger:, statsd_tags:)
+      def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
+
         if definition["kind"].blank?
           raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
+        elsif crd && !KubernetesDeploy.const_defined?(definition["kind"])
+          CustomResource.new(crd: crd, **opts)
+        elsif KubernetesDeploy.const_defined?(definition["kind"])
+          klass = KubernetesDeploy.const_get(definition["kind"])
+          klass.new(**opts)
+        else
+          inst = new(**opts)
+          inst.type = definition["kind"]
+          inst
         end
 
         begin
@@ -167,13 +177,13 @@ module KubernetesDeploy
 
     def current_generation
       return -1 unless exists? # must be different default than observed_generation
-      @instance_data["metadata"]["generation"]
+      @instance_data.dig("metadata", "generation")
     end
 
     def observed_generation
       return -2 unless exists?
       # populating this is a best practice, but not all controllers actually do it
-      @instance_data["status"]["observedGeneration"]
+      @instance_data.dig('status', 'observedGeneration')
     end
 
     def status

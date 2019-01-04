@@ -260,14 +260,9 @@ module KubernetesDeploy
 
       TemplateDiscovery.new(@template_dir).templates.each do |filename|
         split_templates(filename) do |r_def|
-          kind = r_def["kind"]
-          r = if crds[kind] && !KubernetesDeploy.const_defined?(kind) && kubectl.server_version >= Gem::Version.new('1.11.0')
-            CustomResource.new(namespace: @namespace, context: @context, logger: @logger,
-                                definition: r_def, statsd_tags: @namespace_tags, crd: crds[kind].first)
-          else
-            KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
-                                      definition: r_def, statsd_tags: @namespace_tags)
-          end
+          crd = crds[r_def["kind"]]&.first
+          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
+            statsd_tags: @namespace_tags, crd: crd)
           resources << r
           @logger.info("  - #{r.id}")
         end

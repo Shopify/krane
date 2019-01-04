@@ -1,0 +1,13 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: unittests.stable.example.io
+spec:
+  group: stable.example.io
+  names:
+    kind: UnitTest
+    listKind: UnitTestList
+    plural: unittests
+    singular: unittest
+  scope: Namespaced
+  version: v1
