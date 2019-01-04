@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: customizeds.stable.example.io
   annotations:
-    kubernetes-deploy.shopify.io/cr-rollout-params: '{
+    kubernetes-deploy.shopify.io/monitor-instance-rollout: '{
       "success_queries": [
         {
           "path": "$.status.condition",

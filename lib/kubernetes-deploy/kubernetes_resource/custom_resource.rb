@@ -9,7 +9,7 @@ module KubernetesDeploy
     end
 
     def timeout
-      timeout_override || @crd.timeout_for_children || super
+      timeout_override || super
     end
 
     def deploy_succeeded?
