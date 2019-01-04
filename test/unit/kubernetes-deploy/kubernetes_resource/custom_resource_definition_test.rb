@@ -64,7 +64,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       "metadata" => {
         "name" => "unittests.stable.example.io",
         "annotations" => {
-          KubernetesDeploy::CustomResourceDefinition::ROLLOUT_PARAMS_ANNOTATION.to_s => rollout_params,
+          KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONFIG_ANNOTATION.to_s => rollout_params,
         },
       },
     )
