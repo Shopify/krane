@@ -1047,7 +1047,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_hpa_can_be_successful
-    skip if kube_server_version < Gem::Version.new('1.9.0')
+    # Too flakey on minikube CI
+    skip if kube_server_version < Gem::Version.new('1.11.0')
     assert_deploy_success(deploy_fixtures("hpa"))
     assert_logs_match_all([
       "Deploying resources:",
@@ -1057,7 +1058,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_hpa_can_be_pruned
-    skip if kube_server_version < Gem::Version.new('1.9.0')
+    # Too flakey on minikube CI
+    skip if kube_server_version < Gem::Version.new('1.11.0')
     assert_deploy_success(deploy_fixtures("hpa"))
     assert_deploy_success(deploy_fixtures("hpa", subset: ["deployment.yml"]))
     assert_logs_match_all([

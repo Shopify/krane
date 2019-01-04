@@ -68,23 +68,6 @@ class TestProvisioner
         found = kubectl.run("get", "-f", resource, log_failure: false).last.success?
         kubectl.run("create", "-f", resource) unless found
       end
-
-      # The service is often slow to start leading to randomly failed HPA tests
-      3.times do |round|
-        get_api_service_command = %w(-n kube-system -o json get APIService v1beta1.metrics.k8s.io)
-        raw_metrics_command = %w(get --raw /apis/metrics.k8s.io/v1beta1/pods)
-
-        service, _, status = kubectl.run(*get_api_service_command)
-        if status.success?
-          service = JSON.parse(service)
-          available = service.dig("status", "conditions")&.detect { |s| s["type"] == "Available" }
-          if available["status"] == "True"
-            _, _, status = kubectl.run(*raw_metrics_command)
-            break if status.success?
-          end
-        end
-        sleep(3**(round + 1))
-      end
     end
   end
 end
