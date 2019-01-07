@@ -3,9 +3,9 @@ require 'jsonpath'
 module KubernetesDeploy
   class CustomResource < KubernetesResource
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], crd:)
-      @crd = crd
       super(namespace: namespace, context: context, definition: definition,
-            logger: logger, statsd_tags: statsd_tags)
+        logger: logger, statsd_tags: statsd_tags)
+      @crd = crd
     end
 
     def timeout
@@ -13,32 +13,21 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      return super unless rollout_params
+      return super unless rollout_config
       return false unless observed_generation == current_generation
 
-      rollout_params[:success_queries].all? do |query|
-        query[:path].on(@instance_data).first == query[:value]
-      end
+      rollout_config.deploy_succeeded?(@instance_data)
     end
 
     def deploy_failed?
-      return super unless rollout_params
+      return super unless rollout_config
       return false unless observed_generation == current_generation
 
-      rollout_params[:failure_queries].any? do |query|
-        query[:path].on(@instance_data).first == query[:value]
-      end
+      rollout_config.deploy_failed?(@instance_data)
     end
 
     def failure_message
-      messages = rollout_params[:failure_queries].map do |query|
-        next unless query[:path].on(@instance_data).first == query[:value]
-        if query[:custom_error_msg]
-          query[:custom_error_msg]
-        elsif query[:error_msg_path]
-          query[:error_msg_path]&.on(@instance_data)&.first
-        end
-      end.compact
+      messages = rollout_config.failure_messages(@instance_data)
       messages.present? ? messages.join("\n") : "error deploying #{id}"
     end
 
@@ -56,8 +45,8 @@ module KubernetesDeploy
       @definition["kind"]
     end
 
-    def rollout_params
-      @rollout_params ||= @crd.rollout_params
+    def rollout_config
+      @rollout_config ||= @crd.rollout_config
     end
   end
 end

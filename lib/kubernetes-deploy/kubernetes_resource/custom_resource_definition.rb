@@ -5,6 +5,83 @@ module KubernetesDeploy
     ROLLOUT_CONFIG_ANNOTATION = "kubernetes-deploy.shopify.io/monitor-instance-rollout"
     GLOBAL = true
 
+    class RolloutConfig
+      attr_reader :success_queries, :failure_queries
+
+      def initialize(rollout_config)
+        config_json = JSON.parse(rollout_config)
+        config = {
+          success_queries: config_json["success_queries"] || default_success_query,
+          failure_queries: config_json["failure_queries"] || default_failure_query,
+        }.deep_symbolize_keys
+
+        # Preemptively create JsonPath objects
+        config[:success_queries].map! do |query|
+          query.update(query) { |k, v| k == :path ? JsonPath.new(v) : v }
+        end
+        config[:failure_queries].map! do |query|
+          query.update(query) { |k, v| k == :path || k == :error_msg_path ? JsonPath.new(v) : v }
+        end
+
+        validate_config(config)
+        @success_queries = config[:success_queries]
+        @failure_queries = config[:failure_queries]
+      rescue JSON::ParserError
+        raise FatalDeploymentError, "custom rollout params are not valid JSON: '#{rollout_config}'"
+      rescue RuntimeError => e
+        raise FatalDeploymentError, "error creating jsonpath objects, failed with: #{e}"
+      end
+
+      def deploy_succeeded?(instance_data)
+        @success_queries.all? do |query|
+          query[:path].on(instance_data).first == query[:value]
+        end
+      end
+
+      def deploy_failed?(instance_data)
+        @failure_queries.any? do |query|
+          query[:path].on(instance_data).first == query[:value]
+        end
+      end
+
+      def failure_messages(instance_data)
+        @failure_queries.map do |query|
+          next unless query[:path].on(instance_data).first == query[:value]
+          if query[:custom_error_msg]
+            query[:custom_error_msg]
+          elsif query[:error_msg_path]
+            query[:error_msg_path]&.on(instance_data)&.first
+          end
+        end.compact
+      end
+
+      private
+
+      def validate_config(config)
+        unless config[:success_queries].all? { |query| query[:path] && query[:value] } &&
+          config[:failure_queries].all? { |query| query[:path] && query[:value] }
+          raise FatalDeploymentError,
+            "all success_queries and failure_queries for custom resources must have a ' +
+            'path' and 'value' key that is a valid jsonpath expression"
+        end
+      end
+
+      def default_success_query
+        [{
+          path: '$.status.conditions[?(@.type == "Ready")].status',
+          value: "True",
+        }]
+      end
+
+      def default_failure_query
+        [{
+          path: '$.status.conditions[?(@.type == "Failed")].status',
+          value: "True",
+          error_msg_path: '$.status.conditions[?(@.type == "Failed")].message',
+        }]
+      end
+    end
+
     def deploy_succeeded?
       names_accepted_status == "True"
     end
@@ -42,29 +119,8 @@ module KubernetesDeploy
       prunable == "true"
     end
 
-    def rollout_params
-      return nil unless rollout_params_string
-
-      raw_params = JSON.parse(rollout_params_string)
-      params = {
-        success_queries: raw_params["success_queries"] || default_success_query,
-        failure_queries: raw_params["failure_queries"] || default_failure_query,
-      }.deep_symbolize_keys
-
-      # Preemptively create JsonPath objects
-      params[:success_queries].map! do |query|
-        query.update(query) { |k, v| k == :path ? JsonPath.new(v) : v }
-      end
-      params[:failure_queries].map! do |query|
-        query.update(query) { |k, v| k == :path || k == :error_msg_path ? JsonPath.new(v) : v }
-      end
-
-      validate_params(params)
-      params
-    rescue JSON::ParserError
-      raise FatalDeploymentError, "custom rollout params are not valid JSON: '#{rollout_params_string}'"
-    rescue RuntimeError => e
-      raise FatalDeploymentError, "error creating jsonpath objects, failed with: #{e}"
+    def rollout_config
+      @rollout_config ||= RolloutConfig.new(rollout_config_string) if rollout_config_string.present?
     end
 
     private
@@ -78,32 +134,8 @@ module KubernetesDeploy
       names_accepted_condition["status"]
     end
 
-    def rollout_params_string
+    def rollout_config_string
       @definition.dig("metadata", "annotations", ROLLOUT_CONFIG_ANNOTATION)
-    end
-
-    def default_success_query
-      [{
-        path: '$.status.conditions[?(@.type == "Ready")].status',
-        value: "True",
-      }]
-    end
-
-    def default_failure_query
-      [{
-        path: '$.status.conditions[?(@.type == "Failed")].status',
-        value: "True",
-        error_msg_path: '$.status.conditions[?(@.type == "Failed")].message',
-      }]
-    end
-
-    def validate_params(params)
-      unless params[:success_queries].all? { |query| query[:path] && query[:value] } &&
-        params[:failure_queries].all? { |query| query[:path] && query[:value] }
-        raise FatalDeploymentError,
-          "all success_queries and failure_queries for custom resources must have a ' +
-          'path' and 'value' key that is a valid jsonpath expression"
-      end
     end
   end
 end

@@ -300,25 +300,25 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_build_handles_hardcoded_and_core_and_dynamic_objects
     redis_crd = { "kind" => "Redis" }
     redis_cr = { "kind" => "Redis", "metadata" => { "name" => "test" } }
-    r = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+    r1 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
       definition: redis_cr, statsd_tags: @namespace_tags, crd: redis_crd)
-    assert_equal(r.class, KubernetesDeploy::Redis)
+    assert_equal(r1.class, KubernetesDeploy::Redis)
 
     dynamic_crd = { "kind" => "DynamicCRD" }
     dynamic_cr = { "kind" => "DynamicCRD", "metadata" => { "name" => "test" } }
-    r = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+    r2 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
       definition: dynamic_cr, statsd_tags: @namespace_tags, crd: dynamic_crd)
-    assert_equal(r.class, KubernetesDeploy::CustomResource)
+    assert_equal(r2.class, KubernetesDeploy::CustomResource)
 
     svc_resource = { "kind" => "Service", "metadata" => { "name" => "test" } }
-    r = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+    r3 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
       definition: svc_resource, statsd_tags: @namespace_tags, crd: nil)
-    assert_equal(r.class, KubernetesDeploy::Service)
+    assert_equal(r3.class, KubernetesDeploy::Service)
 
     unknown_resource = { "kind" => "Unknown", "metadata" => { "name" => "test" } }
-    r = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+    r4 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
       definition: unknown_resource, statsd_tags: @namespace_tags, crd: nil)
-    assert_equal(r.class, KubernetesDeploy::KubernetesResource)
+    assert_equal(r4.class, KubernetesDeploy::KubernetesResource)
   end
 
   private
