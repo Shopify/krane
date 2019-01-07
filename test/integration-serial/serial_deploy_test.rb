@@ -235,7 +235,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
   end
 
-  def test_cr_deploys_without_rollout_params_when_none_present
+  def test_cr_deploys_without_rollout_config_when_none_present
     skip if kube_server_version < Gem::Version.new('1.11.0')
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets.yml)))
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
@@ -246,7 +246,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_cr_success_with_default_rollout_params
+  def test_cr_success_with_default_rollout_config
     skip if kube_server_version < Gem::Version.new('1.11.0')
     assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params.yml"]))
     success_patch = {
@@ -270,7 +270,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_cr_failure_with_default_rollout_params
+  def test_cr_failure_with_default_rollout_config
     skip if kube_server_version < Gem::Version.new('1.11.0')
     assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params.yml"]))
     failure_patch = {
@@ -293,7 +293,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_cr_success_with_arbitrary_rollout_params
+  def test_cr_success_with_arbitrary_rollout_config
     skip if kube_server_version < Gem::Version.new('1.11.0')
     assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_params.yml"]))
 
@@ -312,7 +312,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     thread.join
   end
 
-  def test_cr_failure_with_arbitrary_rollout_params
+  def test_cr_failure_with_arbitrary_rollout_config
     skip if kube_server_version < Gem::Version.new('1.11.0')
     assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_params.yml"]))
 
