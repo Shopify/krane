@@ -12,19 +12,19 @@ module KubernetesDeploy
       return super unless @rollout_config
       return false unless observed_generation == current_generation
 
-      @rollout_config.deploy_succeeded?(@instance_data)
+      @rollout_config.rollout_successful?(@instance_data)
     end
 
     def deploy_failed?
       return super unless @rollout_config
       return false unless observed_generation == current_generation
 
-      @rollout_config.deploy_failed?(@instance_data)
+      @rollout_config.rollout_failed?(@instance_data)
     end
 
     def failure_message
       messages = @rollout_config.failure_messages(@instance_data)
-      messages.present? ? messages.join("\n") : "error deploying #{id}"
+      messages.join("\n") if messages.present?
     end
 
     def type

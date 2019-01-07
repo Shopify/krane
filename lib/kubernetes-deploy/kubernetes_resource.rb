@@ -34,13 +34,12 @@ module KubernetesDeploy
       def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
-
         if definition["kind"].blank?
           raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
         elsif KubernetesDeploy.const_defined?(definition["kind"])
           klass = KubernetesDeploy.const_get(definition["kind"])
           klass.new(**opts)
-        elsif crd
+        elsif crd && crd.rollout_config
           CustomResource.new(crd: crd, **opts)
         else
           inst = new(**opts)

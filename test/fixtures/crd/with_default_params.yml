@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: parameterizeds.stable.example.io
   annotations:
-    kubernetes-deploy.shopify.io/monitor-instance-rollout: "{}"
+    kubernetes-deploy.shopify.io/monitor-instance-rollout: "true"
 spec:
   group: stable.example.io
   names:

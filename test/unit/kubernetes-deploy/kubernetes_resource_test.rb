@@ -298,29 +298,33 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       statsd_tags: []
     )
   def test_build_handles_hardcoded_and_core_and_dynamic_objects
-    redis_crd = KubernetesDeploy::CustomResourceDefinition.new(namespace: "test", context: "test",
-      logger: @logger, definition: { "kind" => "Redis", "metadata" => { "name" => "redises.stable.shopify.io" }})
-    redis_cr = { "kind" => "Redis", "metadata" => { "name" => "test" } }
-    r1 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      definition: redis_cr, statsd_tags: @namespace_tags, crd: redis_crd)
-    assert_equal(r1.class, KubernetesDeploy::Redis)
+    # Hardcoded CRs
+    redis_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+      logger: @logger, statsd_tags: @statsd_tags, definition: build_crd(name: "redis"))
+    redis_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+      definition: { "kind" => "Redis", "metadata" => { "name" => "test" }}, logger: @logger, statsd_tags: @statsd_tags)
+    assert_equal(redis_cr.class, KubernetesDeploy::Redis)
 
-    dynamic_crd = KubernetesDeploy::CustomResourceDefinition.new(namespace: "test", context: "test",
-      logger: @logger, definition: { "kind" => "DynamicCRD", "metadata" => { "name" => "dynamics.stable.shoipfy.io" }})
-    dynamic_cr = { "kind" => "DynamicCRD", "metadata" => { "name" => "test" } }
-    r2 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      definition: dynamic_cr, statsd_tags: @namespace_tags, crd: dynamic_crd)
-    assert_equal(r2.class, KubernetesDeploy::CustomResource)
+    # Dynamic with no rollout config
+    no_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+      logger: @logger, statsd_tags: @statsd_tags, definition: build_crd(name: "noconfig"))
+    no_config_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+      logger: @logger, statsd_tags: @statsd_tags, definition: { "kind" => "Noconfig", "metadata" => { "name" => "test" }})
+    assert_equal(no_config_cr.class, KubernetesDeploy::KubernetesResource)
 
-    svc_resource = { "kind" => "Service", "metadata" => { "name" => "test" } }
-    r3 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      definition: svc_resource, statsd_tags: @namespace_tags, crd: nil)
-    assert_equal(r3.class, KubernetesDeploy::Service)
+    # With rollout config
+    with_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+      logger: @logger, statsd_tags: @statsd_tags, definition: build_crd(name: "withconfig", with_config: true))
 
-    unknown_resource = { "kind" => "Unknown", "metadata" => { "name" => "test" } }
-    r4 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      definition: unknown_resource, statsd_tags: @namespace_tags, crd: nil)
-    assert_equal(r4.class, KubernetesDeploy::KubernetesResource)
+    with_config_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+      logger: @logger, statsd_tags: @statsd_tags, crd: with_config_crd,
+      definition: { "kind" => "Withconfig", "metadata" => { "name" => "test" }})
+    assert_equal(with_config_cr.class, KubernetesDeploy::CustomResource)
+
+    # Hardcoded resource
+    svc = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+      statsd_tags: @statsd_tags, definition: { "kind" => "Service", "metadata" => { "name" => "test" } })
+    assert_equal(svc.class, KubernetesDeploy::Service)
   end
 
   private
@@ -397,5 +401,22 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     dummy_events.each_with_object([]) do |e, jsonpaths|
       jsonpaths << [e[:kind], e[:name], e[:count], e[:last_seen].to_s, e[:reason], e[:message]].join(field_separator)
     end.join(event_separator)
+  end
+
+  def build_crd(name:, with_config: false)
+    crd = {
+      "kind" => "CustomResourceDefinition",
+      "metadata" => {
+        "name" => "#{name}s.test.io",
+        "annotations" => {}
+      },
+      "spec" => {
+        "names" => {
+          "kind" => name.titleize
+        }
+      }
+    }
+    crd["metadata"]["annotations"][KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONFIG_ANNOTATION] = "true" if with_config
+    crd
   end
 end
