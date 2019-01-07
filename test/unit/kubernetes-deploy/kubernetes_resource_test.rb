@@ -298,13 +298,15 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       statsd_tags: []
     )
   def test_build_handles_hardcoded_and_core_and_dynamic_objects
-    redis_crd = { "kind" => "Redis" }
+    redis_crd = KubernetesDeploy::CustomResourceDefinition.new(namespace: "test", context: "test",
+      logger: @logger, definition: { "kind" => "Redis", "metadata" => { "name" => "redises.stable.shopify.io" }})
     redis_cr = { "kind" => "Redis", "metadata" => { "name" => "test" } }
     r1 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
       definition: redis_cr, statsd_tags: @namespace_tags, crd: redis_crd)
     assert_equal(r1.class, KubernetesDeploy::Redis)
 
-    dynamic_crd = { "kind" => "DynamicCRD" }
+    dynamic_crd = KubernetesDeploy::CustomResourceDefinition.new(namespace: "test", context: "test",
+      logger: @logger, definition: { "kind" => "DynamicCRD", "metadata" => { "name" => "dynamics.stable.shoipfy.io" }})
     dynamic_cr = { "kind" => "DynamicCRD", "metadata" => { "name" => "test" } }
     r2 = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
       definition: dynamic_cr, statsd_tags: @namespace_tags, crd: dynamic_crd)
