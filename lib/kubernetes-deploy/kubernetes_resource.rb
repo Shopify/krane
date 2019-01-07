@@ -37,11 +37,11 @@ module KubernetesDeploy
 
         if definition["kind"].blank?
           raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
-        elsif crd && !KubernetesDeploy.const_defined?(definition["kind"])
-          CustomResource.new(crd: crd, **opts)
         elsif KubernetesDeploy.const_defined?(definition["kind"])
           klass = KubernetesDeploy.const_get(definition["kind"])
           klass.new(**opts)
+        elsif crd
+          CustomResource.new(crd: crd, **opts)
         else
           inst = new(**opts)
           inst.type = definition["kind"]

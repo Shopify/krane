@@ -5,34 +5,26 @@ module KubernetesDeploy
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], crd:)
       super(namespace: namespace, context: context, definition: definition,
         logger: logger, statsd_tags: statsd_tags)
-      @crd = crd
-    end
-
-    def timeout
-      timeout_override || super
+      @rollout_config = crd.rollout_config
     end
 
     def deploy_succeeded?
-      return super unless rollout_config
+      return super unless @rollout_config
       return false unless observed_generation == current_generation
 
-      rollout_config.deploy_succeeded?(@instance_data)
+      @rollout_config.deploy_succeeded?(@instance_data)
     end
 
     def deploy_failed?
-      return super unless rollout_config
+      return super unless @rollout_config
       return false unless observed_generation == current_generation
 
-      rollout_config.deploy_failed?(@instance_data)
+      @rollout_config.deploy_failed?(@instance_data)
     end
 
     def failure_message
-      messages = rollout_config.failure_messages(@instance_data)
+      messages = @rollout_config.failure_messages(@instance_data)
       messages.present? ? messages.join("\n") : "error deploying #{id}"
-    end
-
-    def id
-      "#{kind}/#{name}"
     end
 
     def type
@@ -43,10 +35,6 @@ module KubernetesDeploy
 
     def kind
       @definition["kind"]
-    end
-
-    def rollout_config
-      @rollout_config ||= @crd.rollout_config
     end
   end
 end
