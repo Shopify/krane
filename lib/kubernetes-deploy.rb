@@ -23,6 +23,6 @@ require 'kubernetes-deploy/duration_parser'
 require 'kubernetes-deploy/resource_cache'
 
 module KubernetesDeploy
-  MIN_KUBE_VERSION = '1.9.0'
+  MIN_KUBE_VERSION = '1.10.0'
   StatsD.build
 end
