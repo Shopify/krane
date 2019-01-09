@@ -302,23 +302,24 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     redis_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: @statsd_tags, definition: build_crd(name: "redis"))
     redis_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      definition: { "kind" => "Redis", "metadata" => { "name" => "test" }}, logger: @logger, statsd_tags: @statsd_tags)
+      logger: @logger, statsd_tags: @statsd_tags, crd: redis_crd,
+      definition: { "kind" => "Redis", "metadata" => { "name" => "test" } })
     assert_equal(redis_cr.class, KubernetesDeploy::Redis)
 
     # Dynamic with no rollout config
     no_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: @statsd_tags, definition: build_crd(name: "noconfig"))
     no_config_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, definition: { "kind" => "Noconfig", "metadata" => { "name" => "test" }})
-    assert_equal(no_config_cr.class, KubernetesDeploy::KubernetesResource)
+      logger: @logger, statsd_tags: @statsd_tags, crd: no_config_crd,
+      definition: { "kind" => "Noconfig", "metadata" => { "name" => "test" } })
+    assert_equal(no_config_cr.class, KubernetesDeploy::CustomResource)
 
     # With rollout config
     with_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: @statsd_tags, definition: build_crd(name: "withconfig", with_config: true))
-
     with_config_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: @statsd_tags, crd: with_config_crd,
-      definition: { "kind" => "Withconfig", "metadata" => { "name" => "test" }})
+      definition: { "kind" => "Withconfig", "metadata" => { "name" => "test" } })
     assert_equal(with_config_cr.class, KubernetesDeploy::CustomResource)
 
     # Hardcoded resource
@@ -408,15 +409,17 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       "kind" => "CustomResourceDefinition",
       "metadata" => {
         "name" => "#{name}s.test.io",
-        "annotations" => {}
+        "annotations" => {},
       },
       "spec" => {
         "names" => {
-          "kind" => name.titleize
-        }
-      }
+          "kind" => name.titleize,
+        },
+      },
     }
-    crd["metadata"]["annotations"][KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONFIG_ANNOTATION] = "true" if with_config
+    if with_config
+      crd["metadata"]["annotations"][KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONFIG_ANNOTATION] = "true"
+    end
     crd
   end
 end

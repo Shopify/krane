@@ -5,6 +5,7 @@ module KubernetesDeploy
   class CustomResourceDefinition < KubernetesResource
     TIMEOUT = 2.minutes
     ROLLOUT_CONFIG_ANNOTATION = "kubernetes-deploy.shopify.io/monitor-instance-rollout"
+    TIMEOUT_ANNOTATION = "kubernetes-deploy.shopify.io/cr-instance-timeout"
     GLOBAL = true
 
     def deploy_succeeded?
@@ -17,6 +18,13 @@ module KubernetesDeploy
 
     def timeout_message
       "The names this CRD is attempting to register were neither accepted nor rejected in time"
+    end
+
+    def timeout_for_instance
+      timeout = @definition.dig("metadata", "annotations", TIMEOUT_ANNOTATION)
+      DurationParser.new(timeout).parse!.to_i
+    rescue DurationParser::ParsingError
+      nil
     end
 
     def status
@@ -45,8 +53,8 @@ module KubernetesDeploy
     end
 
     def rollout_config
-      @rollout_config ||= if rollout_config_string
-        config = RolloutConfig.parse_config(rollout_config_string)
+      @rollout_config ||= if rollout_config_annotation
+        config = RolloutConfig.parse_config(rollout_config_annotation)
         RolloutConfig.new(config)
       end
     rescue RolloutConfigError
@@ -56,7 +64,7 @@ module KubernetesDeploy
     def validate_definition(_)
       super
 
-      RolloutConfig.parse_config(rollout_config_string) if rollout_config_string
+      RolloutConfig.parse_config(rollout_config_annotation) if rollout_config_annotation
     rescue RolloutConfigError => e
       @validation_errors << e
     end
@@ -72,7 +80,7 @@ module KubernetesDeploy
       names_accepted_condition["status"]
     end
 
-    def rollout_config_string
+    def rollout_config_annotation
       @definition.dig("metadata", "annotations", ROLLOUT_CONFIG_ANNOTATION)
     end
   end

@@ -39,7 +39,7 @@ module KubernetesDeploy
         elsif KubernetesDeploy.const_defined?(definition["kind"])
           klass = KubernetesDeploy.const_get(definition["kind"])
           klass.new(**opts)
-        elsif crd && crd.rollout_config
+        elsif crd
           CustomResource.new(crd: crd, **opts)
         else
           inst = new(**opts)
