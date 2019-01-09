@@ -1,3 +1,11 @@
+## next
+
+*Enhancements*
+- Officially support Kubernetes 1.13 ([#409](https://github.com/Shopify/kubernetes-deploy/pull/409))
+
+*Other*
+- Kubernetes 1.9 is no longer officially supported as of this version
+
 ## 0.23.0
 
 *Features*

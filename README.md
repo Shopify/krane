@@ -73,7 +73,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 ## Prerequisites
 
 * Ruby 2.3+
-* Your cluster must be running Kubernetes v1.9.0 or higher<sup>1</sup>
+* Your cluster must be running Kubernetes v1.10.0 or higher<sup>1</sup>
 * Each app must have a deploy directory containing its Kubernetes templates (see [Templates](#using-templates-and-variables))
 * You must remove the` kubectl.kubernetes.io/last-applied-configuration` annotation from any resources in the namespace that are not included in your deploy directory. This annotation is added automatically when you create resources with `kubectl apply`. `kubernetes-deploy` will prune any resources that have this annotation and are not in the deploy directory.<sup>2</sup>
 * Each app managed by `kubernetes-deploy` must have its own exclusive Kubernetes namespace.
@@ -92,7 +92,7 @@ offical compatibility chart below.
 
 ## Installation
 
-1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.9.0 or higher) and make sure it is available in your $PATH
+1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.10.0 or higher) and make sure it is available in your $PATH
 2. Set up your [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/) for access to your cluster(s).
 3. `gem install kubernetes-deploy`
 
@@ -354,7 +354,7 @@ With this done, you can use the following command to restart all of them:
 
 ## Prerequisites
 
-* You've already deployed a [`PodTemplate`](https://kubernetes.io/docs/api-reference/v1.9/#podtemplate-v1-core) object with field `template` containing a `Pod` specification that does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
+* You've already deployed a [`PodTemplate`](https://v1-10.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#podtemplate-v1-core) object with field `template` containing a `Pod` specification that does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
 * The `Pod` specification in that template has a container named `task-runner`.
 
 Based on this specification `kubernetes-run` will create a new pod with the entrypoint of the `task-runner ` container overridden with the supplied arguments.
@@ -411,7 +411,7 @@ kubernetes-render --template-dir=./path/to/template/dir this-template.yaml.erb t
 
 If you work for Shopify, just run `dev up`, but otherwise:
 
-1. [Install kubectl version 1.9.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
+1. [Install kubectl version 1.10.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
 2. [Install minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (required to run the test suite)
 3. Check out the repo
 4. Run `bin/setup` to install dependencies
