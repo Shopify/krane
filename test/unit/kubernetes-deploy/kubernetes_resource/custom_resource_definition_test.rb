@@ -27,7 +27,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
 
     crd = build_crd(merge_rollout_annotation(rollout_conditions))
     crd.validate_definition(kubectl)
-    refute(crd.validation_failed?, "Valid rollout config failed validation")
+    refute(crd.validation_failed?, "Valid rollout conditions failed validation")
   end
 
   def test_rollout_conditions_invalid_when_path_or_value_missing
@@ -40,8 +40,8 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
     crd.validate_definition(kubectl)
     assert(crd.validation_failed?, "Missing path/value keys should fail validation")
     assert_equal(crd.validation_error_msg,
-      "Missing required key(s) for success_query {:path=>\"$.test\"}: [:value]\n" \
-      "Missing required key(s) for failure_query {:value=>\"test\"}: [:path]")
+      "Missing required key(s) for success_condition {:path=>\"$.test\"}: [:value]\n" \
+      "Missing required key(s) for failure_condition {:value=>\"test\"}: [:path]")
   end
 
   def test_rollout_conditions_raises_when_missing_condition_keys
@@ -57,8 +57,8 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
   def test_rollout_conditions_raises_error_with_invalid_json
     crd = build_crd(merge_rollout_annotation('bad string'))
     crd.validate_definition(kubectl)
-    assert(crd.validation_failed?, "Invalid rollout config was accepted")
-    assert(crd.validation_error_msg.match(/Error parsing rollout config/))
+    assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
+    assert(crd.validation_error_msg.match(/Error parsing rollout conditions/))
   end
 
   def test_cr_instance_fails_validation_when_rollout_conditions_for_crd_invalid
@@ -70,7 +70,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
         "metadata" => { "name" => "test" },
       })
     cr.validate_definition(kubectl)
-    assert(crd.validation_error_msg.match(/Error parsing rollout config/))
+    assert(crd.validation_error_msg.match(/Error parsing rollout conditions/))
   end
 
   def test_cr_instance_valid_when_rollout_conditions_for_crd_valid

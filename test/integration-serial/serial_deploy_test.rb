@@ -266,7 +266,9 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       cr.merge!(success_conditions)
     end
     assert_deploy_success(result)
-
+    assert_logs_match_all([
+      %r{Successfully deployed in .*: Parameterized\/with-default-params},
+    ])
   ensure
     wait_for_all_crd_deletion
   end
@@ -280,7 +282,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
           {
             "type" => "Failed",
             "reason" => "test",
-            "message" => "test",
+            "message" => "test_cr_failure_with_default_rollout_conditions",
             "status" => "True",
           },
         ],
@@ -292,6 +294,10 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       cr.merge!(failure_conditions)
     end
     assert_deploy_failure(result)
+    assert_logs_match_all([
+      "Parameterized/with-default-params: FAILED",
+      "test_cr_failure_with_default_rollout_conditions",
+    ])
   ensure
     wait_for_all_crd_deletion
   end
@@ -313,6 +319,9 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       cr.merge!(success_conditions)
     end
     assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Successfully deployed in .*: Customized\/with-customized-params},
+    ])
   ensure
     wait_for_all_crd_deletion
   end
@@ -336,8 +345,8 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_deploy_failure(result)
     assert_logs_match_all([
-      /test error message jsonpath/,
-      /test custom error message/,
+      "test error message jsonpath",
+      "test custom error message",
     ])
   ensure
     wait_for_all_crd_deletion

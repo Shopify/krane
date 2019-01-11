@@ -326,6 +326,11 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     svc = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
       statsd_tags: @statsd_tags, definition: { "kind" => "Service", "metadata" => { "name" => "test" } })
     assert_equal(svc.class, KubernetesDeploy::Service)
+
+    # Generic resource
+    resource = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+      statsd_tags: @statsd_tags, definition: { "kind" => "Unkonwn", "metadata" => { "name" => "test" } })
+    assert_equal(resource.class, KubernetesDeploy::KubernetesResource)
   end
 
   private

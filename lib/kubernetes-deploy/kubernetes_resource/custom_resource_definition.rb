@@ -4,7 +4,7 @@ require 'kubernetes-deploy/rollout_conditions'
 module KubernetesDeploy
   class CustomResourceDefinition < KubernetesResource
     TIMEOUT = 2.minutes
-    ROLLOUT_CONDITIONS_ANNOTATION = "kubernetes-deploy.shopify.io/instance-rollout-conditions"
+    ROLLOUT_CONDITIONS_ANNOTATION = "kubernetes-deploy.shopify.io/cr-instance-rollout-conditions"
     TIMEOUT_FOR_INSTANCE_ANNOTATION = "kubernetes-deploy.shopify.io/cr-instance-timeout"
     GLOBAL = true
 
@@ -54,8 +54,8 @@ module KubernetesDeploy
 
     def rollout_conditions
       @rollout_conditions ||= if rollout_conditions_annotation
-        config = RolloutConditions.parse_config(rollout_conditions_annotation)
-        RolloutConditions.new(config)
+        conditions = RolloutConditions.parse_conditions(rollout_conditions_annotation)
+        RolloutConditions.new(conditions)
       end
     rescue RolloutConditionsError
       nil
@@ -64,7 +64,7 @@ module KubernetesDeploy
     def validate_definition(_)
       super
 
-      RolloutConditions.parse_config(rollout_conditions_annotation) if rollout_conditions_annotation
+      RolloutConditions.parse_conditions(rollout_conditions_annotation) if rollout_conditions_annotation
     rescue RolloutConditionsError => e
       @validation_errors << e
     end

@@ -317,18 +317,18 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
 
 By default, kubernetes-deploy does not check to see whether the deployment of a custom resource is successful or not. Instead, it simply assumes that the custom resource deploys successfully and performs no additional checks. In order to meaningfully monitor the rollout of custom resources, kubernetes-deploy supports annotations that specify the pass/fail conditions of a given resource.
 
-*Requirements:*
-
 >Note:
 This feature is only available on clusters running Kubernetes 1.11+ since it relies on the `metadata.generation` field being updated when custom resource specs are changed.
 
+*Requirements:*
+
 * The custom resource must expose a `status` field with an `observedGeneration` field.
-* The `kubernetes-deploy.shopify.io/instance-rollout-conditions` annotation must be present on the *CRD* that defines the custom resource.
+* The `kubernetes-deploy.shopify.io/cr-instance-rollout-conditions` annotation must be present on the *CRD* that defines the custom resource.
 * (optional) The `kubernetes-deploy.shopify.io/cr-instance-timeout` annotation can be added to the *CRD* that defines the custom resource to specify a default timeout for all instances of the CRD (otherwise the global default is used).
 
 ### Specifying pass/fail conditions
 
-The presence of a valid `kubernetes-deploy.shopify.io/instance-rollout-conditions` annotation on a CRD will cause kubernetes-deploy to monitor the rollout of any of its instances with the supplied annotation value. This value must be a valid JSON string with the following format:
+The presence of a valid `kubernetes-deploy.shopify.io/cr-instance-rollout-conditions` annotation on a CRD will cause kubernetes-deploy to monitor the rollout of any of its instances with the supplied annotation value. This value must be a valid JSON string with the following format:
 ```
 '{
   "success_conditions": [
@@ -350,7 +350,7 @@ You **must** ensure that your custom resource controller sets `.status.observedG
 
 ### Example
 
-As an example, observe the following default rollout configuration. You can use this default by setting `kubernetes-deploy.shopify.io/instance-rollout-conditions: "true"` on the *CRD* that defines the custom resources you wish to monitor. This will create a rollout configuration identical to this specification:
+As an example, observe the following default rollout configuration. You can use this default by setting `kubernetes-deploy.shopify.io/cr-instance-rollout-conditions: "true"` on the *CRD* that defines the custom resources you wish to monitor. This will create a rollout configuration identical to this specification:
 
 ```
 '{
