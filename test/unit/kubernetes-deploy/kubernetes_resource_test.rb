@@ -418,7 +418,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       },
     }
     if with_config
-      crd["metadata"]["annotations"][KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONFIG_ANNOTATION] = "true"
+      crd["metadata"]["annotations"][KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION] = "true"
     end
     crd
   end

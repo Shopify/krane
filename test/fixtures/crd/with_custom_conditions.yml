@@ -3,27 +3,27 @@ kind: CustomResourceDefinition
 metadata:
   name: customizeds.stable.example.io
   annotations:
-    kubernetes-deploy.shopify.io/monitor-instance-rollout: '{
-      "success_queries": [
+    kubernetes-deploy.shopify.io/instance-rollout-conditions: '{
+      "success_conditions": [
         {
           "path": "$.status.condition",
           "value":"success_value"
         },
         {
-          "path":"$.spec.test_field",
+          "path":"$.status.test_field",
           "value":"success_value"
         }
       ],
-      "failure_queries": [
+      "failure_conditions": [
         {
           "path":"$.status.condition",
           "value":"failure_value",
           "custom_error_msg":"test custom error message"
         },
         {
-          "path":"$.spec.test_field",
+          "path":"$.status.test_field",
           "value":"failure_value",
-          "error_msg_path":"$.spec.error_msg"
+          "error_msg_path":"$.status.error_msg"
         }
       ]
     }'

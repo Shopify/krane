@@ -1,11 +1,11 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/rollout_config'
+require 'kubernetes-deploy/rollout_conditions'
 
 module KubernetesDeploy
   class CustomResourceDefinition < KubernetesResource
     TIMEOUT = 2.minutes
-    ROLLOUT_CONFIG_ANNOTATION = "kubernetes-deploy.shopify.io/monitor-instance-rollout"
-    TIMEOUT_ANNOTATION = "kubernetes-deploy.shopify.io/cr-instance-timeout"
+    ROLLOUT_CONDITIONS_ANNOTATION = "kubernetes-deploy.shopify.io/instance-rollout-conditions"
+    TIMEOUT_FOR_INSTANCE_ANNOTATION = "kubernetes-deploy.shopify.io/cr-instance-timeout"
     GLOBAL = true
 
     def deploy_succeeded?
@@ -21,7 +21,7 @@ module KubernetesDeploy
     end
 
     def timeout_for_instance
-      timeout = @definition.dig("metadata", "annotations", TIMEOUT_ANNOTATION)
+      timeout = @definition.dig("metadata", "annotations", TIMEOUT_FOR_INSTANCE_ANNOTATION)
       DurationParser.new(timeout).parse!.to_i
     rescue DurationParser::ParsingError
       nil
@@ -52,20 +52,20 @@ module KubernetesDeploy
       prunable == "true"
     end
 
-    def rollout_config
-      @rollout_config ||= if rollout_config_annotation
-        config = RolloutConfig.parse_config(rollout_config_annotation)
-        RolloutConfig.new(config)
+    def rollout_conditions
+      @rollout_conditions ||= if rollout_conditions_annotation
+        config = RolloutConditions.parse_config(rollout_conditions_annotation)
+        RolloutConditions.new(config)
       end
-    rescue RolloutConfigError
+    rescue RolloutConditionsError
       nil
     end
 
     def validate_definition(_)
       super
 
-      RolloutConfig.parse_config(rollout_config_annotation) if rollout_config_annotation
-    rescue RolloutConfigError => e
+      RolloutConditions.parse_config(rollout_conditions_annotation) if rollout_conditions_annotation
+    rescue RolloutConditionsError => e
       @validation_errors << e
     end
 
@@ -80,8 +80,8 @@ module KubernetesDeploy
       names_accepted_condition["status"]
     end
 
-    def rollout_config_annotation
-      @definition.dig("metadata", "annotations", ROLLOUT_CONFIG_ANNOTATION)
+    def rollout_conditions_annotation
+      @definition.dig("metadata", "annotations", ROLLOUT_CONDITIONS_ANNOTATION)
     end
   end
 end

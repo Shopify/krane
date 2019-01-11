@@ -11,35 +11,39 @@ module KubernetesDeploy
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], crd:)
       super(namespace: namespace, context: context, definition: definition,
             logger: logger, statsd_tags: statsd_tags)
-      @timeout = crd.timeout_for_instance
-      @rollout_config = crd.rollout_config
+      @crd = crd
     end
 
     def timeout
-      @timeout || super
+      timeout_override || @crd.timeout_for_instance || TIMEOUT
+    end
+
+    def rollout_conditions
+      @crd.rollout_conditions
     end
 
     def deploy_succeeded?
-      return super unless @rollout_config
+      return super unless rollout_conditions
       return false unless observed_generation == current_generation
 
-      @rollout_config.rollout_successful?(@instance_data)
+      rollout_conditions.rollout_successful?(@instance_data)
     end
 
     def deploy_failed?
-      return super unless @rollout_config
+      return super unless rollout_conditions
       return false unless observed_generation == current_generation
 
-      @rollout_config.rollout_failed?(@instance_data)
+      rollout_conditions.rollout_failed?(@instance_data)
     end
 
     def failure_message
-      messages = @rollout_config.failure_messages(@instance_data)
+      return super unless rollout_conditions
+      messages = rollout_conditions.failure_messages(@instance_data)
       messages.join("\n") if messages.present?
     end
 
     def timeout_message
-      if current_generation != observed_generation
+      if rollout_conditions && current_generation != observed_generation
         TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS
       else
         super
@@ -48,6 +52,12 @@ module KubernetesDeploy
 
     def type
       kind
+    end
+
+    def validate_definition(kubectl)
+      super
+
+      @crd.validate_definition(kubectl)
     end
 
     private

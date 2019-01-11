@@ -235,7 +235,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
   end
 
-  def test_cr_deploys_without_rollout_config_when_none_present
+  def test_cr_deploys_without_rollout_conditions_when_none_present
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets.yml)))
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
     assert_logs_match_all([
@@ -245,25 +245,25 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_cr_success_with_default_rollout_config
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params.yml"]))
+  def test_cr_success_with_default_rollout_conditions
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_conditions.yml"]))
     success_conditions = {
-      "status": {
-        "observedGeneration": 1,
-        "conditions": [
+      "status" => {
+        "observedGeneration" => 1,
+        "conditions" => [
           {
-            "type": "Ready",
-            "reason": "test",
-            "message": "test",
-            "status": "True",
+            "type" => "Ready",
+            "reason" => "test",
+            "message" => "test",
+            "status" => "True",
           },
         ],
       },
     }
 
-    result = deploy_fixtures("crd", subset: ["with_default_params_cr.yml"]) do |resource|
-      cr = resource["with_default_params_cr.yml"]["Parameterized"].first
-      resource["with_default_params_cr.yml"]["Parameterized"][0] = cr.merge!(success_conditions).deep_stringify_keys!
+    result = deploy_fixtures("crd", subset: ["with_default_conditions_cr.yml"]) do |resource|
+      cr = resource["with_default_conditions_cr.yml"]["Parameterized"].first
+      cr.merge!(success_conditions)
     end
     assert_deploy_success(result)
 
@@ -271,70 +271,68 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_cr_failure_with_default_rollout_config
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_params.yml"]))
+  def test_cr_failure_with_default_rollout_conditions
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_conditions.yml"]))
     failure_conditions = {
-      "status": {
-        "observedGeneration": 1,
-        "conditions": [
+      "status" => {
+        "observedGeneration" => 1,
+        "conditions" => [
           {
-            "type": "Failed",
-            "reason": "test",
-            "message": "test",
-            "status": "True",
+            "type" => "Failed",
+            "reason" => "test",
+            "message" => "test",
+            "status" => "True",
           },
         ],
       },
     }
 
-    result = deploy_fixtures("crd", subset: ["with_default_params_cr.yml"]) do |resource|
-      cr = resource["with_default_params_cr.yml"]["Parameterized"].first
-      resource["with_default_params_cr.yml"]["Parameterized"][0] = cr.merge!(failure_conditions).deep_stringify_keys!
+    result = deploy_fixtures("crd", subset: ["with_default_conditions_cr.yml"]) do |resource|
+      cr = resource["with_default_conditions_cr.yml"]["Parameterized"].first
+      cr.merge!(failure_conditions)
     end
     assert_deploy_failure(result)
   ensure
     wait_for_all_crd_deletion
   end
 
-  def test_cr_success_with_arbitrary_rollout_config
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_params.yml"]))
+  def test_cr_success_with_arbitrary_rollout_conditions
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]))
 
     success_conditions = {
-      "spec": {
-        "test_field": "success_value",
-      },
-      "status": {
-        "observedGeneration": 1,
-        "condition": "success_value",
+      "spec" => {},
+      "status" => {
+        "observedGeneration" => 1,
+        "test_field" => "success_value",
+        "condition" => "success_value",
       },
     }
 
-    result = deploy_fixtures("crd", subset: ["with_custom_params_cr.yml"]) do |resource|
-      cr = resource["with_custom_params_cr.yml"]["Customized"].first
-      resource["with_custom_params_cr.yml"]["Customized"][0] = cr.merge!(success_conditions).deep_stringify_keys!
+    result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml"]) do |resource|
+      cr = resource["with_custom_conditions_cr.yml"]["Customized"].first
+      cr.merge!(success_conditions)
     end
     assert_deploy_success(result)
   ensure
     wait_for_all_crd_deletion
   end
 
-  def test_cr_failure_with_arbitrary_rollout_config
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_params.yml"]))
-    cr = load_fixtures("crd", ["with_custom_params_cr.yml"])
+  def test_cr_failure_with_arbitrary_rollout_conditions
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]))
+    cr = load_fixtures("crd", ["with_custom_conditions_cr.yml"])
     failure_conditions = {
-      "spec": {
-        "test_field": "failure_value",
-        "error_msg": "test error message jsonpath",
-      },
-      "status": {
-        "observedGeneration": 1,
-        "condition": "failure_value",
+      "spec" => {},
+      "status" => {
+        "test_field" => "failure_value",
+        "error_msg" => "test error message jsonpath",
+        "observedGeneration" => 1,
+        "condition" => "failure_value",
       },
     }
 
-    result = deploy_fixtures("crd", subset: ["with_custom_params_cr.yml"]) do |resource|
-      cr = resource["with_custom_params_cr.yml"]["Customized"].first
-      resource["with_custom_params_cr.yml"]["Customized"][0] = cr.merge!(failure_conditions).deep_stringify_keys!
+    result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml"]) do |resource|
+      cr = resource["with_custom_conditions_cr.yml"]["Customized"].first
+      cr.merge!(failure_conditions)
     end
     assert_deploy_failure(result)
     assert_logs_match_all([

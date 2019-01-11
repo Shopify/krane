@@ -42,6 +42,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
   * [Customizing behaviour with annotations](#customizing-behaviour-with-annotations)
   * [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy)
   * [Deploying Kubernetes secrets (from EJSON)](#deploying-kubernetes-secrets-from-ejson)
+  * [Deploying custom resources](#deploying-custom-resources)
 
 **KUBERNETES-RESTART**
 * [Usage](#usage-1)
@@ -312,7 +313,93 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
   }
 ```
 
+### Deploying custom resources
 
+By default, kubernetes-deploy does not check to see whether the deployment of a custom resource is successful or not. Instead, it simply assumes that the custom resource deploys successfully and performs no additional checks. In order to meaningfully monitor the rollout of custom resources, kubernetes-deploy supports annotations that specify the pass/fail conditions of a given resource.
+
+*Requirements:*
+
+>Note:
+This feature is only available on clusters running Kubernetes 1.11+ since it relies on the `metadata.generation` field being updated when custom resource specs are changed.
+
+* The custom resource must expose a `status` field with an `observedGeneration` field.
+* The `kubernetes-deploy.shopify.io/instance-rollout-conditions` annotation must be present on the *CRD* that defines the custom resource.
+* (optional) The `kubernetes-deploy.shopify.io/cr-instance-timeout` annotation can be added to the *CRD* that defines the custom resource to specify a default timeout for all instances of the CRD (otherwise the global default is used).
+
+### Specifying pass/fail conditions
+
+The presence of a valid `kubernetes-deploy.shopify.io/instance-rollout-conditions` annotation on a CRD will cause kubernetes-deploy to monitor the rollout of any of its instances with the supplied annotation value. This value must be a valid JSON string with the following format:
+```
+'{
+  "success_conditions": [
+    { "path": <JsonPath expression>, "value": <target value> }
+    ... more success conditions
+  ],
+  "failure_conditions": [
+    { "path": <JsonPath expression>, "value": <target value> }
+    ... more failure conditions
+  ]
+}'
+```
+
+For all conditions, `path` must be a valid JsonPath expression that points to a given field in the custom resource's spec. `value` is the value that must be present at `path` in order to fulfill a condition. For a deployment to be successful, _all_ `success_conditions` must be fulfilled. Conversely, it is sufficient for _any one of_ `failure_conditions` to be fulfilled in order to mark the deploy as failed.
+
+**Warning:**
+
+You **must** ensure that your custom resource controller sets `.status.observedGeneration` to `.metadata.generation` of the monitored resource once its sync is complete. If this does not happen, kubernetes-deploy will not check success or failure conditions and the deploy will timeout.
+
+### Example
+
+As an example, observe the following default rollout configuration. You can use this default by setting `kubernetes-deploy.shopify.io/instance-rollout-conditions: "true"` on the *CRD* that defines the custom resources you wish to monitor. This will create a rollout configuration identical to this specification:
+
+```
+'{
+  "success_conditions": [
+    {
+      "path": "$.status.conditions[?(@.type == \"Ready\")].status",
+      "value": "True",
+    },
+  ],
+  "failure_conditions": [
+    {
+      "path": '$.status.conditions[?(@.type == \"Failed\")].status',
+      "value": "True",
+      "error_msg_path": '$.status.conditions[?(@.type == \"Failed\")].message',
+    },
+  ],
+}'
+```
+
+The paths defined here are based on the [typical status properties](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#typical-status-properties) as defined by the Kubernetes community. It expects the `status` subresource to contain a `conditions` array whose entries minimally specify `type`, `status`, and `message` fields. Note that the failure condition uses the optional `error_msg_path` field that will output the contents of the path specified when the deploy fails due to that condition. As an alternative, `custom_error_msg` can be used if you want to provide a message that isn't exposed by the resource itelf. Note that `error_msg_path` and `custom_error_msg` are optional fields and not strictly required.
+
+You can see how these conditions relate to the following resource:
+
+```
+apiVersion: stable.shopify.io/v1
+kind: Example
+metadata:
+  generation: 2
+  name: example
+  namespace: namespace
+spec:
+  ...
+status:
+  observedGeneration: 2
+  conditions:
+  - type: "Ready"
+    status: "False"
+    reason: "exampleNotReady"
+    message: "resource is not ready"
+  - type: "Failed"
+    status: "True"
+    message: "resource is failed"
+    reason: "exampleFailed"
+```
+
+- `observedGeneration == metadata.generation`, so kubernetes-deploy will monitor the deploy.
+- Since `$.status.conditions[?(@.type == "Ready")].status == "False"`, the deploy is not considered successful yet.
+- `$.status.conditions[?(@.type == "Failed")].status == "True"` means that a failure condition has been fulfilled and the deploy is considered failed.
+- Since `error_msg_path` is specified, kubernetes-deploy will log the contents of '$.status.conditions[?(@.type == "Failed")].message', which in this case is: `resource is failed`.
 
 # kubernetes-restart
 
