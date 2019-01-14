@@ -71,13 +71,13 @@ module KubernetesDeploy
         conditions[:success_conditions].each do |query|
           missing = query_keys.reject { |k| query.key?(k) }
           unless missing.blank?
-            errors << "Missing required key(s) for success_conditions #{query}: #{missing}"
+            errors << "Missing required key(s) for success_condition #{query}: #{missing}"
           end
         end
         conditions[:failure_conditions].each do |query|
           missing = query_keys.reject { |k| query.key?(k) }
           unless missing.blank?
-            errors << "Missing required key(s) for failure_conditions #{query}: #{missing}"
+            errors << "Missing required key(s) for failure_condition #{query}: #{missing}"
           end
         end
         errors
