@@ -36,8 +36,8 @@ module KubernetesDeploy
                  statsd_tags: statsd_tags }
         if definition["kind"].blank?
           raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
-        elsif KubernetesDeploy.const_defined?(definition["kind"])
-          klass = KubernetesDeploy.const_get(definition["kind"])
+        elsif KubernetesDeploy.const_defined?(definition["kind"].capitalize)
+          klass = KubernetesDeploy.const_get(definition["kind"].capitalize)
           klass.new(**opts)
         else
           inst = new(**opts)

@@ -288,6 +288,17 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     refute_predicate(dummy, :disappeared?)
   end
 
+  def test_custom_resource_kind
+    definition = { "kind" => "foobar", "metadata" => { "name" => "test" } }
+    KubernetesDeploy::KubernetesResource.build(
+      namespace: 'test',
+      context: 'test',
+      definition: definition,
+      logger: ::Logger.new($stderr),
+      statsd_tags: []
+    )
+  end
+
   private
 
   def kubectl
