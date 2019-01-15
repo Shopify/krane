@@ -324,7 +324,7 @@ This feature is only available on clusters running Kubernetes 1.11+ since it rel
 
 * The custom resource must expose a `status` field with an `observedGeneration` field.
 * The `kubernetes-deploy.shopify.io/cr-instance-rollout-conditions` annotation must be present on the *CRD* that defines the custom resource.
-* (optional) The `kubernetes-deploy.shopify.io/cr-instance-timeout` annotation can be added to the *CRD* that defines the custom resource to specify a default timeout for all instances of the CRD (otherwise the global default is used).
+* (optional) The `kubernetes-deploy.shopify.io/cr-instance-timeout` annotation can be added to the *CRD* that defines the custom resource to specify a timeout for all instances defined by the CRD (otherwise the global default is used). This annotation uses ISO8601, but can also parse unprefixed ISO8601 time components (e.g. '1H', '60S').
 
 ### Specifying pass/fail conditions
 
@@ -392,8 +392,8 @@ status:
     message: "resource is not ready"
   - type: "Failed"
     status: "True"
-    message: "resource is failed"
     reason: "exampleFailed"
+    message: "resource is failed"
 ```
 
 - `observedGeneration == metadata.generation`, so kubernetes-deploy will monitor the deploy.
