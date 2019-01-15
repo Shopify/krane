@@ -63,7 +63,9 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      reason_msg = if progress_condition.present?
+      reason_msg = if timeout_override
+        STANDARD_TIMEOUT_MESSAGE
+      elsif progress_condition.present?
         "Timeout reason: #{progress_condition['reason']}"
       else
         "Timeout reason: hard deadline for #{type}"
@@ -78,7 +80,9 @@ module KubernetesDeploy
 
     def deploy_timed_out?
       return false if deploy_failed?
+      return super if timeout_override
       # Do not use the hard timeout if progress deadline is set
+
       progress_condition.present? ? deploy_failing_to_progress? : super
     end
 
