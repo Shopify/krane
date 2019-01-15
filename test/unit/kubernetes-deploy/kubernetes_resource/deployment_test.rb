@@ -307,6 +307,24 @@ class DeploymentTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_deploy_timed_out_based_on_timeout_override
+    Timecop.freeze do
+      template = build_deployment_template
+      template["metadata"]["annotations"][KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION] = "10S"
+      deploy = build_synced_deployment(
+        template: template,
+        replica_sets: [build_rs_template(status: { "replica" => 1 })]
+      )
+      refute deploy.deploy_timed_out?, "Deploy not started shouldn't have timed out"
+      deploy.deploy_started_at = Time.now.utc - 3.minutes
+
+      assert_equal("Kubernetes will continue to attempt to deploy this resource in the cluster, but at this point it" \
+        " is considered unlikely that it will succeed.\nIf you have reason to believe it will succeed," \
+        " retry the deploy to continue to monitor the rollout.\n\nLatest ReplicaSet: web-1",
+        deploy.timeout_message.strip)
+    end
+  end
+
   def test_deploy_timed_out_based_on_progress_deadline_ignores_statuses_for_older_generations
     Timecop.freeze do
       deployment_status = {

@@ -451,7 +451,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
       deployment["metadata"]["annotations"] = {
-        KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => "10S"
+        KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => "10S",
       }
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
@@ -459,8 +459,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result, :timed_out)
 
     assert_logs_match_all([
-      "Kubernetes will continue to attempt to deploy this resource in the cluster, but at this point it is considered unlikely that it will succeed.",
-      "If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout."
+      "Kubernetes will continue to attempt to deploy this resource in the cluster, but at this point it is" \
+        " considered unlikely that it will succeed.",
+      "If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.",
     ])
   end
 
