@@ -326,6 +326,35 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
+  def test_cr_success_with_only_success_rollout_conditions
+    crd_result = deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]) do |resource|
+      crd = resource["with_custom_conditions.yml"]["CustomResourceDefinition"].first
+      crd["metadata"]["annotations"][KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION] = {
+        success_conditions: [{path: "$.status.test_field", value: "success_value"}]
+      }.to_json
+    end
+
+    success_conditions = {
+      "spec" => {},
+      "status" => {
+        "observedGeneration" => 1,
+        "test_field" => "success_value",
+        "condition" => "success_value",
+      },
+    }
+
+    result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml"]) do |resource|
+      cr = resource["with_custom_conditions_cr.yml"]["Customized"].first
+      cr.merge!(success_conditions)
+    end
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Successfully deployed in .*: Customized\/with-customized-params},
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
   def test_cr_failure_with_arbitrary_rollout_conditions
     assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]))
     cr = load_fixtures("crd", ["with_custom_conditions_cr.yml"])
