@@ -458,11 +458,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
     assert_deploy_failure(result, :timed_out)
 
-    assert_logs_match_all([
-      "Kubernetes will continue to attempt to deploy this resource in the cluster, but at this point it is" \
-        " considered unlikely that it will succeed.",
-      "If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.",
-    ])
+    assert_logs_match_all(KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n"))
   end
 
   def test_wait_false_ignores_non_priority_resource_failures

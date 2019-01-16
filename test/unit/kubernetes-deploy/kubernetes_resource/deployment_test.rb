@@ -318,9 +318,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
       refute deploy.deploy_timed_out?, "Deploy not started shouldn't have timed out"
       deploy.deploy_started_at = Time.now.utc - 3.minutes
 
-      assert_equal("Kubernetes will continue to attempt to deploy this resource in the cluster, but at this point it" \
-        " is considered unlikely that it will succeed.\nIf you have reason to believe it will succeed," \
-        " retry the deploy to continue to monitor the rollout.\n\nLatest ReplicaSet: web-1",
+      assert_equal(KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE + "\nLatest ReplicaSet: web-1",
         deploy.timeout_message.strip)
     end
   end
