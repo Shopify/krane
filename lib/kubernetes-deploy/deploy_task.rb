@@ -61,8 +61,11 @@ module KubernetesDeploy
     # core/v1/Secret -- should not committed / managed by shipit
 
     def predeploy_sequence
-      base_sequence = %w(
+      before_crs = %w(
         ResourceQuota
+        CustomResourceDefinition
+      )
+      after_crs = %w(
         ConfigMap
         PersistentVolumeClaim
         ServiceAccount
@@ -71,7 +74,7 @@ module KubernetesDeploy
         Pod
       )
 
-      cluster_resource_discoverer.crds.map(&:kind) + base_sequence
+      before_crs + cluster_resource_discoverer.crds.map(&:kind) + after_crs
     end
 
     def prune_whitelist

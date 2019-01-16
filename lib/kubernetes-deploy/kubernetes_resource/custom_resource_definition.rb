@@ -59,7 +59,7 @@ module KubernetesDeploy
         RolloutConditions.from_annotation(rollout_conditions_annotation)
       end
     rescue RolloutConditionsError
-      nil
+      @rollout_conditions = nil
     end
 
     def validate_definition(_)
