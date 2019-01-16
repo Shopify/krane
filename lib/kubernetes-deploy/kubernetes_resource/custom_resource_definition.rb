@@ -4,8 +4,8 @@ require 'kubernetes-deploy/rollout_conditions'
 module KubernetesDeploy
   class CustomResourceDefinition < KubernetesResource
     TIMEOUT = 2.minutes
-    ROLLOUT_CONDITIONS_ANNOTATION = "kubernetes-deploy.shopify.io/cr-instance-rollout-conditions"
-    TIMEOUT_FOR_INSTANCE_ANNOTATION = "kubernetes-deploy.shopify.io/cr-instance-timeout"
+    ROLLOUT_CONDITIONS_ANNOTATION = "kubernetes-deploy.shopify.io/instance-rollout-conditions"
+    TIMEOUT_FOR_INSTANCE_ANNOTATION = "kubernetes-deploy.shopify.io/instance-timeout"
     GLOBAL = true
 
     def deploy_succeeded?
@@ -53,7 +53,9 @@ module KubernetesDeploy
     end
 
     def rollout_conditions
-      @rollout_conditions ||= if rollout_conditions_annotation
+      return @rollout_conditions if defined?(@rollout_conditions)
+
+      @rollout_conditions = if rollout_conditions_annotation
         RolloutConditions.from_annotation(rollout_conditions_annotation)
       end
     rescue RolloutConditionsError

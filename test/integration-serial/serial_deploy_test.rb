@@ -3,7 +3,7 @@ require 'integration_test_helper'
 
 class SerialDeployTest < KubernetesDeploy::IntegrationTest
   include StatsDHelper
-  # This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace
+  This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace
   def test_deploying_to_protected_namespace_with_override_does_not_prune
     KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
       assert_deploy_success(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml', 'disruption-budgets.yml'],
@@ -333,6 +333,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
         success_conditions: [{path: "$.status.test_field", value: "success_value"}]
       }.to_json
     end
+    assert_deploy_success(crd_result)
 
     success_conditions = {
       "spec" => {},
@@ -376,6 +377,29 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "test error message jsonpath",
       "test custom error message",
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_deploying_cr_with_invalid_crd_conditions_fails
+    # Since CRDs are not always deployed along with their CRs and kubernetes-deploy is not the only way CRDs are
+    # deployed, we need to model the case where poorly configured rollout_conditions are present before deploying a CR
+    KubernetesDeploy::DeployTask.any_instance.expects(:validate_resources).returns(:true)
+    crd_result = deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]) do |resource|
+      crd = resource["with_custom_conditions.yml"]["CustomResourceDefinition"].first
+      crd["metadata"]["annotations"].merge!(
+        KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => "blah"
+      )
+    end
+    assert_deploy_success(crd_result)
+    KubernetesDeploy::DeployTask.any_instance.unstub(:validate_resources)
+
+    cr_result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml"])
+    assert_deploy_failure(cr_result)
+    assert_logs_match_all([
+      /Invalid template: Customized-with-customized-params/,
+      /Rollout conditions are not valid JSON/
     ])
   ensure
     wait_for_all_crd_deletion

@@ -78,8 +78,8 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
     crd.validate_definition(kubectl)
     assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
     assert(crd.validation_error_msg.match(
-      "Annotation kubernetes-deploy.shopify.io\/cr-instance-rollout-conditions on UnitTest is invalid:" \
-      " Rollout conditions are not valid JSON:"
+      "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "on UnitTest is invalid: Rollout conditions are not valid JSON:"
     ))
   end
 
@@ -93,8 +93,8 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       })
     cr.validate_definition(kubectl)
     assert(cr.validation_error_msg.match(
-      "Annotation kubernetes-deploy.shopify.io\/cr-instance-rollout-conditions on UnitTest is invalid:" \
-      " Rollout conditions are not valid JSON:"
+      "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "on UnitTest is invalid: Rollout conditions are not valid JSON:"
     ))
   end
 

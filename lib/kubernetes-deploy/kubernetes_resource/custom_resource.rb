@@ -3,9 +3,8 @@ require 'jsonpath'
 module KubernetesDeploy
   class CustomResource < KubernetesResource
     TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS = <<~MSG
-      The deploy has timed out because .status.observedGeneration is different from .metadata.generation.
-      Note that in order for kubernetes-deploy to begin monitoring custom resource rollouts,
-      status.observedGeneration must equal metadata.generation.
+      This resource's status could not be used to determine rollout success because it was still out of date
+      (.metadata.generation != .status.observedGeneration) after #{timeout}s.
     MSG
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], crd:)
@@ -16,10 +15,6 @@ module KubernetesDeploy
 
     def timeout
       timeout_override || @crd.timeout_for_instance || TIMEOUT
-    end
-
-    def rollout_conditions
-      @crd.rollout_conditions
     end
 
     def deploy_succeeded?
@@ -66,6 +61,10 @@ module KubernetesDeploy
 
     def kind
       @definition["kind"]
+    end
+
+    def rollout_conditions
+      @crd.rollout_conditions
     end
   end
 end
