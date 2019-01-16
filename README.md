@@ -315,20 +315,20 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
 
 ### Deploying custom resources
 
-By default, kubernetes-deploy does not check to see whether the deployment of a custom resource is successful or not. Instead, it simply assumes that the custom resource deploys successfully and performs no additional checks. In order to meaningfully monitor the rollout of custom resources, kubernetes-deploy supports annotations that specify the pass/fail conditions of a given resource.
+By default, kubernetes-deploy does not check the status of custom resources; it simply assumes that they deployed successfully. In order to meaningfully monitor the rollout of custom resources, kubernetes-deploy supports configuring pass/fail conditions using annotations on CustomResourceDefinitions (CRDs).
 
 >Note:
 This feature is only available on clusters running Kubernetes 1.11+ since it relies on the `metadata.generation` field being updated when custom resource specs are changed.
 
 *Requirements:*
 
-* The custom resource must expose a `status` field with an `observedGeneration` field.
-* The `kubernetes-deploy.shopify.io/instance-rollout-conditions` annotation must be present on the *CRD* that defines the custom resource.
-* (optional) The `kubernetes-deploy.shopify.io/cr-instance-timeout` annotation can be added to the *CRD* that defines the custom resource to specify a timeout for all instances defined by the CRD (otherwise the global default is used). This annotation uses ISO8601, but can also parse unprefixed ISO8601 time components (e.g. '1H', '60S').
+* The custom resource must expose a `status` subresource with an `observedGeneration` field.
+* The `kubernetes-deploy.shopify.io/cr-instance-rollout-conditions` annotation must be present on the *CRD* that defines the custom resource.
+* (optional) The `kubernetes-deploy.shopify.io/cr-instance-timeout` annotation can be added to the CRD that defines the custom resource to override the global default timeout for all instances of that resource. This annotation can use ISO8601 format or unprefixed ISO8601 time components (e.g. '1H', '60S').
 
 ### Specifying pass/fail conditions
 
-The presence of a valid `kubernetes-deploy.shopify.io/instance-rollout-conditions` annotation on a CRD will cause kubernetes-deploy to monitor the rollout of any of its instances with the supplied annotation value. This value must be a valid JSON string with the following format:
+The presence of a valid `kubernetes-deploy.shopify.io/cr-instance-rollout-conditions` annotation on a CRD will cause kubernetes-deploy to monitor the rollout of all instances of that custom resource. Its value can either be `True` (giving you the defaults described in the next section) or a valid JSON string with the following format:
 ```
 '{
   "success_conditions": [
@@ -342,15 +342,15 @@ The presence of a valid `kubernetes-deploy.shopify.io/instance-rollout-condition
 }'
 ```
 
-For all conditions, `path` must be a valid JsonPath expression that points to a given field in the custom resource's spec. `value` is the value that must be present at `path` in order to fulfill a condition. For a deployment to be successful, _all_ `success_conditions` must be fulfilled. Conversely, it is sufficient for _any one of_ `failure_conditions` to be fulfilled in order to mark the deploy as failed.
+For all conditions, `path` must be a valid JsonPath expression that points to a field in the custom resource's status. `value` is the value that must be present at `path` in order to fulfill a condition. For a deployment to be successful, _all_ `success_conditions` must be fulfilled. Conversely, the deploy will be marked as failed if _any one of_ `failure_conditions` is fulfilled.
 
 **Warning:**
 
-You **must** ensure that your custom resource controller sets `.status.observedGeneration` to `.metadata.generation` of the monitored resource once its sync is complete. If this does not happen, kubernetes-deploy will not check success or failure conditions and the deploy will timeout.
+You **must** ensure that your custom resource controller sets `.status.observedGeneration` to match the observed `.metadata.generation` of the monitored resource once its sync is complete. If this does not happen, kubernetes-deploy will not check success or failure conditions and the deploy will time out.
 
 ### Example
 
-As an example, observe the following default rollout configuration. You can use this default by setting `kubernetes-deploy.shopify.io/instance-rollout-conditions: "true"` on the *CRD* that defines the custom resources you wish to monitor. This will create a rollout configuration identical to this specification:
+As an example, the following is the default configuration that will be used if you set `kubernetes-deploy.shopify.io/cr-instance-rollout-conditions: "true"` on the CRD that defines the custom resources you wish to monitor:
 
 ```
 '{
@@ -396,7 +396,7 @@ status:
     message: "resource is failed"
 ```
 
-- `observedGeneration == metadata.generation`, so kubernetes-deploy will monitor the deploy.
+- `observedGeneration == metadata.generation`, so kubernetes-deploy will check this resource's success and failure conditions.
 - Since `$.status.conditions[?(@.type == "Ready")].status == "False"`, the deploy is not considered successful yet.
 - `$.status.conditions[?(@.type == "Failed")].status == "True"` means that a failure condition has been fulfilled and the deploy is considered failed.
 - Since `error_msg_path` is specified, kubernetes-deploy will log the contents of '$.status.conditions[?(@.type == "Failed")].message', which in this case is: `resource is failed`.
