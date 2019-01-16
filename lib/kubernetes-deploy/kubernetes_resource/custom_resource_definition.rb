@@ -54,8 +54,7 @@ module KubernetesDeploy
 
     def rollout_conditions
       @rollout_conditions ||= if rollout_conditions_annotation
-        conditions = RolloutConditions.parse_conditions(rollout_conditions_annotation)
-        RolloutConditions.new(conditions)
+        RolloutConditions.from_annotation(rollout_conditions_annotation)
       end
     rescue RolloutConditionsError
       nil
@@ -64,9 +63,17 @@ module KubernetesDeploy
     def validate_definition(_)
       super
 
-      RolloutConditions.parse_conditions(rollout_conditions_annotation) if rollout_conditions_annotation
+      validate_rollout_conditions
     rescue RolloutConditionsError => e
-      @validation_errors << e
+      @validation_errors << "Annotation #{ROLLOUT_CONDITIONS_ANNOTATION} on #{kind} is invalid: #{e}"
+    end
+
+    def validate_rollout_conditions
+      if rollout_conditions_annotation && !@rollout_conditions_validated
+        conditions = RolloutConditions.from_annotation(rollout_conditions_annotation)
+        conditions.validate!
+      end
+      @rollout_conditions_validated = true
     end
 
     private

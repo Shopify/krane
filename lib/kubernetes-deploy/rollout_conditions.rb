@@ -4,31 +4,32 @@ module KubernetesDeploy
   end
 
   class RolloutConditions
-    class << self
-      def parse_conditions(conditions_string)
-        return default_conditions if conditions_string.downcase == "true"
+    VALID_FAILURE_CONDITION_KEYS = [:path, :value, :error_msg_path, :custom_error_msg]
+    VALID_SUCCESS_CONDITION_KEYS = [:path, :value]
 
-        conditions = JSON.parse(conditions_string).deep_symbolize_keys
-        errors = validate_conditions(conditions)
-        raise RolloutConditionsError, errors.join("\n") unless errors.empty?
+    class << self
+      def from_annotation(conditions_string)
+        return default_conditions if conditions_string.downcase.strip == "true"
+
+        conditions = JSON.parse(conditions_string).slice('success_conditions', 'failure_conditions')
 
         # Create JsonPath objects
-        conditions[:success_conditions].each do |query|
+        conditions[:success_conditions]&.each do |query|
+          query.slice!(VALID_SUCCESS_CONDITION_KEYS)
           query[:path] = JsonPath.new(query[:path]) if query.key?(:path)
         end
-        conditions[:failure_conditions].each do |query|
+        conditions[:failure_conditions]&.each do |query|
+          query.slice!(VALID_FAILURE_CONDITION_KEYS)
           query[:path] = JsonPath.new(query[:path]) if query.key?(:path)
           query[:error_msg_path] = JsonPath.new(query[:error_msg_path]) if query.key?(:error_msg_path)
         end
 
-        conditions
-      rescue RolloutConditionsError
-        raise
+        new(conditions)
       rescue JSON::ParserError => e
-        raise RolloutConditionsError, "Error parsing rollout conditions: #{e}"
+        raise RolloutConditionsError, "Rollout conditions are not valid JSON: #{e}"
       rescue RuntimeError => e
         raise RolloutConditionsError,
-          "parse_conditions encountered an unknown error." \
+          "Error parsing rollout conditions. " \
           "This is most likely caused by an invalid JsonPath expression. Failed with: #{e}"
       end
 
@@ -49,44 +50,11 @@ module KubernetesDeploy
           ],
         }
       end
-
-      private
-
-      def validate_conditions(conditions)
-        errors = []
-
-        top_level_keys = [:success_conditions, :failure_conditions]
-        missing = top_level_keys.reject { |k| conditions.key?(k) }
-        unless missing.blank?
-          errors << "Missing required top-level key(s): #{missing}"
-        end
-        remaining_keys = top_level_keys - missing
-        remaining_keys.each do |k|
-          errors << "#{k} should be Array but found #{conditions[k].class}!" unless [k].is_a?(Array)
-          errors << "#{k} must contain at least one entry" if conditions[k].empty?
-        end
-        return errors unless errors.empty?
-
-        query_keys = [:path, :value]
-        conditions[:success_conditions].each do |query|
-          missing = query_keys.reject { |k| query.key?(k) }
-          unless missing.blank?
-            errors << "Missing required key(s) for success_condition #{query}: #{missing}"
-          end
-        end
-        conditions[:failure_conditions].each do |query|
-          missing = query_keys.reject { |k| query.key?(k) }
-          unless missing.blank?
-            errors << "Missing required key(s) for failure_condition #{query}: #{missing}"
-          end
-        end
-        errors
-      end
     end
 
     def initialize(conditions)
-      @success_conditions = conditions[:success_conditions]
-      @failure_conditions = conditions[:failure_conditions]
+      @success_conditions = conditions.fetch(:success_conditions, [])
+      @failure_conditions = conditions.fetch(:failure_conditions, [])
     end
 
     def rollout_successful?(instance_data)
@@ -104,12 +72,31 @@ module KubernetesDeploy
     def failure_messages(instance_data)
       @failure_conditions.map do |query|
         next unless query[:path].first(instance_data) == query[:value]
-        if query[:custom_error_msg]
-          query[:custom_error_msg]
-        elsif query[:error_msg_path]
-          query[:error_msg_path]&.first(instance_data)
-        end
+        query[:custom_error_msg].presence || query[:error_msg_path]&.first(instance_data)
       end.compact
+    end
+
+    def validate!
+      errors = validate_conditions(@success_conditions, 'success_conditions')
+      errors += validate_conditions(@failure_conditions, 'failure_conditions', required: false)
+      raise RolloutConditionsError, errors.join(", ") unless errors.empty?
+    end
+
+    private
+
+    def validate_conditions(conditions, source_key, required: true)
+      return unless conditions.present? || required
+      errors = []
+      errors << "Missing required key '#{source_key}'" if conditions.nil?
+      errors << "#{source_key} should be Array but found #{conditions[source_key].class}" unless conditions.is_a?(Array)
+      errors << "#{source_key} must contain at least one entry" if conditions.empty?
+      return errors if errors.present?
+
+      conditions.each do |query|
+        missing = [:path, :value].reject { |k| query.key?(k) }
+        errors << "Missing required key(s) for #{source_key} #{query}: #{missing}" if missing.present?
+      end
+      errors
     end
   end
 end

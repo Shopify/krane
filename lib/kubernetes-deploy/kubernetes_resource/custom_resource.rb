@@ -56,8 +56,9 @@ module KubernetesDeploy
 
     def validate_definition(kubectl)
       super
-
-      @crd.validate_definition(kubectl)
+      @crd.validate_rollout_conditions
+    rescue RolloutConditionsError => e
+      @validation_errors << "Annotation #{ROLLOUT_CONDITIONS_ANNOTATION} on #{kind} is invalid: #{e}"
     end
 
     private
