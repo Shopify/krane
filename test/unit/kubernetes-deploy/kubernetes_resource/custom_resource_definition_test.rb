@@ -30,6 +30,21 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
     refute(crd.validation_failed?, "Valid rollout conditions failed validation")
   end
 
+  def test_rollout_conditions_failure_conditions_optional
+    rollout_conditions = {
+      success_conditions: [
+        {
+          path: "$.test_path",
+          value: "test_value",
+        },
+      ],
+    }.to_json
+
+    crd = build_crd(merge_rollout_annotation(rollout_conditions))
+    crd.validate_definition(kubectl)
+    refute(crd.validation_failed?, "Valid rollout conditions failed validation")
+  end
+
   def test_rollout_conditions_invalid_when_path_or_value_missing
     missing_keys = {
       success_conditions: [{ path: "$.test" }],
@@ -38,10 +53,12 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
 
     crd = build_crd(merge_rollout_annotation(missing_keys.to_json))
     crd.validate_definition(kubectl)
+
     assert(crd.validation_failed?, "Missing path/value keys should fail validation")
     assert_equal(crd.validation_error_msg,
-      "Missing required key(s) for success_condition {:path=>\"$.test\"}: [:value]\n" \
-      "Missing required key(s) for failure_condition {:value=>\"test\"}: [:path]")
+      "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "on UnitTest is invalid: Missing required key(s) for success_condition: [:value], " \
+      "Missing required key(s) for failure_condition: [:path]")
   end
 
   def test_rollout_conditions_raises_when_missing_condition_keys
@@ -49,16 +66,21 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
 
     crd = build_crd(merge_rollout_annotation(missing_keys))
     crd.validate_definition(kubectl)
-    assert(crd.validation_failed?, "Missing failure_conditions key should fail validation")
-    assert_equal(crd.validation_error_msg, "Missing required top-level key(s): [:failure_conditions]\n" \
-      "success_conditions must contain at least one entry")
+
+    assert(crd.validation_failed?, "success_conditions requires at least one entry")
+    assert_equal(crd.validation_error_msg,
+      "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "on UnitTest is invalid: success_conditions must contain at least one entry")
   end
 
   def test_rollout_conditions_raises_error_with_invalid_json
     crd = build_crd(merge_rollout_annotation('bad string'))
     crd.validate_definition(kubectl)
     assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
-    assert(crd.validation_error_msg.match(/Error parsing rollout conditions/))
+    assert(crd.validation_error_msg.match(
+      "Annotation kubernetes-deploy.shopify.io\/cr-instance-rollout-conditions on UnitTest is invalid:" \
+      " Rollout conditions are not valid JSON:"
+    ))
   end
 
   def test_cr_instance_fails_validation_when_rollout_conditions_for_crd_invalid
@@ -70,7 +92,10 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
         "metadata" => { "name" => "test" },
       })
     cr.validate_definition(kubectl)
-    assert(crd.validation_error_msg.match(/Error parsing rollout conditions/))
+    assert(cr.validation_error_msg.match(
+      "Annotation kubernetes-deploy.shopify.io\/cr-instance-rollout-conditions on UnitTest is invalid:" \
+      " Rollout conditions are not valid JSON:"
+    ))
   end
 
   def test_cr_instance_valid_when_rollout_conditions_for_crd_valid

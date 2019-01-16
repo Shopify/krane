@@ -9,17 +9,18 @@ module KubernetesDeploy
 
     class << self
       def from_annotation(conditions_string)
-        return default_conditions if conditions_string.downcase.strip == "true"
+        return new(default_conditions) if conditions_string.downcase.strip == "true"
 
         conditions = JSON.parse(conditions_string).slice('success_conditions', 'failure_conditions')
+        conditions.deep_symbolize_keys!
 
         # Create JsonPath objects
         conditions[:success_conditions]&.each do |query|
-          query.slice!(VALID_SUCCESS_CONDITION_KEYS)
+          query.slice!(*VALID_SUCCESS_CONDITION_KEYS)
           query[:path] = JsonPath.new(query[:path]) if query.key?(:path)
         end
         conditions[:failure_conditions]&.each do |query|
-          query.slice!(VALID_FAILURE_CONDITION_KEYS)
+          query.slice!(*VALID_FAILURE_CONDITION_KEYS)
           query[:path] = JsonPath.new(query[:path]) if query.key?(:path)
           query[:error_msg_path] = JsonPath.new(query[:error_msg_path]) if query.key?(:error_msg_path)
         end
@@ -85,7 +86,7 @@ module KubernetesDeploy
     private
 
     def validate_conditions(conditions, source_key, required: true)
-      return unless conditions.present? || required
+      return [] unless conditions.present? || required
       errors = []
       errors << "Missing required key '#{source_key}'" if conditions.nil?
       errors << "#{source_key} should be Array but found #{conditions[source_key].class}" unless conditions.is_a?(Array)
@@ -94,7 +95,7 @@ module KubernetesDeploy
 
       conditions.each do |query|
         missing = [:path, :value].reject { |k| query.key?(k) }
-        errors << "Missing required key(s) for #{source_key} #{query}: #{missing}" if missing.present?
+        errors << "Missing required key(s) for #{source_key.singularize}: #{missing}" if missing.present?
       end
       errors
     end

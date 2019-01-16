@@ -69,7 +69,7 @@ module KubernetesDeploy
     end
 
     def validate_rollout_conditions
-      if rollout_conditions_annotation && !@rollout_conditions_validated
+      if rollout_conditions_annotation && @rollout_conditions_validated.nil?
         conditions = RolloutConditions.from_annotation(rollout_conditions_annotation)
         conditions.validate!
       end
