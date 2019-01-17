@@ -36,14 +36,19 @@ module KubernetesDeploy
                  statsd_tags: statsd_tags }
         if definition["kind"].blank?
           raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
-        elsif KubernetesDeploy.const_defined?(definition["kind"])
-          klass = KubernetesDeploy.const_get(definition["kind"])
-          klass.new(**opts)
-        else
-          inst = new(**opts)
-          inst.type = definition["kind"]
-          inst
         end
+
+        begin
+          if KubernetesDeploy.const_defined?(definition["kind"])
+            klass = KubernetesDeploy.const_get(definition["kind"])
+            return klass.new(**opts)
+          end
+        rescue NameError
+        end
+
+        inst = new(**opts)
+        inst.type = definition["kind"]
+        inst
       end
 
       def timeout
