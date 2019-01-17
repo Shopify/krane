@@ -288,13 +288,13 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     refute_predicate(dummy, :disappeared?)
   end
 
-  def test_custom_resource_kind
+  def test_lowercase_custom_resource_kind_does_not_raise
     definition = { "kind" => "foobar", "metadata" => { "name" => "test" } }
     KubernetesDeploy::KubernetesResource.build(
       namespace: 'test',
       context: 'test',
       definition: definition,
-      logger: ::Logger.new($stderr),
+      logger: logger,
       statsd_tags: []
     )
   end
