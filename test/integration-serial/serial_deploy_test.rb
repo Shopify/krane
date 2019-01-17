@@ -163,7 +163,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       "Phase 1: Initializing deploy",
       "Detected non-namespaced resources which will never be pruned:",
       " - CustomResourceDefinition/mail.stable.example.io",
-      "Phase 3: Predeploying priority resources",
+      "Phase 2: Deploying all resources",
       "CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
       %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted},
     ])

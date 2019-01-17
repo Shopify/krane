@@ -63,7 +63,6 @@ module KubernetesDeploy
     def predeploy_sequence
       before_crs = %w(
         ResourceQuota
-        CustomResourceDefinition
       )
       after_crs = %w(
         ConfigMap
