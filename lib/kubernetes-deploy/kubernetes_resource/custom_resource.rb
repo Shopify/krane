@@ -64,8 +64,11 @@ module KubernetesDeploy
 
       @crd.validate_rollout_conditions
     rescue RolloutConditionsError => e
-      @validation_errors << "Annotation #{CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
-      "on #{@crd.name} is invalid: #{e}"
+      @validation_errors << "The CRD that specifies this resource is using invalid rollout conditions. " \
+      "Kubernetes-deploy will not be able to continue until those rollout conditions are fixed.\n" \
+      "Rollout conditions can be found on the CRD that defines this resource (#{@crd.name}), " \
+      "Under the annotation #{CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION}.\n" \
+      "Validation failed with: #{e}"
     end
 
     private

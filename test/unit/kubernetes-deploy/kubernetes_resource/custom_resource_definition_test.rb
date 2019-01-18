@@ -2,7 +2,6 @@
 require 'test_helper'
 
 class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
-
   def test_rollout_conditions_nil_when_none_present
     crd = build_crd(crd_spec)
     refute(crd.rollout_conditions)
