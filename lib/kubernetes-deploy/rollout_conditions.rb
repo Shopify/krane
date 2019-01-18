@@ -28,7 +28,7 @@ module KubernetesDeploy
         new(conditions)
       rescue JSON::ParserError => e
         raise RolloutConditionsError, "Rollout conditions are not valid JSON: #{e}"
-      rescue RuntimeError => e
+      rescue StandardError => e
         raise RolloutConditionsError,
           "Error parsing rollout conditions. " \
           "This is most likely caused by an invalid JsonPath expression. Failed with: #{e}"
