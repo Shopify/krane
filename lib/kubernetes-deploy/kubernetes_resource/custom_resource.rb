@@ -4,7 +4,7 @@ module KubernetesDeploy
   class CustomResource < KubernetesResource
     TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS = <<~MSG
       This resource's status could not be used to determine rollout success because it was still out of date
-      (.metadata.generation != .status.observedGeneration) after #{timeout}s.
+      (.metadata.generation != .status.observedGeneration).
     MSG
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], crd:)
@@ -45,16 +45,27 @@ module KubernetesDeploy
       end
     end
 
+    def status
+      if !exists? || rollout_conditions.nil?
+        super
+      elsif deploy_succeeded?
+        "Healthy"
+      elsif deploy_failed?
+        "Unhealthy"
+      end
+    end
+
     def type
       kind
     end
 
     def validate_definition(kubectl)
       super
+
       @crd.validate_rollout_conditions
     rescue RolloutConditionsError => e
       @validation_errors << "Annotation #{CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
-      "on #{kind} is invalid: #{e}"
+      "on #{@crd.name} is invalid: #{e}"
     end
 
     private

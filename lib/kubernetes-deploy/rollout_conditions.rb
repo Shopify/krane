@@ -88,8 +88,7 @@ module KubernetesDeploy
     def validate_conditions(conditions, source_key, required: true)
       return [] unless conditions.present? || required
       errors = []
-      errors << "Missing required key '#{source_key}'" if conditions.nil?
-      errors << "#{source_key} should be Array but found #{conditions[source_key].class}" unless conditions.is_a?(Array)
+      errors << "#{source_key} should be Array but found #{conditions.class}" unless conditions.is_a?(Array)
       errors << "#{source_key} must contain at least one entry" if conditions.empty?
       return errors if errors.present?
 

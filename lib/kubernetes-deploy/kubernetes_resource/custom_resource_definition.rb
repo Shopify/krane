@@ -47,6 +47,10 @@ module KubernetesDeploy
       @definition.dig("spec", "names", "kind")
     end
 
+    def name
+      @definition.dig("metadata", "name")
+    end
+
     def prunable?
       prunable = @definition.dig("metadata", "annotations", "kubernetes-deploy.shopify.io/prunable")
       prunable == "true"
@@ -67,7 +71,7 @@ module KubernetesDeploy
 
       validate_rollout_conditions
     rescue RolloutConditionsError => e
-      @validation_errors << "Annotation #{ROLLOUT_CONDITIONS_ANNOTATION} on #{kind} is invalid: #{e}"
+      @validation_errors << "Annotation #{ROLLOUT_CONDITIONS_ANNOTATION} on #{name} is invalid: #{e}"
     end
 
     def validate_rollout_conditions
