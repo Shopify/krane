@@ -342,7 +342,7 @@ The presence of a valid `kubernetes-deploy.shopify.io/instance-rollout-condition
 }'
 ```
 
-For all conditions, `path` must be a valid JsonPath expression that points to a field in the custom resource's status. `value` is the value that must be present at `path` in order to fulfill a condition. For a deployment to be successful, _all_ `success_conditions` must be fulfilled. Conversely, the deploy will be marked as failed if _any one of_ `failure_conditions` is fulfilled. `success_conditions` are mandatory, but `failure_conditions` can be omitted (the resource will simply timeout if it never reaches a successful state).
+For all conditions, `path` must be a valid JsonPath expression that points to a field in the custom resource's status. `value` is the value that must be present at `path` in order to fulfill a condition. For a deployment to be successful, _all_ `success_conditions` must be fulfilled. Conversely, the deploy will be marked as failed if _any one of_ `failure_conditions` is fulfilled. `success_conditions` are mandatory, but `failure_conditions` can be omitted (the resource will simply time out if it never reaches a successful state).
 
 In addition to `path` and `value`, a failure condition can also contain `error_msg_path` or `custom_error_msg`. `error_msg_path` is a JsonPath expression that points to a field you want to surface when a failure condition is fulfilled. For example, a status condition may expose a `message` field that contains a description of the problem it encountered. `custom_error_msg` is a string that can be used if your custom resource doesn't contain sufficient information to warrant using `error_msg_path`. Note that `custom_error_msg` has higher precedence than `error_msg_path` so it will be used in favor of `error_msg_path` when both fields are present.
 
@@ -401,7 +401,7 @@ status:
 - `observedGeneration == metadata.generation`, so kubernetes-deploy will check this resource's success and failure conditions.
 - Since `$.status.conditions[?(@.type == "Ready")].status == "False"`, the resource is not considered successful yet.
 - `$.status.conditions[?(@.type == "Failed")].status == "True"` means that a failure condition has been fulfilled and the resource is considered failed.
-- Since `error_msg_path` is specified, kubernetes-deploy will log the contents of '$.status.conditions[?(@.type == "Failed")].message', which in this case is: `resource is failed`.
+- Since `error_msg_path` is specified, kubernetes-deploy will log the contents of `$.status.conditions[?(@.type == "Failed")].message`, which in this case is: `resource is failed`.
 
 # kubernetes-restart
 

@@ -2,7 +2,6 @@
 require 'test_helper'
 
 class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
-  include ResourceCacheTestHelper
 
   def test_rollout_conditions_nil_when_none_present
     crd = build_crd(crd_spec)
@@ -57,7 +56,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
     assert(crd.validation_failed?, "Missing path/value keys should fail validation")
     assert_equal(crd.validation_error_msg,
       "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
-      "on UnitTest is invalid: Missing required key(s) for success_condition: [:value], " \
+      "on #{crd.name} is invalid: Missing required key(s) for success_condition: [:value], " \
       "Missing required key(s) for failure_condition: [:path]")
   end
 
@@ -70,7 +69,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
     assert(crd.validation_failed?, "success_conditions requires at least one entry")
     assert_equal(crd.validation_error_msg,
       "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
-      "on UnitTest is invalid: success_conditions must contain at least one entry")
+      "on #{crd.name} is invalid: success_conditions must contain at least one entry")
   end
 
   def test_rollout_conditions_raises_error_with_invalid_json
@@ -79,7 +78,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
     assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
     assert(crd.validation_error_msg.match(
       "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
-      "on UnitTest is invalid: Rollout conditions are not valid JSON:"
+      "on #{crd.name} is invalid: Rollout conditions are not valid JSON:"
     ))
   end
 
@@ -94,7 +93,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
     cr.validate_definition(kubectl)
     assert(cr.validation_error_msg.match(
       "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
-      "on UnitTest is invalid: Rollout conditions are not valid JSON:"
+      "on #{crd.name} is invalid: Rollout conditions are not valid JSON:"
     ))
   end
 
@@ -165,9 +164,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
         "kind" => "UnitTest",
         "metadata" => {
           "name" => "test",
-          "generation" => 1,
         },
-        "status" => { "observedGeneration" => 1 },
       })
 
     cr.expects(:current_generation).returns(1)
