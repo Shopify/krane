@@ -240,7 +240,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
     assert_logs_match_all([
       "Don't know how to monitor resources of type Widget. Assuming Widget/my-first-widget deployed successfully.",
-      %r{Widget/my-first-widget\s+Exists}
+      %r{Widget/my-first-widget\s+Exists},
     ])
   ensure
     wait_for_all_crd_deletion
@@ -300,7 +300,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Parameterized/with-default-params: FAILED",
       "custom resource rollout failed",
-      "Final status: Unhealthy"
+      "Final status: Unhealthy",
     ], in_order: true)
   ensure
     wait_for_all_crd_deletion

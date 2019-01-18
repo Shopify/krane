@@ -83,7 +83,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
 
   def test_rollout_conditions_fails_validation_when_condition_is_wrong_type
     crd = build_crd(merge_rollout_annotation({
-      success_conditions: {}
+      success_conditions: {},
     }.to_json))
     crd.validate_definition(kubectl)
     assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
