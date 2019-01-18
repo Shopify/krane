@@ -3,7 +3,7 @@ require 'jsonpath'
 module KubernetesDeploy
   class CustomResource < KubernetesResource
     TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS = <<~MSG
-      This resource's status could not be used to determine rollout success because it was still out of date
+      This resource's status could not be used to determine rollout success because it is not up-to-date
       (.metadata.generation != .status.observedGeneration).
     MSG
 
@@ -67,7 +67,7 @@ module KubernetesDeploy
       @validation_errors << "The CRD that specifies this resource is using invalid rollout conditions. " \
       "Kubernetes-deploy will not be able to continue until those rollout conditions are fixed.\n" \
       "Rollout conditions can be found on the CRD that defines this resource (#{@crd.name}), " \
-      "Under the annotation #{CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION}.\n" \
+      "under the annotation #{CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION}.\n" \
       "Validation failed with: #{e}"
     end
 

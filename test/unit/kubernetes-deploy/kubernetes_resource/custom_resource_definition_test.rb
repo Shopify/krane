@@ -95,8 +95,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       "able to continue until those rollout conditions are fixed.\nRollout conditions can be found on the CRD " \
       "that defines this resource (unittests.stable.example.io), Under the annotation " \
       "kubernetes-deploy.shopify.io/instance-rollout-conditions.\nValidation failed with: " \
-      "Rollout conditions are not valid JSON: Empty input () at line 1, column 1 [parse.c:963] in 'bad string"
-    )
+      "Rollout conditions are not valid JSON: Empty input () at line 1, column 1 [parse.c:963] in 'bad string")
   end
 
   def test_cr_instance_valid_when_rollout_conditions_for_crd_valid
@@ -117,7 +116,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
 
     crd = build_crd(merge_rollout_annotation(rollout_conditions))
     cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, crd: crd,
+      logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
         "metadata" => { "name" => "test" },
@@ -133,7 +132,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       },
     ))
     cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, crd: crd,
+      logger: @logger, statsd_tags: [], crd: crd,
       definition: { "kind" => "UnitTest", "metadata" => { "name" => "test" } })
     assert_equal(cr.timeout, KubernetesDeploy::CustomResource.timeout)
 
@@ -146,7 +145,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       }
     ))
     cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, crd: crd,
+      logger: @logger, statsd_tags: [], crd: crd,
       definition: { "kind" => "UnitTest", "metadata" => { "name" => "test" } })
     assert_equal(cr.timeout, 60)
   end
@@ -161,7 +160,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       },
     ))
     cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, crd: crd,
+      logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
         "metadata" => {
@@ -185,7 +184,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       },
     ))
     cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, crd: crd,
+      logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
         "metadata" => {

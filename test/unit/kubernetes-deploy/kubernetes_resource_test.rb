@@ -298,40 +298,40 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       statsd_tags: []
     )
   end
-  
+
   def test_build_handles_hardcoded_and_core_and_dynamic_objects
     # Hardcoded CRs
     redis_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, definition: build_crd(name: "redis"))
+      logger: @logger, statsd_tags: [], definition: build_crd(name: "redis"))
     redis_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, crd: redis_crd,
+      logger: @logger, statsd_tags: [], crd: redis_crd,
       definition: { "kind" => "Redis", "metadata" => { "name" => "test" } })
     assert_equal(redis_cr.class, KubernetesDeploy::Redis)
 
     # Dynamic with no rollout config
     no_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, definition: build_crd(name: "noconfig"))
+      logger: @logger, statsd_tags: [], definition: build_crd(name: "noconfig"))
     no_config_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, crd: no_config_crd,
+      logger: @logger, statsd_tags: [], crd: no_config_crd,
       definition: { "kind" => "Noconfig", "metadata" => { "name" => "test" } })
     assert_equal(no_config_cr.class, KubernetesDeploy::CustomResource)
 
     # With rollout config
     with_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, definition: build_crd(name: "withconfig", with_config: true))
+      logger: @logger, statsd_tags: [], definition: build_crd(name: "withconfig", with_config: true))
     with_config_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, crd: with_config_crd,
+      logger: @logger, statsd_tags: [], crd: with_config_crd,
       definition: { "kind" => "Withconfig", "metadata" => { "name" => "test" } })
     assert_equal(with_config_cr.class, KubernetesDeploy::CustomResource)
 
     # Hardcoded resource
     svc = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      statsd_tags: @statsd_tags, definition: { "kind" => "Service", "metadata" => { "name" => "test" } })
+      statsd_tags: [], definition: { "kind" => "Service", "metadata" => { "name" => "test" } })
     assert_equal(svc.class, KubernetesDeploy::Service)
 
     # Generic resource
     resource = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      statsd_tags: @statsd_tags, definition: { "kind" => "Unkonwn", "metadata" => { "name" => "test" } })
+      statsd_tags: [], definition: { "kind" => "Unkonwn", "metadata" => { "name" => "test" } })
     assert_equal(resource.class, KubernetesDeploy::KubernetesResource)
   end
 
