@@ -352,7 +352,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_deploying_cr_with_invalid_crd_conditions_fails
+  def test_deploying_crs_with_invalid_crd_conditions_fails
     # Since CRDs are not always deployed along with their CRs and kubernetes-deploy is not the only way CRDs are
     # deployed, we need to model the case where poorly configured rollout_conditions are present before deploying a CR
     KubernetesDeploy::DeployTask.any_instance.expects(:validate_resources).returns(:true)
@@ -371,7 +371,9 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       /Invalid template: Customized-with-customized-params/,
       /Rollout conditions are not valid JSON/,
-    ])
+      /Invalid template: Customized-with-customized-params/,
+      /Rollout conditions are not valid JSON/,
+    ], in_order: true)
   ensure
     wait_for_all_crd_deletion
   end
