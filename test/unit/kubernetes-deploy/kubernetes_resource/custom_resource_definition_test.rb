@@ -59,7 +59,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       "Missing required key(s) for failure_condition: [:path]")
   end
 
-  def test_rollout_conditions_raises_when_missing_condition_keys
+  def test_rollout_conditions_fails_validation_when_missing_condition_keys
     missing_keys = { success_conditions: [] }.to_json
 
     crd = build_crd(merge_rollout_annotation(missing_keys))
@@ -71,7 +71,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       "on #{crd.name} is invalid: success_conditions must contain at least one entry")
   end
 
-  def test_rollout_conditions_raises_error_with_invalid_json
+  def test_rollout_conditions_fails_validation_with_invalid_json
     crd = build_crd(merge_rollout_annotation('bad string'))
     crd.validate_definition(kubectl)
     assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
@@ -79,6 +79,15 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
       "on #{crd.name} is invalid: Rollout conditions are not valid JSON:"
     ))
+  end
+
+  def test_rollout_conditions_fails_validation_when_condition_is_wrong_type
+    crd = build_crd(merge_rollout_annotation({
+      success_conditions: {}
+    }.to_json))
+    crd.validate_definition(kubectl)
+    assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
+    assert(crd.validation_error_msg.match("success_conditions should be Array but found Hash"))
   end
 
   def test_cr_instance_fails_validation_when_rollout_conditions_for_crd_invalid

@@ -89,6 +89,7 @@ module KubernetesDeploy
       return [] unless conditions.present? || required
       errors = []
       errors << "#{source_key} should be Array but found #{conditions.class}" unless conditions.is_a?(Array)
+      return errors if errors.present?
       errors << "#{source_key} must contain at least one entry" if conditions.empty?
       return errors if errors.present?
 
