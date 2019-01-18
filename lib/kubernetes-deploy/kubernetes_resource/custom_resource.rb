@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'jsonpath'
+
 module KubernetesDeploy
   class CustomResource < KubernetesResource
     TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS = <<~MSG
@@ -52,6 +53,8 @@ module KubernetesDeploy
         "Healthy"
       elsif deploy_failed?
         "Unhealthy"
+      else
+        "Unknown"
       end
     end
 
