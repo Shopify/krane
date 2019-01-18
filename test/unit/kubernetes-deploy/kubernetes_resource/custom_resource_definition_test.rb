@@ -90,10 +90,13 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
         "metadata" => { "name" => "test" },
       })
     cr.validate_definition(kubectl)
-    assert(cr.validation_error_msg.match(
-      "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
-      "on #{crd.name} is invalid: Rollout conditions are not valid JSON:"
-    ))
+    assert_equal(cr.validation_error_msg,
+      "The CRD that specifies this resource is using invalid rollout conditions. Kubernetes-deploy will not be " \
+      "able to continue until those rollout conditions are fixed.\nRollout conditions can be found on the CRD " \
+      "that defines this resource (unittests.stable.example.io), Under the annotation " \
+      "kubernetes-deploy.shopify.io/instance-rollout-conditions.\nValidation failed with: " \
+      "Rollout conditions are not valid JSON: Empty input () at line 1, column 1 [parse.c:963] in 'bad string"
+    )
   end
 
   def test_cr_instance_valid_when_rollout_conditions_for_crd_valid

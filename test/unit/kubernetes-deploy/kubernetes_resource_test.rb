@@ -297,6 +297,8 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       logger: logger,
       statsd_tags: []
     )
+  end
+  
   def test_build_handles_hardcoded_and_core_and_dynamic_objects
     # Hardcoded CRs
     redis_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",

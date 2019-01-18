@@ -3,7 +3,6 @@ kind: CustomResourceDefinition
 metadata:
   name: customizeds.stable.example.io
   annotations:
-    kubernetes-deploy.shopify.io/instance-timeout: '5S'
     kubernetes-deploy.shopify.io/instance-rollout-conditions: '{
       "success_conditions": [
         {
