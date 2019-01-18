@@ -79,7 +79,7 @@ module KubernetesDeploy
         conditions = RolloutConditions.from_annotation(rollout_conditions_annotation)
         conditions.validate!
       end
-      # ensure
+
       @rollout_conditions_validated = true
     end
 
