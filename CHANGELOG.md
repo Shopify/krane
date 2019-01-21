@@ -1,5 +1,9 @@
 ## next
 
+*Features*
+- Add support for specifying pass/fail conditions of Custom Resources ([#376](https://github.com/Shopify/kubernetes-deploy/pull/376)).
+- Add support for custom timeouts for Custom Resources([#376](https://github.com/Shopify/kubernetes-deploy/pull/376))
+
 *Enhancements*
 - Officially support Kubernetes 1.13 ([#409](https://github.com/Shopify/kubernetes-deploy/pull/409))
 
