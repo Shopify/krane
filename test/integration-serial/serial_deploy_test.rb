@@ -235,6 +235,153 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
   end
 
+  def test_cr_deploys_without_rollout_conditions_when_none_present
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets.yml)))
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
+    assert_logs_match_all([
+      "Don't know how to monitor resources of type Widget. Assuming Widget/my-first-widget deployed successfully.",
+      %r{Widget/my-first-widget\s+Exists},
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_cr_success_with_default_rollout_conditions
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_conditions.yml"]))
+    success_conditions = {
+      "status" => {
+        "observedGeneration" => 1,
+        "conditions" => [
+          {
+            "type" => "Ready",
+            "reason" => "test",
+            "message" => "test",
+            "status" => "True",
+          },
+        ],
+      },
+    }
+
+    result = deploy_fixtures("crd", subset: ["with_default_conditions_cr.yml"]) do |resource|
+      cr = resource["with_default_conditions_cr.yml"]["Parameterized"].first
+      cr.merge!(success_conditions)
+    end
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Successfully deployed in .*: Parameterized\/with-default-params},
+      %r{Parameterized/with-default-params\s+Healthy},
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_cr_failure_with_default_rollout_conditions
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_conditions.yml"]))
+    failure_conditions = {
+      "status" => {
+        "observedGeneration" => 1,
+        "conditions" => [
+          {
+            "type" => "Failed",
+            "reason" => "test",
+            "message" => "custom resource rollout failed",
+            "status" => "True",
+          },
+        ],
+      },
+    }
+
+    result = deploy_fixtures("crd", subset: ["with_default_conditions_cr.yml"]) do |resource|
+      cr = resource["with_default_conditions_cr.yml"]["Parameterized"].first
+      cr.merge!(failure_conditions)
+    end
+    assert_deploy_failure(result)
+
+    assert_logs_match_all([
+      "Parameterized/with-default-params: FAILED",
+      "custom resource rollout failed",
+      "Final status: Unhealthy",
+    ], in_order: true)
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_cr_success_with_arbitrary_rollout_conditions
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]))
+
+    success_conditions = {
+      "spec" => {},
+      "status" => {
+        "observedGeneration" => 1,
+        "test_field" => "success_value",
+        "condition" => "success_value",
+      },
+    }
+
+    result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml"]) do |resource|
+      cr = resource["with_custom_conditions_cr.yml"]["Customized"].first
+      cr.merge!(success_conditions)
+    end
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Successfully deployed in .*: Customized\/with-customized-params},
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_cr_failure_with_arbitrary_rollout_conditions
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]))
+    cr = load_fixtures("crd", ["with_custom_conditions_cr.yml"])
+    failure_conditions = {
+      "spec" => {},
+      "status" => {
+        "test_field" => "failure_value",
+        "error_msg" => "test error message jsonpath",
+        "observedGeneration" => 1,
+        "condition" => "failure_value",
+      },
+    }
+
+    result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml"]) do |resource|
+      cr = resource["with_custom_conditions_cr.yml"]["Customized"].first
+      cr.merge!(failure_conditions)
+    end
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      "test error message jsonpath",
+      "test custom error message",
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_deploying_crs_with_invalid_crd_conditions_fails
+    # Since CRDs are not always deployed along with their CRs and kubernetes-deploy is not the only way CRDs are
+    # deployed, we need to model the case where poorly configured rollout_conditions are present before deploying a CR
+    KubernetesDeploy::DeployTask.any_instance.expects(:validate_resources).returns(:true)
+    crd_result = deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]) do |resource|
+      crd = resource["with_custom_conditions.yml"]["CustomResourceDefinition"].first
+      crd["metadata"]["annotations"].merge!(
+        KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => "blah"
+      )
+    end
+
+    assert_deploy_success(crd_result)
+    KubernetesDeploy::DeployTask.any_instance.unstub(:validate_resources)
+
+    cr_result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml", "with_custom_conditions_cr2.yml"])
+    assert_deploy_failure(cr_result)
+    assert_logs_match_all([
+      /Invalid template: Customized-with-customized-params/,
+      /Rollout conditions are not valid JSON/,
+      /Invalid template: Customized-with-customized-params/,
+      /Rollout conditions are not valid JSON/,
+    ], in_order: true)
+  ensure
+    wait_for_all_crd_deletion
+  end
+
   private
 
   def wait_for_all_crd_deletion

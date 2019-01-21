@@ -31,6 +31,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency("statsd-instrument", '~> 2.3', '>= 2.3.2')
   spec.add_dependency("oj", "~> 3.7")
   spec.add_dependency("concurrent-ruby", "~> 1.1")
+  spec.add_dependency("jsonpath", "~> 0.9.6")
 
   spec.add_development_dependency("bundler")
   spec.add_development_dependency("rake", "~> 10.0")

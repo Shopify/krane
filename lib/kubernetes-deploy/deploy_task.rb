@@ -6,6 +6,7 @@ require 'tempfile'
 require 'fileutils'
 require 'kubernetes-deploy/kubernetes_resource'
 %w(
+  custom_resource
   cloudsql
   config_map
   deployment
@@ -24,7 +25,6 @@ require 'kubernetes-deploy/kubernetes_resource'
   elasticsearch
   statefulservice
   topic
-  bucket
   stateful_set
   cron_job
   job
@@ -46,19 +46,6 @@ module KubernetesDeploy
     include KubeclientBuilder
     extend KubernetesDeploy::StatsD::MeasureMethods
 
-    PREDEPLOY_SEQUENCE = %w(
-      ResourceQuota
-      Cloudsql
-      Redis
-      Memcached
-      ConfigMap
-      PersistentVolumeClaim
-      ServiceAccount
-      Role
-      RoleBinding
-      Pod
-    )
-
     PROTECTED_NAMESPACES = %w(
       default
       kube-system
@@ -72,6 +59,22 @@ module KubernetesDeploy
     # core/v1/ReplicationController -- superseded by deployments/replicasets
     # extensions/v1beta1/ReplicaSet -- managed by deployments
     # core/v1/Secret -- should not committed / managed by shipit
+
+    def predeploy_sequence
+      before_crs = %w(
+        ResourceQuota
+      )
+      after_crs = %w(
+        ConfigMap
+        PersistentVolumeClaim
+        ServiceAccount
+        Role
+        RoleBinding
+        Pod
+      )
+
+      before_crs + cluster_resource_discoverer.crds.map(&:kind) + after_crs
+    end
 
     def prune_whitelist
       wl = %w(
@@ -194,11 +197,11 @@ module KubernetesDeploy
     end
 
     def deploy_has_priority_resources?(resources)
-      resources.any? { |r| PREDEPLOY_SEQUENCE.include?(r.type) }
+      resources.any? { |r| predeploy_sequence.include?(r.type) }
     end
 
     def predeploy_priority_resources(resource_list)
-      PREDEPLOY_SEQUENCE.each do |resource_type|
+      predeploy_sequence.each do |resource_type|
         matching_resources = resource_list.select { |r| r.type == resource_type }
         next if matching_resources.empty?
         deploy_resources(matching_resources, verify: true, record_summary: false)
@@ -254,12 +257,14 @@ module KubernetesDeploy
 
     def discover_resources
       resources = []
+      crds = cluster_resource_discoverer.crds.group_by(&:kind)
       @logger.info("Discovering templates:")
 
       TemplateDiscovery.new(@template_dir).templates.each do |filename|
         split_templates(filename) do |r_def|
-          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger,
-                                       definition: r_def, statsd_tags: @namespace_tags)
+          crd = crds[r_def["kind"]]&.first
+          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
+            statsd_tags: @namespace_tags, crd: crd)
           resources << r
           @logger.info("  - #{r.id}")
         end
