@@ -457,8 +457,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
     assert_deploy_failure(result, :timed_out)
-
-    assert_logs_match_all(KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n"))
+    assert_logs_match_all(KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n") +
+      ["timeout override: 10s"])
   end
 
   def test_wait_false_ignores_non_priority_resource_failures

@@ -75,7 +75,13 @@ module KubernetesDeploy
     end
 
     def pretty_timeout_type
-      progress_deadline.present? ? "progress deadline: #{progress_deadline}s" : super
+      if timeout_override
+        "timeout override: #{timeout_override}s"
+      elsif progress_deadline.present?
+        "progress deadline: #{progress_deadline}s"
+      else
+        super
+      end
     end
 
     def deploy_timed_out?
