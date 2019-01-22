@@ -117,7 +117,7 @@ offical compatibility chart below.
 
 Refer to `kubernetes-deploy --help` for the authoritative set of options.
 
-- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`.
+- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. You can set multiple template directories by repeating the `--template-dir` flag. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`. Example: `cat templates_from_stdin/*.yml | kubernetes-deploy ns ctx --template-dir=- --template-dir=another_template_dir`.
 - `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size`.
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--max-watch-seconds=seconds`: Raise a timeout error if it takes longer than _seconds_ for any

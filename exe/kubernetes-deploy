@@ -5,7 +5,7 @@ require 'kubernetes-deploy'
 require 'optparse'
 
 skip_wait = false
-template_dir = nil
+template_dirs = []
 allow_protected_ns = false
 prune = true
 bindings = {}
@@ -21,7 +21,11 @@ ARGV.options do |opts|
   prot_ns = KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES.join(', ')
   opts.on("--allow-protected-ns", "Enable deploys to #{prot_ns}; requires --no-prune") { allow_protected_ns = true }
   opts.on("--no-prune", "Disable deletion of resources that do not appear in the template dir") { prune = false }
-  opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
+  opts.on("--template-dir=DIR",
+    "Set the template dir (default: config/deploy/$ENVIRONMENT). " \
+    "Set this flag multiple times to use templates from multiple directories" ) do |d|
+    template_dirs << d
+  end
   opts.on("--verbose-log-prefix", "Add [context][namespace] to the log prefix") { verbose_log_prefix = true }
   opts.on("--max-watch-seconds=seconds",
     "Timeout error is raised if it takes longer than the specified number of seconds") do |t|
@@ -42,27 +46,32 @@ end
 
 namespace = ARGV[0]
 context = ARGV[1]
-template_dir = KubernetesDeploy::OptionsHelper.default_and_check_template_dir(template_dir)
+revision = KubernetesDeploy::OptionsHelper.revision_from_environment
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
 
-runner = KubernetesDeploy::DeployTask.new(
-  namespace: namespace,
-  context: context,
-  current_sha: ENV["REVISION"],
-  template_dir: template_dir,
-  bindings: bindings,
-  logger: logger,
-  max_watch_seconds: max_watch_seconds
-)
-
 begin
-  runner.run!(
-    verify_result: !skip_wait,
-    allow_protected_ns: allow_protected_ns,
-    prune: prune
-  )
+  KubernetesDeploy::OptionsHelper.with_consolidated_template_dir(template_dirs) do |template_dir|
+    runner = KubernetesDeploy::DeployTask.new(
+      namespace: namespace,
+      context: context,
+      current_sha: revision,
+      template_dir: template_dir,
+      bindings: bindings,
+      logger: logger,
+      max_watch_seconds: max_watch_seconds
+    )
+
+    runner.run!(
+      verify_result: !skip_wait,
+      allow_protected_ns: allow_protected_ns,
+      prune: prune
+    )
+  end
 rescue KubernetesDeploy::DeploymentTimeoutError
   exit(70)
 rescue KubernetesDeploy::FatalDeploymentError
+  exit(1)
+rescue KubernetesDeploy::OptionsHelper::OptionsError => e
+  puts e.message
   exit(1)
 end
