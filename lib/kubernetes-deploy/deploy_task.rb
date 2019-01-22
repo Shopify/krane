@@ -324,8 +324,8 @@ module KubernetesDeploy
 
       if !File.directory?(@template_dir)
         errors << "Template directory `#{@template_dir}` doesn't exist"
-      elsif Dir.entries(@template_dir).none? { |file| file =~ /\.ya?ml(\.erb)?$/ }
-        errors << "`#{@template_dir}` doesn't contain valid templates (postfix .yml or .yml.erb)"
+      elsif Dir.entries(@template_dir).none? { |file| file =~ /(\.ya?ml(\.erb)?)|(secrets\.ejson)$/ }
+        errors << "`#{@template_dir}` doesn't contain valid templates (postfix .yml, .yml.erb, or secrets.ejson)"
       end
 
       if @namespace.blank?
