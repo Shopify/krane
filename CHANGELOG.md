@@ -1,11 +1,16 @@
 ## next
 
+## 0.24.0
+
 *Features*
 - Add support for specifying pass/fail conditions of Custom Resources ([#376](https://github.com/Shopify/kubernetes-deploy/pull/376)).
 - Add support for custom timeouts for Custom Resources([#376](https://github.com/Shopify/kubernetes-deploy/pull/376))
 
 *Enhancements*
 - Officially support Kubernetes 1.13 ([#409](https://github.com/Shopify/kubernetes-deploy/pull/409))
+
+*Bug fixes*
+- Fixed bug that caused `NameError: wrong constant name` if custom resources had kind with a lowercase first letter. ([#413](https://github.com/Shopify/kubernetes-deploy/pull/413))
 
 *Other*
 - Kubernetes 1.9 is no longer officially supported as of this version
