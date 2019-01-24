@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
+class KubeConfigTest < KubernetesDeploy::TestCase
   def setup
     WebMock.disable_net_connect!
     set_google_env_vars
@@ -12,7 +12,7 @@ class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
   end
 
   def test_auth_use_default_gcp_success
-    config = KubernetesDeploy::KubeclientBuilder::GoogleFriendlyConfig.new(kubeconfig, "")
+    config = KubernetesDeploy::KubeclientBuilder::KubeConfig.new(kubeconfig, "")
 
     stub_request(:post, 'https://oauth2.googleapis.com/token')
       .to_return(
@@ -31,7 +31,7 @@ class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
   end
 
   def test_auth_use_default_gcp_failure
-    config = KubernetesDeploy::KubeclientBuilder::GoogleFriendlyConfig.new(kubeconfig, "")
+    config = KubernetesDeploy::KubeclientBuilder::KubeConfig.new(kubeconfig, "")
 
     stub_request(:post, 'https://oauth2.googleapis.com/token')
       .to_return(
@@ -40,13 +40,13 @@ class GoogleFriendlyConfigTest < KubernetesDeploy::TestCase
         status: 401
       )
 
-    assert_raises(KubeException) do
+    assert_raises(Signet::AuthorizationError) do
       config.context("google")
     end
   end
 
   def test_non_google_auth_works
-    config = KubernetesDeploy::KubeclientBuilder::GoogleFriendlyConfig.new(kubeconfig, "")
+    config = KubernetesDeploy::KubeclientBuilder::KubeConfig.new(kubeconfig, "")
 
     context = config.context("minikube")
 
