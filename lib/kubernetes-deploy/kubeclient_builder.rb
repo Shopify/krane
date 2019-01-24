@@ -92,7 +92,6 @@ module KubernetesDeploy
       raise ContextMissingError, context unless config
 
       kube_context = config.context(context)
-
       client = Kubeclient::Client.new(
         "#{kube_context.api_endpoint}#{endpoint_path}",
         api_version,
