@@ -273,6 +273,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
         template: build_deployment_template(status: { "replicas" => 3, "conditions" => [] }),
         replica_sets: [build_rs_template(status: { "replica" => 1 })]
       )
+
       deploy.deploy_started_at = Time.now.utc - KubernetesDeploy::Deployment::TIMEOUT
       refute deploy.deploy_timed_out?
 
@@ -304,6 +305,39 @@ class DeploymentTest < KubernetesDeploy::TestCase
       deploy.deploy_started_at = Time.now.utc - 3.minutes
       assert deploy.deploy_timed_out?
       assert_equal "Timeout reason: ProgressDeadlineExceeded\nLatest ReplicaSet: web-1", deploy.timeout_message.strip
+    end
+  end
+
+  def test_deploy_timed_out_based_on_timeout_override
+    Timecop.freeze do
+      template = build_deployment_template(
+        status: {
+          "replicas" => 3,
+          "observedGeneration" => 2,
+          "conditions" => [{
+            "type" => "Progressing",
+            "status" => 'False',
+            "lastUpdateTime" => Time.now.utc - 10.seconds,
+            "reason" => "ProgressDeadlineExceeded",
+          }],
+        }
+      )
+      template["metadata"]["annotations"][KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION] = "15S"
+      template["spec"]["progressDeadlineSeconds"] = "10"
+      deploy = build_synced_deployment(
+        template: template,
+        replica_sets: [build_rs_template(status: { "replica" => 1 })]
+      )
+
+      assert_equal(deploy.timeout, 15)
+      refute(deploy.deploy_timed_out?, "Deploy not started shouldn't have timed out")
+      deploy.deploy_started_at = Time.now.utc - 11.seconds
+      refute(deploy.deploy_timed_out?, "Deploy should not timeout based on progressDeadlineSeconds")
+      deploy.deploy_started_at = Time.now.utc - 16.seconds
+      assert(deploy.deploy_timed_out?, "Deploy should timeout according to timoeout override")
+      assert_equal(KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE + "\nLatest ReplicaSet: web-1",
+        deploy.timeout_message.strip)
+      assert_equal(deploy.pretty_timeout_type, "timeout override: 15s")
     end
   end
 

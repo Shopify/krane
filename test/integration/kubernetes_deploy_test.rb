@@ -446,6 +446,21 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
+  def test_deployment_with_timeout_override
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
+      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+      deployment['spec']['progressDeadlineSeconds'] = 5
+      deployment["metadata"]["annotations"] = {
+        KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => "10S",
+      }
+      container = deployment['spec']['template']['spec']['containers'].first
+      container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
+    end
+    assert_deploy_failure(result, :timed_out)
+    assert_logs_match_all(KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n") +
+      ["timeout override: 10s"])
+  end
+
   def test_wait_false_ignores_non_priority_resource_failures
     # web depends on configmap so will not succeed deployed alone
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], wait: false))
