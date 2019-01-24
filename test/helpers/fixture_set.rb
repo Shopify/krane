@@ -33,7 +33,7 @@ module FixtureSetAssertions
       if res.metadata.deletionTimestamp.blank?
         flunk("#{type} #{name} unexpectedly existed and is not being deleted.")
       end
-    rescue KubeException => e
+    rescue Kubeclient::HttpError => e
       raise unless e.to_s.include?("not found")
     end
 

@@ -64,7 +64,7 @@ module KubernetesDeploy
       kubeclient.create_pod(pod.to_kubeclient_resource)
       @pod_name = pod.name
       @logger.info("Pod creation succeeded")
-    rescue KubeException => e
+    rescue Kubeclient::HttpError => e
       msg = "Failed to create pod: #{e.class.name}: #{e.message}"
       @logger.summary.add_paragraph(msg)
       raise FatalDeploymentError, msg
@@ -122,7 +122,7 @@ module KubernetesDeploy
       begin
         kubeclient.get_namespace(@namespace) if @namespace.present?
         @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
-      rescue KubeException => e
+      rescue Kubeclient::HttpError => e
         msg = e.error_code == 404 ? "Namespace was not found" : "Could not connect to kubernetes cluster"
         errors << msg
       end
@@ -142,7 +142,7 @@ module KubernetesDeploy
       pod_template = kubeclient.get_pod_template(template_name, @namespace)
 
       pod_template.template
-    rescue KubeException => error
+    rescue Kubeclient::HttpError => error
       if error.error_code == 404
         msg = "Pod template `#{template_name}` not found in namespace `#{@namespace}`, context `#{@context}`"
         @logger.summary.add_paragraph(msg)
