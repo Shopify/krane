@@ -574,7 +574,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Deploying kubernetes secrets from secrets.ejson",
       "Result: SUCCESS",
-      %r{Created/updated \d+ secrets}
+      %r{Created/updated \d+ secrets},
     ], in_order: true)
   end
 
