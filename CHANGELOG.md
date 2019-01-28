@@ -1,5 +1,8 @@
 ## next
 
+*Bug fixes*
+- Attempting to deploy from a directory that only contains `secrets.ejson` will no longer fail deploy ([#416](https://github.com/Shopify/kubernetes-deploy/pull/416))
+
 ## 0.24.0
 
 *Features*
@@ -14,9 +17,6 @@
 
 *Other*
 - Kubernetes 1.9 is no longer officially supported as of this version
-
-*Bug fixes*
-- Attempting to deploy from a directory that only contains `secrets.ejson` will no longer fail deploy ([#416](https://github.com/Shopify/kubernetes-deploy/pull/416))
 
 ## 0.23.0
 
