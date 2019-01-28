@@ -567,6 +567,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud.refute_resource_exists('secret', 'monitoring-token')
   end
 
+  def test_can_deploy_template_dir_with_only_secrets_ejson
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    assert_deploy_success(deploy_fixtures("ejson-cloud", subset: ["secrets.ejson"]))
+    assert_logs_match_all([
+      "Deploying kubernetes secrets from secrets.ejson",
+      "Result: SUCCESS",
+      %r{Created/updated \d+ secrets},
+    ], in_order: true)
+  end
+
   def test_deploy_result_logging_for_mixed_result_deploy
     subset = ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml", "config_map.yml"]
     result = deploy_fixtures("invalid", subset: subset) do |f|
