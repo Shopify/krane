@@ -122,9 +122,11 @@ module KubernetesDeploy
       begin
         kubeclient.get_namespace(@namespace) if @namespace.present?
         @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
-      rescue Kubeclient::HttpError => e
-        msg = e.error_code == 404 ? "Namespace was not found" : "Could not connect to kubernetes cluster"
-        errors << msg
+
+      rescue Kubeclient::ResourceNotFoundError
+        errors << "Namespace was not found"
+      rescue Kubeclient::HttpError
+        errors << "Could not connect to kubernetes cluster"
       end
 
       unless errors.empty?
@@ -140,16 +142,13 @@ module KubernetesDeploy
 
     def get_template(template_name)
       pod_template = kubeclient.get_pod_template(template_name, @namespace)
-
       pod_template.template
+    rescue Kubeclient::ResourceNotFoundError
+      msg = "Pod template `#{template_name}` not found in namespace `#{@namespace}`, context `#{@context}`"
+      @logger.summary.add_paragraph(msg)
+      raise TaskTemplateMissingError, msg
     rescue Kubeclient::HttpError => error
-      if error.error_code == 404
-        msg = "Pod template `#{template_name}` not found in namespace `#{@namespace}`, context `#{@context}`"
-        @logger.summary.add_paragraph(msg)
-        raise TaskTemplateMissingError, msg
-      else
-        raise FatalKubeAPIError, "Error retrieving pod template: #{error.class.name}: #{error.message}"
-      end
+      raise FatalKubeAPIError, "Error retrieving pod template: #{error.class.name}: #{error.message}"
     end
 
     def build_pod_definition(base_template)
