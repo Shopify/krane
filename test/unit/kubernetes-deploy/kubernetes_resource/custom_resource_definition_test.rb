@@ -105,7 +105,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       "that defines this resource (unittests.stable.example.io), under the annotation " \
       "kubernetes-deploy.shopify.io/instance-rollout-conditions.\nValidation failed with: " \
       "Rollout conditions are not valid JSON:"
-))
+    ))
   end
 
   def test_cr_instance_valid_when_rollout_conditions_for_crd_valid
