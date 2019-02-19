@@ -112,12 +112,8 @@ module KubernetesDeploy
     def verify_namespace
       kubeclient.get_namespace(@namespace)
       @logger.info("Namespace #{@namespace} found in context #{@context}")
-    rescue KubeException => error
-      if error.error_code == 404
-        raise NamespaceNotFoundError.new(@namespace, @context)
-      else
-        raise
-      end
+    rescue Kubeclient::ResourceNotFoundError
+      raise NamespaceNotFoundError.new(@namespace, @context)
     end
 
     def patch_deployment_with_restart(record)
@@ -133,7 +129,7 @@ module KubernetesDeploy
         begin
           patch_deployment_with_restart(record)
           @logger.info("Triggered `#{record.metadata.name}` restart")
-        rescue Kubeclient::ResourceNotFoundError, Kubeclient::HttpError => e
+        rescue Kubeclient::HttpError => e
           raise RestartAPIError.new(record.metadata.name, e.message)
         end
       end
@@ -144,12 +140,8 @@ module KubernetesDeploy
         record = nil
         begin
           record = v1beta1_kubeclient.get_deployment(name, @namespace)
-        rescue KubeException => error
-          if error.error_code == 404
-            raise FatalRestartError, "Deployment `#{name}` not found in namespace `#{@namespace}`"
-          else
-            raise
-          end
+        rescue Kubeclient::ResourceNotFoundError
+          raise FatalRestartError, "Deployment `#{name}` not found in namespace `#{@namespace}`"
         end
         record
       end

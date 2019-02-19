@@ -29,7 +29,7 @@ class TestProvisioner
     def delete_namespace(namespace)
       kubeclient.delete_namespace(namespace) if namespace.present?
     rescue KubeException => e
-      raise unless e.to_s.include?("not found")
+      raise unless e.is_a?(Kubeclient::ResourceNotFoundError)
     end
 
     private

@@ -34,7 +34,7 @@ module FixtureSetAssertions
         flunk("#{type} #{name} unexpectedly existed and is not being deleted.")
       end
     rescue KubeException => e
-      raise unless e.to_s.include?("not found")
+      raise unless e.is_a?(Kubeclient::ResourceNotFoundError)
     end
 
     def assert_pod_status(pod_name, status, count = 1)

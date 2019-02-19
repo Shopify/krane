@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 require 'kubeclient'
-require 'kubernetes-deploy/kubeclient_builder/google_friendly_config'
+require 'kubernetes-deploy/kubeclient_builder/kube_config'
 
 module KubernetesDeploy
   module KubeclientBuilder
@@ -86,13 +86,12 @@ module KubernetesDeploy
 
     def _build_kubeclient(api_version:, context:, endpoint_path: nil)
       # Find a context defined in kube conf files that matches the input context by name
-      friendly_configs = config_files.map { |f| GoogleFriendlyConfig.read(f) }
-      config = friendly_configs.find { |c| c.contexts.include?(context) }
+      configs = config_files.map { |f| KubeConfig.read(f) }
+      config = configs.find { |c| c.contexts.include?(context) }
 
       raise ContextMissingError, context unless config
 
       kube_context = config.context(context)
-
       client = Kubeclient::Client.new(
         "#{kube_context.api_endpoint}#{endpoint_path}",
         api_version,
