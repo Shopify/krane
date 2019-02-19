@@ -33,7 +33,8 @@ module FixtureSetAssertions
       if res.metadata.deletionTimestamp.blank?
         flunk("#{type} #{name} unexpectedly existed and is not being deleted.")
       end
-    rescue Kubeclient::ResourceNotFoundError
+    rescue KubeException => e
+      raise unless e.is_a?(Kubeclient::ResourceNotFoundError)
     end
 
     def assert_pod_status(pod_name, status, count = 1)
