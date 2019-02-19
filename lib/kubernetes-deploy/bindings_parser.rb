@@ -4,17 +4,29 @@ require 'yaml'
 require 'csv'
 
 module KubernetesDeploy
-  module BindingsParser
-    extend self
+  class BindingsParser
+    def self.parse(string)
+      new(string).parse
+    end
 
-    def parse(string)
-      bindings = parse_file(string) || parse_json(string) || parse_csv(string)
+    def initialize(initial_string = nil)
+      @raw_bindings = Array(initial_string)
+    end
 
-      unless bindings
-        raise ArgumentError, "Failed to parse bindings."
+    def add(string)
+      @raw_bindings << string
+    end
+
+    def parse
+      result = {}
+      @raw_bindings.each do |string|
+        bindings = parse_file(string) || parse_json(string) || parse_csv(string)
+        unless bindings
+          raise ArgumentError, "Failed to parse bindings."
+        end
+        result.deep_merge!(bindings)
       end
-
-      bindings
+      result
     end
 
     private
