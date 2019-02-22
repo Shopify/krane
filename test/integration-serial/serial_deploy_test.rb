@@ -34,23 +34,10 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
     ejson_cloud.assert_all_up
     assert_logs_match_all([
-      /Creating secret catphotoscom/,
-      /Creating secret unused-secret/,
-      /Creating secret monitoring-token/,
+      %r{Secret\/catphotoscom\s+Available},
+      %r{Secret\/unused-secret\s+Available},
+      %r{Secret\/monitoring-token\s+Available},
     ])
-
-    refute_logs_match(ejson_cloud.test_private_key)
-    refute_logs_match(ejson_cloud.test_public_key)
-    refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
-
-    # Update secrets
-    result = deploy_fixtures("ejson-cloud") do |fixtures|
-      fixtures["secrets.ejson"]["kubernetes_secrets"]["unused-secret"]["data"] = { "_test" => "a" }
-    end
-    assert_deploy_success(result)
-    ejson_cloud.assert_secret_present('unused-secret', { "test" => "a" }, managed: true)
-    ejson_cloud.assert_web_resources_up
-    assert_logs_match(/Updating secret unused-secret/)
 
     refute_logs_match(ejson_cloud.test_private_key)
     refute_logs_match(ejson_cloud.test_public_key)
@@ -195,7 +182,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       KubernetesDeploy.discover_resources.duration
       KubernetesDeploy.validate_resources.duration
       KubernetesDeploy.initial_status.duration
-      KubernetesDeploy.create_ejson_secrets.duration
       KubernetesDeploy.priority_resources.duration
       KubernetesDeploy.apply_all.duration
       KubernetesDeploy.normal_resources.duration
@@ -220,7 +206,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       KubernetesDeploy.discover_resources.duration
       KubernetesDeploy.validate_resources.duration
       KubernetesDeploy.initial_status.duration
-      KubernetesDeploy.create_ejson_secrets.duration
       KubernetesDeploy.priority_resources.duration
       KubernetesDeploy.apply_all.duration
       KubernetesDeploy.normal_resources.duration

@@ -6,6 +6,9 @@
 *Enhancements*
 - Uses `TASK_ID` environment variable as the `deployment_id` when rendering resource templates for better [Shipit](https://github.com/Shopify/shipit) integration. ([#430](https://github.com/Shopify/kubernetes-deploy/pull/430))
 
+*Features*
+- Support for deploying Secrets from templates ([#424](https://github.com/Shopify/kubernetes-deploy/pull/424)).
+
 *Bug fixes*
 - Attempting to deploy from a directory that only contains `secrets.ejson` will no longer fail deploy ([#416](https://github.com/Shopify/kubernetes-deploy/pull/416))
 - Remove the risk of sending decrypted EJSON secrets to output([#431](https://github.com/Shopify/kubernetes-deploy/pull/431))
