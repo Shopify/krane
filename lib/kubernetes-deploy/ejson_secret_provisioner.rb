@@ -17,12 +17,11 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, template_dir:, logger:, prune: true)
+    def initialize(namespace:, context:, template_dir:, logger:)
       @namespace = namespace
       @context = context
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
       @logger = logger
-      @prune = prune
       @kubectl = Kubectl.new(
         namespace: @namespace,
         context: @context,
@@ -32,60 +31,27 @@ module KubernetesDeploy
       )
     end
 
-    def secret_changes_required?
-      File.exist?(@ejson_file) || managed_secrets_exist?
-    end
-
-    def run
-      create_secrets
-      prune_managed_secrets if @prune
+    def resources
+      @resources ||= create_secrets
     end
 
     private
 
     def create_secrets
+      return [] unless File.exist?(@ejson_file)
       with_decrypted_ejson do |decrypted|
         secrets = decrypted[MANAGED_SECRET_EJSON_KEY]
         unless secrets.present?
           @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{MANAGED_SECRET_EJSON_KEY}."\
             "No secrets will be created.")
-          return
+          return []
         end
 
-        secrets.each do |secret_name, secret_spec|
+        secrets.map do |secret_name, secret_spec|
           validate_secret_spec(secret_name, secret_spec)
-          create_or_update_secret(secret_name, secret_spec["_type"], secret_spec["data"])
+          generate_secret_resource(secret_name, secret_spec["_type"], secret_spec["data"])
         end
-        @logger.summary.add_action("created/updated #{secrets.length} #{'secret'.pluralize(secrets.length)}")
       end
-    end
-
-    def prune_managed_secrets
-      ejson_secret_names = encrypted_ejson.fetch(MANAGED_SECRET_EJSON_KEY, {}).keys
-      live_secrets = run_kubectl_json("get", "secrets")
-
-      prune_count = 0
-      live_secrets.each do |secret|
-        secret_name = secret["metadata"]["name"]
-        next unless secret_managed?(secret)
-        next if ejson_secret_names.include?(secret_name)
-
-        @logger.info("Pruning secret #{secret_name}")
-        prune_count += 1
-        out, err, st = @kubectl.run("delete", "secret", secret_name)
-        @logger.debug(out)
-        raise EjsonSecretError, err unless st.success?
-      end
-      @logger.summary.add_action("pruned #{prune_count} #{'secret'.pluralize(prune_count)}") if prune_count > 0
-    end
-
-    def managed_secrets_exist?
-      all_secrets = run_kubectl_json("get", "secrets")
-      all_secrets.any? { |secret| secret_managed?(secret) }
-    end
-
-    def secret_managed?(secret)
-      secret["metadata"].fetch("annotations", {}).key?(MANAGEMENT_ANNOTATION)
     end
 
     def encrypted_ejson
@@ -110,23 +76,7 @@ module KubernetesDeploy
       end
     end
 
-    def create_or_update_secret(secret_name, secret_type, data)
-      msg = secret_exists?(secret_name) ? "Updating secret #{secret_name}" : "Creating secret #{secret_name}"
-      @logger.info(msg)
-
-      secret_yaml = generate_secret_yaml(secret_name, secret_type, data)
-      file = Tempfile.new(secret_name)
-      file.write(secret_yaml)
-      file.close
-
-      out, err, st = @kubectl.run("apply", "--filename=#{file.path}")
-      @logger.debug(out)
-      raise EjsonSecretError, err unless st.success?
-    ensure
-      file&.unlink
-    end
-
-    def generate_secret_yaml(secret_name, secret_type, data)
+    def generate_secret_resource(secret_name, secret_type, data)
       unless data.is_a?(Hash) && data.values.all? { |v| v.is_a?(String) } # Secret data is map[string]string
         raise EjsonSecretError, "Data for secret #{secret_name} was invalid. Only key-value pairs are permitted."
       end
@@ -149,12 +99,10 @@ module KubernetesDeploy
         },
         "data" => encoded_data,
       }
-      secret.to_yaml
-    end
 
-    def secret_exists?(secret_name)
-      _out, _err, st = @kubectl.run("get", "secret", secret_name)
-      st.success?
+      KubernetesDeploy::Secret.build(
+        namespace: @namespace, context: @context, logger: @logger, definition: secret, statsd_tags: [],
+      )
     end
 
     def load_ejson_from_file
