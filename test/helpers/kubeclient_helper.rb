@@ -45,4 +45,8 @@ module KubeclientHelper
   def rbac_v1_kubeclient
     @rbac_v1_kubeclient ||= build_rbac_v1_kubeclient(TEST_CONTEXT)
   end
+
+  def networking_v1_kubeclient
+    @networking_v1_kubeclient ||= build_networking_v1_kubeclient(TEST_CONTEXT)
+  end
 end
