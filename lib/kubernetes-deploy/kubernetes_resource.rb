@@ -38,7 +38,7 @@ module KubernetesDeploy
         if definition["kind"].blank?
           raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
         end
-        if klass = class_for_kind(definition["kind"])
+        if (klass = class_for_kind(definition["kind"]))
           return klass.new(**opts)
         end
         if crd
@@ -52,7 +52,7 @@ module KubernetesDeploy
 
       def class_for_kind(kind)
         if KubernetesDeploy.const_defined?(kind)
-          return KubernetesDeploy.const_get(kind)
+          KubernetesDeploy.const_get(kind) # rubocop:disable Sorbet/ConstantsFromStrings
         end
       rescue NameError
         nil
