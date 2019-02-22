@@ -4,7 +4,7 @@ module KubernetesDeploy
     TIMEOUT = 10.seconds
 
     def status
-      exists? ? "Available" : "Unknown"
+      exists? ? "Available" : "Not Found"
     end
 
     def deploy_succeeded?
