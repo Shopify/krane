@@ -84,6 +84,7 @@ module KubernetesDeploy
         core/v1/Pod
         core/v1/Service
         core/v1/ResourceQuota
+        core/v1/Secret
         batch/v1/Job
         extensions/v1beta1/DaemonSet
         extensions/v1beta1/Deployment
@@ -136,7 +137,6 @@ module KubernetesDeploy
 
       @logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)
-      create_ejson_secrets(prune)
 
       if deploy_has_priority_resources?(resources)
         @logger.phase_heading("Predeploying priority resources")
@@ -242,20 +242,21 @@ module KubernetesDeploy
     end
     measure_method(:check_initial_status, "initial_status.duration")
 
-    def create_ejson_secrets(prune)
+    def secrets_from_ejson
       ejson = EjsonSecretProvisioner.new(
         namespace: @namespace,
         context: @context,
         template_dir: @template_dir,
         logger: @logger,
-        prune: prune,
       )
-      return unless ejson.secret_changes_required?
 
-      @logger.phase_heading("Deploying kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}")
-      ejson.run
+      unless ejson.resources.empty?
+        @logger.info(
+          "Generated #{ejson.resources.size} kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}"
+        )
+      end
+      ejson.resources
     end
-    measure_method(:create_ejson_secrets)
 
     def discover_resources
       resources = []
@@ -275,7 +276,7 @@ module KubernetesDeploy
         @logger.warn("Detected non-namespaced #{'resource'.pluralize(global.count)} which will never be pruned:")
         global.each { |r| @logger.warn("  - #{r.id}") }
       end
-      resources
+      resources += secrets_from_ejson
     end
     measure_method(:discover_resources)
 

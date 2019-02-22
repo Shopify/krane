@@ -1,5 +1,8 @@
 ## next
 
+*Features*
+- Support for deploying Secrets from templates ([#424](https://github.com/Shopify/kubernetes-deploy/pull/424)).
+
 *Bug fixes*
 - Attempting to deploy from a directory that only contains `secrets.ejson` will no longer fail deploy ([#416](https://github.com/Shopify/kubernetes-deploy/pull/416))
 
