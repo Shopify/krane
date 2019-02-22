@@ -102,6 +102,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       prune_matcher("job", "batch", "hello-job"),
       prune_matcher("poddisruptionbudget", "policy", "test"),
       prune_matcher("networkpolicy", "networking.k8s.io", "allow-all-network-policy"),
+      prune_matcher("secret", "", "hello-secret"),
     ] # not necessarily listed in this order
     expected_msgs = [/Pruned 11 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
@@ -341,6 +342,16 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
+  def test_deployment_includes_ejson_secrets
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    assert_deploy_success(deploy_fixtures("ejson-cloud"))
+    ejson_cloud.assert_secret_present('unused-secret', managed: true)
+    assert_logs_match_all([
+      %r{Secret\/catphotoscom\s+Available},
+    ], in_order: true)
+  end
+
   def test_deployment_container_mounting_secret_that_does_not_exist_as_env_var_fails_quickly
     result = deploy_fixtures("ejson-cloud", subset: ["web.yaml"]) do |fixtures| # exclude secret ejson
       # Remove the volumes. Right now Kubernetes does not expose a useful status when mounting fails. :(
@@ -535,7 +546,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       fixtures["secrets.ejson"]["kubernetes_secrets"].delete("unused-secret")
     end
     assert_deploy_success(result)
-    assert_logs_match(/Pruning secret unused-secret/)
+    assert_logs_match(%r{The following resources were pruned:.*secret( "|\/)unused-secret})
 
     # The removed secret was pruned
     ejson_cloud.refute_resource_exists('secret', 'unused-secret')
@@ -558,14 +569,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(result)
 
     assert_logs_match_all([
-      "Pruning secret unused-secret",
-      "Pruning secret catphotoscom",
-      "Pruning secret monitoring-token",
+      %r{The following resources were pruned:.*secret( "|\/)catphotoscom},
+      %r{The following resources were pruned:.*secret( "|\/)monitoring-token},
+      %r{The following resources were pruned:.*secret( "|\/)unused-secret},
     ])
 
     ejson_cloud.refute_resource_exists('secret', 'unused-secret')
     ejson_cloud.refute_resource_exists('secret', 'catphotoscom')
     ejson_cloud.refute_resource_exists('secret', 'monitoring-token')
+
+    # Check ejson-keys is not deleted
+    ejson_cloud.assert_secret_present('ejson-keys')
   end
 
   def test_can_deploy_template_dir_with_only_secrets_ejson
@@ -573,9 +587,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud", subset: ["secrets.ejson"]))
     assert_logs_match_all([
-      "Deploying kubernetes secrets from secrets.ejson",
       "Result: SUCCESS",
-      %r{Created/updated \d+ secrets},
+      %r{Secret\/catphotoscom\s+Available},
+      %r{Secret\/unused-secret\s+Available},
+      %r{Secret\/monitoring-token\s+Available},
     ], in_order: true)
   end
 
