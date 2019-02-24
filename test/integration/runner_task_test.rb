@@ -178,6 +178,19 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_equal(1, pods.length, "Expected 1 pod to exist, found #{pods.length}")
   end
 
+  def test_run_fails_if_context_is_invalid
+    task_runner = build_task_runner(context: "missing")
+    assert_task_run_failure(task_runner.run(run_params))
+
+    assert_logs_match_all([
+      "Initializing task",
+      "Validating configuration",
+      "Result: FAILURE",
+      "Configuration invalid",
+      "- Could not connect to kubernetes cluster - context invalid",
+    ], in_order: true)
+  end
+
   def test_run_fails_if_namespace_is_missing
     task_runner = build_task_runner(ns: "missing")
     assert_task_run_failure(task_runner.run(run_params))

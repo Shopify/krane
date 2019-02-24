@@ -127,6 +127,8 @@ module KubernetesDeploy
         errors << "Namespace was not found"
       rescue Kubeclient::HttpError
         errors << "Could not connect to kubernetes cluster"
+      rescue KubernetesDeploy::KubeclientBuilder::ContextMissingError
+        errors << "Could not connect to kubernetes cluster - context invalid"
       end
 
       unless errors.empty?
