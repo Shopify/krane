@@ -12,7 +12,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 21 resources",
+      "Successfully deployed 22 resources",
     ], in_order: true)
 
     num_ds = expected_daemonset_pod_count

@@ -30,6 +30,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   job
   custom_resource_definition
   horizontal_pod_autoscaler
+  secret
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -70,6 +71,7 @@ module KubernetesDeploy
         ServiceAccount
         Role
         RoleBinding
+        Secret
         Pod
       )
 
