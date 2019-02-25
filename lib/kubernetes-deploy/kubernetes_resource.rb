@@ -29,6 +29,7 @@ module KubernetesDeploy
       MSG
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
+    KUBECTL_OUTPUT_IS_SENSITIVE = false
 
     class << self
       def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil)
@@ -37,12 +38,8 @@ module KubernetesDeploy
         if definition["kind"].blank?
           raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
         end
-        begin
-          if KubernetesDeploy.const_defined?(definition["kind"])
-            klass = KubernetesDeploy.const_get(definition["kind"])
-            return klass.new(**opts)
-          end
-        rescue NameError
+        if klass = class_for_kind(definition["kind"])
+          return klass.new(**opts)
         end
         if crd
           CustomResource.new(crd: crd, **opts)
@@ -51,6 +48,14 @@ module KubernetesDeploy
           inst.type = definition["kind"]
           inst
         end
+      end
+
+      def class_for_kind(kind)
+        if KubernetesDeploy.const_defined?(kind)
+          return KubernetesDeploy.const_get(kind)
+        end
+      rescue NameError
+        nil
       end
 
       def timeout

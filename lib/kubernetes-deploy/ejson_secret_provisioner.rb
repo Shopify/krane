@@ -27,7 +27,7 @@ module KubernetesDeploy
         context: @context,
         logger: @logger,
         log_failure_by_default: false,
-        output_is_sensitive: true # output may contain ejson secrets
+        output_is_sensitive_default: true # output may contain ejson secrets
       )
     end
 
