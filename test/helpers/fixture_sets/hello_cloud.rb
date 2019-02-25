@@ -20,6 +20,7 @@ module FixtureSetAssertions
       assert_daemon_set_up
       assert_stateful_set_up
       assert_job_up
+      assert_secret_created
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -108,6 +109,10 @@ module FixtureSetAssertions
 
     def assert_job_up
       assert_job_exists("hello-job")
+    end
+
+    def assert_secret_created
+      assert_secret_present("hello-secret")
     end
   end
 end

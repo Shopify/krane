@@ -124,9 +124,8 @@ module FixtureSetAssertions
     end
 
     def assert_secret_present(secret_name, expected_data = nil, type: 'Opaque', managed: false)
-      secrets = kubeclient.get_secrets(namespace: namespace, label_selector: "name=#{secret_name}")
-      assert_equal(1, secrets.size, "Expected 1 secret, got #{secrets.size}")
-      secret = secrets.first
+      secret = kubeclient.get_secret(secret_name, namespace)
+      refute_nil(secret, "Secret `#{secret_name}` not found")
       assert_annotated(secret, KubernetesDeploy::EjsonSecretProvisioner::MANAGEMENT_ANNOTATION) if managed
       assert_equal(type, secret["type"])
       return unless expected_data
