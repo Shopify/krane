@@ -59,7 +59,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     end
   end
 
-  def test_run_with_file_missing_section_for_managed_secrets_logs_warning
+  def test_run_with_file_missing_section_for_ejson_secrets_logs_warning
     stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret)
     new_content = { "_public_key" => fixture_public_key, "not_the_right_key" => [] }
 
@@ -104,10 +104,10 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def dummy_ejson_secret(data = correct_ejson_key_secret_data)
-    dummy_secret_hash(data: data, name: 'ejson-keys', managed: false)
+    dummy_secret_hash(data: data, name: 'ejson-keys', ejson: false)
   end
 
-  def dummy_secret_hash(name: SecureRandom.hex(4), data: {}, managed: true)
+  def dummy_secret_hash(name: SecureRandom.hex(4), data: {}, ejson: true)
     encoded_data = data.each_with_object({}) do |(key, value), encoded|
       encoded[key] = Base64.strict_encode64(value)
     end
@@ -123,8 +123,8 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       },
       "data" => encoded_data,
     }
-    if managed
-      secret['metadata']['annotations'] = { KubernetesDeploy::EjsonSecretProvisioner::MANAGEMENT_ANNOTATION => true }
+    if ejson
+      secret['metadata']['annotations'] = { KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION => true }
     end
     secret
   end
@@ -135,7 +135,8 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       namespace: 'test',
       context: KubeclientHelper::TEST_CONTEXT,
       template_dir: dir,
-      logger: logger
+      logger: logger,
+      statsd_tags: []
     )
   end
 end

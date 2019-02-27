@@ -248,6 +248,7 @@ module KubernetesDeploy
         context: @context,
         template_dir: @template_dir,
         logger: @logger,
+        statsd_tags: @namespace_tags
       )
 
       unless ejson.resources.empty?
@@ -272,11 +273,15 @@ module KubernetesDeploy
           @logger.info("  - #{r.id}")
         end
       end
+      secrets_from_ejson.each do |secret|
+        resources << secret
+        @logger.info("  - #{secret.id} (from ejson)")
+      end
       if (global = resources.select(&:global?).presence)
         @logger.warn("Detected non-namespaced #{'resource'.pluralize(global.count)} which will never be pruned:")
         global.each { |r| @logger.warn("  - #{r.id}") }
       end
-      resources += secrets_from_ejson
+      resources
     end
     measure_method(:discover_resources)
 

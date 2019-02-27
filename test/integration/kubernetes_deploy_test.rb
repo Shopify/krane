@@ -341,16 +341,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
-  def test_deployment_includes_ejson_secrets
-    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
-    ejson_cloud.create_ejson_keys_secret
-    assert_deploy_success(deploy_fixtures("ejson-cloud"))
-    ejson_cloud.assert_secret_present('unused-secret', managed: true)
-    assert_logs_match_all([
-      %r{Secret\/catphotoscom\s+Available},
-    ], in_order: true)
-  end
-
   def test_deployment_container_mounting_secret_that_does_not_exist_as_env_var_fails_quickly
     result = deploy_fixtures("ejson-cloud", subset: ["web.yaml"]) do |fixtures| # exclude secret ejson
       # Remove the volumes. Right now Kubernetes does not expose a useful status when mounting fails. :(
@@ -532,14 +522,16 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       fixtures["secrets.ejson"]["kubernetes_secrets"]["monitoring-token"]["data"] = malformed
     end
     assert_deploy_failure(result)
-    assert_logs_match("Creation of kubernetes secrets from ejson failed: data for secret monitoring-token was invalid")
+    assert_logs_match(
+      "Generation of kubernetes secrets from ejson failed: data for secret monitoring-token was invalid"
+    )
   end
 
   def test_pruning_of_secrets_created_from_ejson
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
-    ejson_cloud.assert_secret_present('unused-secret', managed: true)
+    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
 
     result = deploy_fixtures("ejson-cloud") do |fixtures|
       fixtures["secrets.ejson"]["kubernetes_secrets"].delete("unused-secret")
@@ -550,10 +542,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     # The removed secret was pruned
     ejson_cloud.refute_resource_exists('secret', 'unused-secret')
     # The remaining secrets exist
-    ejson_cloud.assert_secret_present('monitoring-token', managed: true)
-    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', managed: true)
+    ejson_cloud.assert_secret_present('monitoring-token', ejson: true)
+    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', ejson: true)
     # The unmanaged secret was not pruned
-    ejson_cloud.assert_secret_present('ejson-keys', managed: false)
+    ejson_cloud.assert_secret_present('ejson-keys', ejson: false)
   end
 
   def test_pruning_of_existing_managed_secrets_when_ejson_file_has_been_deleted
@@ -586,6 +578,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud", subset: ["secrets.ejson"]))
     assert_logs_match_all([
+      "Generated 3 kubernetes secrets from secrets.ejson",
       "Result: SUCCESS",
       %r{Secret\/catphotoscom\s+Available},
       %r{Secret\/unused-secret\s+Available},
@@ -905,7 +898,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
-    ejson_cloud.assert_secret_present('unused-secret', managed: true)
+    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
 
     result = deploy_fixtures("ejson-cloud", prune: false) do |fixtures|
       fixtures["secrets.ejson"]["kubernetes_secrets"].delete("unused-secret")
@@ -913,11 +906,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(result)
 
     # The removed secret was not pruned
-    ejson_cloud.assert_secret_present('unused-secret', managed: true)
+    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
     # The remaining secrets also exist
-    ejson_cloud.assert_secret_present('monitoring-token', managed: true)
-    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', managed: true)
-    ejson_cloud.assert_secret_present('ejson-keys', managed: false)
+    ejson_cloud.assert_secret_present('monitoring-token', ejson: true)
+    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', ejson: true)
+    ejson_cloud.assert_secret_present('ejson-keys', ejson: false)
   end
 
   def test_partials
