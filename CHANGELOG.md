@@ -1,11 +1,16 @@
-## next
+## 0.25.0
+
+*Features*
+- Support timeout overrides on deployments ([#414](https://github.com/Shopify/kubernetes-deploy/pull/414))
 
 *Bug fixes*
 - Attempting to deploy from a directory that only contains `secrets.ejson` will no longer fail deploy ([#416](https://github.com/Shopify/kubernetes-deploy/pull/416))
-- Resources which don't exist will be reported as "Not Found" rather than "Unknown"
+- Remove the risk of sending decrypted EJSON secrets to output([#431](https://github.com/Shopify/kubernetes-deploy/pull/431))
 
 *Other*
-- Update kubeclient gem to 4.2.2. Note this replaces the `KubeclientBuilder::GoogleFriendlyConfig` class with `KubeclientBuilder::KubeConfig` ([#418](https://github.com/Shopify/kubernetes-deploy/pull/418))
+- Update kubeclient gem to 4.2.2. Note this replaces the `KubeclientBuilder::GoogleFriendlyConfig` class with `KubeclientBuilder::KubeConfig` ([#418](https://github.com/Shopify/kubernetes-deploy/pull/418)). This resolves [#396](https://github.com/Shopify/kubernetes-deploy/issues/396) and should allow us to support more authentication methods (e.g. `exec` for EKS).
+- Invalid context when using `kubernetes-run` gives more descriptive error([#423](https://github.com/Shopify/kubernetes-deploy/pull/423))
+- When resources are not found, instead of being `Unknown`, they are now labelled as `Not Found`([#427](https://github.com/Shopify/kubernetes-deploy/pull/427))
 
 ## 0.24.0
 
