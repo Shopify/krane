@@ -179,7 +179,7 @@ module KubernetesDeploy
     end
 
     def status
-      exists? ? "Exists" : "Unknown"
+      exists? ? "Exists" : "Not Found"
     end
 
     def type
