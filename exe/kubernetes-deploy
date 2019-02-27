@@ -13,10 +13,9 @@ verbose_log_prefix = false
 max_watch_seconds = nil
 
 ARGV.options do |opts|
+  parser = KubernetesDeploy::BindingsParser.new
   opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
-    "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") do |binds|
-    bindings.merge!(KubernetesDeploy::BindingsParser.parse(binds))
-  end
+    "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") { |b| parser.add(b) }
 
   opts.on("--skip-wait", "Skip verification of non-priority-resource success (not recommended)") { skip_wait = true }
   prot_ns = KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES.join(', ')
@@ -38,6 +37,7 @@ ARGV.options do |opts|
     exit
   end
   opts.parse!
+  bindings = parser.parse
 end
 
 namespace = ARGV[0]

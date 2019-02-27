@@ -14,12 +14,12 @@ class BindingsParserTest < ::Minitest::Test
   end
 
   def test_parse_yaml_file_with_yml_ext
-    expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f" }
+    expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f", "nes" => { "ted" => "bar" } }
     assert_equal(expected, parse("@test/fixtures/for_unit_tests/bindings.yml"))
   end
 
   def test_parse_yaml_file_with_yaml_ext
-    expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f" }
+    expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f", "nes" => { "cats" => "awesome", "ted" => "foo" } }
     assert_equal(expected, parse("@test/fixtures/for_unit_tests/bindings.yaml"))
   end
 
@@ -70,6 +70,15 @@ class BindingsParserTest < ::Minitest::Test
     assert_raises(ArgumentError) do
       parse("=17,foo=42")
     end
+  end
+
+  def test_parse_nested_values
+    expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f", "nes" => { "cats" => "awesome", "ted" => "bar" } }
+    bindings = KubernetesDeploy::BindingsParser.new
+    ["@test/fixtures/for_unit_tests/bindings.yaml", "@test/fixtures/for_unit_tests/bindings.yml"].each do |b|
+      bindings.add(b)
+    end
+    assert_equal(expected, bindings.parse)
   end
 
   private

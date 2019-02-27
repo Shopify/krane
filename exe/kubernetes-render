@@ -9,12 +9,12 @@ template_dir = nil
 bindings = {}
 
 ARGV.options do |opts|
+  parser = KubernetesDeploy::BindingsParser.new
   opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
-    "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") do |binds|
-    bindings.merge!(KubernetesDeploy::BindingsParser.parse(binds))
-  end
+    "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") { |b| parser.add(b) }
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
   opts.parse!
+  bindings = parser.parse
 end
 
 templates = ARGV
