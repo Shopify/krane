@@ -7,13 +7,13 @@ require 'kubernetes-deploy/kubectl'
 module KubernetesDeploy
   class EjsonSecretError < FatalDeploymentError
     def initialize(msg)
-      super("Creation of Kubernetes secrets from ejson failed: #{msg}")
+      super("Generation of Kubernetes secrets from ejson failed: #{msg}")
     end
   end
 
   class EjsonSecretProvisioner
-    MANAGEMENT_ANNOTATION = "kubernetes-deploy.shopify.io/ejson-secret"
-    MANAGED_SECRET_EJSON_KEY = "kubernetes_secrets"
+    EJSON_SECRET_ANNOTATION = "kubernetes-deploy.shopify.io/ejson-secret"
+    EJSON_SECRET_KEY = "kubernetes_secrets"
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
@@ -32,17 +32,17 @@ module KubernetesDeploy
     end
 
     def resources
-      @resources ||= create_secrets
+      @resources ||= build_secrets
     end
 
     private
 
-    def create_secrets
+    def build_secrets
       return [] unless File.exist?(@ejson_file)
       with_decrypted_ejson do |decrypted|
-        secrets = decrypted[MANAGED_SECRET_EJSON_KEY]
+        secrets = decrypted[EJSON_SECRET_KEY]
         unless secrets.present?
-          @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{MANAGED_SECRET_EJSON_KEY}."\
+          @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{EJSON_SECRET_KEY}."\
             "No secrets will be created.")
           return []
         end
@@ -95,7 +95,7 @@ module KubernetesDeploy
           "name" => secret_name,
           "labels" => { "name" => secret_name },
           "namespace" => @namespace,
-          "annotations" => { MANAGEMENT_ANNOTATION => "true" },
+          "annotations" => { EJSON_SECRET_ANNOTATION => "true" },
         },
         "data" => encoded_data,
       }
