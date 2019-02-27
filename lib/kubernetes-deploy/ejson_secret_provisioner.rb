@@ -17,11 +17,12 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, template_dir:, logger:)
+    def initialize(namespace:, context:, template_dir:, logger:, statsd_tags:)
       @namespace = namespace
       @context = context
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
       @logger = logger
+      @statsd_tags = statsd_tags
       @kubectl = Kubectl.new(
         namespace: @namespace,
         context: @context,
@@ -101,7 +102,7 @@ module KubernetesDeploy
       }
 
       KubernetesDeploy::Secret.build(
-        namespace: @namespace, context: @context, logger: @logger, definition: secret, statsd_tags: [],
+        namespace: @namespace, context: @context, logger: @logger, definition: secret, statsd_tags: @statsd_tags,
       )
     end
 

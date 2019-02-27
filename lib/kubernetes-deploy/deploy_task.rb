@@ -248,6 +248,7 @@ module KubernetesDeploy
         context: @context,
         template_dir: @template_dir,
         logger: @logger,
+        statsd_tags: @namespace_tags
       )
 
       unless ejson.resources.empty?
