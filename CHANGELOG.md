@@ -2,6 +2,7 @@
 
 *Bug fixes*
 - Attempting to deploy from a directory that only contains `secrets.ejson` will no longer fail deploy ([#416](https://github.com/Shopify/kubernetes-deploy/pull/416))
+- Resources which don't exist will be reported as "Not Found" rather than "Unknown"
 
 *Other*
 - Update kubeclient gem to 4.2.2. Note this replaces the `KubeclientBuilder::GoogleFriendlyConfig` class with `KubeclientBuilder::KubeConfig` ([#418](https://github.com/Shopify/kubernetes-deploy/pull/418))

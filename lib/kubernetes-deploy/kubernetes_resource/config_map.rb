@@ -8,7 +8,7 @@ module KubernetesDeploy
     end
 
     def status
-      exists? ? "Available" : "Unknown"
+      exists? ? "Available" : "Not Found"
     end
 
     def deploy_failed?

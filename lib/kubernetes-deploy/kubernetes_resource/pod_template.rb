@@ -2,7 +2,7 @@
 module KubernetesDeploy
   class PodTemplate < KubernetesResource
     def status
-      exists? ? "Available" : "Unknown"
+      exists? ? "Available" : "Not Found"
     end
 
     def deploy_succeeded?

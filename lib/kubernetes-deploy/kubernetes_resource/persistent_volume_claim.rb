@@ -4,7 +4,7 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
 
     def status
-      exists? ? @instance_data["status"]["phase"] : "Unknown"
+      exists? ? @instance_data["status"]["phase"] : "Not Found"
     end
 
     def deploy_succeeded?
