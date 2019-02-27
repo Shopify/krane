@@ -306,9 +306,7 @@ module KubernetesDeploy
 
     def validate_configuration(allow_protected_ns:, prune:)
       errors = []
-      if ENV["KUBECONFIG"].blank?
-        errors << "$KUBECONFIG not set"
-      elsif config_files.empty?
+      if config_files.empty?
         errors << "Kube config file name(s) not set in $KUBECONFIG"
       else
         config_files.each do |f|

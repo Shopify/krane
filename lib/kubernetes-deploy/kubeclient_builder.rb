@@ -108,7 +108,7 @@ module KubernetesDeploy
 
     def config_files
       # Split the list by colon for Linux and Mac, and semicolon for Windows.
-      ENV.fetch("KUBECONFIG").split(/[:;]/).map!(&:strip).reject(&:empty?)
+      ENV.fetch("KUBECONFIG", "#{Dir.home}/.kube/config").split(/[:;]/).map!(&:strip).reject(&:empty?)
     end
   end
 end

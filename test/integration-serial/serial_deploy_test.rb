@@ -79,6 +79,16 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   # This can be run in parallel when we switch to --kubeconfig (https://github.com/Shopify/kubernetes-deploy/issues/52)
+  def test_default_config_file
+    old_config = ENV['KUBECONFIG']
+    ENV['KUBECONFIG'] = nil
+    result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
+    assert_deploy_success(result)
+  ensure
+    ENV['KUBECONFIG'] = old_config
+  end
+
+  # This can be run in parallel when we switch to --kubeconfig (https://github.com/Shopify/kubernetes-deploy/issues/52)
   def test_multiple_configuration_files
     old_config = ENV['KUBECONFIG']
     config_file = File.join(__dir__, '../fixtures/kube-config/unknown_config.yml')
@@ -102,18 +112,9 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
     reset_logger
 
-    ENV['KUBECONFIG'] = nil
-    result = deploy_fixtures('hello-cloud')
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'Result: FAILURE',
-      'Configuration invalid',
-      "$KUBECONFIG not set",
-    ], in_order: true)
-    reset_logger
-
+    default_config = "#{Dir.home}/.kube/config"
     extra_config = File.join(__dir__, '../fixtures/kube-config/dummy_config.yml')
-    ENV['KUBECONFIG'] = "#{old_config}:#{extra_config}"
+    ENV['KUBECONFIG'] = "#{default_config}:#{extra_config}"
     result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
     assert_deploy_success(result)
   ensure
