@@ -7,21 +7,22 @@ require 'kubernetes-deploy/kubectl'
 module KubernetesDeploy
   class EjsonSecretError < FatalDeploymentError
     def initialize(msg)
-      super("Creation of Kubernetes secrets from ejson failed: #{msg}")
+      super("Generation of Kubernetes secrets from ejson failed: #{msg}")
     end
   end
 
   class EjsonSecretProvisioner
-    MANAGEMENT_ANNOTATION = "kubernetes-deploy.shopify.io/ejson-secret"
-    MANAGED_SECRET_EJSON_KEY = "kubernetes_secrets"
+    EJSON_SECRET_ANNOTATION = "kubernetes-deploy.shopify.io/ejson-secret"
+    EJSON_SECRET_KEY = "kubernetes_secrets"
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, template_dir:, logger:)
+    def initialize(namespace:, context:, template_dir:, logger:, statsd_tags:)
       @namespace = namespace
       @context = context
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
       @logger = logger
+      @statsd_tags = statsd_tags
       @kubectl = Kubectl.new(
         namespace: @namespace,
         context: @context,
@@ -32,17 +33,17 @@ module KubernetesDeploy
     end
 
     def resources
-      @resources ||= create_secrets
+      @resources ||= build_secrets
     end
 
     private
 
-    def create_secrets
+    def build_secrets
       return [] unless File.exist?(@ejson_file)
       with_decrypted_ejson do |decrypted|
-        secrets = decrypted[MANAGED_SECRET_EJSON_KEY]
+        secrets = decrypted[EJSON_SECRET_KEY]
         unless secrets.present?
-          @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{MANAGED_SECRET_EJSON_KEY}."\
+          @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{EJSON_SECRET_KEY}."\
             "No secrets will be created.")
           return []
         end
@@ -95,13 +96,13 @@ module KubernetesDeploy
           "name" => secret_name,
           "labels" => { "name" => secret_name },
           "namespace" => @namespace,
-          "annotations" => { MANAGEMENT_ANNOTATION => "true" },
+          "annotations" => { EJSON_SECRET_ANNOTATION => "true" },
         },
         "data" => encoded_data,
       }
 
       KubernetesDeploy::Secret.build(
-        namespace: @namespace, context: @context, logger: @logger, definition: secret, statsd_tags: [],
+        namespace: @namespace, context: @context, logger: @logger, definition: secret, statsd_tags: @statsd_tags,
       )
     end
 
@@ -123,7 +124,6 @@ module KubernetesDeploy
     end
 
     def decrypt_ejson(key_dir)
-      @logger.info("Decrypting #{EJSON_SECRETS_FILE}")
       # ejson seems to dump both errors and output to STDOUT
       out_err, st = Open3.capture2e("EJSON_KEYDIR=#{key_dir} ejson decrypt #{@ejson_file}")
       raise EjsonSecretError, out_err unless st.success?
@@ -133,8 +133,6 @@ module KubernetesDeploy
     end
 
     def fetch_private_key_from_secret
-      @logger.info("Fetching ejson private key from secret #{EJSON_KEYS_SECRET}")
-
       secret = run_kubectl_json("get", "secret", EJSON_KEYS_SECRET)
       encoded_private_key = secret["data"][public_key]
       unless encoded_private_key

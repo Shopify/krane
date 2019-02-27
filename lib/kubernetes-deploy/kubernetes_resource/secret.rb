@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class Secret < KubernetesResource
-    TIMEOUT = 10.seconds
+    TIMEOUT = 30.seconds
     KUBECTL_OUTPUT_IS_SENSITIVE = true
 
     def status
