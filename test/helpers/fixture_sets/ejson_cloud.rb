@@ -37,12 +37,12 @@ module FixtureSetAssertions
     def assert_all_secrets_present
       assert_secret_present("ejson-keys")
       cert_data = { "tls.crt" => "this-is-the-certificate", "tls.key" => catphotoscom_key_value }
-      assert_secret_present("catphotoscom", cert_data, type: "kubernetes.io/tls", managed: true)
+      assert_secret_present("catphotoscom", cert_data, type: "kubernetes.io/tls", ejson: true)
 
       token_data = { "api-token" => "this-is-the-api-token", "service" => "Datadog" } # Impt: it isn't _service: Datadog
-      assert_secret_present("monitoring-token", token_data, managed: true)
+      assert_secret_present("monitoring-token", token_data, ejson: true)
 
-      assert_secret_present("unused-secret", { "this-is-for-testing-deletion" => "true" }, managed: true)
+      assert_secret_present("unused-secret", { "this-is-for-testing-deletion" => "true" }, ejson: true)
     end
 
     def assert_web_resources_up
