@@ -116,7 +116,26 @@ module KubernetesDeploy
 
     def config_files
       # Split the list by colon for Linux and Mac, and semicolon for Windows.
-      ENV.fetch("KUBECONFIG", "#{Dir.home}/.kube/config").split(/[:;]/).map!(&:strip).reject(&:empty?)
+      (kubeconfig || "#{Dir.home}/.kube/config").split(/[:;]/).map!(&:strip).reject(&:empty?)
+    end
+
+    def kubeconfig
+      # Cannot return a value to ensure that the default is used over env["KUBECONFIG"] when `kubeconfig: nil` is set
+      # in tests explicitly, for the case when ENV["KUBECONFIG"] is nil, since it may be set in the test environment
+    end
+
+    def validate_config_files
+      errors = []
+      if config_files.empty?
+        errors << "Kube config file name(s) not set in $KUBECONFIG"
+      else
+        config_files.each do |f|
+          unless File.file?(f)
+            errors << "Kube config not found at #{f}"
+          end
+        end
+      end
+      errors
     end
   end
 end

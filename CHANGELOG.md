@@ -5,6 +5,9 @@
 - Defaults KUBECONFIG to `~/.kube/config` ([#429](https://github.com/Shopify/kubernetes-deploy/pull/429))
 - Uses `TASK_ID` environment variable as the `deployment_id` when rendering resource templates for better [Shipit](https://github.com/Shopify/shipit) integration. ([#430](https://github.com/Shopify/kubernetes-deploy/pull/430))
 
+*Other*
+- No longer modify KUBECONFIG environment variable in some tests and make them parallel ([#428](https://github.com/Shopify/kubernetes-deploy/pull/428))
+
 ## 0.25.0
 
 *Features*

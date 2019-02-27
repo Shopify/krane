@@ -11,10 +11,9 @@ class KubeClientBuilderTest < KubernetesDeploy::TestCase
   end
 
   def test_build_client_from_multiple_config_files
-    old_config = ENV['KUBECONFIG']
     # Set KUBECONFIG to include multiple config files
     dummy_config = File.join(__dir__, '../../fixtures/kube-config/dummy_config.yml')
-    ENV['KUBECONFIG'] = "#{old_config}:#{dummy_config}"
+    @kubeconfig = "#{ENV['KUBECONFIG']}:#{dummy_config}"
     # Build kubeclient for an unknown context fails
     context_name = "unknown_context"
     assert_raises_message(ContextMissingError,
@@ -27,7 +26,9 @@ class KubeClientBuilderTest < KubernetesDeploy::TestCase
     client = build_v1_kubeclient(context_name)
     assert(!client.nil?, "Expected Kubeclient is built for context " \
     	"#{context_name} with success.")
-  ensure
-    ENV['KUBECONFIG'] = old_config
+  end
+
+  def kubeconfig
+    @kubeconfig || ENV["KUBECONFIG"]
   end
 end

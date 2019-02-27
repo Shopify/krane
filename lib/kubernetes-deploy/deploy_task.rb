@@ -101,8 +101,9 @@ module KubernetesDeploy
       kubectl.server_version
     end
 
-    def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {},
-      max_watch_seconds: nil)
+    def initialize(namespace:, context:, current_sha:, template_dir:, logger:,
+      kubectl_instance: nil, bindings: {}, max_watch_seconds: nil, kubeconfig: ENV["KUBECONFIG"])
+      @kubeconfig = kubeconfig
       @namespace = namespace
       @namespace_tags = []
       @context = context
@@ -189,6 +190,8 @@ module KubernetesDeploy
     end
 
     private
+
+    attr_accessor :kubeconfig
 
     def cluster_resource_discoverer
       @cluster_resource_discoverer ||= ClusterResourceDiscovery.new(
@@ -309,15 +312,7 @@ module KubernetesDeploy
 
     def validate_configuration(allow_protected_ns:, prune:)
       errors = []
-      if config_files.empty?
-        errors << "Kube config file name(s) not set in $KUBECONFIG"
-      else
-        config_files.each do |f|
-          unless File.file?(f)
-            errors << "Kube config not found at #{f}"
-          end
-        end
-      end
+      errors += validate_config_files
 
       if !File.directory?(@template_dir)
         errors << "Template directory `#{@template_dir}` doesn't exist"
