@@ -24,7 +24,11 @@ module KubernetesDeploy
       @logger = logger
       @bindings = bindings
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars
-      @id = current_sha[0...8] + "-#{SecureRandom.hex(4)}" if current_sha
+      @id = if ENV["TASK_ID"]
+        ENV["TASK_ID"]
+      elsif current_sha
+        current_sha[0...8] + "-#{SecureRandom.hex(4)}"
+      end
     end
 
     def render_template(filename, raw_template)
