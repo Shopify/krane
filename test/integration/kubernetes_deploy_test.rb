@@ -341,16 +341,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
-  def test_deployment_includes_ejson_secrets
-    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
-    ejson_cloud.create_ejson_keys_secret
-    assert_deploy_success(deploy_fixtures("ejson-cloud"))
-    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
-    assert_logs_match_all([
-      %r{Secret\/catphotoscom\s+Available},
-    ], in_order: true)
-  end
-
   def test_deployment_container_mounting_secret_that_does_not_exist_as_env_var_fails_quickly
     result = deploy_fixtures("ejson-cloud", subset: ["web.yaml"]) do |fixtures| # exclude secret ejson
       # Remove the volumes. Right now Kubernetes does not expose a useful status when mounting fails. :(
