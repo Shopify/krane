@@ -74,7 +74,7 @@ module KubernetesDeploy
         prune_count += 1
         out, err, st = @kubectl.run("delete", "secret", secret_name)
         @logger.debug(out)
-        raise EjsonSecretError, err unless st.success?
+        raise EjsonSecretError, "Failed to prune secrets" unless st.success?
       end
       @logger.summary.add_action("pruned #{prune_count} #{'secret'.pluralize(prune_count)}") if prune_count > 0
     end
@@ -121,7 +121,7 @@ module KubernetesDeploy
 
       out, err, st = @kubectl.run("apply", "--filename=#{file.path}")
       @logger.debug(out)
-      raise EjsonSecretError, err unless st.success?
+      raise EjsonSecretError, "Failed to create or update secrets" unless st.success?
     ensure
       file&.unlink
     end
@@ -181,7 +181,7 @@ module KubernetesDeploy
       raise EjsonSecretError, out_err unless st.success?
       JSON.parse(out_err)
     rescue JSON::ParserError => e
-      raise EjsonSecretError, "Failed to parse decrypted ejson:\n  #{e}"
+      raise EjsonSecretError, "Failed to parse decrypted ejson"
     end
 
     def fetch_private_key_from_secret
