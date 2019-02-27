@@ -1,7 +1,10 @@
 ## next
 
 *Features*
-- Support for deploying Secrets from templates ([#424](https://github.com/Shopify/kubernetes-deploy/pull/424)).
+- **[Breaking change]** Support for deploying Secrets from templates ([#424](https://github.com/Shopify/kubernetes-deploy/pull/424)).
+  * If you previously used this gem to deploy secrets from EJSON and the first time commit you deploy using this version removes one or more of them, they will not be pruned.
+  * If you previously manually `kubectl apply`'d secrets that are not passed to kubernetes-deploy, your first deploy using this version is going to delete them.
+  * If you previously passed secrets manifests to kubernetes-deploy and they are no longer in the set you pass to the first deploy using this version, it will delete them.
 
 *Bug fixes*
 - Attempting to deploy from a directory that only contains `secrets.ejson` will no longer fail deploy ([#416](https://github.com/Shopify/kubernetes-deploy/pull/416))
