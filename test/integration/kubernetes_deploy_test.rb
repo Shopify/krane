@@ -578,6 +578,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud", subset: ["secrets.ejson"]))
     assert_logs_match_all([
+      "Generated 3 kubernetes secrets from secrets.ejson",
       "Result: SUCCESS",
       %r{Secret\/catphotoscom\s+Available},
       %r{Secret\/unused-secret\s+Available},
