@@ -123,7 +123,6 @@ module KubernetesDeploy
     end
 
     def decrypt_ejson(key_dir)
-      @logger.info("Decrypting #{EJSON_SECRETS_FILE}")
       # ejson seems to dump both errors and output to STDOUT
       out_err, st = Open3.capture2e("EJSON_KEYDIR=#{key_dir} ejson decrypt #{@ejson_file}")
       raise EjsonSecretError, out_err unless st.success?
@@ -133,8 +132,6 @@ module KubernetesDeploy
     end
 
     def fetch_private_key_from_secret
-      @logger.info("Fetching ejson private key from secret #{EJSON_KEYS_SECRET}")
-
       secret = run_kubectl_json("get", "secret", EJSON_KEYS_SECRET)
       encoded_private_key = secret["data"][public_key]
       unless encoded_private_key
