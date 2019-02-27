@@ -16,12 +16,5 @@ module KubernetesDeploy
 
       template_dir
     end
-
-    def self.revision_from_environment
-      ENV.fetch('REVISION') do
-        puts "ENV['REVISION'] is missing. Please specify the commit SHA"
-        exit 1
-      end
-    end
   end
 end

@@ -106,7 +106,7 @@ offical compatibility chart below.
 
 *Environment variables:*
 
-- `$REVISION` **(required)**: the SHA of the commit you are deploying. Will be exposed to your ERB templates as `current_sha`.
+- `$REVISION`: the SHA of the commit you are deploying. Will be exposed to your ERB templates as `current_sha`.
 - `$KUBECONFIG`  **(required)**: points to one or multiple valid kubeconfig files that include the context you want to deploy to. File names are separated by colon for Linux and Mac, and semi-colon for Windows.
 - `$TASK_ID`: used as the ID of the deployment for resource naming.
 - `$ENVIRONMENT`: used to set the deploy directory to `config/deploy/$ENVIRONMENT`. You can use the `--template-dir=DIR` option instead if you prefer (**one or the other is required**).
