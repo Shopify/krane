@@ -253,12 +253,6 @@ module KubernetesDeploy
         logger: @logger,
         statsd_tags: @namespace_tags
       )
-
-      unless ejson.resources.empty?
-        @logger.info(
-          "Generated #{ejson.resources.size} kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}"
-        )
-      end
       ejson.resources
     end
 
