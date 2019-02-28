@@ -25,7 +25,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   # This cannot be run in parallel because it needs to manipulate the global log level
-  def test_create_and_update_secrets_from_ejson
+  def test_create_secrets_from_ejson
     logger.level = ::Logger::DEBUG # for assertions that we don't log secret data
 
     # Create secrets

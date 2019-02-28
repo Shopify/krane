@@ -155,21 +155,15 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_success_with_unrecognized_resource_type
-    # Secrets are intentionally unsupported because they should not be committed to your repo
-    secret = {
-      "apiVersion" => "v1",
-      "kind" => "Secret",
-      "metadata" => { "name" => "test" },
-      "data" => { "foo" => "YmFy" },
-    }
+    resource_kind = "ReplicationController"
+    resource_name = "test-rc"
 
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
-      fixtures["secret.yml"] = { "Secret" => secret }
-    end
+    result = deploy_fixtures("unrecognized-type")
     assert_deploy_success(result)
 
-    live_secret = kubeclient.get_secret("test", @namespace)
-    assert_equal({ foo: "YmFy" }, live_secret["data"].to_h)
+    # This will raise an exception if the resource is missing
+    kubeclient.get_entity(resource_kind.downcase.pluralize, resource_name, @namespace)
+    assert_logs_match(/Don't know how to monitor resources of type #{resource_kind}/)
   end
 
   def test_invalid_yaml_fails_fast
@@ -578,7 +572,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud", subset: ["secrets.ejson"]))
     assert_logs_match_all([
-      "Generated 3 kubernetes secrets from secrets.ejson",
       "Result: SUCCESS",
       %r{Secret\/catphotoscom\s+Available},
       %r{Secret\/unused-secret\s+Available},
