@@ -11,8 +11,10 @@ module KubernetesDeploy
       end
     end
 
+    attr_reader :kubeconfig
+
     def initialize(kubeconfig: ENV["KUBECONFIG"])
-      @kubeconfig = kubeconfig
+      @kubeconfig = kubeconfig || "#{Dir.home}/.kube/config"
     end
 
     def build_v1_kubeclient(context)
@@ -96,7 +98,7 @@ module KubernetesDeploy
 
     def config_files
       # Split the list by colon for Linux and Mac, and semicolon for Windows.
-      (@kubeconfig || "#{Dir.home}/.kube/config").split(/[:;]/).map!(&:strip).reject(&:empty?)
+      kubeconfig.split(/[:;]/).map!(&:strip).reject(&:empty?)
     end
 
     def validate_config_files
@@ -120,7 +122,7 @@ module KubernetesDeploy
       configs = config_files.map { |f| KubeConfig.read(f) }
       config = configs.find { |c| c.contexts.include?(context) }
 
-      raise ContextMissingError.new(context, @kubeconfig) unless config
+      raise ContextMissingError.new(context, kubeconfig) unless config
 
       kube_context = config.context(context)
       client = Kubeclient::Client.new(

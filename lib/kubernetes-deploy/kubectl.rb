@@ -8,8 +8,8 @@ module KubernetesDeploy
     class ResourceNotFoundError < StandardError; end
 
     def initialize(namespace:, context:, logger:, log_failure_by_default:,
-      default_timeout: DEFAULT_TIMEOUT, output_is_sensitive: false, kubeconfig: ENV["KUBECONFIG"])
-      @kubeconfig = kubeconfig
+      default_timeout: DEFAULT_TIMEOUT, output_is_sensitive: false, kubeconfig: nil)
+      @kubeconfig = KubeclientBuilder.new(kubeconfig: kubeconfig).kubeconfig
       @namespace = namespace
       @context = context
       @logger = logger
