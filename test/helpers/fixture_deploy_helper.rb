@@ -61,13 +61,12 @@ module FixtureDeployHelper
   end
 
   def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {},
-    sha: nil, kubectl_instance: nil, max_watch_seconds: nil)
-    current_sha = sha || "k#{SecureRandom.hex(6)}"
+    sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil)
     kubectl_instance ||= build_kubectl
 
     deploy = KubernetesDeploy::DeployTask.new(
       namespace: @namespace,
-      current_sha: current_sha,
+      current_sha: sha,
       context: KubeclientHelper::TEST_CONTEXT,
       template_dir: dir,
       logger: logger,

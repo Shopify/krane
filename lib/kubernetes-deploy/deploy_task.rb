@@ -309,9 +309,7 @@ module KubernetesDeploy
 
     def validate_configuration(allow_protected_ns:, prune:)
       errors = []
-      if ENV["KUBECONFIG"].blank?
-        errors << "$KUBECONFIG not set"
-      elsif config_files.empty?
+      if config_files.empty?
         errors << "Kube config file name(s) not set in $KUBECONFIG"
       else
         config_files.each do |f|
@@ -319,10 +317,6 @@ module KubernetesDeploy
             errors << "Kube config not found at #{f}"
           end
         end
-      end
-
-      if @current_sha.blank?
-        errors << "Current SHA must be specified"
       end
 
       if !File.directory?(@template_dir)

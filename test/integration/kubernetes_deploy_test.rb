@@ -1081,6 +1081,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
+  def test_no_revision
+    result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"], sha: nil)
+    assert_deploy_success(result)
+  end
+
   def test_network_policies_are_deployed_first
     deploy_fixtures('hello-cloud', subset: ['network_policy.yml'])
     assert_logs_match_all([

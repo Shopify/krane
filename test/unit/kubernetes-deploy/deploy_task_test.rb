@@ -8,21 +8,10 @@ class DeployTaskTest < KubernetesDeploy::TestCase
     refute_nil(::KubernetesDeploy::VERSION)
   end
 
-  def test_error_message_when_kubeconfig_not_set
-    runner_with_env(nil)
-    assert_logs_match("Configuration invalid")
-    assert_logs_match("$KUBECONFIG not set")
-    assert_logs_match("Current SHA must be specified")
-    assert_logs_match("Namespace must be specified")
-    assert_logs_match("Context must be specified")
-    assert_logs_match(/Template directory (\S+) doesn't exist/)
-  end
-
   def test_initializer
     runner_with_env("/this-really-should/not-exist")
     assert_logs_match("Configuration invalid")
     assert_logs_match("Kube config not found at /this-really-should/not-exist")
-    assert_logs_match("Current SHA must be specified")
     assert_logs_match("Namespace must be specified")
     assert_logs_match("Context must be specified")
     assert_logs_match(/Template directory (\S+) doesn't exist/)

@@ -1,10 +1,14 @@
+## next
+
+*Enhancements*
+- Setting the REVISION environment variable is now optional ([#429](https://github.com/Shopify/kubernetes-deploy/pull/429))
+- Defaults KUBECONFIG to `~/.kube/config` ([#429](https://github.com/Shopify/kubernetes-deploy/pull/429))
+- Uses `TASK_ID` environment variable as the `deployment_id` when rendering resource templates for better [Shipit](https://github.com/Shopify/shipit) integration. ([#430](https://github.com/Shopify/kubernetes-deploy/pull/430))
+
 ## 0.25.0
 
 *Features*
 - Support timeout overrides on deployments ([#414](https://github.com/Shopify/kubernetes-deploy/pull/414))
-
-*Enhancements*
-- Uses `TASK_ID` environment variable as the `deployment_id` when rendering resource templates for better [Shipit](https://github.com/Shopify/shipit) integration. ([#430](https://github.com/Shopify/kubernetes-deploy/pull/430))
 
 *Bug fixes*
 - Attempting to deploy from a directory that only contains `secrets.ejson` will no longer fail deploy ([#416](https://github.com/Shopify/kubernetes-deploy/pull/416))
