@@ -434,12 +434,13 @@ module KubernetesDeploy
           prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
         end
 
-        out, err, st = kubectl.run(*command, log_failure: false)
+        output_is_sensitive = resources.any?(&:kubectl_output_is_sensitive?)
+        out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive)
 
         if st.success?
           log_pruning(out) if prune
         else
-          record_apply_failure(err)
+          record_apply_failure(err, skip_unidentified: output_is_sensitive)
           raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
         end
       end
@@ -454,7 +455,7 @@ module KubernetesDeploy
       @logger.summary.add_action("pruned #{pruned.length} #{'resource'.pluralize(pruned.length)}")
     end
 
-    def record_apply_failure(err)
+    def record_apply_failure(err, skip_unidentified: false)
       warn_msg = "WARNING: Any resources not mentioned in the error(s) below were likely created/updated. " \
         "You may wish to roll back this deploy."
       @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
@@ -469,10 +470,12 @@ module KubernetesDeploy
         end
       end
 
-      if unidentified_errors.present?
-        heading = ColorizedString.new('Unidentified error(s):').red
-        msg = FormattedLogger.indent_four(unidentified_errors.join)
-        @logger.summary.add_paragraph("#{heading}\n#{msg}")
+      unless skip_unidentified
+        if unidentified_errors.present?
+          heading = ColorizedString.new('Unidentified error(s):').red
+          msg = FormattedLogger.indent_four(unidentified_errors.join)
+          @logger.summary.add_paragraph("#{heading}\n#{msg}")
+        end
       end
     end
 

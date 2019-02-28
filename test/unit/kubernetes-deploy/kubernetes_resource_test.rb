@@ -38,6 +38,10 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     end
   end
 
+  class DummySensitiveResource < DummyResource
+    KUBECTL_OUTPUT_IS_SENSITIVE = true
+  end
+
   def test_unusual_timeout_output
     spec = { "kind" => "ConfigMap", "metadata" => { "name" => "foo" } }
     cm = KubernetesDeploy::ConfigMap.new(namespace: 'foo', context: 'none', definition: spec, logger: logger)
@@ -150,6 +154,17 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H"))
     customized_resource.validate_definition(kubectl)
     refute(customized_resource.validation_failed?, "Annotation with '24H' was invalid")
+  end
+
+  def test_validate_definition_doesnt_log_raw_output_for_sensitive_resources
+    resource = DummySensitiveResource.new
+    kubectl.expects(:run).with { |*_args, **kwargs| kwargs[:output_is_sensitive] == true }.returns([
+      "Some Raw Output",
+      "Error from kubectl: something went wrong and by the way here's your secret: S3CR3T",
+      stub(success?: false),
+    ])
+    resource.validate_definition(kubectl)
+    refute_includes(resource.validation_error_msg, 'S3CR3T')
   end
 
   def test_annotation_and_kubectl_error_messages_are_combined
