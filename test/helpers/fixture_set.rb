@@ -173,6 +173,12 @@ module FixtureSetAssertions
       desired = stateful_sets.find { |ss| ss.metadata.name == name }
       assert(desired.present?, "Stateful set #{name} does not exist")
     end
+
+    def assert_network_policy_present(name)
+      network_policies =  networking_v1_kubeclient.get_network_policies(namespace: namespace)
+      desired = network_policies.find { |np| np.metadata.name == name }
+      assert(desired.present?, "Network #{name} does not exist")
+    end
   end
 end
 

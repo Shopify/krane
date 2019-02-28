@@ -20,6 +20,7 @@ module FixtureSetAssertions
       assert_daemon_set_up
       assert_stateful_set_up
       assert_job_up
+      assert_network_policy_up
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -108,6 +109,10 @@ module FixtureSetAssertions
 
     def assert_job_up
       assert_job_exists("hello-job")
+    end
+
+    def assert_network_policy_up
+      assert_network_policy_present("allow-all-network-policy")
     end
   end
 end
