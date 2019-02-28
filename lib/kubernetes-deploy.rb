@@ -21,6 +21,7 @@ require 'kubernetes-deploy/concurrency'
 require 'kubernetes-deploy/bindings_parser'
 require 'kubernetes-deploy/duration_parser'
 require 'kubernetes-deploy/resource_cache'
+require 'kubernetes-deploy/render_task'
 
 module KubernetesDeploy
   MIN_KUBE_VERSION = '1.10.0'
