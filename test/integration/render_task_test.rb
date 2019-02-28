@@ -172,6 +172,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
       assert_match(/name: redis/, output)
       assert_match(/name: role-binding/, output)
       assert_match(/name: resource-quotas/, output)
+      assert_match(/name: allow-all-network-policy/, output)
       assert_match(/name: build-robot/, output)
       assert_match(/name: stateful-busybox/, output)
       assert_match(/name: hello-cloud-template-runner/, output)

@@ -101,6 +101,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       prune_matcher("statefulset", "apps", "stateful-busybox"),
       prune_matcher("job", "batch", "hello-job"),
       prune_matcher("poddisruptionbudget", "policy", "test"),
+      prune_matcher("networkpolicy", "networking.k8s.io", "allow-all-network-policy"),
       prune_matcher("secret", "", "hello-secret"),
     ] # not necessarily listed in this order
     expected_msgs = [/Pruned 11 resources and successfully deployed 6 resources/]
@@ -1090,6 +1091,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       /The following resources were pruned: #{pod_disruption_budget_matcher}/,
     ])
+  end
+
+  def test_network_policies_are_deployed_first
+    deploy_fixtures('hello-cloud', subset: ['network_policy.yml'])
+    assert_logs_match_all([
+      "Predeploying priority resources",
+      "Deploying NetworkPolicy/allow-all-network-policy (timeout: 30s)",
+      "Successfully deployed 1 resource",
+      "Successful resources",
+      "NetworkPolicy/allow-all-network-policy",
+    ], in_order: true)
   end
 
   private
