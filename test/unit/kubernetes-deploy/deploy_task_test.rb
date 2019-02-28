@@ -12,7 +12,6 @@ class DeployTaskTest < KubernetesDeploy::TestCase
     runner_with_env("/this-really-should/not-exist")
     assert_logs_match("Configuration invalid")
     assert_logs_match("Kube config not found at /this-really-should/not-exist")
-    assert_logs_match("Current SHA must be specified")
     assert_logs_match("Namespace must be specified")
     assert_logs_match("Context must be specified")
     assert_logs_match(/Template directory (\S+) doesn't exist/)

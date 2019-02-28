@@ -316,10 +316,6 @@ module KubernetesDeploy
         end
       end
 
-      if @current_sha.blank?
-        errors << "Current SHA must be specified"
-      end
-
       if !File.directory?(@template_dir)
         errors << "Template directory `#{@template_dir}` doesn't exist"
       elsif Dir.entries(@template_dir).none? { |file| file =~ /(\.ya?ml(\.erb)?)$|(secrets\.ejson)$/ }
