@@ -14,6 +14,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   persistent_volume_claim
   pod
   redis
+  network_policy
   memcached
   service
   pod_template
@@ -63,6 +64,7 @@ module KubernetesDeploy
     def predeploy_sequence
       before_crs = %w(
         ResourceQuota
+        NetworkPolicy
       )
       after_crs = %w(
         ConfigMap
@@ -86,6 +88,7 @@ module KubernetesDeploy
         extensions/v1beta1/DaemonSet
         extensions/v1beta1/Deployment
         extensions/v1beta1/Ingress
+        networking.k8s.io/v1/NetworkPolicy
         apps/v1beta1/StatefulSet
         autoscaling/v1/HorizontalPodAutoscaler
         policy/v1beta1/PodDisruptionBudget

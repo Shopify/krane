@@ -12,7 +12,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 21 resources",
+      "Successfully deployed 22 resources",
     ], in_order: true)
 
     num_ds = expected_daemonset_pod_count
@@ -101,8 +101,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       prune_matcher("statefulset", "apps", "stateful-busybox"),
       prune_matcher("job", "batch", "hello-job"),
       prune_matcher("poddisruptionbudget", "policy", "test"),
+      prune_matcher("networkpolicy", "networking.k8s.io", "allow-all-network-policy"),
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 10 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 11 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -1083,6 +1084,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_no_revision
     result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"], sha: nil)
     assert_deploy_success(result)
+  end
+
+  def test_network_policies_are_deployed_first
+    deploy_fixtures('hello-cloud', subset: ['network_policy.yml'])
+    assert_logs_match_all([
+      "Predeploying priority resources",
+      "Deploying NetworkPolicy/allow-all-network-policy (timeout: 30s)",
+      "Successfully deployed 1 resource",
+      "Successful resources",
+      "NetworkPolicy/allow-all-network-policy",
+    ], in_order: true)
   end
 
   private
