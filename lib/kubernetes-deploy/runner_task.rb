@@ -6,8 +6,6 @@ require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class RunnerTask
-    include KubeclientBuilder
-
     class TaskTemplateMissingError < TaskConfigurationError; end
 
     attr_reader :pod_name
@@ -199,7 +197,11 @@ module KubernetesDeploy
     end
 
     def kubeclient
-      @kubeclient ||= build_v1_kubeclient(@context)
+      @kubeclient ||= kubeclient_builder.build_v1_kubeclient(@context)
+    end
+
+    def kubeclient_builder
+      @kubeclient_builder ||= KubeclientBuilder.new
     end
 
     def statsd_tags(status)

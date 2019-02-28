@@ -2,7 +2,7 @@
 
 require 'googleauth'
 module KubernetesDeploy
-  module KubeclientBuilder
+  class KubeclientBuilder
     class KubeConfig < Kubeclient::Config
       def self.read(filename)
         parsed = YAML.safe_load(File.read(filename), [Date, Time])
