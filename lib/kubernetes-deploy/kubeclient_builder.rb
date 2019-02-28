@@ -5,9 +5,9 @@ require 'kubernetes-deploy/kubeclient_builder/kube_config'
 module KubernetesDeploy
   class KubeclientBuilder
     class ContextMissingError < FatalDeploymentError
-      def initialize(context_name)
+      def initialize(context_name, kubeconfig)
         super("`#{context_name}` context must be configured in your " \
-          "KUBECONFIG file(s) (#{ENV['KUBECONFIG']}).")
+          "KUBECONFIG file(s) (#{kubeconfig}).")
       end
     end
 
@@ -120,7 +120,7 @@ module KubernetesDeploy
       configs = config_files.map { |f| KubeConfig.read(f) }
       config = configs.find { |c| c.contexts.include?(context) }
 
-      raise ContextMissingError, context unless config
+      raise ContextMissingError.new(context, @kubeconfig) unless config
 
       kube_context = config.context(context)
       client = Kubeclient::Client.new(
