@@ -62,7 +62,7 @@ module FixtureDeployHelper
 
   def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {},
     sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil, kubeconfig: nil)
-    kubectl_instance ||= build_kubectl
+    kubectl_instance ||= build_kubectl(kubeconfig: kubeconfig)
 
     deploy = KubernetesDeploy::DeployTask.new(
       kubeconfig: kubeconfig,
@@ -128,7 +128,7 @@ module FixtureDeployHelper
     end
   end
 
-  def build_kubectl(kubeconfig: ENV["KUBECONFIG"], log_failure_by_default: true, timeout: '5s')
+  def build_kubectl(kubeconfig: nil, log_failure_by_default: true, timeout: '5s')
     KubernetesDeploy::Kubectl.new(namespace: @namespace, context: KubeclientHelper::TEST_CONTEXT, logger: logger,
       log_failure_by_default: log_failure_by_default, default_timeout: timeout, kubeconfig: kubeconfig)
   end
