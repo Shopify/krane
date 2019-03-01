@@ -404,7 +404,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     refute_logs_match(/Kubectl err:/)
     assert_logs_match_all([
       "Command failed: apply -f",
-      /WARNING:.*The raw ouput may be sensitive and so cannot be displayed/,
+      /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
     ])
   end
 
