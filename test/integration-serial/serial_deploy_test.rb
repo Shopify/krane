@@ -383,7 +383,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       deployment["spec"]["template"]["spec"]["containers"].first["ports"].first["name"] = bad_port_name
     end
     assert_deploy_failure(result)
-    refute_logs_match(/Kubectl err:/)
+    refute_logs_match(%r{Kubectl err:.*something/invalid})
     assert_logs_match_all([
       "Command failed: apply -f",
       /Invalid template: Deployment-web.*\.yml/,
@@ -401,7 +401,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       secret["type"] = "something/invalid"
     end
     assert_deploy_failure(result)
-    refute_logs_match(/Kubectl err:/)
+    refute_logs_match(%r{Kubectl err:.*something/invalid})
     assert_logs_match_all([
       "Command failed: apply -f",
       /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
