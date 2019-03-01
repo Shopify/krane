@@ -465,8 +465,8 @@ module KubernetesDeploy
         if bad_files.present?
           bad_files.each do |f|
             if sensitive_filenames.include?(f[:filename])
-              # Hide the template contents in case it has senitive information
-              record_invalid_template(err: f[:err], filename: f[:filename], content: nil)
+              # Hide the error and template contents in case it has senitive information
+              record_invalid_template(err: "SUPPRESSED FOR SECURITY", filename: f[:filename], content: nil)
             else
               record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content])
             end
