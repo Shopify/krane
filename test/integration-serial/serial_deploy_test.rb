@@ -391,23 +391,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     refute_logs_match("kind: Deployment") # content of the sensitive template
   end
 
-  def test_apply_failure_with_sensitive_resources_hides_raw_output
-    logger.level = 0
-    # An invalid PATCH produces the kind of error we want to catch, so first create a valid secret:
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(secret.yml)))
-    # Then try to PATCH an immutable field
-    result = deploy_fixtures("hello-cloud", subset: %w(secret.yml)) do |fixtures|
-      secret = fixtures["secret.yml"]["Secret"].first
-      secret["type"] = "something/invalid"
-    end
-    assert_deploy_failure(result)
-    refute_logs_match(%r{Kubectl err:.*something/invalid})
-    assert_logs_match_all([
-      "Command failed: apply -f",
-      /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
-    ])
-  end
-
   private
 
   def wait_for_all_crd_deletion
