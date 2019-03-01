@@ -37,7 +37,7 @@ class ResourceCacheTest < KubernetesDeploy::TestCase
   end
 
   def test_if_kubectl_error_then_empty_result_returned_but_not_cached
-    stub_kubectl_response('get', 'FakeConfigMap', '--chunk-size=0', kwargs: { attempts: 5 },
+    stub_kubectl_response('get', 'FakeConfigMap', '--chunk-size=0', kwargs: { attempts: 5, output_is_sensitive: false },
       success: false, resp: { "items" => [] }, err: 'no', times: 4)
 
     # All of these calls should attempt the request again (see the 'times' arg above)

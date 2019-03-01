@@ -1,0 +1,24 @@
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: test-rc
+spec:
+  replicas: 0
+  template:
+    metadata:
+      labels:
+        name: test-rc
+        app: unrecognized-type
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: GITHUB_REV
+          value: "<%= current_sha %>"

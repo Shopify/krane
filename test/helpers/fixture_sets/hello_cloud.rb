@@ -21,6 +21,7 @@ module FixtureSetAssertions
       assert_stateful_set_up
       assert_job_up
       assert_network_policy_up
+      assert_secret_created
     end
 
     def assert_unmanaged_pod_statuses(status, count = 1)
@@ -113,6 +114,10 @@ module FixtureSetAssertions
 
     def assert_network_policy_up
       assert_network_policy_present("allow-all-network-policy")
+    end
+
+    def assert_secret_created
+      assert_secret_present("hello-secret")
     end
   end
 end

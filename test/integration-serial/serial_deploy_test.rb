@@ -25,7 +25,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   # This cannot be run in parallel because it needs to manipulate the global log level
-  def test_create_and_update_secrets_from_ejson
+  def test_create_secrets_from_ejson
     logger.level = ::Logger::DEBUG # for assertions that we don't log secret data
 
     # Create secrets
@@ -34,23 +34,10 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
     ejson_cloud.assert_all_up
     assert_logs_match_all([
-      /Creating secret catphotoscom/,
-      /Creating secret unused-secret/,
-      /Creating secret monitoring-token/,
+      %r{Secret\/catphotoscom\s+Available},
+      %r{Secret\/unused-secret\s+Available},
+      %r{Secret\/monitoring-token\s+Available},
     ])
-
-    refute_logs_match(ejson_cloud.test_private_key)
-    refute_logs_match(ejson_cloud.test_public_key)
-    refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
-
-    # Update secrets
-    result = deploy_fixtures("ejson-cloud") do |fixtures|
-      fixtures["secrets.ejson"]["kubernetes_secrets"]["unused-secret"]["data"] = { "_test" => "a" }
-    end
-    assert_deploy_success(result)
-    ejson_cloud.assert_secret_present('unused-secret', { "test" => "a" }, managed: true)
-    ejson_cloud.assert_web_resources_up
-    assert_logs_match(/Updating secret unused-secret/)
 
     refute_logs_match(ejson_cloud.test_private_key)
     refute_logs_match(ejson_cloud.test_public_key)
@@ -196,7 +183,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       KubernetesDeploy.discover_resources.duration
       KubernetesDeploy.validate_resources.duration
       KubernetesDeploy.initial_status.duration
-      KubernetesDeploy.create_ejson_secrets.duration
       KubernetesDeploy.priority_resources.duration
       KubernetesDeploy.apply_all.duration
       KubernetesDeploy.normal_resources.duration
@@ -221,7 +207,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       KubernetesDeploy.discover_resources.duration
       KubernetesDeploy.validate_resources.duration
       KubernetesDeploy.initial_status.duration
-      KubernetesDeploy.create_ejson_secrets.duration
       KubernetesDeploy.priority_resources.duration
       KubernetesDeploy.apply_all.duration
       KubernetesDeploy.normal_resources.duration
@@ -381,6 +366,29 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     ], in_order: true)
   ensure
     wait_for_all_crd_deletion
+  end
+
+  # We want to be sure that failures to apply resources with potentially sensitive output don't leak any content.
+  # Currently our only sensitive resource is `Secret`, but we cannot reproduce a failure scenario where the kubectl
+  # output contains the filename (which would trigger some extra logging). This test stubs `Deployment` to be sensitive
+  # to recreate such a condition
+  def test_apply_failure_with_sensitive_resources_hides_template_content
+    logger.level = 0
+    KubernetesDeploy::Deployment.any_instance.expects(:kubectl_output_is_sensitive?).returns(true).at_least_once
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
+      bad_port_name = "http_test_is_really_long_and_invalid_chars"
+      svc = fixtures["web.yml.erb"]["Service"].first
+      svc["spec"]["ports"].first["targetPort"] = bad_port_name
+      deployment = fixtures["web.yml.erb"]["Deployment"].first
+      deployment["spec"]["template"]["spec"]["containers"].first["ports"].first["name"] = bad_port_name
+    end
+    assert_deploy_failure(result)
+    refute_logs_match(%r{Kubectl err:.*something/invalid})
+    assert_logs_match_all([
+      "Command failed: apply -f",
+      /Invalid template: Deployment-web.*\.yml/,
+    ])
+    refute_logs_match("kind: Deployment") # content of the sensitive template
   end
 
   private

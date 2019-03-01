@@ -6,6 +6,13 @@
 - Uses `TASK_ID` environment variable as the `deployment_id` when rendering resource templates for better [Shipit](https://github.com/Shopify/shipit) integration. ([#430](https://github.com/Shopify/kubernetes-deploy/pull/430))
 - Arguments to `--bindings` will now be deep merged. ([#430](https://github.com/Shopify/kubernetes-deploy/pull/430))
 
+*Features*
+
+- **[Breaking change]** Support for deploying Secrets from templates ([#424](https://github.com/Shopify/kubernetes-deploy/pull/424)).
+  * If you previously used this gem to deploy secrets from EJSON and the first time commit you deploy using this version removes one or more of them, they will not be pruned.
+  * If you previously manually `kubectl apply`'d secrets that are not passed to kubernetes-deploy, your first deploy using this version is going to delete them.
+  * If you previously passed secrets manifests to kubernetes-deploy and they are no longer in the set you pass to the first deploy using this version, it will delete them.
+
 ## 0.25.0
 
 *Features*

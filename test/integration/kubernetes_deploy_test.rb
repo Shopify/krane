@@ -12,7 +12,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 22 resources",
+      "Successfully deployed 23 resources",
     ], in_order: true)
 
     num_ds = expected_daemonset_pod_count
@@ -102,8 +102,9 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       prune_matcher("job", "batch", "hello-job"),
       prune_matcher("poddisruptionbudget", "policy", "test"),
       prune_matcher("networkpolicy", "networking.k8s.io", "allow-all-network-policy"),
+      prune_matcher("secret", "", "hello-secret"),
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 11 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 12 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -155,21 +156,15 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_success_with_unrecognized_resource_type
-    # Secrets are intentionally unsupported because they should not be committed to your repo
-    secret = {
-      "apiVersion" => "v1",
-      "kind" => "Secret",
-      "metadata" => { "name" => "test" },
-      "data" => { "foo" => "YmFy" },
-    }
+    resource_kind = "ReplicationController"
+    resource_name = "test-rc"
 
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
-      fixtures["secret.yml"] = { "Secret" => secret }
-    end
+    result = deploy_fixtures("unrecognized-type")
     assert_deploy_success(result)
 
-    live_secret = kubeclient.get_secret("test", @namespace)
-    assert_equal({ foo: "YmFy" }, live_secret["data"].to_h)
+    # This will raise an exception if the resource is missing
+    kubeclient.get_entity(resource_kind.downcase.pluralize, resource_name, @namespace)
+    assert_logs_match(/Don't know how to monitor resources of type #{resource_kind}/)
   end
 
   def test_invalid_yaml_fails_fast
@@ -522,28 +517,30 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       fixtures["secrets.ejson"]["kubernetes_secrets"]["monitoring-token"]["data"] = malformed
     end
     assert_deploy_failure(result)
-    assert_logs_match("Creation of kubernetes secrets from ejson failed: data for secret monitoring-token was invalid")
+    assert_logs_match(
+      "Generation of kubernetes secrets from ejson failed: data for secret monitoring-token was invalid"
+    )
   end
 
   def test_pruning_of_secrets_created_from_ejson
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
-    ejson_cloud.assert_secret_present('unused-secret', managed: true)
+    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
 
     result = deploy_fixtures("ejson-cloud") do |fixtures|
       fixtures["secrets.ejson"]["kubernetes_secrets"].delete("unused-secret")
     end
     assert_deploy_success(result)
-    assert_logs_match(/Pruning secret unused-secret/)
+    assert_logs_match(%r{The following resources were pruned:.*secret( "|\/)unused-secret})
 
     # The removed secret was pruned
     ejson_cloud.refute_resource_exists('secret', 'unused-secret')
     # The remaining secrets exist
-    ejson_cloud.assert_secret_present('monitoring-token', managed: true)
-    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', managed: true)
+    ejson_cloud.assert_secret_present('monitoring-token', ejson: true)
+    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', ejson: true)
     # The unmanaged secret was not pruned
-    ejson_cloud.assert_secret_present('ejson-keys', managed: false)
+    ejson_cloud.assert_secret_present('ejson-keys', ejson: false)
   end
 
   def test_pruning_of_existing_managed_secrets_when_ejson_file_has_been_deleted
@@ -558,14 +555,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(result)
 
     assert_logs_match_all([
-      "Pruning secret unused-secret",
-      "Pruning secret catphotoscom",
-      "Pruning secret monitoring-token",
+      %r{The following resources were pruned:.*secret( "|\/)catphotoscom},
+      %r{The following resources were pruned:.*secret( "|\/)monitoring-token},
+      %r{The following resources were pruned:.*secret( "|\/)unused-secret},
     ])
 
     ejson_cloud.refute_resource_exists('secret', 'unused-secret')
     ejson_cloud.refute_resource_exists('secret', 'catphotoscom')
     ejson_cloud.refute_resource_exists('secret', 'monitoring-token')
+
+    # Check ejson-keys is not deleted
+    ejson_cloud.assert_secret_present('ejson-keys')
   end
 
   def test_can_deploy_template_dir_with_only_secrets_ejson
@@ -573,9 +573,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud", subset: ["secrets.ejson"]))
     assert_logs_match_all([
-      "Deploying kubernetes secrets from secrets.ejson",
       "Result: SUCCESS",
-      %r{Created/updated \d+ secrets},
+      %r{Secret\/catphotoscom\s+Available},
+      %r{Secret\/unused-secret\s+Available},
+      %r{Secret\/monitoring-token\s+Available},
     ], in_order: true)
   end
 
@@ -891,7 +892,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
-    ejson_cloud.assert_secret_present('unused-secret', managed: true)
+    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
 
     result = deploy_fixtures("ejson-cloud", prune: false) do |fixtures|
       fixtures["secrets.ejson"]["kubernetes_secrets"].delete("unused-secret")
@@ -899,11 +900,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(result)
 
     # The removed secret was not pruned
-    ejson_cloud.assert_secret_present('unused-secret', managed: true)
+    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
     # The remaining secrets also exist
-    ejson_cloud.assert_secret_present('monitoring-token', managed: true)
-    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', managed: true)
-    ejson_cloud.assert_secret_present('ejson-keys', managed: false)
+    ejson_cloud.assert_secret_present('monitoring-token', ejson: true)
+    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', ejson: true)
+    ejson_cloud.assert_secret_present('ejson-keys', ejson: false)
   end
 
   def test_partials
@@ -1095,6 +1096,23 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Successful resources",
       "NetworkPolicy/allow-all-network-policy",
     ], in_order: true)
+  end
+
+  def test_apply_failure_with_sensitive_resources_hides_raw_output
+    logger.level = 0
+    # An invalid PATCH produces the kind of error we want to catch, so first create a valid secret:
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(secret.yml)))
+    # Then try to PATCH an immutable field
+    result = deploy_fixtures("hello-cloud", subset: %w(secret.yml)) do |fixtures|
+      secret = fixtures["secret.yml"]["Secret"].first
+      secret["type"] = "something/invalid"
+    end
+    assert_deploy_failure(result)
+    refute_logs_match(%r{Kubectl err:.*something/invalid})
+    assert_logs_match_all([
+      "Command failed: apply -f",
+      /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
+    ])
   end
 
   private

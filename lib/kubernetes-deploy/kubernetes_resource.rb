@@ -29,6 +29,7 @@ module KubernetesDeploy
       MSG
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
+    KUBECTL_OUTPUT_IS_SENSITIVE = false
 
     class << self
       def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil)
@@ -37,12 +38,8 @@ module KubernetesDeploy
         if definition["kind"].blank?
           raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
         end
-        begin
-          if KubernetesDeploy.const_defined?(definition["kind"])
-            klass = KubernetesDeploy.const_get(definition["kind"])
-            return klass.new(**opts)
-          end
-        rescue NameError
+        if (klass = class_for_kind(definition["kind"]))
+          return klass.new(**opts)
         end
         if crd
           CustomResource.new(crd: crd, **opts)
@@ -51,6 +48,14 @@ module KubernetesDeploy
           inst.type = definition["kind"]
           inst
         end
+      end
+
+      def class_for_kind(kind)
+        if KubernetesDeploy.const_defined?(kind)
+          KubernetesDeploy.const_get(kind) # rubocop:disable Sorbet/ConstantsFromStrings
+        end
+      rescue NameError
+        nil
       end
 
       def timeout
@@ -106,9 +111,15 @@ module KubernetesDeploy
       validate_timeout_annotation
 
       command = ["create", "-f", file_path, "--dry-run", "--output=name"]
-      _, err, st = kubectl.run(*command, log_failure: false)
+      _, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: kubectl_output_is_sensitive?)
       return true if st.success?
-      @validation_errors << err
+      if kubectl_output_is_sensitive?
+        @validation_errors << <<-EOS
+          Validation for #{id} failed. Detailed information is unavailable as the raw error may contain sensitive data.
+        EOS
+      else
+        @validation_errors << err
+      end
       false
     end
 
@@ -303,6 +314,10 @@ module KubernetesDeploy
         StatsD.distribution('resource.duration', watch_time, tags: statsd_tags)
         @statsd_report_done = true
       end
+    end
+
+    def kubectl_output_is_sensitive?
+      self.class::KUBECTL_OUTPUT_IS_SENSITIVE
     end
 
     class Event
