@@ -28,7 +28,12 @@ module KubernetesDeploy
     end
 
     def print_latest
-      @container_logs.each { |cl| cl.print_latest(prefix: @container_logs.length > 1) }
+      @container_logs.each do |cl|
+        unless cl.printing_started?
+          @logger.info("Streaming logs from #{@parent_id} container '#{cl.container_name}':")
+        end
+        cl.print_latest(prefix: @container_logs.length > 1)
+      end
     end
 
     def print_all(prevent_duplicate: true)

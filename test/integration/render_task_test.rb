@@ -32,7 +32,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     SecureRandom.expects(:hex).with(4).returns('aaaa')
     SecureRandom.expects(:hex).with(6).returns('bbbbbb')
     render = build_render_task(fixture_path('hello-cloud'))
-    assert_render_success(render.run(mock_output_stream, ['configmap-data.yml', 'unmanaged-pod.yml.erb']))
+    assert_render_success(render.run(mock_output_stream, ['configmap-data.yml', 'unmanaged-pod-1.yml.erb']))
 
     stdout_assertion do |output|
       assert_equal output, <<~RENDERED
@@ -51,12 +51,12 @@ class RenderTaskTest < KubernetesDeploy::TestCase
         apiVersion: v1
         kind: Pod
         metadata:
-          name: unmanaged-pod-kbbbbbb-aaaa
+          name: unmanaged-pod-1-kbbbbbb-aaaa
           annotations:
             kubernetes-deploy.shopify.io/timeout-override: 60s
           labels:
             type: unmanaged-pod
-            name: unmanaged-pod-kbbbbbb-aaaa
+            name: unmanaged-pod-1-kbbbbbb-aaaa
             app: hello-cloud
         spec:
           activeDeadlineSeconds: 60
