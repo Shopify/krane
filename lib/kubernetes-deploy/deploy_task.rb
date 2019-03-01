@@ -100,9 +100,8 @@ module KubernetesDeploy
       kubectl.server_version
     end
 
-    def initialize(namespace:, context:, current_sha:, template_dir:, logger:,
-      kubectl_instance: nil, bindings: {}, max_watch_seconds: nil, kubeconfig:)
-      @kubeconfig = kubeconfig
+    def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {},
+      max_watch_seconds: nil)
       @namespace = namespace
       @namespace_tags = []
       @context = context
@@ -191,7 +190,7 @@ module KubernetesDeploy
     private
 
     def kubeclient_builder
-      @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: @kubeconfig)
+      @kubeclient_builder ||= KubeclientBuilder.new
     end
 
     def cluster_resource_discoverer

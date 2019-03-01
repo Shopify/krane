@@ -1097,59 +1097,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
-  def test_default_config_file
-    result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"], kubeconfig: nil)
-    assert_deploy_success(result)
-  end
-
-  def test_unreachable_context
-    kubectl_instance = build_kubectl(
-      kubeconfig: File.join(__dir__, '../fixtures/kube-config/dummy_config.yml'),
-      timeout: '0.1s'
-    )
-    result = deploy_fixtures('hello-cloud', kubectl_instance: kubectl_instance)
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'The following command failed (attempt 1/1): kubectl version',
-      'Unable to connect to the server',
-      'Unable to connect to the server',
-      'Unable to connect to the server',
-      'Result: FAILURE',
-      "Failed to reach server for #{TEST_CONTEXT}",
-    ], in_order: true)
-  end
-
-  def test_missing_configuration_file
-    config_file = File.join(__dir__, '../fixtures/kube-config/unknown_config.yml')
-    result = deploy_fixtures('hello-cloud', kubeconfig: config_file)
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'Result: FAILURE',
-      'Configuration invalid',
-      "Kube config not found at #{config_file}",
-    ], in_order: true)
-  end
-
-  def test_multiple_configuration_files
-    result = deploy_fixtures('hello-cloud', kubeconfig: " : ")
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'Result: FAILURE',
-      'Configuration invalid',
-      "Kube config file name(s) not set in $KUBECONFIG",
-    ], in_order: true)
-    reset_logger
-
-    default_config = "#{Dir.home}/.kube/config"
-    extra_config = File.join(__dir__, '../fixtures/kube-config/dummy_config.yml')
-    result = deploy_fixtures(
-      'hello-cloud',
-      subset: ["configmap-data.yml"],
-      kubeconfig: "#{default_config}:#{extra_config}"
-    )
-    assert_deploy_success(result)
-  end
-
   private
 
   def expected_daemonset_pod_count
