@@ -115,7 +115,7 @@ module KubernetesDeploy
       return true if st.success?
       if kubectl_output_is_sensitive?
         @validation_errors << <<-EOS
-          Validation for #{id} failed. Detailed information is unavailale as the raw error may contain sensitive data.
+          Validation for #{id} failed. Detailed information is unavailable as the raw error may contain sensitive data.
         EOS
       else
         @validation_errors << err
