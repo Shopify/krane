@@ -3,6 +3,7 @@ require 'json'
 require 'base64'
 require 'open3'
 require 'kubernetes-deploy/kubectl'
+require 'kubernetes-deploy/utils'
 
 module KubernetesDeploy
   class EjsonSecretError < FatalDeploymentError
@@ -17,12 +18,13 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, template_dir:, logger:, statsd_tags:)
+    def initialize(namespace:, context:, template_dir:, logger:, statsd_tags:, selector: nil)
       @namespace = namespace
       @context = context
       @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
       @logger = logger
       @statsd_tags = statsd_tags
+      @selector = selector
       @kubectl = Kubectl.new(
         namespace: @namespace,
         context: @context,
@@ -88,13 +90,16 @@ module KubernetesDeploy
         encoded[secret_key] = Base64.strict_encode64(value)
       end
 
+      labels = { "name" => secret_name }
+      labels.reverse_merge!(@selector) if @selector
+
       secret = {
         'kind' => 'Secret',
         'apiVersion' => 'v1',
         'type' => secret_type,
         'metadata' => {
           "name" => secret_name,
-          "labels" => { "name" => secret_name },
+          "labels" => labels,
           "namespace" => @namespace,
           "annotations" => { EJSON_SECRET_ANNOTATION => "true" },
         },

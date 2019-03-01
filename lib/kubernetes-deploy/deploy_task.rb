@@ -42,6 +42,7 @@ require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/cluster_resource_discovery'
 require 'kubernetes-deploy/template_discovery'
+require 'kubernetes-deploy/utils'
 
 module KubernetesDeploy
   class DeployTask
@@ -105,7 +106,7 @@ module KubernetesDeploy
     end
 
     def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {},
-      max_watch_seconds: nil)
+      max_watch_seconds: nil, selector: nil)
       @namespace = namespace
       @namespace_tags = []
       @context = context
@@ -120,6 +121,7 @@ module KubernetesDeploy
         logger: @logger,
         bindings: bindings,
       )
+      @selector = selector
     end
 
     def run(*args)
@@ -226,7 +228,9 @@ module KubernetesDeploy
     measure_method(:predeploy_priority_resources, 'priority_resources.duration')
 
     def validate_resources(resources)
-      KubernetesDeploy::Concurrency.split_across_threads(resources) { |r| r.validate_definition(kubectl) }
+      KubernetesDeploy::Concurrency.split_across_threads(resources) do |r|
+        r.validate_definition(kubectl, selector: @selector)
+      end
       failed_resources = resources.select(&:validation_failed?)
       return unless failed_resources.present?
 
@@ -251,7 +255,8 @@ module KubernetesDeploy
         context: @context,
         template_dir: @template_dir,
         logger: @logger,
-        statsd_tags: @namespace_tags
+        statsd_tags: @namespace_tags,
+        selector: @selector,
       )
       ejson.resources
     end
@@ -427,7 +432,12 @@ module KubernetesDeploy
         command.push("-f", tmp_dir)
 
         if prune
-          command.push("--prune", "--all")
+          command.push("--prune")
+          if @selector
+            command.push("--selector", Utils.selector_to_string(@selector))
+          else
+            command.push("--all")
+          end
           prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
         end
 

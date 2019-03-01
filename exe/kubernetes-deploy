@@ -11,6 +11,7 @@ prune = true
 bindings = {}
 verbose_log_prefix = false
 max_watch_seconds = nil
+selector = nil
 
 ARGV.options do |opts|
   parser = KubernetesDeploy::BindingsParser.new
@@ -28,6 +29,10 @@ ARGV.options do |opts|
   opts.on("--max-watch-seconds=seconds",
     "Timeout error is raised if it takes longer than the specified number of seconds") do |t|
     max_watch_seconds = t.to_i
+  end
+  opts.on("--selector=SELECTOR", "Ensure that all resources in your template dir match the given selector, " \
+    "and restrict pruning to deployed resources it selects.  (format: k1=v1,k2=v2 or JSON)") do |s|
+    selector = KubernetesDeploy::BindingsParser.parse(s)
   end
 
   opts.on_tail("-h", "--help", "Print this help") do
@@ -55,7 +60,8 @@ begin
       template_dir: dir,
       bindings: bindings,
       logger: logger,
-      max_watch_seconds: max_watch_seconds
+      max_watch_seconds: max_watch_seconds,
+      selector: selector,
     )
 
     runner.run!(

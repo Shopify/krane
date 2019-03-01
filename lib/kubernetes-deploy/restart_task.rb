@@ -34,13 +34,13 @@ module KubernetesDeploy
       false
     end
 
-    def perform!(deployments_names = nil)
+    def perform!(deployments_names = nil, selector: nil)
       start = Time.now.utc
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
       verify_namespace
-      deployments = identify_target_deployments(deployments_names)
+      deployments = identify_target_deployments(deployments_names, selector: selector)
       if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
         @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
       end
@@ -76,17 +76,27 @@ module KubernetesDeploy
       %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
     end
 
-    def identify_target_deployments(deployment_names)
+    def identify_target_deployments(deployment_names, selector: nil)
       if deployment_names.nil?
-        @logger.info("Configured to restart all deployments with the `#{ANNOTATION}` annotation")
-        deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
-          .select { |d| d.metadata.annotations[ANNOTATION] }
+        deployments = if selector.nil?
+          @logger.info("Configured to restart all deployments with the `#{ANNOTATION}` annotation")
+          v1beta1_kubeclient.get_deployments(namespace: @namespace)
+        else
+          selector_string = Utils.selector_to_string(selector)
+          @logger.info(
+            "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
+          )
+          v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: selector_string)
+        end
+        deployments.select! { |d| d.metadata.annotations[ANNOTATION] }
 
         if deployments.none?
           raise FatalRestartError, "no deployments with the `#{ANNOTATION}` annotation found in namespace #{@namespace}"
         end
       elsif deployment_names.empty?
         raise FatalRestartError, "Configured to restart deployments by name, but list of names was blank"
+      elsif !selector.nil?
+        raise FatalRestartError, "Can't specify deployment names and selector at the same time"
       else
         deployment_names = deployment_names.uniq
         list = deployment_names.join(', ')

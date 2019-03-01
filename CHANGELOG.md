@@ -6,7 +6,7 @@
 - Uses `TASK_ID` environment variable as the `deployment_id` when rendering resource templates for better [Shipit](https://github.com/Shopify/shipit) integration. ([#430](https://github.com/Shopify/kubernetes-deploy/pull/430))
 - Arguments to `--bindings` will now be deep merged. ([#419](https://github.com/Shopify/kubernetes-deploy/pull/419))
 - `kubernetes-deploy` and `kubernetes-render` now support reading templates from STDIN. ([#415](https://github.com/Shopify/kubernetes-deploy/pull/415))
-
+- Support for specifying a `--selector`, a label with which all deployed resources are expected to have, and by which prunable resources will be filtered. This permits sharing a namespace with resources managed by third-parties, including other kubernetes-deploy deployments. ([#439](https://github.com/Shopify/kubernetes-deploy/pull/439))
 
 *Features*
 
