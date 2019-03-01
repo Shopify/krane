@@ -302,10 +302,10 @@ module KubernetesDeploy
       raise FatalDeploymentError, "Failed to render and parse template"
     end
 
-    def record_invalid_template(err:, filename:, content:)
+    def record_invalid_template(err:, filename:, content: nil)
       debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
       debug_msg += "> Error message:\n#{FormattedLogger.indent_four(err)}"
-      debug_msg += "\n> Template content:\n#{FormattedLogger.indent_four(content)}"
+      debug_msg += "\n> Template content:\n#{FormattedLogger.indent_four(content)}" if content
       @logger.summary.add_paragraph(debug_msg)
     end
 
@@ -437,7 +437,7 @@ module KubernetesDeploy
         if st.success?
           log_pruning(out) if prune
         else
-          record_apply_failure(err, skip_unidentified: output_is_sensitive)
+          record_apply_failure(err, resources: resources)
           raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
         end
       end
@@ -452,27 +452,38 @@ module KubernetesDeploy
       @logger.summary.add_action("pruned #{pruned.length} #{'resource'.pluralize(pruned.length)}")
     end
 
-    def record_apply_failure(err, skip_unidentified: false)
+    def record_apply_failure(err, resources: [])
       warn_msg = "WARNING: Any resources not mentioned in the error(s) below were likely created/updated. " \
         "You may wish to roll back this deploy."
       @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
 
       unidentified_errors = []
+      sensitive_filenames = resources.select(&:kubectl_output_is_sensitive?).map { |r| File.basename(r.file_path) }
+
       err.each_line do |line|
         bad_files = find_bad_files_from_kubectl_output(line)
         if bad_files.present?
-          bad_files.each { |f| record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content]) }
+          bad_files.each do |f|
+            if sensitive_filenames.include?(f[:filename])
+              # Hide the template contents in case it has senitive information
+              record_invalid_template(err: f[:err], filename: f[:filename], content: nil)
+            else
+              record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content])
+            end
+          end
         else
           unidentified_errors << line
         end
       end
 
-      unless skip_unidentified
-        if unidentified_errors.present?
-          heading = ColorizedString.new('Unidentified error(s):').red
-          msg = FormattedLogger.indent_four(unidentified_errors.join)
-          @logger.summary.add_paragraph("#{heading}\n#{msg}")
-        end
+      if unidentified_errors.present? && sensitive_filenames.any?
+        warn_msg = "WARNING: There was an error applying some or all resources. The raw ouput may be sensitive and " \
+          "so cannot be displayed."
+        @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
+      elsif unidentified_errors.present?
+        heading = ColorizedString.new('Unidentified error(s):').red
+        msg = FormattedLogger.indent_four(unidentified_errors.join)
+        @logger.summary.add_paragraph("#{heading}\n#{msg}")
       end
     end
 

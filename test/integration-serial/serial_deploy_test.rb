@@ -368,6 +368,46 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
+  # We want to be sure that failures to apply resources with potentially sensitive output don't leak any content.
+  # Currently our only sensitive resource is `Secret`, but we cannot reproduce a failure scenario where the kubectl
+  # output contains the filename (which would trigger some extra logging). This test stubs `Deployment` to be sensitive
+  # to recreate such a condition
+  def test_apply_failure_with_sensitive_resources_hides_template_content
+    logger.level = 0
+    KubernetesDeploy::Deployment.any_instance.expects(:kubectl_output_is_sensitive?).returns(true).at_least_once
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
+      bad_port_name = "http_test_is_really_long_and_invalid_chars"
+      svc = fixtures["web.yml.erb"]["Service"].first
+      svc["spec"]["ports"].first["targetPort"] = bad_port_name
+      deployment = fixtures["web.yml.erb"]["Deployment"].first
+      deployment["spec"]["template"]["spec"]["containers"].first["ports"].first["name"] = bad_port_name
+    end
+    assert_deploy_failure(result)
+    refute_logs_match(/Kubectl err:/)
+    assert_logs_match_all([
+      "Command failed: apply -f",
+      /Invalid template: Deployment-web.*\.yml/,
+    ])
+    refute_logs_match("kind: Deployment") # content of the sensitive template
+  end
+
+  def test_apply_failure_with_sensitive_resources_hides_raw_output
+    logger.level = 0
+    # An invalid PATCH produces the kind of error we want to catch, so first create a valid secret:
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(secret.yml)))
+    # Then try to PATCH an immutable field
+    result = deploy_fixtures("hello-cloud", subset: %w(secret.yml)) do |fixtures|
+      secret = fixtures["secret.yml"]["Secret"].first
+      secret["type"] = "something/invalid"
+    end
+    assert_deploy_failure(result)
+    refute_logs_match(/Kubectl err:/)
+    assert_logs_match_all([
+      "Command failed: apply -f",
+      /WARNING:.*The raw ouput may be sensitive and so cannot be displayed/,
+    ])
+  end
+
   private
 
   def wait_for_all_crd_deletion
