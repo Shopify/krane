@@ -104,7 +104,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       prune_matcher("networkpolicy", "networking.k8s.io", "allow-all-network-policy"),
       prune_matcher("secret", "", "hello-secret"),
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 11 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 12 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
