@@ -270,7 +270,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
       /Invalid template: Deployment-web.*\.yml/,
       "> Error message:",
       /Error from server \(Invalid\): error when creating.*Deployment\.?\w* "web" is invalid/,
