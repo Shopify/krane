@@ -72,6 +72,7 @@ module KubernetesDeploy
     end
 
     def configure_logger
+      @logger_stream = StringIO.new
       if log_to_real_fds?
         ColorizedString.disable_colorization = false
 
@@ -87,7 +88,6 @@ module KubernetesDeploy
         device = $stderr
       else
         ColorizedString.disable_colorization = true
-        @logger_stream = StringIO.new
         device = @logger_stream
       end
 
