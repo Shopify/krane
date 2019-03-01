@@ -458,13 +458,15 @@ module KubernetesDeploy
       @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
 
       unidentified_errors = []
-      sensitive_filenames = resources.select(&:kubectl_output_is_sensitive?).map { |r| File.basename(r.file_path) }
+      filenames_with_sensitive_content = resources
+        .select(&:kubectl_output_is_sensitive?)
+        .map { |r| File.basename(r.file_path) }
 
       err.each_line do |line|
         bad_files = find_bad_files_from_kubectl_output(line)
         if bad_files.present?
           bad_files.each do |f|
-            if sensitive_filenames.include?(f[:filename])
+            if filenames_with_sensitive_content.include?(f[:filename])
               # Hide the error and template contents in case it has senitive information
               record_invalid_template(err: "SUPPRESSED FOR SECURITY", filename: f[:filename], content: nil)
             else
@@ -476,7 +478,7 @@ module KubernetesDeploy
         end
       end
 
-      if unidentified_errors.present? && sensitive_filenames.any?
+      if unidentified_errors.present? && filenames_with_sensitive_content.any?
         warn_msg = "WARNING: There was an error applying some or all resources. The raw output may be sensitive and " \
           "so cannot be displayed."
         @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
