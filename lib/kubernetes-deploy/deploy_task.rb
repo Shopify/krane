@@ -31,6 +31,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   job
   custom_resource_definition
   horizontal_pod_autoscaler
+  secret
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -71,6 +72,7 @@ module KubernetesDeploy
         ServiceAccount
         Role
         RoleBinding
+        Secret
         Pod
       )
 
@@ -83,6 +85,7 @@ module KubernetesDeploy
         core/v1/Pod
         core/v1/Service
         core/v1/ResourceQuota
+        core/v1/Secret
         batch/v1/Job
         extensions/v1beta1/DaemonSet
         extensions/v1beta1/Deployment
@@ -136,7 +139,6 @@ module KubernetesDeploy
 
       @logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)
-      create_ejson_secrets(prune)
 
       if deploy_has_priority_resources?(resources)
         @logger.phase_heading("Predeploying priority resources")
@@ -246,20 +248,16 @@ module KubernetesDeploy
     end
     measure_method(:check_initial_status, "initial_status.duration")
 
-    def create_ejson_secrets(prune)
+    def secrets_from_ejson
       ejson = EjsonSecretProvisioner.new(
         namespace: @namespace,
         context: @context,
         template_dir: @template_dir,
         logger: @logger,
-        prune: prune,
+        statsd_tags: @namespace_tags
       )
-      return unless ejson.secret_changes_required?
-
-      @logger.phase_heading("Deploying kubernetes secrets from #{EjsonSecretProvisioner::EJSON_SECRETS_FILE}")
-      ejson.run
+      ejson.resources
     end
-    measure_method(:create_ejson_secrets)
 
     def discover_resources
       resources = []
@@ -274,6 +272,10 @@ module KubernetesDeploy
           resources << r
           @logger.info("  - #{r.id}")
         end
+      end
+      secrets_from_ejson.each do |secret|
+        resources << secret
+        @logger.info("  - #{secret.id} (from ejson)")
       end
       if (global = resources.select(&:global?).presence)
         @logger.warn("Detected non-namespaced #{'resource'.pluralize(global.count)} which will never be pruned:")
@@ -303,10 +305,10 @@ module KubernetesDeploy
       raise FatalDeploymentError, "Failed to render and parse template"
     end
 
-    def record_invalid_template(err:, filename:, content:)
+    def record_invalid_template(err:, filename:, content: nil)
       debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
       debug_msg += "> Error message:\n#{FormattedLogger.indent_four(err)}"
-      debug_msg += "\n> Template content:\n#{FormattedLogger.indent_four(content)}"
+      debug_msg += "\n> Template content:\n#{FormattedLogger.indent_four(content)}" if content
       @logger.summary.add_paragraph(debug_msg)
     end
 
@@ -424,12 +426,13 @@ module KubernetesDeploy
           prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
         end
 
-        out, err, st = kubectl.run(*command, log_failure: false)
+        output_is_sensitive = resources.any?(&:kubectl_output_is_sensitive?)
+        out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive)
 
         if st.success?
           log_pruning(out) if prune
         else
-          record_apply_failure(err)
+          record_apply_failure(err, resources: resources)
           raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
         end
       end
@@ -444,22 +447,37 @@ module KubernetesDeploy
       @logger.summary.add_action("pruned #{pruned.length} #{'resource'.pluralize(pruned.length)}")
     end
 
-    def record_apply_failure(err)
+    def record_apply_failure(err, resources: [])
       warn_msg = "WARNING: Any resources not mentioned in the error(s) below were likely created/updated. " \
         "You may wish to roll back this deploy."
       @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
 
       unidentified_errors = []
+      filenames_with_sensitive_content = resources
+        .select(&:kubectl_output_is_sensitive?)
+        .map { |r| File.basename(r.file_path) }
+
       err.each_line do |line|
         bad_files = find_bad_files_from_kubectl_output(line)
         if bad_files.present?
-          bad_files.each { |f| record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content]) }
+          bad_files.each do |f|
+            if filenames_with_sensitive_content.include?(f[:filename])
+              # Hide the error and template contents in case it has senitive information
+              record_invalid_template(err: "SUPPRESSED FOR SECURITY", filename: f[:filename], content: nil)
+            else
+              record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content])
+            end
+          end
         else
           unidentified_errors << line
         end
       end
 
-      if unidentified_errors.present?
+      if unidentified_errors.present? && filenames_with_sensitive_content.any?
+        warn_msg = "WARNING: There was an error applying some or all resources. The raw output may be sensitive and " \
+          "so cannot be displayed."
+        @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
+      elsif unidentified_errors.present?
         heading = ColorizedString.new('Unidentified error(s):').red
         msg = FormattedLogger.indent_four(unidentified_errors.join)
         @logger.summary.add_paragraph("#{heading}\n#{msg}")

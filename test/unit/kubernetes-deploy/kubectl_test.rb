@@ -200,6 +200,14 @@ class KubectlTest < KubernetesDeploy::TestCase
     build_kubectl.run("get", "pod", "foobar", raise_if_not_found: true)
   end
 
+  def test_run_output_is_sensitive_squashes_debug_logs
+    stub_open3(%W(kubectl get pods --namespace=testn --context=testc --request-timeout=#{timeout}),
+      resp: "", err: "oops", success: false)
+    logger.level = 0
+    build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: false, output_is_sensitive: true)
+    refute_logs_match("Kubectl out")
+  end
+
   private
 
   def timeout

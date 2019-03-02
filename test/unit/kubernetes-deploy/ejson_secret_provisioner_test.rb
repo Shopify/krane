@@ -2,33 +2,31 @@
 require 'test_helper'
 
 class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
-  def test_secret_changes_required_based_on_ejson_file_existence
-    stub_kubectl_response("get", "secrets", resp: { items: [dummy_ejson_secret] })
+  def test_resources_based_on_ejson_file_existence
+    stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret)
 
-    refute(build_provisioner(fixture_path('hello-cloud')).secret_changes_required?)
-    assert(build_provisioner(fixture_path('ejson-cloud')).secret_changes_required?)
-  end
-
-  def test_secret_changes_required_based_on_managed_secret_existence
-    stub_kubectl_response(
-      "get", "secrets",
-      resp: { items: [dummy_secret_hash(managed: true), dummy_ejson_secret] }
-    )
-    assert(build_provisioner(fixture_path('hello-cloud')).secret_changes_required?)
-  end
-
-  def test_run_with_no_secrets_file_or_managed_secrets_no_ops
-    # nothing raised, no unexpected kubectl calls
-    stub_kubectl_response("get", "secrets", resp: { items: [] })
-    build_provisioner(fixture_path('hello-cloud')).run
+    assert_empty(build_provisioner(fixture_path('hello-cloud')).resources)
+    refute_empty(build_provisioner(fixture_path('ejson-cloud')).resources)
   end
 
   def test_run_with_secrets_file_invalid_json
     assert_raises_message(KubernetesDeploy::EjsonSecretError, /Failed to parse encrypted ejson/) do
       with_ejson_file("}") do |target_dir|
-        build_provisioner(target_dir).run
+        build_provisioner(target_dir).resources
       end
     end
+  end
+
+  def test_resource_is_built_correctly
+    stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret)
+
+    resources = build_provisioner(fixture_path('ejson-cloud')).resources
+    refute_empty(resources)
+
+    secret = resources.find { |s| s.name == 'monitoring-token' }
+    refute_nil(secret, "Expected secret not found")
+    assert_equal(secret.class, KubernetesDeploy::Secret)
+    assert_equal(secret.id, "Secret/monitoring-token")
   end
 
   def test_run_with_ejson_keypair_mismatch
@@ -40,7 +38,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
     msg = "Private key for #{fixture_public_key} not found"
     assert_raises_message(KubernetesDeploy::EjsonSecretError, msg) do
-      build_provisioner.run
+      build_provisioner.resources
     end
   end
 
@@ -49,7 +47,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret(wrong_private))
 
     assert_raises_message(KubernetesDeploy::EjsonSecretError, /Decryption failed/) do
-      build_provisioner.run
+      build_provisioner.resources
     end
   end
 
@@ -57,20 +55,16 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     realistic_err = "Error from server (NotFound): secrets \"ejson-keys\" not found"
     stub_kubectl_response("get", "secret", "ejson-keys", resp: "", err: realistic_err, success: false)
     assert_raises_message(KubernetesDeploy::EjsonSecretError, /secrets "ejson-keys" not found/) do
-      build_provisioner.run
+      build_provisioner.resources
     end
   end
 
-  def test_run_with_file_missing_section_for_managed_secrets_logs_warning
+  def test_run_with_file_missing_section_for_ejson_secrets_logs_warning
     stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret)
-    stub_kubectl_response(
-      "get", "secrets",
-      resp: { items: [dummy_ejson_secret, dummy_secret_hash(managed: false)] }
-    )
     new_content = { "_public_key" => fixture_public_key, "not_the_right_key" => [] }
 
     with_ejson_file(new_content.to_json) do |target_dir|
-      build_provisioner(target_dir).run
+      build_provisioner(target_dir).resources
     end
     assert_logs_match("No secrets will be created.")
   end
@@ -85,7 +79,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     msg = "Ejson incomplete for secret foobar: secret type unspecified, no data provided"
     assert_raises_message(KubernetesDeploy::EjsonSecretError, msg) do
       with_ejson_file(new_content.to_json) do |target_dir|
-        build_provisioner(target_dir).run
+        build_provisioner(target_dir).resources
       end
     end
   end
@@ -110,10 +104,10 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def dummy_ejson_secret(data = correct_ejson_key_secret_data)
-    dummy_secret_hash(data: data, name: 'ejson-keys', managed: false)
+    dummy_secret_hash(data: data, name: 'ejson-keys', ejson: false)
   end
 
-  def dummy_secret_hash(name: SecureRandom.hex(4), data: {}, managed: true)
+  def dummy_secret_hash(name: SecureRandom.hex(4), data: {}, ejson: true)
     encoded_data = data.each_with_object({}) do |(key, value), encoded|
       encoded[key] = Base64.strict_encode64(value)
     end
@@ -129,8 +123,8 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       },
       "data" => encoded_data,
     }
-    if managed
-      secret['metadata']['annotations'] = { KubernetesDeploy::EjsonSecretProvisioner::MANAGEMENT_ANNOTATION => true }
+    if ejson
+      secret['metadata']['annotations'] = { KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION => true }
     end
     secret
   end
@@ -141,7 +135,8 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       namespace: 'test',
       context: KubeclientHelper::TEST_CONTEXT,
       template_dir: dir,
-      logger: logger
+      logger: logger,
+      statsd_tags: []
     )
   end
 end
