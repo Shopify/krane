@@ -282,7 +282,7 @@ module KubernetesDeploy
         @logger.warn("Detected non-namespaced #{'resource'.pluralize(global.count)} which will never be pruned:")
         global.each { |r| @logger.warn("  - #{r.id}") }
       end
-      resources
+      resources.sort
     end
     measure_method(:discover_resources)
 
@@ -369,6 +369,9 @@ module KubernetesDeploy
 
       if resources.length > 1
         @logger.info("Deploying resources:")
+        resources.each do |r|
+          @logger.info("- #{r.id} (#{r.pretty_timeout_type})")
+        end
       else
         resource = resources.first
         @logger.info("Deploying #{resource.id} (#{resource.pretty_timeout_type})")
@@ -381,7 +384,6 @@ module KubernetesDeploy
       applyables += individuals.select { |r| pruneable_types.include?(r.type) }
 
       individuals.each do |r|
-        @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1
         r.deploy_started_at = Time.now.utc
         case r.deploy_method
         when :replace
@@ -425,7 +427,6 @@ module KubernetesDeploy
 
       Dir.mktmpdir do |tmp_dir|
         resources.each do |r|
-          @logger.info("- #{r.id} (#{r.pretty_timeout_type})") if resources.length > 1
           FileUtils.symlink(r.file_path, tmp_dir)
           r.deploy_started_at = Time.now.utc
         end
