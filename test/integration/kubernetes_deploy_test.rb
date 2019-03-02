@@ -2,6 +2,8 @@
 require 'integration_test_helper'
 
 class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
+  extend AddRetriesTestHelper
+
   def test_full_hello_cloud_set_deploy_succeeds
     assert_deploy_success(deploy_fixtures("hello-cloud"))
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
@@ -1056,17 +1058,15 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
-  def test_hpa_can_be_successful
+  def test_hpa_can_be_successful_and_gets_pruned__2retries
     assert_deploy_success(deploy_fixtures("hpa"))
     assert_logs_match_all([
       "Deploying resources:",
-      "HorizontalPodAutoscaler/hello-hpa (timeout: 180s)",
+      "HorizontalPodAutoscaler/hello-hpa (timeout: 130s)",
       %r{HorizontalPodAutoscaler/hello-hpa\s+Configured},
     ])
-  end
 
-  def test_hpa_can_be_pruned
-    assert_deploy_success(deploy_fixtures("hpa"))
+    reset_logger
     assert_deploy_success(deploy_fixtures("hpa", subset: ["deployment.yml"]))
     assert_logs_match_all([
       /The following resources were pruned: #{prune_matcher("horizontalpodautoscaler", "autoscaling", "hello-hpa")}/,

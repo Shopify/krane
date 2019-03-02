@@ -2,6 +2,8 @@ apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
   name: hello-hpa
+  annotations:
+    kubernetes-deploy.shopify.io/timeout-override: 130s
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
