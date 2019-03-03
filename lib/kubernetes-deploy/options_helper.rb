@@ -17,13 +17,6 @@ module KubernetesDeploy
         end
       end
 
-      def revision_from_environment
-        ENV.fetch('REVISION') do
-          puts "ENV['REVISION'] is missing. Please specify the commit SHA"
-          exit 1
-        end
-      end
-
       private
 
       def default_template_dir(template_dir)
