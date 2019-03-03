@@ -17,7 +17,7 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
       template_dir_entries = Dir.entries(template_dir)
       assert_equal(fixture_path_entries.length, template_dir_entries.length)
       fixture_path_entries.each do |fixture|
-        assert(template_dir_entries.select { |s| s.include?(fixture) })
+        refute(template_dir_entries.select { |s| s.include?(fixture) }.empty?)
       end
     end
   end
@@ -33,7 +33,7 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
     old_stdin = $stdin
 
     input = Tempfile.open("kubernetes_deploy_test")
-    File.open("#{fixture_path('for_unit_tests')}/service_test.yml", 'r') do |f|
+    File.open(File.join(fixture_path('for_unit_tests'), "service_test.yml"), 'r') do |f|
       input.print(f.read)
     end
     input.rewind

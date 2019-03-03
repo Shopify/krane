@@ -36,12 +36,15 @@ module KubernetesDeploy
       def populate_temp_dir(temp_dir:, template_dirs:)
         template_dirs.each do |template_dir|
           if template_dir == '-'
-            File.open("#{temp_dir}/#{STDIN_TEMP_FILE}", 'w+') { |f| f.print($stdin.read) }
+            File.open(File.join(temp_dir, STDIN_TEMP_FILE), 'w+') { |f| f.print($stdin.read) }
           else
             template_dir = File.expand_path(template_dir)
-            templates = Dir.entries(template_dir).reject { |f| File.directory?("#{template_dir}/#{f}") }
+            templates = Dir.entries(template_dir).select { |f| File.file?(File.join(template_dir, f)) }
             templates.each do |template|
-              FileUtils.cp("#{template_dir}/#{template}", "#{temp_dir}/#{template_dir.tr('/', '_')}_#{template}")
+              FileUtils.cp(
+                File.join(template_dir, template),
+                File.join(temp_dir, template_dir.tr(File::SEPARATOR, '_')) + "_#{template}"
+              )
             end
           end
         end
