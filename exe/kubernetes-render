@@ -37,6 +37,6 @@ begin
     exit(1) unless success
   end
 rescue KubernetesDeploy::OptionsHelper::OptionsError => e
-  puts e.message
+  logger.error(e.message)
   exit(1)
 end

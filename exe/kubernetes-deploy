@@ -71,6 +71,6 @@ rescue KubernetesDeploy::DeploymentTimeoutError
 rescue KubernetesDeploy::FatalDeploymentError
   exit(1)
 rescue KubernetesDeploy::OptionsHelper::OptionsError => e
-  puts e.message
+  logger.error(e.message)
   exit(1)
 end
