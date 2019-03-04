@@ -9,6 +9,16 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_with_default_env_var
+    old_env = ENV["ENVIRONMENT"]
+    ENV["ENVIRONMENT"] = "test"
+    KubernetesDeploy::OptionsHelper.with_consolidated_template_dir([]) do |template_dir|
+      assert_equal(template_dir, File.join("config", "deploy", "test"))
+    end
+  ensure
+    ENV["ENVIRONMENT"] = old_env
+  end
+
   def test_multiple_template_dirs
     template_dirs = [fixture_path('hello-cloud'), fixture_path('partials')]
 

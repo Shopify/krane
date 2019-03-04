@@ -21,7 +21,7 @@ module KubernetesDeploy
 
       def default_template_dir(template_dir)
         if ENV.key?("ENVIRONMENT")
-          template_dir = "config/deploy/#{ENV['ENVIRONMENT']}"
+          template_dir = File.join("config", "deploy", ENV['ENVIRONMENT'])
         end
 
         if !template_dir || template_dir.empty?
