@@ -13,7 +13,7 @@ ARGV.options do |opts|
   opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
     "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") { |b| parser.add(b) }
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)." ) do |d|
-    template_dir << d
+    template_dir = d
   end
   opts.parse!
   bindings = parser.parse
