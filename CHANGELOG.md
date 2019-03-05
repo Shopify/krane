@@ -7,6 +7,7 @@
 - Arguments to `--bindings` will now be deep merged. ([#430](https://github.com/Shopify/kubernetes-deploy/pull/430))
 - `kubernetes-deploy` and `kubernetes-render` now support reading templates from STDIN. ([#415](https://github.com/Shopify/kubernetes-deploy/pull/415))
 
+
 *Features*
 
 - **[Breaking change]** Support for deploying Secrets from templates ([#424](https://github.com/Shopify/kubernetes-deploy/pull/424)).
