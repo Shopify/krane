@@ -5,7 +5,7 @@ require 'kubernetes-deploy'
 require 'optparse'
 
 skip_wait = false
-template_dirs = []
+template_dir = nil
 allow_protected_ns = false
 prune = true
 bindings = {}
@@ -21,10 +21,8 @@ ARGV.options do |opts|
   prot_ns = KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES.join(', ')
   opts.on("--allow-protected-ns", "Enable deploys to #{prot_ns}; requires --no-prune") { allow_protected_ns = true }
   opts.on("--no-prune", "Disable deletion of resources that do not appear in the template dir") { prune = false }
-  opts.on("--template-dir=DIR",
-    "Set the template dir (default: config/deploy/$ENVIRONMENT). " \
-    "Set this flag multiple times to use templates from multiple directories" ) do |d|
-    template_dirs << d
+  opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT).") do |d|
+    template_dir = d
   end
   opts.on("--verbose-log-prefix", "Add [context][namespace] to the log prefix") { verbose_log_prefix = true }
   opts.on("--max-watch-seconds=seconds",
@@ -49,7 +47,7 @@ context = ARGV[1]
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
 
 begin
-  KubernetesDeploy::OptionsHelper.with_consolidated_template_dir(template_dirs) do |template_dir|
+  KubernetesDeploy::OptionsHelper.with_template_dir(template_dir) do |template_dir|
     runner = KubernetesDeploy::DeployTask.new(
       namespace: namespace,
       context: context,

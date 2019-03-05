@@ -6,14 +6,14 @@ module KubernetesDeploy
 
     STDIN_TEMP_FILE = "from_stdin.yml.erb"
     class << self
-      def with_consolidated_template_dir(template_dirs)
-        if template_dirs.length > 1 || template_dirs.include?('-')
+      def with_template_dir(template_dir)
+        if template_dir == '-'
           Dir.mktmpdir("kubernetes-deploy") do |dir|
-            populate_temp_dir(temp_dir: dir, template_dirs: template_dirs)
+            template_dir_from_stdin(temp_dir: dir)
             yield dir
           end
         else
-          yield default_template_dir(template_dirs.first)
+          yield default_template_dir(template_dir)
         end
       end
 
@@ -33,21 +33,8 @@ module KubernetesDeploy
         template_dir
       end
 
-      def populate_temp_dir(temp_dir:, template_dirs:)
-        template_dirs.each do |template_dir|
-          if template_dir == '-'
-            File.open(File.join(temp_dir, STDIN_TEMP_FILE), 'w+') { |f| f.print($stdin.read) }
-          else
-            template_dir = File.expand_path(template_dir)
-            templates = Dir.entries(template_dir).select { |f| File.file?(File.join(template_dir, f)) }
-            templates.each do |template|
-              FileUtils.cp(
-                File.join(template_dir, template),
-                File.join(temp_dir, template_dir.tr(File::SEPARATOR, '_')) + "_#{template}"
-              )
-            end
-          end
-        end
+      def template_dir_from_stdin(temp_dir:)
+        File.open(File.join(temp_dir, STDIN_TEMP_FILE), 'w+') { |f| f.print($stdin.read) }
       rescue IOError, Errno::ENOENT => e
         raise OptionsError, e.message
       end

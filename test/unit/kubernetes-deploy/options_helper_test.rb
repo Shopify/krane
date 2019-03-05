@@ -3,82 +3,31 @@ require 'test_helper'
 require 'tempfile'
 
 class OptionsHelperTest < KubernetesDeploy::TestCase
-  def test_single_template_dir_only
-    KubernetesDeploy::OptionsHelper.with_consolidated_template_dir([fixture_path('hello-cloud')]) do |template_dir|
+  include EnvTestHelper
+  def test_with_template_dir
+    KubernetesDeploy::OptionsHelper.with_template_dir(fixture_path('hello-cloud')) do |template_dir|
       assert_equal(fixture_path('hello-cloud'), template_dir)
     end
   end
 
-  def test_with_default_env_var
-    old_env = ENV["ENVIRONMENT"]
-    ENV["ENVIRONMENT"] = "test"
-    KubernetesDeploy::OptionsHelper.with_consolidated_template_dir([]) do |template_dir|
-      assert_equal(template_dir, File.join("config", "deploy", "test"))
-    end
-  ensure
-    ENV["ENVIRONMENT"] = old_env
-  end
-
-  def test_multiple_template_dirs
-    template_dirs = [fixture_path('hello-cloud'), fixture_path('partials')]
-
-    KubernetesDeploy::OptionsHelper.with_consolidated_template_dir(template_dirs) do |template_dir|
-      fixture_path_entries = template_dirs.collect { |dir| Dir.entries(dir) }.flatten.uniq
-      template_dir_entries = Dir.entries(template_dir)
-      assert_equal(fixture_path_entries.length, template_dir_entries.length)
-      fixture_path_entries.each do |fixture|
-        refute(template_dir_entries.select { |s| s.include?(fixture) }.empty?)
+  def test_template_dir_with_default_env_var
+    with_env("ENVIRONMENT", "test") do
+      KubernetesDeploy::OptionsHelper.with_template_dir(nil) do |template_dir|
+        assert_equal(template_dir, File.join("config", "deploy", "test"))
       end
     end
   end
 
   def test_missing_template_dir_raises
-    assert_raises(KubernetesDeploy::OptionsHelper::OptionsError) do
-      KubernetesDeploy::OptionsHelper.with_consolidated_template_dir([]) do
+    with_env("ENVIRONMENT", nil) do
+      assert_raises(KubernetesDeploy::OptionsHelper::OptionsError) do
+        KubernetesDeploy::OptionsHelper.with_template_dir(nil) do
+        end
       end
     end
   end
 
-  def test_template_dir_with_stdin
-    old_stdin = $stdin
-
-    input = Tempfile.open("kubernetes_deploy_test")
-    File.open(File.join(fixture_path('for_unit_tests'), "service_test.yml"), 'r') do |f|
-      input.print(f.read)
-    end
-    input.rewind
-    $stdin = input
-
-    KubernetesDeploy::OptionsHelper.with_consolidated_template_dir([fixture_path('hello-cloud'), '-']) do |template_dir|
-      assert_equal(
-        File.read(File.join(template_dir, KubernetesDeploy::OptionsHelper::STDIN_TEMP_FILE)),
-        File.read(File.join(fixture_path('for_unit_tests'), 'service_test.yml'))
-      )
-
-      fixture_path_yamls = []
-      fixture_path_entries = Dir.glob("#{fixture_path('hello-cloud')}/*.{yml,yaml}*")
-      fixture_path_entries.each do |path|
-        File.read(path).split(/^---$/).reject(&:empty?).each do |f|
-          fixture_path_yamls << YAML.safe_load(f)
-        end
-      end
-
-      template_dir_yamls = []
-      template_dir_entries = Dir.glob("#{template_dir}/*").reject { |f| f.include?("from_stdin.yml.erb") }
-      template_dir_entries.each do |path|
-        File.read(path).split(/^---$/).reject(&:empty?).each do |f|
-          template_dir_yamls << YAML.safe_load(f)
-        end
-      end
-      fixture_path_yamls.each do |fixture|
-        assert(template_dir_yamls.include?(fixture))
-      end
-    end
-  ensure
-    $stdin = old_stdin
-  end
-
-  def test_only_stdin_template_dir
+  def test_with_template_dir_from_stdin
     old_stdin = $stdin
     fixture_yamls = []
     stdin_yamls = []
@@ -95,7 +44,7 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
     input.rewind
     $stdin = input
 
-    KubernetesDeploy::OptionsHelper.with_consolidated_template_dir(['-']) do |template_dir|
+    KubernetesDeploy::OptionsHelper.with_template_dir('-') do |template_dir|
       split_templates = File.read(
         File.join(template_dir, KubernetesDeploy::OptionsHelper::STDIN_TEMP_FILE)
       ).split(/^---$/).map(&:strip).reject(&:empty?)
