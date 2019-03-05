@@ -117,7 +117,7 @@ offical compatibility chart below.
 
 Refer to `kubernetes-deploy --help` for the authoritative set of options.
 
-- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`.
+- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`. Example: `cat templates_from_stdin/*.yml | kubernetes-deploy ns ctx --template-dir=-`.
 - `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size`.
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--max-watch-seconds=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
@@ -491,7 +491,7 @@ kubernetes-render --template-dir=./path/to/template/dir this-template.yaml.erb t
 
 *Options:*
 
-- `--template-dir=DIR`: Used to set the directory to interpret template names relative to. This is often the same directory passed as `--template-dir` when running `kubernetes-deploy` to actually deploy templates. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`.
+- `--template-dir=DIR`: Used to set the directory to interpret template names relative to. This is often the same directory passed as `--template-dir` when running `kubernetes-deploy` to actually deploy templates. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`.
 - `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-render --bindings=color=blue,size=large some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
 
 
