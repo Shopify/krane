@@ -6,7 +6,7 @@ module KubernetesDeploy
 
     STDIN_TEMP_FILE = "from_stdin.yml.erb"
     class << self
-      def with_template_dir(template_dir)
+      def with_validated_template_dir(template_dir)
         if template_dir == '-'
           Dir.mktmpdir("kubernetes-deploy") do |dir|
             template_dir_from_stdin(temp_dir: dir)

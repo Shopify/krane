@@ -47,7 +47,7 @@ context = ARGV[1]
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
 
 begin
-  KubernetesDeploy::OptionsHelper.with_template_dir(template_dir) do |dir|
+  KubernetesDeploy::OptionsHelper.with_validated_template_dir(template_dir) do |dir|
     runner = KubernetesDeploy::DeployTask.new(
       namespace: namespace,
       context: context,
