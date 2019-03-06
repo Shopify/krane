@@ -11,6 +11,10 @@ module KubernetesDeploy
       end
     end
 
+    def self.kubeconfig
+      new.kubeconfig
+    end
+
     attr_reader :kubeconfig
 
     def initialize(kubeconfig: ENV["KUBECONFIG"])

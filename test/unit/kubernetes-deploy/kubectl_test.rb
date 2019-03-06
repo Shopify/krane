@@ -22,7 +22,7 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def kubeconfig_in_use
-    KubernetesDeploy::KubeclientBuilder.new.kubeconfig
+    KubernetesDeploy::KubeclientBuilder.kubeconfig
   end
 
   def test_run_constructs_the_expected_command_and_returns_the_correct_values
