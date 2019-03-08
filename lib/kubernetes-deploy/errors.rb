@@ -23,6 +23,8 @@ module KubernetesDeploy
 
   class DeploymentTimeoutError < FatalDeploymentError; end
 
+  class EjsonPrunableError < FatalDeploymentError; end
+
   module Errors
     extend self
     def server_version_warning(server_version)

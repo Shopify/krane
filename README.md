@@ -76,9 +76,12 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * Ruby 2.3+
 * Your cluster must be running Kubernetes v1.10.0 or higher<sup>1</sup>
 * Each app must have a deploy directory containing its Kubernetes templates (see [Templates](#using-templates-and-variables))
+* You must remove the` kubectl.kubernetes.io/last-applied-configuration` annotation from any resources in the namespace that you do not wish to be deleted and which are not included in your deploy directory. This annotation is added automatically when you create resources with `kubectl apply`. `kubernetes-deploy` will prune any resources that have this annotation and are not in the deploy directory.<sup>2,3</sup>
 
 <sup>1</sup> We run integration tests against these Kubernetes versions. You can find our
 offical compatibility chart below.
+<sup>2</sup> This requirement can be bypassed with the `--no-prune` option, but it is not recommended.
+<sup>3</sup> Note that kubernetes-deploy will fail if the `ejson-keys` secret is present and contains the `last-applied-configuration` annotation. This is done to prevent accidental pruning of your private keys. If you need to remove `ejson-keys`, contact your cluster administrator or use `kubectl`, if possible. This check is not made when the `--no-prune` flag is set.
 
 | Kubernetes version | Last officially supported in gem version |
 | :----------------: | :-------------------: |
@@ -276,6 +279,7 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
 1. Install the ejson gem: `gem install ejson`
 2. Generate a new keypair: `ejson keygen` (prints the keypair to stdout)
 3. Create a Kubernetes secret in your target namespace with the new keypair: `kubectl create secret generic ejson-keys --from-literal=YOUR_PUBLIC_KEY=YOUR_PRIVATE_KEY --namespace=TARGET_NAMESPACE`
+>Warning: Do *not* use `apply` to create the `ejson-keys` secret. kubernetes-deploy will fail if `ejson-keys` is prunable. This safeguard is to protect against the accidental deletion of your private keys.
 4. (optional but highly recommended) Back up the keypair somewhere secure, such as a password manager, for disaster recovery purposes.
 5. In your template directory (alongside your Kubernetes templates), create `secrets.ejson` with the format shown below. The `_type` key should have the value “kubernetes.io/tls” for TLS secrets and “Opaque” for all others. The `data` key must be a json object, but its keys and values can be whatever you need.
 

@@ -60,7 +60,6 @@ module KubernetesDeploy
     # core/v1/PersistentVolumeClaim -- would delete data
     # core/v1/ReplicationController -- superseded by deployments/replicasets
     # extensions/v1beta1/ReplicaSet -- managed by deployments
-    # core/v1/Secret -- should not committed / managed by shipit
 
     def predeploy_sequence
       before_crs = %w(
@@ -362,6 +361,7 @@ module KubernetesDeploy
 
       confirm_context_exists
       confirm_namespace_exists
+      confirm_ejson_keys_not_prunable if prune
       @logger.info("Using resource selector #{@selector}") if @selector
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
@@ -555,6 +555,27 @@ module KubernetesDeploy
       end
       raise FatalDeploymentError, "Failed to find namespace. #{err}" unless st.success?
       @logger.info("Namespace #{@namespace} found")
+    end
+
+    # make sure to never prune the ejson-keys secret
+    def confirm_ejson_keys_not_prunable
+      raw_secret, st, err = nil
+      with_retries(2) do
+        raw_secret, err, st = kubectl.run("get", "secret",
+          EjsonSecretProvisioner::EJSON_KEYS_SECRET, "-oyaml", output_is_sensitive: true)
+        st.success? || err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
+      end
+      if st.success?
+        secret = YAML.safe_load(raw_secret, [Date, Time])
+        return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
+        @logger.error("Secret #{EjsonSecretProvisioner::EJSON_KEYS_SECRET} will be pruned if deploy proceeds")
+
+        raise EjsonPrunableError.exception(
+          "Found #{KubernetesResource::LAST_APPLIED_ANNOTATION} annotation on " \
+          "#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} secret. " \
+          "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned." \
+        )
+      end
     end
 
     def tags_from_namespace_labels
