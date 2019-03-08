@@ -1,13 +1,13 @@
 ---
 name: kubernetes-deploy
 up:
-  - ruby: 2.3.3
+  - ruby: 2.3.3 # Matches gemspec
   - bundler
   - homebrew:
     - Caskroom/cask/minikube
   - custom:
       name: Minikube Cluster
-      met?: test $(minikube status | grep Running | wc -l) -eq 2 && $(minikube status | grep -q 'Correctly Configured')
+      met?: test $(minikube status | grep Running | wc -l) -ge 2 && $(minikube status | grep -q 'Correctly Configured')
       meet: minikube start --kubernetes-version=v1.11.6 --vm-driver=hyperkit
       down: minikube stop
 commands:
