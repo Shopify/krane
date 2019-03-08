@@ -10,7 +10,7 @@
 
 *Features*
 
-- **[Breaking change]** Support for deploying Secrets from templates ([#424](https://github.com/Shopify/kubernetes-deploy/pull/424)). Because non-ejson secrets are now fully supported and therefore **subject to pruning like any other resource**:
+- **[Breaking change]** Support for deploying Secrets from templates ([#424](https://github.com/Shopify/kubernetes-deploy/pull/424)). Non-ejson secrets are now fully supported and therefore **subject to pruning like any other resource**. As a result:
   * If you previously manually `kubectl apply`'d secrets that are not passed to kubernetes-deploy, your first deploy using this version is going to delete them.
   * If you previously passed secrets manifests to kubernetes-deploy and they are no longer in the set you pass to the first deploy using this version, it will delete them.
   * To identify potentially affected secrets in your cluster, run: `kubectl get secrets -o jsonpath='{ range .items[*] }{.metadata.namespace}{ "\t" }{.metadata.name}{ "\t" }{.metadata.annotations}{ "\n" }{ end }' --context=$YOUR_CONTEXT_HERE --all-namespaces | grep -v "kubernetes-deploy.shopify.io/ejson-secret" | grep "last-applied" | cut -f 1,2`. To exclude a secret from kubernetes-deploy (and kubectl apply) management, remove the last-applied annotation `kubectl annotate secret $SECRET_NAME kubectl.kubernetes.io/last-applied-configuration-`.
