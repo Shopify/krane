@@ -562,8 +562,7 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/Shopif
 
 Contributions to help us support additional resource types or increase the sophistication of our success heuristics for an existing type are especially encouraged! (See tips below)
 
-We have a slack channel _krane_ on https://kubernetes.slack.com for discussions that don't
-make sense as a github issue. All our welcome.
+You can also reach out to us on our slack channel, #krane, at https://kubernetes.slack.com. All are welcome!
 
 ## Feature acceptance guidelines
 
