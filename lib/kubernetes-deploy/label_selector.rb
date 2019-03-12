@@ -35,6 +35,14 @@ module KubernetesDeploy
           raise ArgumentError, "key is blank"
         end
 
+        if key.end_with?("!")
+          raise ArgumentError, "!= selectors are not supported"
+        end
+
+        if value&.start_with?("=")
+          raise ArgumentError, "== selectors are not supported"
+        end
+
         selector[key] = value
       end
 

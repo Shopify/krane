@@ -18,17 +18,19 @@ class LabelSelectorTest < ::Minitest::Test
   end
 
   def test_parse_selector_doubleeq
-    expected = { "foo" => "=42" }
-    assert_equal(expected, parse("foo==42"))
+    assert_raises(ArgumentError, "== selectors are not supported") do
+      parse("foo==42")
+    end
   end
 
   def test_parse_selector_noteq
-    expected = { "foo!" => "42" }
-    assert_equal(expected, parse("foo!=42"))
+    assert_raises(ArgumentError, "!= selectors are not supported") do
+      parse("foo!=42")
+    end
   end
 
   def test_parse_selector_with_no_key
-    assert_raises(ArgumentError) do
+    assert_raises(ArgumentError, "key is blank") do
       parse("=17,foo=42")
     end
   end
