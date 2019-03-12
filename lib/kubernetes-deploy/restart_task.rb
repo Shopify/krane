@@ -82,7 +82,7 @@ module KubernetesDeploy
           @logger.info("Configured to restart all deployments with the `#{ANNOTATION}` annotation")
           v1beta1_kubeclient.get_deployments(namespace: @namespace)
         else
-          selector_string = Utils.selector_to_string(selector)
+          selector_string = selector.to_s
           @logger.info(
             "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
           )

@@ -3,7 +3,6 @@ require 'json'
 require 'base64'
 require 'open3'
 require 'kubernetes-deploy/kubectl'
-require 'kubernetes-deploy/utils'
 
 module KubernetesDeploy
   class EjsonSecretError < FatalDeploymentError

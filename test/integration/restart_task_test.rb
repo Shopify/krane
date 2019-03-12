@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 require 'kubernetes-deploy/restart_task'
+require 'kubernetes-deploy/label_selector'
 
 class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_by_annotation
@@ -30,16 +31,16 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_by_selector
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
-      selector: { "branch" => "master" }))
+      selector: KubernetesDeploy::LabelSelector.parse("branch=master")))
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "staging" },
-      selector: { "branch" => "staging" }))
+      selector: KubernetesDeploy::LabelSelector.parse("branch=staging")))
 
     refute(fetch_restarted_at("master-web"), "no RESTARTED_AT env on fresh deployment")
     refute(fetch_restarted_at("staging-web"), "no RESTARTED_AT env on fresh deployment")
 
     restart = build_restart_task
-    assert_restart_success(restart.perform(selector: { name: 'web', branch: 'staging' }))
+    assert_restart_success(restart.perform(selector: KubernetesDeploy::LabelSelector.parse("name=web,branch=staging")))
 
     assert_logs_match_all([
       "Configured to restart all deployments with the `shipit.shopify.io/restart` annotation " \
@@ -157,7 +158,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
   def test_restart_deployments_and_selector
     restart = build_restart_task
-    assert_restart_failure(restart.perform(%w(web), selector: { app: 'web' }))
+    assert_restart_failure(restart.perform(%w(web), selector: KubernetesDeploy::LabelSelector.parse("app=web")))
     assert_logs_match_all([
       "Result: FAILURE",
       "Can't specify deployment names and selector at the same time",

@@ -13,7 +13,7 @@ ARGV.options do |opts|
   opts.on("--deployments=LIST") { |v| raw_deployments = v.split(",") }
   opts.on("--max-watch-seconds=seconds") { |t| max_watch_seconds = t.to_i }
   opts.on("--selector=SELECTOR", "Restarts deployments matching selector (format: k1=v1,k2=v2 or JSON)") do |s|
-    selector = KubernetesDeploy::BindingsParser.parse(s)
+    selector = KubernetesDeploy::LabelSelector.parse(s)
   end
   opts.parse!
 end

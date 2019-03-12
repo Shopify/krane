@@ -4,7 +4,6 @@ require 'open3'
 require 'shellwords'
 
 require 'kubernetes-deploy/remote_logs'
-require 'kubernetes-deploy/utils'
 
 module KubernetesDeploy
   class KubernetesResource
@@ -406,16 +405,16 @@ module KubernetesDeploy
     end
 
     def validate_selector(selector)
-      selector_string = Utils.selector_to_string(selector)
+      selector_string = selector.to_s
 
       if labels.nil?
         @validation_errors << "selector #{selector_string} passed in, but no labels were defined"
         return
       end
 
-      unless selector <= labels
+      unless selector.to_h <= labels
         label_name = 'label'.pluralize(labels.size)
-        label_string = Utils.selector_to_string(labels)
+        label_string = LabelSelector.new(labels).to_s
         @validation_errors << "selector #{selector_string} does not match #{label_name} #{label_string}"
       end
     end

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
+require 'kubernetes-deploy/label_selector'
 
 class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_full_hello_cloud_set_deploy_succeeds
@@ -127,11 +128,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     # Deploy the same thing twice with a different selector
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
-      selector: { "branch" => "master" }))
+      selector: KubernetesDeploy::LabelSelector.parse("branch=master")))
     assert_logs_match("Using resource selector branch=master")
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "staging" },
-      selector: { "branch" => "staging" }))
+      selector: KubernetesDeploy::LabelSelector.parse("branch=staging")))
     assert_logs_match("Using resource selector branch=staging")
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
 
@@ -151,7 +152,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_mismatched_selector
     assert_deploy_failure(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
-      selector: { "branch" => "staging" }))
+      selector: KubernetesDeploy::LabelSelector.parse("branch=staging")))
     assert_logs_match_all([
       /Using resource selector branch=staging/,
       /Template validation failed/,
@@ -164,7 +165,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_mismatched_selector_on_replace_resource_without_labels
     assert_deploy_failure(deploy_fixtures("hello-cloud",
       subset: %w(disruption-budgets.yml),
-      selector: { "branch" => "staging" }))
+      selector: KubernetesDeploy::LabelSelector.parse("branch=staging")))
     assert_logs_match_all([
       /Using resource selector branch=staging/,
       /Template validation failed/,

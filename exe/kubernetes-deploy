@@ -32,7 +32,7 @@ ARGV.options do |opts|
   end
   opts.on("--selector=SELECTOR", "Ensure that all resources in your template dir match the given selector, " \
     "and restrict pruning to deployed resources it selects.  (format: k1=v1,k2=v2 or JSON)") do |s|
-    selector = KubernetesDeploy::BindingsParser.parse(s)
+    selector = KubernetesDeploy::LabelSelector.parse(s)
   end
 
   opts.on_tail("-h", "--help", "Print this help") do

@@ -42,7 +42,6 @@ require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/cluster_resource_discovery'
 require 'kubernetes-deploy/template_discovery'
-require 'kubernetes-deploy/utils'
 
 module KubernetesDeploy
   class DeployTask
@@ -358,7 +357,7 @@ module KubernetesDeploy
 
       confirm_context_exists
       confirm_namespace_exists
-      @logger.info("Using resource selector #{Utils.selector_to_string(@selector)}") if @selector
+      @logger.info("Using resource selector #{@selector}") if @selector
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
     end
@@ -435,7 +434,7 @@ module KubernetesDeploy
         if prune
           command.push("--prune")
           if @selector
-            command.push("--selector", Utils.selector_to_string(@selector))
+            command.push("--selector", @selector.to_s)
           else
             command.push("--all")
           end
