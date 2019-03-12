@@ -8,12 +8,14 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.assert_all_up
 
     assert_logs_match_all([
+      "All required parameters and files are present",
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
       %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
       "Successfully deployed 23 resources",
     ], in_order: true)
+    refute_logs_match(/Using resource selector/)
 
     num_ds = expected_daemonset_pod_count
     assert_logs_match_all([
@@ -126,9 +128,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
       selector: { "branch" => "master" }))
+    assert_logs_match("Using resource selector branch=master")
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "staging" },
       selector: { "branch" => "staging" }))
+    assert_logs_match("Using resource selector branch=staging")
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
 
     assert_equal(2, deployments.size)
@@ -149,6 +153,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       bindings: { "branch" => "master" },
       selector: { "branch" => "staging" }))
     assert_logs_match_all([
+      /Using resource selector branch=staging/,
       /Template validation failed/,
       /Invalid template: Deployment/,
       /selector branch=staging does not match labels app=branched,branch=master/,
@@ -161,6 +166,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       subset: %w(disruption-budgets.yml),
       selector: { "branch" => "staging" }))
     assert_logs_match_all([
+      /Using resource selector branch=staging/,
       /Template validation failed/,
       /Invalid template: PodDisruptionBudget/,
       /selector branch=staging passed in, but no labels were defined/,

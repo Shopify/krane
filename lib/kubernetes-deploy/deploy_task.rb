@@ -358,6 +358,7 @@ module KubernetesDeploy
 
       confirm_context_exists
       confirm_namespace_exists
+      @logger.info("Using resource selector #{Utils.selector_to_string(@selector)}") if @selector
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
     end
