@@ -63,9 +63,6 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: redis
-  labels:
-    name: redis
-    app: hello-cloud
 spec:
   replicas: 1
   progressDeadlineSeconds: 60
