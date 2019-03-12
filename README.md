@@ -562,6 +562,8 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/Shopif
 
 Contributions to help us support additional resource types or increase the sophistication of our success heuristics for an existing type are especially encouraged! (See tips below)
 
+You can also reach out to us on our slack channel, #krane, at https://kubernetes.slack.com. All are welcome!
+
 ## Feature acceptance guidelines
 
 - This project's mission is to make it easy to ship changes to a Kubernetes namespace and understand the result. Features that introduce new classes of responsibility to the tool are not usually accepted.
