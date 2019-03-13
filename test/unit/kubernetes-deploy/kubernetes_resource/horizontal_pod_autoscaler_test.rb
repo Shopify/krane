@@ -29,6 +29,20 @@ class HorizontalPodAutoscalerTest < KubernetesDeploy::TestCase
     assert_equal("Configured", hpa.status)
   end
 
+  def test_hpa_succeeds_if_scaling_is_explicitly_disabled
+    conditions = [{
+      "lastTransitionTime" => 5.seconds.ago,
+      "message" => "scaling is disabled since the replica count of the target is zero",
+      "reason" => "ScalingDisabled",
+      "status" => "False",
+      "type" => "ScalingActive",
+    }]
+    hpa = build_synced_hpa(build_hpa_template(conditions: conditions))
+    assert(hpa.deploy_succeeded?)
+    refute(hpa.deploy_failed?)
+    assert_equal("ScalingDisabled", hpa.status)
+  end
+
   def test_hpa_fails_when_scaling_not_active_and_unrecoverable
     conditions = [{
       "lastTransitionTime" => 5.seconds.ago,
