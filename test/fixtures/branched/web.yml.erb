@@ -1,0 +1,33 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: <%= branch %>-web
+  labels:
+    app: branched
+    branch: <%= branch %>
+    name: web
+  annotations:
+    shipit.shopify.io/restart: "true"
+spec:
+  replicas: 1
+  progressDeadlineSeconds: 20
+  selector:
+    matchLabels:
+      app: branched
+      branch: <%= branch %>
+      name: web
+  template:
+    metadata:
+      labels:
+        app: branched
+        branch: <%= branch %>
+        name: web
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        env:
+        - name: GITHUB_REV
+          value: "<%= current_sha %>"

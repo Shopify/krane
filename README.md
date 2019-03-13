@@ -76,13 +76,9 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * Ruby 2.3+
 * Your cluster must be running Kubernetes v1.10.0 or higher<sup>1</sup>
 * Each app must have a deploy directory containing its Kubernetes templates (see [Templates](#using-templates-and-variables))
-* You must remove the` kubectl.kubernetes.io/last-applied-configuration` annotation from any resources in the namespace that are not included in your deploy directory. This annotation is added automatically when you create resources with `kubectl apply`. `kubernetes-deploy` will prune any resources that have this annotation and are not in the deploy directory.<sup>2</sup>
-* Each app managed by `kubernetes-deploy` must have its own exclusive Kubernetes namespace.
 
 <sup>1</sup> We run integration tests against these Kubernetes versions. You can find our
 offical compatibility chart below.
-
-<sup>2</sup> This requirement can be bypassed with the `--no-prune` option, but it is not recommended.
 
 | Kubernetes version | Last officially supported in gem version |
 | :----------------: | :-------------------: |
@@ -122,7 +118,15 @@ Refer to `kubernetes-deploy --help` for the authoritative set of options.
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--max-watch-seconds=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
 resource to deploy.
+- `--selector`: Instructs kubernetes-deploy to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
 
+### Sharing a namespace
+
+By default, kubernetes-deploy will prune any resources in the target namespace which have the `kubectl.kubernetes.io/last-applied-configuration` annotation and are not a result of the current deployment process, on the assumption that there is a one-to-one relationship between application deployment and namespace, and that a deployment provisions all relevant resources in the namespace.
+
+If you need to, you may specify `--no-prune` to disable all pruning behaviour, but this is not recommended.
+
+If you need to share a namespace with resources which are managed by other tools or indeed other kubernetes-deploy deployments, you can supply the `--selector` option, such that only resources with labels matching the selector are considered for pruning.
 
 ### Using templates and variables
 
@@ -300,6 +304,7 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
 7. Commit the encrypted file and deploy as usual. The deploy will create secrets from the data in the `kubernetes_secrets` key.
 
 **Note**: Since leading underscores in ejson keys are used to skip encryption of the associated value, `kubernetes-deploy` will strip these leading underscores when it creates the keys for the Kubernetes secret data. For example, given the ejson data below, the `monitoring-token` secret will have keys `api-token` and `property` (_not_ `_property`):
+
 ```json
 {
   "_public_key": "YOUR_PUBLIC_KEY",
@@ -313,6 +318,8 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
     }
   }
 ```
+
+When using EJSON to generate `Secret` resources and specifying a `--selector` for deployment, the labels from the selector are automatically added to the `Secret`.
 
 ### Deploying custom resources
 
@@ -435,6 +442,13 @@ metadata:
 With this done, you can use the following command to restart all of them:
 
 `kubernetes-restart <kube namespace> <kube context>`
+
+*Options:*
+
+Refer to `kubernetes-restart --help` for the authoritative set of options.
+
+- `--selector`: Only restarts Deployments which match the specified Kubernetes resource selector.
+- `--deployments`: Restart specific Deployment resources by name.
 
 # kubernetes-run
 

@@ -62,7 +62,7 @@ module KubernetesDeploy
       kind
     end
 
-    def validate_definition(kubectl)
+    def validate_definition(*)
       super
 
       @crd.validate_rollout_conditions

@@ -106,8 +106,9 @@ module KubernetesDeploy
       Kubeclient::Resource.new(@definition)
     end
 
-    def validate_definition(kubectl)
+    def validate_definition(kubectl, selector: nil)
       @validation_errors = []
+      validate_selector(selector) if selector
       validate_timeout_annotation
 
       command = ["create", "-f", file_path, "--dry-run", "--output=name"]
@@ -401,6 +402,23 @@ module KubernetesDeploy
 
     def timeout_annotation
       @definition.dig("metadata", "annotations", TIMEOUT_OVERRIDE_ANNOTATION)
+    end
+
+    def validate_selector(selector)
+      if labels.nil?
+        @validation_errors << "selector #{selector} passed in, but no labels were defined"
+        return
+      end
+
+      unless selector.to_h <= labels
+        label_name = 'label'.pluralize(labels.size)
+        label_string = LabelSelector.new(labels).to_s
+        @validation_errors << "selector #{selector} does not match #{label_name} #{label_string}"
+      end
+    end
+
+    def labels
+      @definition.dig("metadata", "labels")
     end
 
     def file

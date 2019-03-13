@@ -27,6 +27,36 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     refute(fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment")
   end
 
+  def test_restart_by_selector
+    assert_deploy_success(deploy_fixtures("branched",
+      bindings: { "branch" => "master" },
+      selector: KubernetesDeploy::LabelSelector.parse("branch=master")))
+    assert_deploy_success(deploy_fixtures("branched",
+      bindings: { "branch" => "staging" },
+      selector: KubernetesDeploy::LabelSelector.parse("branch=staging")))
+
+    refute(fetch_restarted_at("master-web"), "no RESTARTED_AT env on fresh deployment")
+    refute(fetch_restarted_at("staging-web"), "no RESTARTED_AT env on fresh deployment")
+
+    restart = build_restart_task
+    assert_restart_success(restart.perform(selector: KubernetesDeploy::LabelSelector.parse("name=web,branch=staging")))
+
+    assert_logs_match_all([
+      "Configured to restart all deployments with the `shipit.shopify.io/restart` annotation " \
+      "and name=web,branch=staging selector",
+      "Triggered `staging-web` restart",
+      "Waiting for rollout",
+      %r{Successfully restarted in \d+\.\ds: Deployment/staging-web},
+      "Result: SUCCESS",
+      "Successfully restarted 1 resource",
+      %r{Deployment/staging-web.*1 availableReplica},
+    ],
+      in_order: true)
+
+    assert(fetch_restarted_at("staging-web"), "RESTARTED_AT is present after the restart")
+    refute(fetch_restarted_at("master-web"), "no RESTARTED_AT env on fresh deployment")
+  end
+
   def test_restart_by_annotation_none_found
     restart = build_restart_task
     assert_restart_failure(restart.perform)
@@ -121,6 +151,16 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "Result: FAILURE",
       "Configured to restart deployments by name, but list of names was blank",
+    ],
+      in_order: true)
+  end
+
+  def test_restart_deployments_and_selector
+    restart = build_restart_task
+    assert_restart_failure(restart.perform(%w(web), selector: KubernetesDeploy::LabelSelector.parse("app=web")))
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Can't specify deployment names and selector at the same time",
     ],
       in_order: true)
   end
