@@ -1056,23 +1056,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
-  def test_hpa_can_be_successful
-    assert_deploy_success(deploy_fixtures("hpa"))
-    assert_logs_match_all([
-      "Deploying resources:",
-      "HorizontalPodAutoscaler/hello-hpa (timeout: 180s)",
-      %r{HorizontalPodAutoscaler/hello-hpa\s+Configured},
-    ])
-  end
-
-  def test_hpa_can_be_pruned
-    assert_deploy_success(deploy_fixtures("hpa"))
-    assert_deploy_success(deploy_fixtures("hpa", subset: ["deployment.yml"]))
-    assert_logs_match_all([
-      /The following resources were pruned: #{prune_matcher("horizontalpodautoscaler", "autoscaling", "hello-hpa")}/,
-    ])
-  end
-
   def test_not_apply_resource_can_be_pruned
     pod_disruption_budget_matcher = prune_matcher("poddisruptionbudget", "policy", "test")
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(disruption-budgets.yml configmap-data.yml)))
