@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
-require 'kubernetes-deploy/label_selector'
 
 class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_full_hello_cloud_set_deploy_succeeds

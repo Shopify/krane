@@ -31,7 +31,7 @@ ARGV.options do |opts|
     max_watch_seconds = t.to_i
   end
   opts.on("--selector=SELECTOR", "Ensure that all resources in your template dir match the given selector, " \
-    "and restrict pruning to deployed resources it selects.  (format: k1=v1,k2=v2 or JSON)") do |s|
+    "and restrict pruning to deployed resources it selects.  (format: k1=v1,k2=v2)") do |s|
     selector = KubernetesDeploy::LabelSelector.parse(s)
   end
 

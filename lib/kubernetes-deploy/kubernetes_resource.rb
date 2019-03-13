@@ -405,17 +405,15 @@ module KubernetesDeploy
     end
 
     def validate_selector(selector)
-      selector_string = selector.to_s
-
       if labels.nil?
-        @validation_errors << "selector #{selector_string} passed in, but no labels were defined"
+        @validation_errors << "selector #{selector} passed in, but no labels were defined"
         return
       end
 
       unless selector.to_h <= labels
         label_name = 'label'.pluralize(labels.size)
         label_string = LabelSelector.new(labels).to_s
-        @validation_errors << "selector #{selector_string} does not match #{label_name} #{label_string}"
+        @validation_errors << "selector #{selector} does not match #{label_name} #{label_string}"
       end
     end
 

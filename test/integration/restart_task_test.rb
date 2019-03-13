@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 require 'kubernetes-deploy/restart_task'
-require 'kubernetes-deploy/label_selector'
 
 class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_by_annotation
