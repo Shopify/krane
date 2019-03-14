@@ -11,7 +11,6 @@ class TestProvisioner
       $stderr.print("Preparing test cluster... ")
       prepare_pv("pv0001")
       prepare_pv("pv0002")
-      deploy_metric_server
       $stderr.puts "Done."
       WebMock.disable_net_connect!
     end
@@ -56,23 +55,6 @@ class TestProvisioner
         persistentVolumeReclaimPolicy: "Recycle",
       }
       kubeclient.create_persistent_volume(pv)
-    end
-
-    def deploy_metric_server
-      # Set-up the metric server that the HPA needs https://github.com/kubernetes-incubator/metrics-server
-      logger = KubernetesDeploy::FormattedLogger.build("default", KubeclientHelper::TEST_CONTEXT, $stderr)
-      kubectl = KubernetesDeploy::Kubectl.new(namespace: "kube-system", context: KubeclientHelper::TEST_CONTEXT,
-        logger: logger, log_failure_by_default: true, default_timeout: '5s')
-
-      Dir.glob("test/setup/metrics-server/*.{yml,yaml}*").each do |resource|
-        if kubectl.server_version < Gem::Version.new('1.11.0') && resource =~ /metrics-server-deployment.yaml/
-          next
-        elsif kubectl.server_version >= Gem::Version.new('1.11.0') && resource =~ /metrics-server-deployment_021.yaml/
-          next
-        end
-        found = kubectl.run("get", "-f", resource, log_failure: false).last.success?
-        kubectl.run("create", "-f", resource, log_failure: true) unless found
-      end
     end
   end
 end
