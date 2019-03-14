@@ -628,8 +628,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Result: SUCCESS",
       %r{Secret\/catphotoscom\s+Available},
-      %r{Secret\/unused-secret\s+Available},
       %r{Secret\/monitoring-token\s+Available},
+      %r{Secret\/unused-secret\s+Available},
     ], in_order: true)
   end
 
@@ -756,10 +756,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     hello_cloud.assert_pod_status(pod_name, pod_status, target)
 
     assert_logs_match_all([
-      %r{Service/web\s+Selects at least 1 pod},
       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Service/web\s+Doesn't require any endpoint},
+      %r{Service/web\s+Selects at least 1 pod},
       %r{Deployment/web\s+0 replicas},
+      %r{Service/web\s+Doesn't require any endpoint},
     ], in_order: true)
   end
 

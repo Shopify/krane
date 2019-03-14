@@ -136,6 +136,10 @@ module KubernetesDeploy
       "#{type}/#{name}"
     end
 
+    def <=>(other)
+      id <=> other.id
+    end
+
     def file_path
       file.path
     end
