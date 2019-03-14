@@ -572,40 +572,8 @@ Go to the [kubernetes-deploy-gem pipeline](https://buildkite.com/shopify/kuberne
 
 # Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/Shopify/kubernetes-deploy.
-
-Contributions to help us support additional resource types or increase the sophistication of our success heuristics for an existing type are especially encouraged! (See tips below)
-
-You can also reach out to us on our slack channel, #krane, at https://kubernetes.slack.com. All are welcome!
-
-## Feature acceptance guidelines
-
-- This project's mission is to make it easy to ship changes to a Kubernetes namespace and understand the result. Features that introduce new classes of responsibility to the tool are not usually accepted.
-  - Deploys can be a very tempting place to cram features. Imagine a proposed feature actually fits better elsewhere—where might that be? (Examples: validator in CI, custom controller, initializer, pre-processing step in the CD pipeline, or even Kubernetes core)
-  - The basic ERB renderer included with the tool is intended as a convenience feature for a better out-of-the box experience. Providing complex rendering capabilities is out of scope of this project's mission, and enhancements in this area may be rejected.
-  - The deploy command does not officially support non-namespaced resource types.
-- This project strives to be composable with other tools in the ecosystem, such as renderers and validators. The deploy command must work with any Kubernetes templates provided to it, no matter how they were generated.
-- This project is open-source. Features tied to any specific organization (including Shopify) will be rejected.
-- The deploy command must remain performant when given several hundred resources at a time, generating 1000+ pods. (Technical note: This means only `sync` methods can make calls to the Kuberentes API server during result verification. This both limits the number of API calls made and ensures a consistent view of the world within each polling cycle.)
-- This tool must be able to run concurrent deploys to different targets safely, including when used as a library.
-
-## Contributing a new resource type
-
-The list of fully supported types is effectively the list of classes found in `lib/kubernetes-deploy/kubernetes_resource/`.
-
-This gem uses subclasses of `KubernetesResource` to implement custom success/failure detection logic for each resource type. If no subclass exists for a type you're deploying, the gem simply assumes `kubectl apply` succeeded (and prints a warning about this assumption). We're always looking to support more types! Here are the basic steps for contributing a new one:
-
-1. Create a file for your type in `lib/kubernetes-deploy/kubernetes_resource/`
-2. Create a new class that inherits from `KubernetesResource`. Minimally, it should implement the following methods:
-    * `sync` -- Gather the data you'll need to determine `deploy_succeeded?` and `deploy_failed?`. The superclass's implementation fetches the corresponding resource, parses it and stores it in `@instance_data`. You can define your own implementation if you need something else.
-    * `deploy_succeeded?`
-    * `deploy_failed?`
-3. Adjust the `TIMEOUT` constant to an appropriate value for this type.
-4. Add the new class to list of resources in
-   [`deploy_task.rb`](https://github.com/Shopify/kubernetes-deploy/blob/master/lib/kubernetes-deploy/deploy_task.rb#L8)
-5. Add the new resource to the [prune whitelist](https://github.com/Shopify/kubernetes-deploy/blob/master/lib/kubernetes-deploy/deploy_task.rb#L81)
-6. Add the a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/kubernetes-deploy/blob/master/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
-7. Add tests for any edge cases you foresee.
+We :heart: contributors! To make it easier for you and us we've written a
+[Contributing Guide](https://github.com/Shopify/kubernetes-deploy/blob/master/CONTRIBUTING.md)
 
 ## Code of Conduct
 Everyone is expected to follow our [Code of Conduct](https://github.com/Shopify/kubernetes-deploy/blob/master/CODE_OF_CONDUCT.md).
