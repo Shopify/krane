@@ -10,10 +10,12 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       "All required parameters and files are present",
       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
-      %r{Deploying Pod/unmanaged-pod-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
+      /Deploying resources:/,
+      %r{- Pod/unmanaged-pod-1-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
+      %r{- Pod/unmanaged-pod-2-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 23 resources",
+      "Successfully deployed 24 resources",
     ], in_order: true)
     refute_logs_match(/Using resource selector/)
 
@@ -38,8 +40,8 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     # Add a valid service account in unmanaged pod
     service_account_name = "build-robot"
     result = deploy_fixtures("hello-cloud",
-      subset: ["configmap-data.yml", "unmanaged-pod.yml.erb", "service-account.yml"]) do |fixtures|
-      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "service-account.yml"]) do |fixtures|
+      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["spec"]["serviceAccountName"] = service_account_name
       pod["spec"]["automountServiceAccountToken"] = false
     end
@@ -48,7 +50,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_configmap_data_present
     hello_cloud.assert_all_service_accounts_up
-    hello_cloud.assert_unmanaged_pod_statuses("Succeeded")
+    hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
     assert_logs_match_all([
       %r{Successfully deployed in \d.\ds: ServiceAccount/build-robot},
       %r{Successfully deployed in \d.\ds: Pod/unmanaged-pod-.*},
@@ -60,7 +62,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       "hello-cloud",
       subset: [
         "configmap-data.yml",
-        "unmanaged-pod.yml.erb",
+        "unmanaged-pod-1.yml.erb",
         "role-binding.yml",
         "role.yml",
         "service-account.yml",
@@ -74,11 +76,11 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.assert_all_service_accounts_up
     hello_cloud.assert_all_roles_up
     hello_cloud.assert_all_role_bindings_up
-    hello_cloud.assert_unmanaged_pod_statuses("Succeeded")
+    hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
     assert_logs_match_all([
       %r{Successfully deployed in \d.\ds: Role/role},
       %r{Successfully deployed in \d.\ds: RoleBinding/role-binding},
-      %r{Successfully deployed in \d.\ds: Pod/unmanaged-pod-.*},
+      %r{Successfully deployed in \d.\ds: Pod/unmanaged-pod-1-.*},
     ], in_order: true)
   end
 
@@ -106,7 +108,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       prune_matcher("networkpolicy", "networking.k8s.io", "allow-all-network-policy"),
       prune_matcher("secret", "", "hello-secret"),
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 12 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 13 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -354,32 +356,40 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_bad_container_image_on_unmanaged_pod_halts_and_fails_deploy
-    result = deploy_fixtures("hello-cloud") do |fixtures|
-      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+    result = deploy_fixtures(
+      "hello-cloud",
+      subset: [
+        "unmanaged-pod-1.yml.erb",
+        "configmap-data.yml",
+        "redis.yml",
+        "web.yml.erb",
+      ]
+    ) do |fixtures|
+      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      %r{Pod\/unmanaged-pod-\w+-\w+: FAILED},
+      %r{Pod\/unmanaged-pod-1-\w+-\w+: FAILED},
       "hello-cloud: Failed to pull image",
     ], in_order: true)
 
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-    hello_cloud.assert_unmanaged_pod_statuses("Pending")
+    hello_cloud.assert_unmanaged_pod_statuses("Pending", 1)
     hello_cloud.assert_configmap_data_present # priority resource
     hello_cloud.refute_redis_resources_exist(expect_pvc: true) # pvc is priority resource
     hello_cloud.refute_web_resources_exist
   end
 
   def test_output_of_failed_unmanaged_pod
-    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod.yml.erb", "configmap-data.yml"]) do |fixtures|
-      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb", "configmap-data.yml"]) do |fixtures|
+      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["spec"]["containers"].first["command"] = ["/not/a/command"]
     end
     assert_deploy_failure(result)
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-    hello_cloud.assert_unmanaged_pod_statuses("Failed")
+    hello_cloud.assert_unmanaged_pod_statuses("Failed", 1)
     hello_cloud.refute_web_resources_exist
 
     assert_logs_match_all([
@@ -465,13 +475,13 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_wait_false_still_waits_for_priority_resources
     result = deploy_fixtures("hello-cloud") do |fixtures|
-      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      %r{Pod\/unmanaged-pod-\w+-\w+: FAILED},
+      %r{Pod\/unmanaged-pod-1-\w+-\w+: FAILED},
       "The following containers encountered errors:",
       "hello-cloud: Failed to pull image hello-world:thisImageIsBad",
     ])
@@ -698,8 +708,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_failure_logs_from_unmanaged_pod_appear_in_summary_section
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
-      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+    result = deploy_fixtures(
+      "hello-cloud",
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb"]
+    ) do |fixtures|
+      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       container = pod["spec"]["containers"].first
       container["command"] = ["sh", "-c", "/some/bad/path"] # should throw an error
     end
@@ -819,8 +832,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deploy_aborts_immediately_if_unmanged_pod_spec_missing
-    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod.yml.erb"]) do |fixtures|
-      definition = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb"]) do |fixtures|
+      definition = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       definition.delete("spec")
     end
     assert_deploy_failure(result)
@@ -842,19 +855,38 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_output_when_unmanaged_pod_preexists
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
-      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb"]) do |fixtures|
+      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["metadata"]["name"] = "oops-it-is-static"
     end
     assert_deploy_success(result)
 
     # Second deploy should fail because unmanaged pod already exists
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod.yml.erb"]) do |fixtures|
-      pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb"]) do |fixtures|
+      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["metadata"]["name"] = "oops-it-is-static"
     end
     assert_deploy_failure(result)
     assert_logs_match("Unmanaged pods like Pod/oops-it-is-static must have unique names on every deploy")
+  end
+
+  def test_streams_unmanaged_pod_logs_when_only_one
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb"])
+    assert_deploy_success(result)
+    assert_logs_match(%r{Streaming logs from Pod/unmanaged-pod-1})
+
+    reset_logger
+
+    result = deploy_fixtures(
+      "hello-cloud",
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb"]
+    )
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Logs from Pod/unmanaged-pod-1},
+      %r{Logs from Pod/unmanaged-pod-2},
+    ])
+    refute_logs_match(%r{Streaming logs from Pod/unmanaged-pod})
   end
 
   def test_bad_container_on_daemon_sets_fails

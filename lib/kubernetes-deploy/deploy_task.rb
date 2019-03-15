@@ -207,6 +207,11 @@ module KubernetesDeploy
     end
 
     def predeploy_priority_resources(resource_list)
+      bare_pods = resource_list.select { |resource| resource.is_a?(Pod) }
+      if bare_pods.count == 1
+        bare_pods.first.stream_logs = true
+      end
+
       predeploy_sequence.each do |resource_type|
         matching_resources = resource_list.select { |r| r.type == resource_type }
         next if matching_resources.empty?

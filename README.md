@@ -261,7 +261,7 @@ To run a task in your cluster at the beginning of every deploy, simply include a
 
 A simple example can be found in the test fixtures: test/fixtures/hello-cloud/unmanaged-pod.yml.erb.
 
-The logs of all pods run in this way will be printed inline.
+The logs of all pods run in this way will be printed inline. If there is only one pod, the logs will be streamed in real-time. If there are multiple, they will be fetched when the pod terminates.
 
 ![migrate-logs](screenshots/migrate-logs.png)
 

@@ -13,6 +13,7 @@ module KubernetesDeploy
       @logger = logger
       @lines = []
       @next_print_index = 0
+      @printed_latest = false
     end
 
     def sync
@@ -33,10 +34,15 @@ module KubernetesDeploy
       end
 
       @next_print_index = lines.length
+      @printed_latest = true
     end
 
     def print_all
       lines.each { |line| @logger.info("\t#{line}") }
+    end
+
+    def printing_started?
+      @printed_latest
     end
 
     private

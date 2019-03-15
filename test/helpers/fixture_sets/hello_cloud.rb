@@ -24,7 +24,7 @@ module FixtureSetAssertions
       assert_secret_created
     end
 
-    def assert_unmanaged_pod_statuses(status, count = 1)
+    def assert_unmanaged_pod_statuses(status, count = 2)
       pods = kubeclient.get_pods(namespace: namespace, label_selector: "type=unmanaged-pod,app=#{app_name}")
       assert_equal(count, pods.size, "Expected to find #{count} unmanaged pod(s), found #{pods.size}")
       assert(pods.all? { |pod| pod.status.phase == status })
