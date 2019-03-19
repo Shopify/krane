@@ -201,7 +201,9 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def test_run_output_is_sensitive_squashes_debug_logs
-    stub_open3(%W(kubectl get pods --namespace=testn --context=testc --request-timeout=#{timeout}),
+    stub_open3(
+      %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use}) +
+      %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
       resp: "", err: "oops", success: false)
     logger.level = 0
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: false, output_is_sensitive: true)
