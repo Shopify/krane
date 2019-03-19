@@ -1,0 +1,43 @@
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hello-hpa
+spec:
+  maxReplicas: 2
+  metrics:
+  - resource:
+      name: cpu
+      targetAverageUtilization: 50
+    type: Resource
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-deployment
+status:
+  conditions:
+  - lastTransitionTime: 2019-03-13T22:42:16Z
+    message: the last scale time was sufficiently old as to warrant a new scale
+    reason: ReadyForNewScale
+    status: "True"
+    type: AbleToScale
+  - lastTransitionTime: 2019-03-13T22:43:16Z
+    message: the HPA was able to successfully calculate a replica count from cpu resource
+      utilization (percentage of request)
+    reason: ValidMetricFound
+    status: "True"
+    type: ScalingActive
+  - lastTransitionTime: 2019-03-13T22:43:16Z
+    message: the desired replica count is more than the maximum replica count
+    reason: TooFewReplicas
+    status: "True"
+    type: ScalingLimited
+  currentMetrics:
+  - resource:
+      currentAverageUtilization: 0
+      currentAverageValue: "0"
+      name: cpu
+    type: Resource
+  currentReplicas: 1
+  desiredReplicas: 1
