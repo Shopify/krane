@@ -44,6 +44,28 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
   end
 
+  # This can be run in parallel if we allow passing the config file path to DeployTask.new
+  # See https://github.com/Shopify/kubernetes-deploy/pull/428#pullrequestreview-209720675
+  def test_unreachable_context
+    old_config = ENV['KUBECONFIG']
+    begin
+      ENV['KUBECONFIG'] = File.join(__dir__, '../fixtures/kube-config/dummy_config.yml')
+      kubectl_instance = build_kubectl(timeout: '0.1s')
+      result = deploy_fixtures('hello-cloud', kubectl_instance: kubectl_instance)
+      assert_deploy_failure(result)
+      assert_logs_match_all([
+        'The following command failed (attempt 1/1): kubectl version',
+        'Unable to connect to the server',
+        'Unable to connect to the server',
+        'Unable to connect to the server',
+        'Result: FAILURE',
+        "Failed to reach server for #{TEST_CONTEXT}",
+      ], in_order: true)
+    ensure
+      ENV['KUBECONFIG'] = old_config
+    end
+  end
+
   def test_cr_merging
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml)))
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml)))
