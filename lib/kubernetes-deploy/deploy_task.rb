@@ -45,7 +45,6 @@ require 'kubernetes-deploy/template_discovery'
 
 module KubernetesDeploy
   class DeployTask
-    include KubeclientBuilder
     extend KubernetesDeploy::StatsD::MeasureMethods
 
     PROTECTED_NAMESPACES = %w(
@@ -193,6 +192,10 @@ module KubernetesDeploy
 
     private
 
+    def kubeclient_builder
+      @kubeclient_builder ||= KubeclientBuilder.new
+    end
+
     def cluster_resource_discoverer
       @cluster_resource_discoverer ||= ClusterResourceDiscovery.new(
         namespace: @namespace,
@@ -320,15 +323,7 @@ module KubernetesDeploy
 
     def validate_configuration(allow_protected_ns:, prune:)
       errors = []
-      if config_files.empty?
-        errors << "Kube config file name(s) not set in $KUBECONFIG"
-      else
-        config_files.each do |f|
-          unless File.file?(f)
-            errors << "Kube config not found at #{f}"
-          end
-        end
-      end
+      errors += kubeclient_builder.validate_config_files
 
       if !File.directory?(@template_dir)
         errors << "Template directory `#{@template_dir}` doesn't exist"

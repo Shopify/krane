@@ -44,7 +44,8 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
   end
 
-  # This can be run in parallel when we switch to --kubeconfig (https://github.com/Shopify/kubernetes-deploy/issues/52)
+  # This can be run in parallel if we allow passing the config file path to DeployTask.new
+  # See https://github.com/Shopify/kubernetes-deploy/pull/428#pullrequestreview-209720675
   def test_unreachable_context
     old_config = ENV['KUBECONFIG']
     begin
@@ -63,49 +64,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     ensure
       ENV['KUBECONFIG'] = old_config
     end
-  end
-
-  # This can be run in parallel when we switch to --kubeconfig (https://github.com/Shopify/kubernetes-deploy/issues/52)
-  def test_default_config_file
-    old_config = ENV['KUBECONFIG']
-    ENV['KUBECONFIG'] = nil
-    result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
-    assert_deploy_success(result)
-  ensure
-    ENV['KUBECONFIG'] = old_config
-  end
-
-  # This can be run in parallel when we switch to --kubeconfig (https://github.com/Shopify/kubernetes-deploy/issues/52)
-  def test_multiple_configuration_files
-    old_config = ENV['KUBECONFIG']
-    config_file = File.join(__dir__, '../fixtures/kube-config/unknown_config.yml')
-    ENV['KUBECONFIG'] = config_file
-    result = deploy_fixtures('hello-cloud')
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'Result: FAILURE',
-      'Configuration invalid',
-      "Kube config not found at #{config_file}",
-    ], in_order: true)
-    reset_logger
-
-    ENV['KUBECONFIG'] = " : "
-    result = deploy_fixtures('hello-cloud')
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'Result: FAILURE',
-      'Configuration invalid',
-      "Kube config file name(s) not set in $KUBECONFIG",
-    ], in_order: true)
-    reset_logger
-
-    default_config = "#{Dir.home}/.kube/config"
-    extra_config = File.join(__dir__, '../fixtures/kube-config/dummy_config.yml')
-    ENV['KUBECONFIG'] = "#{default_config}:#{extra_config}"
-    result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
-    assert_deploy_success(result)
-  ensure
-    ENV['KUBECONFIG'] = old_config
   end
 
   def test_cr_merging

@@ -5,8 +5,6 @@ require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
   class RestartTask
-    include KubernetesDeploy::KubeclientBuilder
-
     class FatalRestartError < FatalDeploymentError; end
 
     class RestartAPIError < FatalRestartError
@@ -176,7 +174,7 @@ module KubernetesDeploy
     end
 
     def kubeclient
-      @kubeclient ||= build_v1_kubeclient(@context)
+      @kubeclient ||= kubeclient_builder.build_v1_kubeclient(@context)
     end
 
     def kubectl
@@ -184,7 +182,11 @@ module KubernetesDeploy
     end
 
     def v1beta1_kubeclient
-      @v1beta1_kubeclient ||= build_v1beta1_kubeclient(@context)
+      @v1beta1_kubeclient ||= kubeclient_builder.build_v1beta1_kubeclient(@context)
+    end
+
+    def kubeclient_builder
+      @kubeclient_builder ||= KubeclientBuilder.new
     end
   end
 end
