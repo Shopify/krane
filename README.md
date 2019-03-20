@@ -319,7 +319,7 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
   }
 ```
 
-When using EJSON to generate `Secret` resources and specifying a `--selector` for deployment, the labels from the selector are automatically added to the `Secret`.
+**A warning about using EJSON secrets with `--selector`**: when using EJSON to generate `Secret` resources and specifying a `--selector` for deployment, the labels from the selector are automatically added to the `Secret`. If _the same_ EJSON file is deployed to the same namespace using different selectors, this will cause the resource to thrash - even if the contents of the secret were the same, the resource has different labels on each deploy.
 
 ### Deploying custom resources
 
