@@ -139,8 +139,7 @@ module KubernetesDeploy
     def fetch_private_key_from_secret
       out, err, st = @kubectl.run("get", "secret", EJSON_KEYS_SECRET, output: "json")
       raise EjsonSecretError, err unless st.success?
-      result = JSON.parse(out)
-      secret = result.fetch('items', result)
+      secret = JSON.parse(out)
       encoded_private_key = secret["data"][public_key]
       unless encoded_private_key
         raise EjsonSecretError, "Private key for #{public_key} not found in #{EJSON_KEYS_SECRET} secret"
