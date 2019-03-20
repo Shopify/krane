@@ -37,7 +37,9 @@ module KubernetesDeploy
       erb_binding = TemplateContext.new(self).template_binding
       bind_template_variables(erb_binding, template_variables)
 
-      ERB.new(raw_template, nil, '-').result(erb_binding)
+      result = ERB.new(raw_template, nil, '-').result(erb_binding)
+      lint_yaml(filename, result)
+      result
     rescue InvalidPartialError => err
       err.parents = err.parents.dup.unshift(filename)
       err.filename = "#{err.filename} (partial included from: #{err.parents.join(' -> ')})"
@@ -81,6 +83,17 @@ module KubernetesDeploy
         'current_sha' => @current_sha,
         'deployment_id' => @id,
       }.merge(@bindings)
+    end
+
+    def lint_yaml(filename, content)
+      YAML.parse_stream(content, filename) do |doc|
+        keys_seen = Set.new
+        doc.each_with_index do |node, i|
+          next unless i.even? && node.is_a?(Psych::Nodes::Scalar)
+          raise InvalidTemplateError, "Missing document separator in #{filename}" if keys_seen.include?(node.value)
+          keys_seen.add(node.value)
+        end
+      end
     end
 
     def bind_template_variables(erb_binding, variables)

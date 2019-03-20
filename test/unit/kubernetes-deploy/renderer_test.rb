@@ -76,6 +76,13 @@ class RendererTest < KubernetesDeploy::TestCase
     assert_equal(expected, actual)
   end
 
+  def test_render_fails_when_doc_separators_missing
+    filename = 'missing-separator.yml.erb'
+    assert_raises_message(KubernetesDeploy::InvalidTemplateError, "Missing document separator in #{filename}") do
+      render(filename)
+    end
+  end
+
   private
 
   def render(filename)

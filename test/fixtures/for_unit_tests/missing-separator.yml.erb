@@ -1,0 +1,11 @@
+<% (0..10).each do |i| %>
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crd-configmap-data
+  labels:
+    name: crd-configmap-data
+    app: hello-cloud
+data:
+  loopNum: <%= i %>
+<% end %>
