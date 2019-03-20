@@ -1029,6 +1029,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud.assert_secret_present('ejson-keys')
   end
 
+  def test_deploy_task_succeeds_when_ejson_keys_not_present
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.refute_resource_exists("secret", "ejson-keys")
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(role.yml)))
+  end
+
   def test_partials
     assert_deploy_success(deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' }))
     assert_logs_match_all([
