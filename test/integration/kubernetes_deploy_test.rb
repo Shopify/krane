@@ -1006,7 +1006,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: %w(role.yml)))
     ejson_cloud.assert_secret_present('ejson-keys')
     assert_logs_match_all([
-      "Secret ejson-keys will be pruned if deploy proceeds",
+      "Deploy cannot proceed because protected resource ",
+      "Secret/#{KubernetesDeploy::EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.",
       "Result: FAILURE",
       "Found kubectl.kubernetes.io/last-applied-configuration annotation on ejson-keys secret.",
       "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned.",
