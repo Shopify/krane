@@ -559,22 +559,18 @@ module KubernetesDeploy
 
     # make sure to never prune the ejson-keys secret
     def confirm_ejson_keys_not_prunable
-      raw_secret, st, err = nil
-      with_retries(2) do
-        raw_secret, err, st = kubectl.run("get", "secret",
-          EjsonSecretProvisioner::EJSON_KEYS_SECRET, "-oyaml", output_is_sensitive: true)
-        st.success? || err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
-      end
+      out, err, st = kubectl.run("get", "secret", EjsonSecretProvisioner::EJSON_KEYS_SECRET,
+        output: "json", output_is_sensitive: true)
+      return if err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
+
       if st.success?
-        secret = YAML.safe_load(raw_secret, [Date, Time])
+        secret = JSON.parse(out)
         return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
         @logger.error("Secret #{EjsonSecretProvisioner::EJSON_KEYS_SECRET} will be pruned if deploy proceeds")
 
-        raise EjsonPrunableError.exception(
-          "Found #{KubernetesResource::LAST_APPLIED_ANNOTATION} annotation on " \
+        raise EjsonPrunableError.exception("Found #{KubernetesResource::LAST_APPLIED_ANNOTATION} annotation on " \
           "#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} secret. " \
-          "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned." \
-        )
+          "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned.")
       end
     end
 
