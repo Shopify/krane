@@ -568,7 +568,8 @@ module KubernetesDeploy
       if st.success?
         secret = JSON.parse(out)
         return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
-        @logger.error("Secret #{EjsonSecretProvisioner::EJSON_KEYS_SECRET} will be pruned if deploy proceeds")
+        @logger.error("Deploy cannot proceed because protected resource " \
+          "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
 
         raise EjsonPrunableError.exception("Found #{KubernetesResource::LAST_APPLIED_ANNOTATION} annotation on " \
           "#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} secret. " \
