@@ -561,8 +561,10 @@ module KubernetesDeploy
     def confirm_ejson_keys_not_prunable
       out, err, st = kubectl.run("get", "secret", EjsonSecretProvisioner::EJSON_KEYS_SECRET,
         output: "json", output_is_sensitive: true)
-      return if err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
-
+      if err && !err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
+        raise FatalDeploymentError,
+          "Error running validation for Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err.message}"
+      end
       if st.success?
         secret = JSON.parse(out)
         return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
