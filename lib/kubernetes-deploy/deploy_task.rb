@@ -563,7 +563,7 @@ module KubernetesDeploy
         output: "json", output_is_sensitive: true)
       if err && !err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
         raise FatalDeploymentError,
-          "Error running validation for Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err.message}"
+          "Error running validation for Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err}"
       end
       if st.success?
         secret = JSON.parse(out)
