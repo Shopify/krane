@@ -20,14 +20,15 @@ module KubernetesDeploy
       raise ArgumentError, "context is required" if context.blank?
     end
 
-    def run(*args, log_failure: nil, use_context: true, use_namespace: true, raise_if_not_found: false, attempts: 1,
-      output_is_sensitive: nil)
+    def run(*args, log_failure: nil, use_context: true, use_namespace: true, output: nil,
+      raise_if_not_found: false, attempts: 1, output_is_sensitive: nil)
       log_failure = @log_failure_by_default if log_failure.nil?
       output_is_sensitive = @output_is_sensitive_default if output_is_sensitive.nil?
 
       args = args.unshift("kubectl")
       args.push("--namespace=#{@namespace}") if use_namespace
       args.push("--context=#{@context}")     if use_context
+      args.push("--output=#{output}") if output
       args.push("--request-timeout=#{@default_timeout}") if @default_timeout
       out, err, st = nil
 
