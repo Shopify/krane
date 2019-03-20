@@ -76,12 +76,9 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * Ruby 2.3+
 * Your cluster must be running Kubernetes v1.10.0 or higher<sup>1</sup>
 * Each app must have a deploy directory containing its Kubernetes templates (see [Templates](#using-templates-and-variables))
-* You must remove the` kubectl.kubernetes.io/last-applied-configuration` annotation from any resources in the namespace that you do not wish to be deleted and which are not included in your deploy directory. This annotation is added automatically when you create resources with `kubectl apply`. `kubernetes-deploy` will prune any resources that have this annotation and are not in the deploy directory.<sup>2,3</sup>
 
 <sup>1</sup> We run integration tests against these Kubernetes versions. You can find our
 offical compatibility chart below.
-<sup>2</sup> This requirement can be bypassed with the `--no-prune` option, but it is not recommended.
-<sup>3</sup> Note that kubernetes-deploy will fail if the `ejson-keys` secret is present and contains the `last-applied-configuration` annotation. This is done to prevent accidental pruning of your private keys. If you need to remove `ejson-keys`, contact your cluster administrator or use `kubectl`, if possible. This check is not made when the `--no-prune` flag is set.
 
 | Kubernetes version | Last officially supported in gem version |
 | :----------------: | :-------------------: |
