@@ -14,6 +14,11 @@ The following is a set of guidelines for contributing to kubernetes-deploy. Plea
   * [Feature acceptance policies](#feature-acceptance-policies)
   * [Adding a new resource type](#contributing-a-new-resource-type)
 
+[Development](#development)
+  * [Setup](#setup)
+  * [Running the test suite locally](#running-the-test-suite-locally)
+  * [Releasing a new version (Shopify employees)](#releasing-a-new-version-shopify-employees)
+  * [CI (External contributors)](#ci-external-contributors)
 ## Code of Conduct
 
 This project and everyone participating in it are governed by the [Code of Conduct](https://github.com/Shopify/kubernetes-deploy/blob/master/CODE_OF_CONDUCT.md).
@@ -96,3 +101,61 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
 5. Add the new resource to the [prune whitelist](https://github.com/Shopify/kubernetes-deploy/blob/master/lib/kubernetes-deploy/deploy_task.rb#L81)
 6. Add a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/kubernetes-deploy/blob/master/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
 7. Add tests for any edge cases you foresee.
+
+# Development
+
+## Setup
+
+If you work for Shopify, just run `dev up`, but otherwise:
+
+1. [Install kubectl version 1.10.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
+2. [Install minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (required to run the test suite)
+3. Check out the repo
+4. Run `bin/setup` to install dependencies
+
+To install this gem onto your local machine, run `bundle exec rake install`.
+
+
+
+## Running the test suite locally
+
+Using minikube:
+
+1. Start [minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (`minikube start [options]`).
+2. Make sure you have a context named "minikube" in your kubeconfig. Minikube adds this context for you when you run `minikube start`. You can check for it using `kubectl config get-contexts`.
+3. Run `bundle exec rake test` (or `dev test` if you work for Shopify).
+
+Using another local cluster:
+
+1. Start your cluster.
+2. Put the name of the context you want to use in a file named `.local-context` in the root of this project. For example: `echo "dind" > .local-context`.
+3. Run `bundle exec rake test` (or `dev test` if you work for Shopify).
+
+To make StatsD log what it would have emitted, run a test with `STATSD_DEV=1`.
+
+To see the full-color output of a specific integration test, you can use `PRINT_LOGS=1`. For example: `PRINT_LOGS=1 bundle exec ruby -I test test/integration/kubernetes_deploy_test.rb -n/test_name/`.
+
+
+![test-output](screenshots/test-output.png)
+
+
+## Releasing a new version (Shopify employees)
+
+1. Make sure all merged PRs are reflected in the changelog before creating the commit for the new version.
+2. Update the version number in `version.rb` and commit that change with message "Version x.y.z". Don't push yet or you'll confuse Shipit.
+3. Tag the version with `git tag vx.y.z -a -m "Version x.y.z"`
+4. Push both your bump commit and its tag simultaneously with `git push origin master --follow-tags` (note that you can set `git config --global push.followTags true` to turn this flag on by default)
+5. Use the [Shipit Stack](https://shipit.shopify.io/shopify/kubernetes-deploy/rubygems) to build the `.gem` file and upload to [rubygems.org](https://rubygems.org/gems/kubernetes-deploy).
+
+If you push your commit and the tag separately, Shipit usually fails with `You need to create the v0.7.9 tag first.`. To make it find your tag, go to `Settings` > `Resynchronize this stack` > `Clear git cache`.
+
+
+## CI (External contributors)
+
+Please make sure you run the tests locally before submitting your PR (see [Running the test suite locally](#running-the-test-suite-locally)). After reviewing your PR, a Shopify employee will trigger CI for you.
+
+#### Employees: Triggering CI for a contributed PR
+
+Go to the [kubernetes-deploy-gem pipeline](https://buildkite.com/shopify/kubernetes-deploy-gem) and click "New Build". Use branch `external_contrib_ci` and the specific sha of the commit you want to build. Add `BUILDKITE_REFSPEC="refs/pull/${PR_NUM}/head"` in the Environment Variables section.
+
+<img width="350" alt="build external contrib PR" src="https://screenshot.click/2017-11-07--163728_7ovek-wrpwq.png">
