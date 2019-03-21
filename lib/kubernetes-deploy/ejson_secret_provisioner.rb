@@ -68,6 +68,14 @@ module KubernetesDeploy
       @private_key ||= fetch_private_key_from_secret
     end
 
+    def ejson_keys_secret
+      @ejson_keys_secret ||= begin
+        out, err, st = @kubectl.run("get", "secret", EJSON_KEYS_SECRET, output: "json")
+        out = JSON.parse(out) if st.success?
+        [out, err, st]
+      end
+    end
+
     def validate_secret_spec(secret_name, spec)
       errors = []
       errors << "secret type unspecified" if spec["_type"].blank?
@@ -137,9 +145,8 @@ module KubernetesDeploy
     end
 
     def fetch_private_key_from_secret
-      out, err, st = @kubectl.run("get", "secret", EJSON_KEYS_SECRET, output: "json")
+      secret, err, st = ejson_keys_secret
       raise EjsonSecretError, err unless st.success?
-      secret = JSON.parse(out)
       encoded_private_key = secret["data"][public_key]
       unless encoded_private_key
         raise EjsonSecretError, "Private key for #{public_key} not found in #{EJSON_KEYS_SECRET} secret"

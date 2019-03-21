@@ -201,6 +201,17 @@ module KubernetesDeploy
       )
     end
 
+    def ejson_provisioner
+      @ejson_provisioner ||= EjsonSecretProvisioner.new(
+        namespace: @namespace,
+        context: @context,
+        template_dir: @template_dir,
+        logger: @logger,
+        statsd_tags: @namespace_tags,
+        selector: @selector,
+      )
+    end
+
     def deploy_has_priority_resources?(resources)
       resources.any? { |r| predeploy_sequence.include?(r.type) }
     end
@@ -253,15 +264,7 @@ module KubernetesDeploy
     measure_method(:check_initial_status, "initial_status.duration")
 
     def secrets_from_ejson
-      ejson = EjsonSecretProvisioner.new(
-        namespace: @namespace,
-        context: @context,
-        template_dir: @template_dir,
-        logger: @logger,
-        statsd_tags: @namespace_tags,
-        selector: @selector,
-      )
-      ejson.resources
+      ejson_provisioner.resources
     end
 
     def discover_resources
@@ -559,22 +562,20 @@ module KubernetesDeploy
 
     # make sure to never prune the ejson-keys secret
     def confirm_ejson_keys_not_prunable
-      out, err, st = kubectl.run("get", "secret", EjsonSecretProvisioner::EJSON_KEYS_SECRET,
-        output: "json", output_is_sensitive: true)
+      secret, err, st = ejson_provisioner.ejson_keys_secret
       unless st.success? || err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
         raise FatalDeploymentError,
           "Error running validation for Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err}"
       end
 
       if st.success?
-        secret = JSON.parse(out)
         return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
         @logger.error("Deploy cannot proceed because protected resource " \
           "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
 
-        raise EjsonPrunableError.exception("Found #{KubernetesResource::LAST_APPLIED_ANNOTATION} annotation on " \
+        raise EjsonPrunableError, "Found #{KubernetesResource::LAST_APPLIED_ANNOTATION} annotation on " \
           "#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} secret. " \
-          "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned.")
+          "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned."
       end
     end
 
