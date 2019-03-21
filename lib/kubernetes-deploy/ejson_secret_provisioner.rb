@@ -37,6 +37,14 @@ module KubernetesDeploy
       @resources ||= build_secrets
     end
 
+    def ejson_keys_secret
+      @ejson_keys_secret ||= begin
+        out, err, st = @kubectl.run("get", "secret", EJSON_KEYS_SECRET, output: "json")
+        out = JSON.parse(out) if st.success?
+        [out, err, st]
+      end
+    end
+
     private
 
     def build_secrets
@@ -66,14 +74,6 @@ module KubernetesDeploy
 
     def private_key
       @private_key ||= fetch_private_key_from_secret
-    end
-
-    def ejson_keys_secret
-      @ejson_keys_secret ||= begin
-        out, err, st = @kubectl.run("get", "secret", EJSON_KEYS_SECRET, output: "json")
-        out = JSON.parse(out) if st.success?
-        [out, err, st]
-      end
     end
 
     def validate_secret_spec(secret_name, spec)
