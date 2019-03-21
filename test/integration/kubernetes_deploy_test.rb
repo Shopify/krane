@@ -998,7 +998,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     secret = kubeclient.get_secret('ejson-keys', @namespace)
     secret.metadata.annotations = {
       "kubectl.kubernetes.io/last-applied-configuration" => "test",
-      "another-annotation" => "test",
     }
     secret = kubeclient.update_secret(secret)
     assert(secret.metadata.annotations[KubernetesDeploy::KubernetesResource::LAST_APPLIED_ANNOTATION])
@@ -1021,7 +1020,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     secret = kubeclient.get_secret('ejson-keys', @namespace)
     secret.metadata.annotations = {
       "kubectl.kubernetes.io/last-applied-configuration" => "test",
-      "another-annotation" => "test",
     }
     secret = kubeclient.update_secret(secret)
     assert(secret.metadata.annotations[KubernetesDeploy::KubernetesResource::LAST_APPLIED_ANNOTATION])
