@@ -562,21 +562,14 @@ module KubernetesDeploy
 
     # make sure to never prune the ejson-keys secret
     def confirm_ejson_keys_not_prunable
-      secret, err, st = ejson_provisioner.ejson_keys_secret
-      unless st.success? || err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
-        raise FatalDeploymentError,
-          "Error running validation for Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err}"
-      end
+      secret = ejson_provisioner.ejson_keys_secret
+      return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
 
-      if st.success?
-        return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
-        @logger.error("Deploy cannot proceed because protected resource " \
-          "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
-
-        raise EjsonPrunableError, "Found #{KubernetesResource::LAST_APPLIED_ANNOTATION} annotation on " \
-          "#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} secret. " \
-          "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned."
-      end
+      @logger.error("Deploy cannot proceed because protected resource " \
+        "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
+      raise EjsonPrunableError
+    rescue Kubectl::ResourceNotFoundError => e
+      @logger.debug("Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} does not exist: #{e}")
     end
 
     def tags_from_namespace_labels
