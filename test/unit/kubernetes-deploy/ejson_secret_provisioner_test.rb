@@ -82,7 +82,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_run_with_incomplete_secret_spec
-    stub_kubectl_response("get", "secret", "ejson-keys", 
+    stub_kubectl_response("get", "secret", "ejson-keys",
       kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
       resp: dummy_ejson_secret)
     new_content = {
