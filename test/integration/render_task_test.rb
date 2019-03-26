@@ -267,6 +267,28 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_render_only_adds_initial_doc_seperator_when_missing
+    render = build_render_task(fixture_path('partials'))
+    fixture = 'no-doc-seperator.yml'
+    expected = "---\n# This doc has no yaml seperator\nkey1: foo\n"
+
+    assert_render_success(render.run(mock_output_stream, [fixture]))
+    stdout_assertion do |output|
+      assert_equal expected, output
+    end
+  end
+
+  def test_render_preserves_duplicate_keys_adds_doc_initial_seperator_when_needed
+    render = build_render_task(fixture_path('invalid-partials'))
+    fixture = 'duplicate-keys.yml'
+    expected = "---\nkey1: foo\nkey1: bar\n"
+
+    assert_render_success(render.run(mock_output_stream, [fixture]))
+    stdout_assertion do |output|
+      assert_equal expected, output
+    end
+  end
+
   private
 
   def build_render_task(template_dir, bindings = {})
