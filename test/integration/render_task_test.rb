@@ -145,6 +145,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
           name: config-for-pod2
         data:
           supports_partials: "yep"
+
       RENDERED
       assert_equal expected, output
     end
