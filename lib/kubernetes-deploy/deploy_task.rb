@@ -59,7 +59,6 @@ module KubernetesDeploy
     # core/v1/PersistentVolumeClaim -- would delete data
     # core/v1/ReplicationController -- superseded by deployments/replicasets
     # extensions/v1beta1/ReplicaSet -- managed by deployments
-    # core/v1/Secret -- should not committed / managed by shipit
 
     def predeploy_sequence
       before_crs = %w(
@@ -205,6 +204,17 @@ module KubernetesDeploy
       )
     end
 
+    def ejson_provisioner
+      @ejson_provisioner ||= EjsonSecretProvisioner.new(
+        namespace: @namespace,
+        context: @context,
+        template_dir: @template_dir,
+        logger: @logger,
+        statsd_tags: @namespace_tags,
+        selector: @selector,
+      )
+    end
+
     def deploy_has_priority_resources?(resources)
       resources.any? { |r| predeploy_sequence.include?(r.type) }
     end
@@ -257,15 +267,7 @@ module KubernetesDeploy
     measure_method(:check_initial_status, "initial_status.duration")
 
     def secrets_from_ejson
-      ejson = EjsonSecretProvisioner.new(
-        namespace: @namespace,
-        context: @context,
-        template_dir: @template_dir,
-        logger: @logger,
-        statsd_tags: @namespace_tags,
-        selector: @selector,
-      )
-      ejson.resources
+      ejson_provisioner.resources
     end
 
     def discover_resources
@@ -357,6 +359,7 @@ module KubernetesDeploy
 
       confirm_context_exists
       confirm_namespace_exists
+      confirm_ejson_keys_not_prunable if prune
       @logger.info("Using resource selector #{@selector}") if @selector
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
@@ -550,6 +553,18 @@ module KubernetesDeploy
       end
       raise FatalDeploymentError, "Failed to find namespace. #{err}" unless st.success?
       @logger.info("Namespace #{@namespace} found")
+    end
+
+    # make sure to never prune the ejson-keys secret
+    def confirm_ejson_keys_not_prunable
+      secret = ejson_provisioner.ejson_keys_secret
+      return unless secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
+
+      @logger.error("Deploy cannot proceed because protected resource " \
+        "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
+      raise EjsonPrunableError
+    rescue Kubectl::ResourceNotFoundError => e
+      @logger.debug("Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} does not exist: #{e}")
     end
 
     def tags_from_namespace_labels

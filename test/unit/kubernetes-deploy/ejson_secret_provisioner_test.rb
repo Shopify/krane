@@ -3,7 +3,9 @@ require 'test_helper'
 
 class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def test_resources_based_on_ejson_file_existence
-    stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret)
+    stub_kubectl_response("get", "secret", "ejson-keys",
+      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
+      resp: dummy_ejson_secret)
 
     assert_empty(build_provisioner(fixture_path('hello-cloud')).resources)
     refute_empty(build_provisioner(fixture_path('ejson-cloud')).resources)
@@ -18,7 +20,9 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_resource_is_built_correctly
-    stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret)
+    stub_kubectl_response("get", "secret", "ejson-keys",
+      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
+      resp: dummy_ejson_secret)
 
     resources = build_provisioner(fixture_path('ejson-cloud')).resources
     refute_empty(resources)
@@ -34,7 +38,9 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       "2200e55f22dd0c93fac3832ba14842cc75fa5a99a2e01696daa30e188d465036" =>
         "139d5c2a30901dd8ae186be582ccc0a882c16f8e0bb5429884dbc7296e80669e",
     }
-    stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret(wrong_public))
+    stub_kubectl_response("get", "secret", "ejson-keys",
+      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
+      resp: dummy_ejson_secret(wrong_public))
 
     msg = "Private key for #{fixture_public_key} not found"
     assert_raises_message(KubernetesDeploy::EjsonSecretError, msg) do
@@ -44,7 +50,9 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def test_run_with_bad_private_key_in_cloud_keys
     wrong_private = { fixture_public_key => "139d5c2a30901dd8ae186be582ccc0a882c16f8e0bb5429884dbc7296e80669e" }
-    stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret(wrong_private))
+    stub_kubectl_response("get", "secret", "ejson-keys",
+      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
+      resp: dummy_ejson_secret(wrong_private))
 
     assert_raises_message(KubernetesDeploy::EjsonSecretError, /Decryption failed/) do
       build_provisioner.resources
@@ -53,14 +61,18 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def test_run_with_cloud_keys_secret_missing
     realistic_err = "Error from server (NotFound): secrets \"ejson-keys\" not found"
-    stub_kubectl_response("get", "secret", "ejson-keys", resp: "", err: realistic_err, success: false)
+    stub_kubectl_response("get", "secret", "ejson-keys",
+      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
+      resp: "", err: realistic_err, success: false)
     assert_raises_message(KubernetesDeploy::EjsonSecretError, /secrets "ejson-keys" not found/) do
       build_provisioner.resources
     end
   end
 
   def test_run_with_file_missing_section_for_ejson_secrets_logs_warning
-    stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret)
+    stub_kubectl_response("get", "secret", "ejson-keys",
+      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
+      resp: dummy_ejson_secret)
     new_content = { "_public_key" => fixture_public_key, "not_the_right_key" => [] }
 
     with_ejson_file(new_content.to_json) do |target_dir|
@@ -70,7 +82,9 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_run_with_incomplete_secret_spec
-    stub_kubectl_response("get", "secret", "ejson-keys", resp: dummy_ejson_secret)
+    stub_kubectl_response("get", "secret", "ejson-keys",
+      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
+      resp: dummy_ejson_secret)
     new_content = {
       "_public_key" => fixture_public_key,
       "kubernetes_secrets" => { "foobar" => {} },

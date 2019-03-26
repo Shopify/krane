@@ -37,6 +37,17 @@ module KubernetesDeploy
       @resources ||= build_secrets
     end
 
+    def ejson_keys_secret
+      @ejson_keys_secret ||= begin
+        out, err, st = @kubectl.run("get", "secret", EJSON_KEYS_SECRET, output: "json",
+          raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true)
+        unless st.success?
+          raise EjsonSecretError, "Error retrieving Secret/#{EJSON_KEYS_SECRET}: #{err}"
+        end
+        JSON.parse(out)
+      end
+    end
+
     private
 
     def build_secrets
@@ -132,26 +143,19 @@ module KubernetesDeploy
       out_err, st = Open3.capture2e("EJSON_KEYDIR=#{key_dir} ejson decrypt #{@ejson_file}")
       raise EjsonSecretError, out_err unless st.success?
       JSON.parse(out_err)
-    rescue JSON::ParserError => e
+    rescue JSON::ParserError
       raise EjsonSecretError, "Failed to parse decrypted ejson"
     end
 
     def fetch_private_key_from_secret
-      secret = run_kubectl_json("get", "secret", EJSON_KEYS_SECRET)
-      encoded_private_key = secret["data"][public_key]
+      encoded_private_key = ejson_keys_secret["data"][public_key]
       unless encoded_private_key
         raise EjsonSecretError, "Private key for #{public_key} not found in #{EJSON_KEYS_SECRET} secret"
       end
 
       Base64.decode64(encoded_private_key)
-    end
-
-    def run_kubectl_json(*args)
-      args += ["--output=json"]
-      out, err, st = @kubectl.run(*args)
-      raise EjsonSecretError, err unless st.success?
-      result = JSON.parse(out)
-      result.fetch('items', result)
+    rescue Kubectl::ResourceNotFoundError
+      raise EjsonSecretError, "Secret/#{EJSON_KEYS_SECRET} is required to decrypt EJSON and could not be found"
     end
   end
 end

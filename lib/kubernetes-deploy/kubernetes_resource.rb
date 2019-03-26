@@ -29,6 +29,7 @@ module KubernetesDeploy
       MSG
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
+    LAST_APPLIED_ANNOTATION = "kubectl.kubernetes.io/last-applied-configuration"
     KUBECTL_OUTPUT_IS_SENSITIVE = false
 
     class << self

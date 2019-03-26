@@ -992,6 +992,48 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud.assert_secret_present('ejson-keys', ejson: false)
   end
 
+  def test_deploy_task_fails_when_ejson_keys_prunable
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    secret = kubeclient.get_secret('ejson-keys', @namespace)
+    secret.metadata.annotations = {
+      "kubectl.kubernetes.io/last-applied-configuration" => "test",
+    }
+    secret = kubeclient.update_secret(secret)
+    assert(secret.metadata.annotations[KubernetesDeploy::KubernetesResource::LAST_APPLIED_ANNOTATION])
+
+    assert_deploy_failure(deploy_fixtures("hello-cloud", subset: %w(role.yml)))
+    ejson_cloud.assert_secret_present('ejson-keys')
+    assert_logs_match_all([
+      "Deploy cannot proceed because protected resource ",
+      "Secret/#{KubernetesDeploy::EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.",
+      "Result: FAILURE",
+      "Found kubectl.kubernetes.io/last-applied-configuration annotation on ejson-keys secret.",
+      "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned.",
+    ],
+      in_order: true)
+  end
+
+  def test_deploy_task_succeeds_when_ejson_keys_prunable_but_prune_option_false
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    secret = kubeclient.get_secret('ejson-keys', @namespace)
+    secret.metadata.annotations = {
+      "kubectl.kubernetes.io/last-applied-configuration" => "test",
+    }
+    secret = kubeclient.update_secret(secret)
+    assert(secret.metadata.annotations[KubernetesDeploy::KubernetesResource::LAST_APPLIED_ANNOTATION])
+
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(role.yml), prune: false))
+    ejson_cloud.assert_secret_present('ejson-keys')
+  end
+
+  def test_deploy_task_succeeds_when_ejson_keys_not_present
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.refute_resource_exists("secret", "ejson-keys")
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(role.yml)))
+  end
+
   def test_partials
     assert_deploy_success(deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' }))
     assert_logs_match_all([

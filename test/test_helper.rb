@@ -188,7 +188,7 @@ module KubernetesDeploy
 
     def stub_kubectl_response(*args, kwargs: {}, resp:, err: "", success: true, json: true, times: 1)
       if json
-        args << "--output=json"
+        kwargs[:output] = "json"
         resp = resp.to_json
       end
       response = [resp, err, stub(success?: success)]

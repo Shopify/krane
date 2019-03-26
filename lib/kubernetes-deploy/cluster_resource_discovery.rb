@@ -19,7 +19,7 @@ module KubernetesDeploy
     private
 
     def fetch_crds
-      raw_json, _, st = kubectl.run("get", "CustomResourceDefinition", "-a", "--output=json", attempts: 5)
+      raw_json, _, st = kubectl.run("get", "CustomResourceDefinition", "-a", output: "json", attempts: 5)
       if st.success?
         JSON.parse(raw_json)["items"]
       else
