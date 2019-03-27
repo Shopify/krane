@@ -68,9 +68,10 @@ module KubernetesDeploy
       @logger.info("Rendering #{File.basename(filename)} ...")
       file_content = File.read(File.join(@template_dir, filename))
       rendered_content = @renderer.render_template(filename, file_content)
-      YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
-        stream.puts YAML.dump(doc)
-      end
+      implicit = true
+      YAML.parse_stream(rendered_content, "<rendered> #{filename}") { |d| implicit = d.implicit }
+      stream.puts "---\n" if implicit
+      stream.puts rendered_content
       @logger.info("Rendered #{File.basename(filename)}")
     rescue Psych::SyntaxError => exception
       raise InvalidTemplateError.new("Template is not valid YAML. #{exception.message}", filename: filename)

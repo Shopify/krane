@@ -35,7 +35,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     assert_render_success(render.run(mock_output_stream, ['configmap-data.yml', 'unmanaged-pod-1.yml.erb']))
 
     stdout_assertion do |output|
-      assert_equal output, <<~RENDERED
+      expected = <<~RENDERED
         ---
         apiVersion: v1
         kind: ConfigMap
@@ -62,20 +62,18 @@ class RenderTaskTest < KubernetesDeploy::TestCase
           activeDeadlineSeconds: 60
           restartPolicy: Never
           containers:
-          - name: hello-cloud
-            image: busybox
-            imagePullPolicy: IfNotPresent
-            command:
-            - sh
-            - "-c"
-            - echo 'Hello from the command runner!' && test 1 -eq 1
-            env:
-            - name: CONFIG
-              valueFrom:
-                configMapKeyRef:
-                  name: hello-cloud-configmap-data
-                  key: datapoint2
+            - name: hello-cloud
+              image: busybox
+              imagePullPolicy: IfNotPresent
+              command: ["sh", "-c", "echo 'Hello from the command runner!' && test 1 -eq 1"]
+              env:
+              - name: CONFIG
+                valueFrom:
+                  configMapKeyRef:
+                    name: hello-cloud-configmap-data
+                    key: datapoint2
       RENDERED
+      assert_equal expected, output
     end
   end
 
@@ -85,7 +83,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
 
     assert_render_success(render.run(mock_output_stream, [fixture]))
     stdout_assertion do |output|
-      assert_equal output, <<~RENDERED
+      expected = <<~RENDERED
         ---
         apiVersion: extensions/v1beta1
         kind: Deployment
@@ -98,64 +96,58 @@ class RenderTaskTest < KubernetesDeploy::TestCase
               labels:
                 name: web
                 app: test-partials
-            spec:
-              containers:
-              - name: sleepy-guy
-                image: busybox
-                imagePullPolicy: IfNotPresent
-                command:
-                - sleep
-                - '8000'
+            spec: {"containers":[{"name":"sleepy-guy","image":"busybox","imagePullPolicy":"IfNotPresent","command":["sleep","8000"]}]}
         ---
         apiVersion: v1
         kind: Pod
         metadata:
           name: pod1
         spec:
-          restartPolicy: Never
+          restartPolicy: "Never"
           activeDeadlineSeconds: 60
           containers:
           - name: pod1
             image: busybox
-            args:
-            - echo
-            - log from pod1
+            args: ["echo", "log from pod1"]
         ---
         apiVersion: v1
         kind: ConfigMap
         metadata:
           name: config-for-pod1
         data:
-          supports_partials: yep
-        ---
+          supports_partials: "yep"
+
+        # This is valid
+        ---						# leave this whitespace
         apiVersion: v1
         kind: ConfigMap
         metadata:
           name: independent-configmap
         data:
-          value: renderer test
+          value: "renderer test"
+
         ---
         apiVersion: v1
         kind: Pod
         metadata:
           name: pod2
         spec:
-          restartPolicy: Never
+          restartPolicy: "Never"
           activeDeadlineSeconds: 60
           containers:
           - name: pod2
             image: busybox
-            args:
-            - echo
-            - log from pod2
+            args: ["echo", "log from pod2"]
         ---
         apiVersion: v1
         kind: ConfigMap
         metadata:
           name: config-for-pod2
         data:
-          supports_partials: yep
+          supports_partials: "yep"
+
       RENDERED
+      assert_equal expected, output
     end
   end
 
@@ -272,6 +264,47 @@ class RenderTaskTest < KubernetesDeploy::TestCase
       stdout_assertion do |output|
         assert !output.empty?
       end
+    end
+  end
+
+  def test_render_only_adds_initial_doc_seperator_when_missing
+    render = build_render_task(fixture_path('partials'))
+    fixture = 'no-doc-seperator.yml.erb'
+    expected = "---\n# This doc has no yaml seperator\nkey1: foo\n"
+
+    assert_render_success(render.run(mock_output_stream, [fixture]))
+    stdout_assertion do |output|
+      assert_equal expected, output
+    end
+
+    mock_output_stream.rewind
+    render = build_render_task(fixture_path('test-partials/partials'), data: "data")
+    fixture = 'independent-configmap.yml.erb'
+    expected = <<~RENDERED
+      # This is valid
+      ---						# leave this whitespace
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: independent-configmap
+      data:
+        value: "data"
+      RENDERED
+
+    assert_render_success(render.run(mock_output_stream, [fixture]))
+    stdout_assertion do |output|
+      assert_equal expected, output
+    end
+  end
+
+  def test_render_preserves_duplicate_keys
+    render = build_render_task(fixture_path('partials'))
+    fixture = 'duplicate-keys.yml.erb'
+    expected = "---\nkey1: \"0\"\nkey1: \"1\"\nkey1: \"2\"\n"
+
+    assert_render_success(render.run(mock_output_stream, [fixture]))
+    stdout_assertion do |output|
+      assert_equal expected, output
     end
   end
 
