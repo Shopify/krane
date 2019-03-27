@@ -12,6 +12,8 @@ module KubernetesDeploy
             template_dir_from_stdin(temp_dir: dir)
             yield dir
           end
+        elsif template_dir
+          yield template_dir
         else
           yield default_template_dir(template_dir)
         end
