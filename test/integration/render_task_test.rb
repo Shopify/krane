@@ -298,7 +298,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def test_render_preserves_duplicate_keys
-    render = build_render_task(fixture_path('invalid-partials'))
+    render = build_render_task(fixture_path('partials'))
     fixture = 'duplicate-keys.yml.erb'
     expected = "---\nkey1: \"0\"\nkey1: \"1\"\nkey1: \"2\"\n"
 
