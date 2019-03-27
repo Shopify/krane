@@ -35,6 +35,14 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_with_explicit_template_dir_with_env_var_set
+    with_env("ENVIRONMENT", "test") do
+      KubernetesDeploy::OptionsHelper.with_validated_template_dir(fixture_path('hello-cloud')) do |template_dir|
+        assert_equal(fixture_path('hello-cloud'), template_dir)
+      end
+    end
+  end
+
   def test_with_template_dir_from_stdin
     old_stdin = $stdin
     fixture_yamls = []
