@@ -1,5 +1,10 @@
 ## next
 
+## 0.26.1
+
+*Bug fixes*
+- Fixes a bug where `config/deploy/$ENVIRONMENT` would be used unconditionally if the `ENVIRONMENT` environment variable is set, ignoring any `--template-dir` argument passed.
+
 ## 0.26.0
 
 *Enhancements*
@@ -22,6 +27,9 @@
   * The secret `ejson-keys` will never be pruned by kubernetes-deploy. Instead, it will fail the deploy at the validation stage (unless `--no-prune` is set). ([#447](https://github.com/Shopify/kubernetes-deploy/pull/447))
 
 ## 0.25.0
+
+#### WARNING
+This version contains an error for handling the `--template-dir` argument. If the `ENVIRONMENT` environment variable is set, the template directory will be forcefully set to `config/deploy/$ENVIRONMENT`. This has been fixed in version 0.26.1
 
 *Features*
 - Support timeout overrides on deployments ([#414](https://github.com/Shopify/kubernetes-deploy/pull/414))
