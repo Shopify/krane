@@ -269,8 +269,27 @@ class RenderTaskTest < KubernetesDeploy::TestCase
 
   def test_render_only_adds_initial_doc_seperator_when_missing
     render = build_render_task(fixture_path('partials'))
-    fixture = 'no-doc-seperator.yml'
+    fixture = 'no-doc-seperator.yml.erb'
     expected = "---\n# This doc has no yaml seperator\nkey1: foo\n"
+
+    assert_render_success(render.run(mock_output_stream, [fixture]))
+    stdout_assertion do |output|
+      assert_equal expected, output
+    end
+
+    mock_output_stream.rewind
+    render = build_render_task(fixture_path('test-partials/partials'), data: "data")
+    fixture = 'independent-configmap.yml.erb'
+    expected = <<~RENDERED
+      # This is valid
+      ---						# leave this whitespace
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: independent-configmap
+      data:
+        value: "data"
+      RENDERED
 
     assert_render_success(render.run(mock_output_stream, [fixture]))
     stdout_assertion do |output|
@@ -278,10 +297,10 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     end
   end
 
-  def test_render_preserves_duplicate_keys_adds_doc_initial_seperator_when_needed
+  def test_render_preserves_duplicate_keys
     render = build_render_task(fixture_path('invalid-partials'))
-    fixture = 'duplicate-keys.yml'
-    expected = "---\nkey1: foo\nkey1: bar\n"
+    fixture = 'duplicate-keys.yml.erb'
+    expected = "---\nkey1: \"0\"\nkey1: \"1\"\nkey1: \"2\"\n"
 
     assert_render_success(render.run(mock_output_stream, [fixture]))
     stdout_assertion do |output|
