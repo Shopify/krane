@@ -3,7 +3,7 @@
 ## 0.26.1
 
 *Bug fixes*
-- Fixes a bug involving the `--template-dir` argument. If the `ENVIRONMENT` environment variable is set, kubernetes-deploy would set the template directory to `config/deploy/$ENVIRONMENT`
+- Fixes a bug where `config/deploy/$ENVIRONMENT` would be used unconditionally if the `ENVIRONMENT` environment variable is set, ignoring any `--template-dir` argument passed.
 
 ## 0.26.0
 
