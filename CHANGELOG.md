@@ -1,5 +1,13 @@
 ## next
 
+## 0.26.2
+
+*Enhancements*
+
+- kubernetes-render outputs results of rendering yml.erb files without passing them
+through a yaml parser. ([#454](https://github.com/Shopify/kubernetes-deploy/pull/454))
+- Now compatible with kubernetes 1.14 ([#460](https://github.com/Shopify/kubernetes-deploy/pull/460))
+
 ## 0.26.1
 
 *Bug fixes*
