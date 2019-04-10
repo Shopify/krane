@@ -518,13 +518,9 @@ module KubernetesDeploy
     end
 
     def confirm_context_exists
-      out, err, st = kubectl.run("config", "get-contexts", "-o", "name",
-        use_namespace: false, use_context: false, log_failure: false)
-      available_contexts = out.split("\n")
-      if !st.success?
-        raise FatalDeploymentError, err
-      elsif !available_contexts.include?(@context)
-        raise FatalDeploymentError, "Context #{@context} is not available. Valid contexts: #{available_contexts}"
+      found = kubectl.find_config_for_context(@context, raise_on_missing: false)
+      unless found
+        raise FatalDeploymentError, "Context #{@context} is not available."
       end
       confirm_cluster_reachable
       @logger.info("Context #{@context} found")

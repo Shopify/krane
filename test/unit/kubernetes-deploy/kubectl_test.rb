@@ -22,7 +22,7 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def kubeconfig_in_use
-    KubernetesDeploy::KubeclientBuilder.kubeconfig
+    '' # KubernetesDeploy::KubeclientBuilder.kubeconfig
   end
 
   def test_run_constructs_the_expected_command_and_returns_the_correct_values
@@ -36,14 +36,6 @@ class KubectlTest < KubernetesDeploy::TestCase
     assert(st.success?)
     assert_equal("{ items: [] }", out)
     assert_equal("", err)
-  end
-
-  def test_run_omits_context_flag_if_use_context_is_false
-    stub_open3(
-      %W(kubectl get pods --output=json --kubeconfig=#{kubeconfig_in_use}) +
-      %W(--namespace=testn --request-timeout=#{timeout}),
-      resp: "{ items: [] }")
-    build_kubectl.run("get", "pods", "--output=json", use_context: false)
   end
 
   def test_run_omits_namespace_flag_if_use_namespace_is_false
