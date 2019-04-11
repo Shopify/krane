@@ -80,7 +80,9 @@ module KubernetesDeploy
 
     def find_config_for_context(context, raise_on_missing: true)
       @kubeclient ||= KubeclientBuilder.new
-      @kubeclient.find_config_for_context(context, raise_on_missing: raise_on_missing)&.first
+      @context_config_map ||= {}
+      @context_config_map[context] ||=
+        @kubeclient.find_config_for_context(context, raise_on_missing: raise_on_missing)&.first
     end
 
     private

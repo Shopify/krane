@@ -21,10 +21,6 @@ class KubectlTest < KubernetesDeploy::TestCase
     end
   end
 
-  def kubeconfig_in_use
-    '' # KubernetesDeploy::KubeclientBuilder.kubeconfig
-  end
-
   def test_run_constructs_the_expected_command_and_returns_the_correct_values
     stub_open3(
       %W(kubectl get pods --output=json --kubeconfig=#{kubeconfig_in_use}) +
@@ -117,7 +113,8 @@ class KubectlTest < KubernetesDeploy::TestCase
 
   def test_custom_timeout_is_used
     custom_kubectl = KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: logger,
-    log_failure_by_default: true, default_timeout: '5s')
+      log_failure_by_default: true, default_timeout: '5s')
+    custom_kubectl.expects(:find_config_for_context).with('testc').returns(kubeconfig_in_use)
     stub_open3(
       %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use} --namespace=testn --context=testc --request-timeout=5s),
       resp: "", err: "oops", success: false)
@@ -204,6 +201,10 @@ class KubectlTest < KubernetesDeploy::TestCase
 
   private
 
+  def kubeconfig_in_use
+    KubernetesDeploy::KubeclientBuilder.kubeconfig
+  end
+
   def timeout
     KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT
   end
@@ -225,8 +226,11 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def build_kubectl(log_failure_by_default: true)
-    KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: logger,
+    context = 'testc'
+    kubectl = KubernetesDeploy::Kubectl.new(namespace: 'testn', context: context, logger: logger,
       log_failure_by_default: log_failure_by_default)
+    kubectl.expects(:find_config_for_context).with(context).returns(kubeconfig_in_use)
+    kubectl
   end
 
   def stub_open3(command, resp:, err: "", success: true)
