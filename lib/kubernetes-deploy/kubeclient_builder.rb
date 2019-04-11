@@ -119,18 +119,18 @@ module KubernetesDeploy
       errors
     end
 
-    def find_config_for_context(context, raise_on_missing: true)
+    def config_for_context(context)
       # Find a context defined in kube conf files that matches the input context by name
-      configs = config_files.map { |f| [f, KubeConfig.read(f)] }
-      config = configs.find { |_, c| c.contexts.include?(context) }
-      raise ContextMissingError.new(context, kubeconfig) if raise_on_missing && config.nil?
+      configs = config_files.map { |f| KubeConfig.read(f) }
+      config = configs.find { |c| c.contexts.include?(context) }
+      raise ContextMissingError.new(context, kubeconfig) unless config
       config
     end
 
     private
 
     def build_kubeclient(api_version:, context:, endpoint_path: nil)
-      config = find_config_for_context(context)&.last
+      config = config_for_context(context)
 
       kube_context = config.context(context)
       client = Kubeclient::Client.new(

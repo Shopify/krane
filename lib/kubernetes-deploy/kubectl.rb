@@ -26,7 +26,7 @@ module KubernetesDeploy
       output_is_sensitive = @output_is_sensitive_default if output_is_sensitive.nil?
 
       args = args.unshift("kubectl")
-      args.push("--kubeconfig=#{find_config_for_context(@context)}")
+      args.push("--kubeconfig=#{config_for_context(@context)}")
       args.push("--namespace=#{@namespace}") if use_namespace
       args.push("--context=#{@context}")
       args.push("--output=#{output}") if output
@@ -78,11 +78,11 @@ module KubernetesDeploy
       version_info[:server]
     end
 
-    def find_config_for_context(context, raise_on_missing: true)
+    def config_for_context(context)
       @kubeclient ||= KubeclientBuilder.new
       @context_config_map ||= {}
       @context_config_map[context] ||=
-        @kubeclient.find_config_for_context(context, raise_on_missing: raise_on_missing)&.first
+        @kubeclient.config_for_context(context).filename
     end
 
     private

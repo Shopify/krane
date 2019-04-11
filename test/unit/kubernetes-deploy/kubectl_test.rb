@@ -114,7 +114,7 @@ class KubectlTest < KubernetesDeploy::TestCase
   def test_custom_timeout_is_used
     custom_kubectl = KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: logger,
       log_failure_by_default: true, default_timeout: '5s')
-    custom_kubectl.expects(:find_config_for_context).with('testc').returns(kubeconfig_in_use)
+    custom_kubectl.expects(:config_for_context).with('testc').returns(kubeconfig_in_use)
     stub_open3(
       %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use} --namespace=testn --context=testc --request-timeout=5s),
       resp: "", err: "oops", success: false)
@@ -199,6 +199,14 @@ class KubectlTest < KubernetesDeploy::TestCase
     refute_logs_match("Kubectl out")
   end
 
+  def test_context_not_found
+    custom_kubectl = KubernetesDeploy::Kubectl.new(namespace: 'testc', context: 'fake', logger: logger,
+      log_failure_by_default: true)
+    assert_raises KubernetesDeploy::KubeclientBuilder::ContextMissingError do
+      custom_kubectl.run("get", "pods", log_failure: true)
+    end
+  end
+
   private
 
   def kubeconfig_in_use
@@ -229,7 +237,7 @@ class KubectlTest < KubernetesDeploy::TestCase
     context = 'testc'
     kubectl = KubernetesDeploy::Kubectl.new(namespace: 'testn', context: context, logger: logger,
       log_failure_by_default: log_failure_by_default)
-    kubectl.expects(:find_config_for_context).with(context).returns(kubeconfig_in_use)
+    kubectl.expects(:config_for_context).with(context).returns(kubeconfig_in_use)
     kubectl
   end
 

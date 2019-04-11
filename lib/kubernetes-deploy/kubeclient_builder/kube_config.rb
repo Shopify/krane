@@ -4,9 +4,12 @@ require 'googleauth'
 module KubernetesDeploy
   class KubeclientBuilder
     class KubeConfig < Kubeclient::Config
+      attr_accessor :filename
       def self.read(filename)
         parsed = YAML.safe_load(File.read(filename), [Date, Time])
-        new(parsed, File.dirname(filename))
+        config = new(parsed, File.dirname(filename))
+        config.filename = filename
+        config
       end
 
       def fetch_user_auth_options(user)
