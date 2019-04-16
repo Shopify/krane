@@ -1,5 +1,8 @@
 ## next
 
+*Other*
+- Removes special treatment of GCP authentication by upgrading to `kubeclient` 4.3.
+
 ## 0.26.4
 
 *Bug fixes*
