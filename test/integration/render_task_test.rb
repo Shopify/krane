@@ -308,6 +308,14 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_render_does_not_generate_extra_blank_documents_when_file_is_empty
+    renderer = build_render_task(fixture_path('collection-with-erb'))
+    assert_render_success(renderer.run(mock_output_stream, ['effectively_empty.yml.erb']))
+    stdout_assertion do |output|
+      assert_equal "", output.strip
+    end
+  end
+
   private
 
   def build_render_task(template_dir, bindings = {})

@@ -1,5 +1,8 @@
 ## next
 
+*Bug fixes*
+- Fixes a bug introduced in 0.26.2 where kubernetes-render started adding YAML headers to empty render results
+
 ## 0.26.2
 
 *Enhancements*

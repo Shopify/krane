@@ -70,7 +70,7 @@ module KubernetesDeploy
       rendered_content = @renderer.render_template(filename, file_content)
       implicit = true
       YAML.parse_stream(rendered_content, "<rendered> #{filename}") { |d| implicit = d.implicit }
-      stream.puts "---\n" if implicit
+      stream.puts "---\n" if implicit && rendered_content.present?
       stream.puts rendered_content
       @logger.info("Rendered #{File.basename(filename)}")
     rescue Psych::SyntaxError => exception
