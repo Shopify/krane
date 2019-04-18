@@ -7,18 +7,14 @@ module KubernetesDeploy
     class ContextMissingError < FatalDeploymentError
       def initialize(context_name, kubeconfig)
         super("`#{context_name}` context must be configured in your " \
-          "KUBECONFIG file(s) (#{kubeconfig}).")
+          "KUBECONFIG file(s) (#{kubeconfig.join(', ')}).")
       end
     end
 
-    def self.kubeconfig
-      new.kubeconfig
-    end
-
-    attr_reader :kubeconfig
-
     def initialize(kubeconfig: ENV["KUBECONFIG"])
-      @kubeconfig = kubeconfig || "#{Dir.home}/.kube/config"
+      files = kubeconfig || "#{Dir.home}/.kube/config"
+      # Split the list by colon for Linux and Mac, and semicolon for Windows.
+      @kubeconfig_files = files.split(/[:;]/).map!(&:strip).reject(&:empty?)
     end
 
     def build_v1_kubeclient(context)
@@ -100,17 +96,12 @@ module KubernetesDeploy
       )
     end
 
-    def config_files
-      # Split the list by colon for Linux and Mac, and semicolon for Windows.
-      kubeconfig.split(/[:;]/).map!(&:strip).reject(&:empty?)
-    end
-
     def validate_config_files
       errors = []
-      if config_files.empty?
+      if @kubeconfig_files.empty?
         errors << "Kube config file name(s) not set in $KUBECONFIG"
       else
-        config_files.each do |f|
+        @kubeconfig_files.each do |f|
           unless File.file?(f)
             errors << "Kube config not found at #{f}"
           end
@@ -121,12 +112,16 @@ module KubernetesDeploy
 
     private
 
+    def kubeclient_configs
+      @kubeclient_configs ||= @kubeconfig_files.map { |f| KubeConfig.read(f) if File.file?(f) }.compact
+    end
+
     def build_kubeclient(api_version:, context:, endpoint_path: nil)
       # Find a context defined in kube conf files that matches the input context by name
-      configs = config_files.map { |f| KubeConfig.read(f) }
-      config = configs.find { |c| c.contexts.include?(context) }
+      raise TaskConfigurationError, "No kubeconfig files found in #{@kubeconfig_files}" if kubeclient_configs.empty?
+      config = kubeclient_configs.find { |c| c.contexts.include?(context) }
 
-      raise ContextMissingError.new(context, kubeconfig) unless config
+      raise ContextMissingError.new(context, @kubeconfig_files) unless config
 
       kube_context = config.context(context)
       client = Kubeclient::Client.new(
