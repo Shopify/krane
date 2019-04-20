@@ -3,7 +3,7 @@ module KubernetesDeploy
   class PersistentVolumeClaim < KubernetesResource
     TIMEOUT = 5.minutes
 
-    def _init_storage_class(_cache)
+    def init_storage_class(cache)
       @storage_class = {}
 
       if @definition.dig("spec", "storageClassName").nil?
@@ -12,9 +12,9 @@ module KubernetesDeploy
         # need a way to determine this
         is_default_class = "storageclass.beta.kubernetes.io/is-default-class"
 
-        default_sc = _cache.get_all("StorageClass").select {
-           |sc| sc.dig("metadata", "annotations", is_default_class) == "true"
-        }
+        default_sc = cache.get_all("StorageClass").select do |sc|
+          sc.dig("metadata", "annotations", is_default_class) == "true"
+        end
 
         if default_sc.length != 1
           warn_msg = "Multiple default StorageClasses found. If the DefaultStorageClass " \
@@ -35,18 +35,18 @@ module KubernetesDeploy
         return if sc_name == ""
       end
 
-      @storage_class = _cache.get_instance("StorageClass", sc_name)
+      @storage_class = cache.get_instance("StorageClass", sc_name)
 
       # check the defined StorageClass exists
       warn_msg = "StorageClass/#{sc_name} not found. This is required for #{id} to deploy."
       @logger.warn(warn_msg) if @storage_class.blank?
     end
 
-    def sync(_cache)
+    def sync(cache)
       super
 
       # find the storage class (if we haven't already)
-      _init_storage_class(_cache) if @storage_class.nil?
+      init_storage_class(cache) if @storage_class.nil?
     end
 
     def status
