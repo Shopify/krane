@@ -5,13 +5,15 @@ require 'kubernetes-deploy/kubeclient_builder'
 class KubeClientBuilderTest < KubernetesDeploy::TestCase
   def test_config_validation_default_config_file
     builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: nil)
-    assert(builder.validate_config_files, [])
+    assert_equal(builder.validate_config_files, [])
   end
 
   def test_config_validation_missing_file
     config_file = File.join(__dir__, '../../fixtures/kube-config/unknown_config.yml')
     builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: config_file)
-    assert(builder.validate_config_files, "Kube config not found at #{config_file}")
+    errors = builder.validate_config_files
+    assert_equal(1, errors.length)
+    assert_equal(errors.first, "Kube config not found at #{config_file}")
   end
 
   def test_build_runs_config_validation
@@ -24,10 +26,19 @@ class KubeClientBuilderTest < KubernetesDeploy::TestCase
     end
   end
 
-  def test_multiple_configuration_files
+  def test_no_config_files_specified
     builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: " : ")
-    assert(builder.validate_config_files, "Kube config file name(s) not set in $KUBECONFIG")
+    errors = builder.validate_config_files
+    assert_equal(1, errors.length)
+    assert_equal(errors.first, "Kube config file name(s) not set in $KUBECONFIG")
 
+    builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: "")
+    errors = builder.validate_config_files
+    assert_equal(1, errors.length)
+    assert_equal(errors.first, "Kube config file name(s) not set in $KUBECONFIG")
+  end
+
+  def test_multiple_valid_configuration_files
     default_config = "#{Dir.home}/.kube/config"
     extra_config = File.join(__dir__, '../../fixtures/kube-config/dummy_config.yml')
     builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: "#{default_config}:#{extra_config}")
