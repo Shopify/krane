@@ -65,14 +65,19 @@ module KubernetesDeploy
     end
 
     def render_filename(filename, stream)
-      @logger.info("Rendering #{File.basename(filename)} ...")
+      file_basename = File.basename(filename)
+      @logger.info("Rendering #{file_basename}...")
       file_content = File.read(File.join(@template_dir, filename))
       rendered_content = @renderer.render_template(filename, file_content)
       implicit = true
       YAML.parse_stream(rendered_content, "<rendered> #{filename}") { |d| implicit = d.implicit }
-      stream.puts "---\n" if implicit && rendered_content.present?
-      stream.puts rendered_content
-      @logger.info("Rendered #{File.basename(filename)}")
+      if rendered_content.present?
+        stream.puts "---\n" if implicit
+        stream.puts rendered_content
+        @logger.info("Rendered #{file_basename}")
+      else
+        @logger.warn("Rendered #{file_basename} successfully, but the result was blank")
+      end
     rescue Psych::SyntaxError => exception
       raise InvalidTemplateError.new("Template is not valid YAML. #{exception.message}", filename: filename)
     end

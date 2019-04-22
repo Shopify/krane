@@ -314,6 +314,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     stdout_assertion do |output|
       assert_equal "", output.strip
     end
+    assert_logs_match("Rendered effectively_empty.yml.erb successfully, but the result was blank")
   end
 
   private
