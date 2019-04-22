@@ -3,6 +3,8 @@ require 'test_helper'
 
 class KubectlTest < KubernetesDeploy::TestCase
   include StatsDHelper
+  include EnvTestHelper
+
   def setup
     super
     KubernetesDeploy::Kubectl.any_instance.unstub(:run)
@@ -21,13 +23,9 @@ class KubectlTest < KubernetesDeploy::TestCase
     end
   end
 
-  def kubeconfig_in_use
-    KubernetesDeploy::KubeclientBuilder.kubeconfig
-  end
-
   def test_run_constructs_the_expected_command_and_returns_the_correct_values
     stub_open3(
-      %W(kubectl get pods --output=json --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods --output=json) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
       resp: "{ items: [] }"
     )
@@ -40,76 +38,84 @@ class KubectlTest < KubernetesDeploy::TestCase
 
   def test_run_omits_context_flag_if_use_context_is_false
     stub_open3(
-      %W(kubectl get pods --output=json --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods --output=json) +
       %W(--namespace=testn --request-timeout=#{timeout}),
-      resp: "{ items: [] }")
+      resp: "{ items: [] }"
+    )
     build_kubectl.run("get", "pods", "--output=json", use_context: false)
   end
 
   def test_run_omits_namespace_flag_if_use_namespace_is_false
     stub_open3(
-      %W(kubectl get pods --output=json --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods --output=json) +
       %W(--context=testc --request-timeout=#{timeout}),
-      resp: "{ items: [] }")
+      resp: "{ items: [] }"
+    )
     build_kubectl.run("get", "pods", "--output=json", use_namespace: false)
   end
 
   def test_run_logs_failures_when_log_failure_by_default_is_true_and_override_is_unspecified
     stub_open3(
-      %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: "oops", success: false)
+      resp: "", err: "oops", success: false
+    )
     build_kubectl(log_failure_by_default: true).run("get", "pods")
     assert_logs_match("[WARN]", 2)
   end
 
   def test_run_logs_failures_when_log_failure_by_default_is_true_and_override_is_also_true
     stub_open3(
-      %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: "oops", success: false)
+      resp: "", err: "oops", success: false
+    )
     build_kubectl(log_failure_by_default: true).run("get", "pods", log_failure: true)
     assert_logs_match("[WARN]", 2)
   end
 
   def test_run_does_not_log_failures_when_log_failure_by_default_is_true_and_override_is_false
     stub_open3(
-      %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: "oops", success: false)
+      resp: "", err: "oops", success: false
+    )
     build_kubectl(log_failure_by_default: true).run("get", "pods", log_failure: false)
     refute_logs_match("[WARN]")
   end
 
   def test_run_does_not_log_failures_when_log_failure_by_default_is_false_and_override_is_unspecified
     stub_open3(
-      %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: "oops", success: false)
+      resp: "", err: "oops", success: false
+    )
     build_kubectl(log_failure_by_default: false).run("get", "pods")
     refute_logs_match("[WARN]")
   end
 
   def test_run_does_not_log_failures_when_log_failure_by_default_is_false_and_override_is_also_false
     stub_open3(
-      %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: "oops", success: false)
+      resp: "", err: "oops", success: false
+    )
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: false)
     refute_logs_match("[WARN]")
   end
 
   def test_run_logs_failures_when_log_failure_by_default_is_false_and_override_is_true
     stub_open3(
-      %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: "oops", success: false)
+      resp: "", err: "oops", success: false
+    )
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: true)
     assert_logs_match("[WARN]", 2)
   end
 
   def test_run_with_multiple_attempts_retries_and_emits_failure_metrics
-    command = %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use}) +
+    command = %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout})
     Open3.expects(:capture3).with(*command).times(5).returns(["", "oops", stub(success?: false)])
     kubectl = build_kubectl
@@ -127,8 +133,9 @@ class KubectlTest < KubernetesDeploy::TestCase
     custom_kubectl = KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: logger,
     log_failure_by_default: true, default_timeout: '5s')
     stub_open3(
-      %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use} --namespace=testn --context=testc --request-timeout=5s),
-      resp: "", err: "oops", success: false)
+      %w(kubectl get pods --namespace=testn --context=testc --request-timeout=5s),
+      resp: "", err: "oops", success: false
+    )
     custom_kubectl.run("get", "pods", log_failure: true)
     assert_logs_match("[WARN]", 2)
   end
@@ -172,7 +179,7 @@ class KubectlTest < KubernetesDeploy::TestCase
 
   def test_version_info_raises_if_command_fails
     stub_open3(
-      %W(kubectl version --kubeconfig=#{kubeconfig_in_use} --context=testc --request-timeout=#{timeout}),
+      %W(kubectl version --context=testc --request-timeout=#{timeout}),
       resp: '', err: 'bad', success: false
     )
     assert_raises_message(KubernetesDeploy::KubectlError, "Could not retrieve kubectl version info") do
@@ -183,9 +190,10 @@ class KubectlTest < KubernetesDeploy::TestCase
   def test_run_with_raise_if_not_found_raises_the_correct_thing
     err = 'Error from server (NotFound): pods "foobar" not found'
     stub_open3(
-      %W(kubectl get pod foobar --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pod foobar) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: err, success: false)
+      resp: "", err: err, success: false
+    )
     assert_raises_message(KubernetesDeploy::Kubectl::ResourceNotFoundError, err) do
       build_kubectl.run("get", "pod", "foobar", raise_if_not_found: true)
     end
@@ -194,17 +202,19 @@ class KubectlTest < KubernetesDeploy::TestCase
   def test_run_with_raise_if_not_found_does_not_raise_on_other_errors
     err = 'Error from server (TooManyRequests): Please try again later'
     stub_open3(
-      %W(kubectl get pod foobar --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pod foobar) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: err, success: false)
+      resp: "", err: err, success: false
+    )
     build_kubectl.run("get", "pod", "foobar", raise_if_not_found: true)
   end
 
   def test_run_output_is_sensitive_squashes_debug_logs
     stub_open3(
-      %W(kubectl get pods --kubeconfig=#{kubeconfig_in_use}) +
+      %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: "oops", success: false)
+      resp: "", err: "oops", success: false
+    )
     logger.level = 0
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: false, output_is_sensitive: true)
     refute_logs_match("Kubectl out")
@@ -217,7 +227,7 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def stub_version_request(client:, server:)
-    stub_open3(%W(kubectl version --kubeconfig=#{kubeconfig_in_use} --context=testc --request-timeout=#{timeout}), resp:
+    stub_open3(%W(kubectl version --context=testc --request-timeout=#{timeout}), resp:
       <<~STRING
         Client Version: #{client}
         Server Version: #{server}

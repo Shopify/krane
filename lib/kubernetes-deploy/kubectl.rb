@@ -9,7 +9,6 @@ module KubernetesDeploy
 
     def initialize(namespace:, context:, logger:, log_failure_by_default:, default_timeout: DEFAULT_TIMEOUT,
       output_is_sensitive_default: false)
-      @kubeconfig = KubeclientBuilder.kubeconfig
       @namespace = namespace
       @context = context
       @logger = logger
@@ -27,7 +26,6 @@ module KubernetesDeploy
       output_is_sensitive = @output_is_sensitive_default if output_is_sensitive.nil?
 
       args = args.unshift("kubectl")
-      args.push("--kubeconfig=#{@kubeconfig}")
       args.push("--namespace=#{@namespace}") if use_namespace
       args.push("--context=#{@context}")     if use_context
       args.push("--output=#{output}") if output

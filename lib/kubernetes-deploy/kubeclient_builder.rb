@@ -7,18 +7,14 @@ module KubernetesDeploy
     class ContextMissingError < FatalDeploymentError
       def initialize(context_name, kubeconfig)
         super("`#{context_name}` context must be configured in your " \
-          "KUBECONFIG file(s) (#{kubeconfig}).")
+          "KUBECONFIG file(s) (#{kubeconfig.join(', ')}).")
       end
     end
 
-    def self.kubeconfig
-      new.kubeconfig
-    end
-
-    attr_reader :kubeconfig
-
     def initialize(kubeconfig: ENV["KUBECONFIG"])
-      @kubeconfig = kubeconfig || "#{Dir.home}/.kube/config"
+      files = kubeconfig || "#{Dir.home}/.kube/config"
+      # Split the list by colon for Linux and Mac, and semicolon for Windows.
+      @kubeconfig_files = files.split(/[:;]/).map!(&:strip).reject(&:empty?)
     end
 
     def build_v1_kubeclient(context)
@@ -100,33 +96,32 @@ module KubernetesDeploy
       )
     end
 
-    def config_files
-      # Split the list by colon for Linux and Mac, and semicolon for Windows.
-      kubeconfig.split(/[:;]/).map!(&:strip).reject(&:empty?)
-    end
-
     def validate_config_files
       errors = []
-      if config_files.empty?
+      if @kubeconfig_files.empty?
         errors << "Kube config file name(s) not set in $KUBECONFIG"
       else
-        config_files.each do |f|
-          unless File.file?(f)
-            errors << "Kube config not found at #{f}"
-          end
+        @kubeconfig_files.each do |f|
+          # If any files in the list are not valid, we can't be sure the merged context list is what the user intended
+          errors << "Kube config not found at #{f}" unless File.file?(f)
         end
       end
       errors
     end
 
+    def validate_config_files!
+      errors = validate_config_files
+      raise TaskConfigurationError, errors.join(', ') if errors.present?
+    end
+
     private
 
     def build_kubeclient(api_version:, context:, endpoint_path: nil)
+      validate_config_files!
+      @kubeclient_configs ||= @kubeconfig_files.map { |f| KubeConfig.read(f) }
       # Find a context defined in kube conf files that matches the input context by name
-      configs = config_files.map { |f| KubeConfig.read(f) }
-      config = configs.find { |c| c.contexts.include?(context) }
-
-      raise ContextMissingError.new(context, kubeconfig) unless config
+      config = @kubeclient_configs.find { |c| c.contexts.include?(context) }
+      raise ContextMissingError.new(context, @kubeconfig_files) unless config
 
       kube_context = config.context(context)
       client = Kubeclient::Client.new(
