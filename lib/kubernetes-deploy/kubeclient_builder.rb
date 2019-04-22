@@ -102,25 +102,25 @@ module KubernetesDeploy
         errors << "Kube config file name(s) not set in $KUBECONFIG"
       else
         @kubeconfig_files.each do |f|
-          unless File.file?(f)
-            errors << "Kube config not found at #{f}"
-          end
+          # If any files in the list are not valid, we can't be sure the merged context list is what the user intended
+          errors << "Kube config not found at #{f}" unless File.file?(f)
         end
       end
       errors
     end
 
-    private
-
-    def kubeclient_configs
-      @kubeclient_configs ||= @kubeconfig_files.map { |f| KubeConfig.read(f) if File.file?(f) }.compact
+    def validate_config_files!
+      errors = validate_config_files
+      raise TaskConfigurationError, errors.join(', ') if errors.present?
     end
 
-    def build_kubeclient(api_version:, context:, endpoint_path: nil)
-      # Find a context defined in kube conf files that matches the input context by name
-      raise TaskConfigurationError, "No kubeconfig files found in #{@kubeconfig_files}" if kubeclient_configs.empty?
-      config = kubeclient_configs.find { |c| c.contexts.include?(context) }
+    private
 
+    def build_kubeclient(api_version:, context:, endpoint_path: nil)
+      validate_config_files!
+      @kubeclient_configs ||= @kubeconfig_files.map { |f| KubeConfig.read(f) }
+      # Find a context defined in kube conf files that matches the input context by name
+      config = @kubeclient_configs.find { |c| c.contexts.include?(context) }
       raise ContextMissingError.new(context, @kubeconfig_files) unless config
 
       kube_context = config.context(context)

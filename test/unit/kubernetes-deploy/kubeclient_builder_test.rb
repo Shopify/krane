@@ -14,11 +14,11 @@ class KubeClientBuilderTest < KubernetesDeploy::TestCase
     assert(builder.validate_config_files, "Kube config not found at #{config_file}")
   end
 
-  def test_bad_file_ignored_when_client_built_without_validating
+  def test_build_runs_config_validation
     config_file = File.join(__dir__, '../../fixtures/kube-config/unknown_config.yml')
     kubeclient_builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: config_file)
 
-    expected_err = /No kubeconfig files found in .*unknown_config.yml/
+    expected_err = /Kube config not found at .*unknown_config.yml/
     assert_raises_message(KubernetesDeploy::TaskConfigurationError, expected_err) do
       kubeclient_builder.build_v1_kubeclient('test-context')
     end
