@@ -6,6 +6,10 @@ up:
   - homebrew:
     - Caskroom/cask/minikube
   - custom:
+      name: Install the minikube fork of driver-hyperkit
+      met?: command -v docker-machine-driver-hyperkit
+      meet: curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit && sudo install -o root -g wheel -m 4755 docker-machine-driver-hyperkit /usr/local/bin/ && rm ./docker-machine-driver-hyperkit
+  - custom:
       name: Minikube Cluster
       met?: test $(minikube status | grep Running | wc -l) -ge 2 && $(minikube status | grep -q 'Correctly Configured')
       meet: minikube start --kubernetes-version=v1.11.6 --vm-driver=hyperkit

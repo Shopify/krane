@@ -113,8 +113,9 @@ If you work for Shopify, just run `dev up`, but otherwise:
 
 1. [Install kubectl version 1.10.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
 2. [Install minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (required to run the test suite)
-3. Check out the repo
-4. Run `bin/setup` to install dependencies
+3. [Install any required minikube drivers](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) (on OS X, you may need the [hyperkit driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver)
+4. Check out the repo
+5. Run `bin/setup` to install dependencies
 
 To install this gem onto your local machine, run `bundle exec rake install`.
 
