@@ -3,8 +3,8 @@ module KubernetesDeploy
   class PersistentVolumeClaim < KubernetesResource
     TIMEOUT = 5.minutes
 
-    def init_storage_class(cache)
-      @storage_class = {}
+    def storage_class(cache)
+      storage_class = {}
 
       if @definition.dig("spec", "storageClassName").nil?
         # if no storage class is defined we try to find the default one
@@ -20,7 +20,7 @@ module KubernetesDeploy
           warn_msg = "Multiple default StorageClasses found. If the DefaultStorageClass " \
             "admission plugin is turned on, all PVC creation will fail."
           @logger.warn(warn_msg) if default_sc.length > 1
-          return
+          return storage_class
         else
           # using default storage class
           sc_name = default_sc[0]["metadata"]["name"]
@@ -32,21 +32,23 @@ module KubernetesDeploy
         # a storageClassName of "" is an explicit way of saying you want a PV
         # with no defined StorageClass. We won't look up a storage_class
         # if that is the case
-        return if sc_name == ""
+        return storage_class if sc_name == ""
       end
 
-      @storage_class = cache.get_instance("StorageClass", sc_name)
+      storage_class = cache.get_instance("StorageClass", sc_name)
 
       # check the defined StorageClass exists
       warn_msg = "StorageClass/#{sc_name} not found. This is required for #{id} to deploy."
-      @logger.warn(warn_msg) if @storage_class.blank?
+      @logger.warn(warn_msg) if storage_class.blank?
+
+      return storage_class
     end
 
     def sync(cache)
       super
 
       # find the storage class (if we haven't already)
-      init_storage_class(cache) if @storage_class.nil?
+      @storage_class ||= storage_class(cache)
     end
 
     def status
