@@ -30,15 +30,13 @@ module KubernetesDeploy
 
     TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
     LAST_APPLIED_ANNOTATION = "kubectl.kubernetes.io/last-applied-configuration"
-    KUBECTL_OUTPUT_IS_SENSITIVE = false
+    SENSITIVE_TEMPLATE_CONTENT = false
 
     class << self
       def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil)
+        validate_definition_essentials(definition)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
-        if definition["kind"].blank?
-          raise InvalidTemplateError.new("Template missing 'Kind'", content: definition.to_yaml)
-        end
         if (klass = class_for_kind(definition["kind"]))
           return klass.new(**opts)
         end
@@ -66,6 +64,24 @@ module KubernetesDeploy
       def kind
         name.demodulize
       end
+
+      private
+
+      def validate_definition_essentials(definition)
+        debug_content = <<~STRING
+          apiVersion: #{definition.fetch('apiVersion', '<missing>')}
+          kind: #{definition.fetch('kind', '<missing>')}
+          metadata: #{definition.fetch('metadata', {})}
+          <Template body suppressed because content sensitivity could not be determined.>
+        STRING
+        if definition["kind"].blank?
+          raise InvalidTemplateError.new("Template is missing required field 'kind'", content: debug_content)
+        end
+
+        if definition.dig('metadata', 'name').blank?
+          raise InvalidTemplateError.new("Template is missing required field 'metadata.name'", content: debug_content)
+        end
+      end
     end
 
     def timeout
@@ -86,12 +102,7 @@ module KubernetesDeploy
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
       # subclasses must also set these if they define their own initializer
-      @name = definition.dig("metadata", "name")
-      unless @name.present?
-        logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
-        raise FatalDeploymentError, "Template is missing required field metadata.name"
-      end
-
+      @name = definition.dig("metadata", "name").to_s
       @optional_statsd_tags = statsd_tags
       @namespace = namespace
       @context = context
@@ -113,9 +124,9 @@ module KubernetesDeploy
       validate_timeout_annotation
 
       command = ["create", "-f", file_path, "--dry-run", "--output=name"]
-      _, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: kubectl_output_is_sensitive?)
+      _, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?)
       return true if st.success?
-      if kubectl_output_is_sensitive?
+      if sensitive_template_content?
         @validation_errors << <<-EOS
           Validation for #{id} failed. Detailed information is unavailable as the raw error may contain sensitive data.
         EOS
@@ -322,8 +333,8 @@ module KubernetesDeploy
       end
     end
 
-    def kubectl_output_is_sensitive?
-      self.class::KUBECTL_OUTPUT_IS_SENSITIVE
+    def sensitive_template_content?
+      self.class::SENSITIVE_TEMPLATE_CONTENT
     end
 
     class Event
