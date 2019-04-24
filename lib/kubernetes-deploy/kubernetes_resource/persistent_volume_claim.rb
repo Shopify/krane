@@ -23,7 +23,7 @@ module KubernetesDeploy
           return storage_class
         else
           # using default storage class
-          sc_name = default_sc[0]["metadata"]["name"]
+          return default_sc[0]
         end
       else
         # using storage class from pvc definition
