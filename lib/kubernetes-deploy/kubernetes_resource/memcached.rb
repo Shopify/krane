@@ -26,7 +26,7 @@ module KubernetesDeploy
     private
 
     def deployment_ready?
-      return false unless status = @deployment["status"]
+      return false unless (status = @deployment["status"])
       status.fetch("availableReplicas", -1) == status.fetch("replicas", 0)
     end
 

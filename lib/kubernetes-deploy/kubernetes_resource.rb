@@ -53,7 +53,7 @@ module KubernetesDeploy
 
       def class_for_kind(kind)
         if KubernetesDeploy.const_defined?(kind)
-          KubernetesDeploy.const_get(kind) # rubocop:disable Sorbet/ConstantsFromStrings
+          KubernetesDeploy.const_get(kind)
         end
       rescue NameError
         nil

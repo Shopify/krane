@@ -146,7 +146,7 @@ module KubernetesDeploy
     end
 
     def ready?
-      return false unless status_data = @instance_data["status"]
+      return false unless (status_data = @instance_data["status"])
       ready_condition = status_data.fetch("conditions", []).find { |condition| condition["type"] == "Ready" }
       ready_condition.present? && (ready_condition["status"] == "True")
     end
