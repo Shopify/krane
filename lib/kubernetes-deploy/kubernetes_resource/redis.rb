@@ -29,7 +29,7 @@ module KubernetesDeploy
     private
 
     def deployment_ready?
-      return false unless status = @deployment["status"]
+      return false unless (status = @deployment["status"])
       # all redis pods are running
       status.fetch("availableReplicas", -1) == status.fetch("replicas", 0)
     end

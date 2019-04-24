@@ -227,12 +227,11 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def stub_version_request(client:, server:)
-    stub_open3(%W(kubectl version --context=testc --request-timeout=#{timeout}), resp:
-      <<~STRING
-        Client Version: #{client}
-        Server Version: #{server}
-      STRING
-  )
+    resp = <<~STRING
+      Client Version: #{client}
+      Server Version: #{server}
+    STRING
+    stub_open3(%W(kubectl version --context=testc --request-timeout=#{timeout}), resp: resp)
   end
 
   def version_info(maj, min, patch, git: nil)

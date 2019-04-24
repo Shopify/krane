@@ -721,7 +721,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
       "Logs from container 'hello-cloud':",
-      "sh: /some/bad/path: not found" # from logs
+      "sh: /some/bad/path: not found", # from logs
     ], in_order: true)
     refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary
   end
@@ -962,7 +962,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "ResourceQuota/resource-quotas",
       %r{Deployment/web: TIMED OUT \(progress deadline: \d+s\)},
       "Timeout reason: ProgressDeadlineExceeded",
-      "failed quota: resource-quotas" # from an event
+      "failed quota: resource-quotas", # from an event
     ], in_order: true)
 
     rqs = kubeclient.get_resource_quotas(namespace: @namespace)
