@@ -220,6 +220,42 @@ class KubectlTest < KubernetesDeploy::TestCase
     refute_logs_match("Kubectl out")
   end
 
+  def test_timeout_errors_are_retried_once_even_if_no_retries_requested
+    stub_open3(
+      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: "context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+    ).times(2)
+
+    kubectl = build_kubectl
+    kubectl.expects(:retry_delay).returns(0).once
+    kubectl.run("get", "namespaces", use_namespace: false, attempts: 1)
+  end
+
+  def test_timeout_errors_do_not_add_additional_retries_if_some_already_permitted
+    stub_open3(
+      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: "context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+    ).times(2)
+
+    kubectl = build_kubectl
+    kubectl.expects(:retry_delay).returns(0).once
+    kubectl.run("get", "namespaces", use_namespace: false, attempts: 2)
+  end
+
+  def test_retry_delay_backoff
+    ktl = build_kubectl
+    max_delay_range = ((KubernetesDeploy::Kubectl::MAX_RETRY_DELAY - 0.5)..KubernetesDeploy::Kubectl::MAX_RETRY_DELAY)
+    1000.times do
+      assert_includes 0.5..1, ktl.retry_delay(1)
+      assert_includes 1.5..2, ktl.retry_delay(2)
+      assert_includes 3.5..4, ktl.retry_delay(3)
+      assert_includes 7.5..8, ktl.retry_delay(4)
+      assert_includes max_delay_range, ktl.retry_delay(5)
+      assert_includes max_delay_range, ktl.retry_delay(6)
+      assert_includes max_delay_range, ktl.retry_delay(100)
+    end
+  end
+
   private
 
   def timeout

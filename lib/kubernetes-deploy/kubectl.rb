@@ -4,6 +4,9 @@ module KubernetesDeploy
   class Kubectl
     DEFAULT_TIMEOUT = 15
     NOT_FOUND_ERROR_TEXT = 'NotFound'
+    CLIENT_TIMEOUT_ERROR_MATCHER = /Client\.Timeout exceeded while awaiting headers/
+    MAX_RETRY_DELAY = 16
+    JITTER_RANGE = [0, 0.1, 0.2, 0.3, 0.4, 0.5].freeze
 
     class ResourceNotFoundError < StandardError; end
 
@@ -24,40 +27,37 @@ module KubernetesDeploy
       raise_if_not_found: false, attempts: 1, output_is_sensitive: nil)
       log_failure = @log_failure_by_default if log_failure.nil?
       output_is_sensitive = @output_is_sensitive_default if output_is_sensitive.nil?
+      cmd = build_command_from_options(args, use_namespace, use_context, output)
+      current_attempt = 1
 
-      args = args.unshift("kubectl")
-      args.push("--namespace=#{@namespace}") if use_namespace
-      args.push("--context=#{@context}")     if use_context
-      args.push("--output=#{output}") if output
-      args.push("--request-timeout=#{@default_timeout}") if @default_timeout
-      out, err, st = nil
-
-      (1..attempts).to_a.each do |attempt|
-        @logger.debug("Running command (attempt #{attempt}): #{args.join(' ')}")
-        out, err, st = Open3.capture3(*args)
+      while current_attempt <= attempts
+        @logger.debug("Running command (attempt #{current_attempt}): #{cmd.join(' ')}")
+        out, err, st = Open3.capture3(*cmd)
         @logger.debug("Kubectl out: " + out.gsub(/\s+/, ' ')) unless output_is_sensitive
 
         break if st.success?
+        raise(ResourceNotFoundError, err) if err.match(NOT_FOUND_ERROR_TEXT) && raise_if_not_found
 
         if log_failure
-          @logger.warn("The following command failed (attempt #{attempt}/#{attempts}): #{Shellwords.join(args)}")
+          escaped_cmd = Shellwords.join(cmd)
+          @logger.warn("The following command failed (attempt #{current_attempt}/#{attempts}): #{escaped_cmd}")
           @logger.warn(err) unless output_is_sensitive
-        end
-
-        if err.match(NOT_FOUND_ERROR_TEXT)
-          raise(ResourceNotFoundError, err) if raise_if_not_found
         else
           @logger.debug("Kubectl err: #{err}") unless output_is_sensitive
-          StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: args[1] })
         end
-        sleep(retry_delay(attempt)) unless attempt == attempts
+        StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: cmd[1] })
+
+        attempts += 1 if err.match(CLIENT_TIMEOUT_ERROR_MATCHER) && retry_timeout?(current_attempt, attempts)
+        sleep(retry_delay(current_attempt)) unless current_attempt == attempts
+        current_attempt += 1
       end
 
       [out.chomp, err.chomp, st]
     end
 
     def retry_delay(attempt)
-      attempt
+      # exponential backoff starting at 1s with cap at 16s, offset by up to 0.5s
+      [2**(attempt - 1), MAX_RETRY_DELAY].min - JITTER_RANGE.sample
     end
 
     def version_info
@@ -78,6 +78,19 @@ module KubernetesDeploy
     end
 
     private
+
+    def build_command_from_options(args, use_namespace, use_context, output)
+      cmd = ["kubectl"] + args
+      cmd.push("--namespace=#{@namespace}")              if use_namespace
+      cmd.push("--context=#{@context}")                  if use_context
+      cmd.push("--output=#{output}")                     if output
+      cmd.push("--request-timeout=#{@default_timeout}")  if @default_timeout
+      cmd
+    end
+
+    def retry_timeout?(current_attempt, attempts)
+      current_attempt == 1 && attempts == 1
+    end
 
     def extract_version_info_from_kubectl_response(response)
       info = {}
