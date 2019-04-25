@@ -825,9 +825,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Result: FAILURE",
-      "Template is missing required field metadata.name",
-      "Rendered template content:",
+      "Template is missing required field 'metadata.name'",
+      "Template content:",
       "kind: ConfigMap",
+      'metadata: {"labels"=>{"name"=>"hello-cloud-configmap-data", "app"=>"hello-cloud"}}',
     ], in_order: true)
   end
 
@@ -1172,14 +1173,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Invalid template: missing_kind.yml",
       "> Error message:",
-      "Template missing 'Kind'",
+      "Template is missing required field 'kind'",
       "> Template content:",
-      "---",
       "apiVersion: v1",
-      "metadata:",
-      "  name: test",
-      "data:",
-      "  datapoint: value1",
+      "kind: <missing>",
+      'metadata: {"name"=>"test"}',
     ], in_order: true)
   end
 
@@ -1223,6 +1221,70 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Command failed: apply -f",
       /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
     ])
+  end
+
+  def test_validation_failure_on_sensitive_resources_does_not_print_template
+    selector = KubernetesDeploy::LabelSelector.parse("branch=master")
+    assert_deploy_failure(deploy_fixtures("hello-cloud", subset: %w(secret.yml), selector: selector))
+    assert_logs_match_all([
+      "Template validation failed",
+      "Invalid template: Secret-hello-secret",
+      "selector branch=master passed in, but no labels were defined",
+    ], in_order: true)
+    refute_logs_match("password")
+    refute_logs_match("YWRtaW4=")
+  end
+
+  def test_render_failure_on_sensitive_resource_does_not_print_template
+    assert_deploy_failure(deploy_fixtures("invalid-resources", subset: %w(bad_binding_secret.yml.erb)))
+    assert_logs_match_all([
+      "Failed to render and parse template",
+      "Invalid template: bad_binding_secret.yml.erb",
+      "undefined local variable or method",
+      "Template content: Suppressed because it may contain a Secret",
+    ], in_order: true)
+    refute_logs_match("password")
+    refute_logs_match("YWRtaW4=")
+  end
+
+  def test_missing_name_on_secret_does_not_print_template_at_all
+    result = deploy_fixtures("hello-cloud", subset: %w(secret.yml)) do |fixtures|
+      secret = fixtures["secret.yml"]["Secret"].first
+      secret["metadata"].delete("name")
+    end
+    assert_deploy_failure(result)
+
+    assert_logs_match_all([
+      "Invalid template: secret.yml",
+      "Template is missing required field 'metadata.name'",
+      "Template content: Suppressed because it may contain a Secret",
+    ], in_order: true)
+
+    refute_logs_match("apiVersion:")
+    refute_logs_match("password")
+    refute_logs_match("YWRtaW4=")
+  end
+
+  def test_missing_name_on_unknown_resource_prints_metadata_but_not_body
+    result = deploy_fixtures("hello-cloud", subset: %w(secret.yml)) do |fixtures|
+      secret = fixtures["secret.yml"]["Secret"].first
+      secret["metadata"].delete("name")
+      secret["kind"] = "SpecialSecret"
+      secret["metadata"]["labels"] = { "should_appear" => true }
+    end
+    assert_deploy_failure(result)
+
+    assert_logs_match_all([
+      "Invalid template: secret.yml",
+      "Template is missing required field 'metadata.name'",
+      "apiVersion: v1",
+      "kind: SpecialSecret",
+      'metadata: {"labels"=>{"should_appear"=>true}}',
+      "<Template body suppressed because content sensitivity could not be determined.>",
+    ], in_order: true)
+
+    refute_logs_match("password")
+    refute_logs_match("YWRtaW4=")
   end
 
   private

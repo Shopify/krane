@@ -252,7 +252,7 @@ module KubernetesDeploy
       return unless failed_resources.present?
 
       failed_resources.each do |r|
-        content = File.read(r.file_path) if File.file?(r.file_path)
+        content = File.read(r.file_path) if File.file?(r.file_path) && !r.sensitive_template_content?
         record_invalid_template(err: r.validation_error_msg, filename: File.basename(r.file_path), content: content)
       end
       raise FatalDeploymentError, "Template validation failed"
@@ -319,7 +319,13 @@ module KubernetesDeploy
     def record_invalid_template(err:, filename:, content: nil)
       debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
       debug_msg += "> Error message:\n#{FormattedLogger.indent_four(err)}"
-      debug_msg += "\n> Template content:\n#{FormattedLogger.indent_four(content)}" if content
+      if content
+        debug_msg += if content =~ /kind:\s*Secret/
+          "\n> Template content: Suppressed because it may contain a Secret"
+        else
+          "\n> Template content:\n#{FormattedLogger.indent_four(content)}"
+        end
+      end
       @logger.summary.add_paragraph(debug_msg)
     end
 
@@ -445,7 +451,7 @@ module KubernetesDeploy
           prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
         end
 
-        output_is_sensitive = resources.any?(&:kubectl_output_is_sensitive?)
+        output_is_sensitive = resources.any?(&:sensitive_template_content?)
         out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive)
 
         if st.success?
@@ -473,7 +479,7 @@ module KubernetesDeploy
 
       unidentified_errors = []
       filenames_with_sensitive_content = resources
-        .select(&:kubectl_output_is_sensitive?)
+        .select(&:sensitive_template_content?)
         .map { |r| File.basename(r.file_path) }
 
       err.each_line do |line|

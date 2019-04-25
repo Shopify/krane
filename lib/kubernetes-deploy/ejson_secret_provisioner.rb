@@ -62,7 +62,11 @@ module KubernetesDeploy
 
         secrets.map do |secret_name, secret_spec|
           validate_secret_spec(secret_name, secret_spec)
-          generate_secret_resource(secret_name, secret_spec["_type"], secret_spec["data"])
+          resource = generate_secret_resource(secret_name, secret_spec["_type"], secret_spec["data"])
+          unless resource.validate_definition(@kubectl)
+            raise EjsonSecretError, "Resulting resource Secret/#{secret_name} failed validation"
+          end
+          resource
         end
       end
     end

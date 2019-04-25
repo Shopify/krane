@@ -39,7 +39,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   end
 
   class DummySensitiveResource < DummyResource
-    KUBECTL_OUTPUT_IS_SENSITIVE = true
+    SENSITIVE_TEMPLATE_CONTENT = true
   end
 
   def test_unusual_timeout_output

@@ -51,7 +51,7 @@ module KubernetesDeploy
 
     def fetch_by_kind(kind)
       resource_class = KubernetesResource.class_for_kind(kind)
-      output_is_sensitive = resource_class.nil? ? false : resource_class::KUBECTL_OUTPUT_IS_SENSITIVE
+      output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
       raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
          output_is_sensitive: output_is_sensitive)
       raise KubectlError unless st.success?

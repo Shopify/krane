@@ -3,9 +3,9 @@ require 'test_helper'
 
 class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def test_resources_based_on_ejson_file_existence
-    stub_kubectl_response("get", "secret", "ejson-keys",
-      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
-      resp: dummy_ejson_secret)
+    stub_ejson_keys_get_request
+    stub_kubectl_response("create", "-f", anything, "--dry-run", "--output=name",
+      kwargs: { log_failure: false, output_is_sensitive: true }, resp: dummy_secret_hash, json: false).times(3)
 
     assert_empty(build_provisioner(fixture_path('hello-cloud')).resources)
     refute_empty(build_provisioner(fixture_path('ejson-cloud')).resources)
@@ -20,9 +20,9 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_resource_is_built_correctly
-    stub_kubectl_response("get", "secret", "ejson-keys",
-      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
-      resp: dummy_ejson_secret)
+    stub_ejson_keys_get_request
+    stub_kubectl_response("create", "-f", anything, "--dry-run", "--output=name",
+      kwargs: { log_failure: false, output_is_sensitive: true }, resp: dummy_secret_hash, json: false).times(3)
 
     resources = build_provisioner(fixture_path('ejson-cloud')).resources
     refute_empty(resources)
@@ -70,9 +70,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_run_with_file_missing_section_for_ejson_secrets_logs_warning
-    stub_kubectl_response("get", "secret", "ejson-keys",
-      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
-      resp: dummy_ejson_secret)
+    stub_ejson_keys_get_request
     new_content = { "_public_key" => fixture_public_key, "not_the_right_key" => [] }
 
     with_ejson_file(new_content.to_json) do |target_dir|
@@ -82,9 +80,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_run_with_incomplete_secret_spec
-    stub_kubectl_response("get", "secret", "ejson-keys",
-      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
-      resp: dummy_ejson_secret)
+    stub_ejson_keys_get_request
     new_content = {
       "_public_key" => fixture_public_key,
       "kubernetes_secrets" => { "foobar" => {} },
@@ -98,7 +94,23 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_proactively_validates_resulting_resources_and_raises_without_logging
+    stub_ejson_keys_get_request
+    KubernetesDeploy::Secret.any_instance.expects(:validate_definition).returns(false)
+    msg = "Generation of Kubernetes secrets from ejson failed: Resulting resource Secret/catphotoscom failed validation"
+    assert_raises_message(KubernetesDeploy::EjsonSecretError, msg) do
+      build_provisioner(fixture_path('ejson-cloud')).resources
+    end
+    refute_logs_match("Secret")
+  end
+
   private
+
+  def stub_ejson_keys_get_request
+    stub_kubectl_response("get", "secret", "ejson-keys",
+      kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
+      resp: dummy_ejson_secret)
+  end
 
   def correct_ejson_key_secret_data
     {
