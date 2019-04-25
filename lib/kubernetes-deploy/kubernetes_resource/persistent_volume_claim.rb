@@ -41,7 +41,7 @@ module KubernetesDeploy
       warn_msg = "StorageClass/#{sc_name} not found. This is required for #{id} to deploy."
       @logger.warn(warn_msg) if storage_class.blank?
 
-      return storage_class
+      storage_class
     end
 
     def sync(cache)
