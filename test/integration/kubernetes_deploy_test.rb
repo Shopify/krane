@@ -1231,17 +1231,17 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     TestProvisioner.prepare_pv("local0001") do |pv|
       pv.spec.delete_field("hostPath")
       pv.spec[:storageClassName] = "k8s-deploy-test"
-      pv.spec[:local] = {path: "/data/local0001"}
+      pv.spec[:local] = { path: "/data/local0001" }
       pv.spec[:nodeAffinity] = {
         required: {
           nodeSelectorTerms: [
             {
               matchExpressions: [
-                { key: "fakeKey", operator: "DoesNotExist" }
-              ]
-            }
-          ]
-        }
+                { key: "fakeKey", operator: "DoesNotExist" },
+              ],
+            },
+          ],
+        },
       }
       pv.spec[:persistentVolumeReclaimPolicy] = "Retain"
     end
