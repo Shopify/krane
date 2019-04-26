@@ -122,18 +122,8 @@ module KubernetesDeploy
       @validation_errors = []
       validate_selector(selector) if selector
       validate_timeout_annotation
-
-      command = ["create", "-f", file_path, "--dry-run", "--output=name"]
-      _, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?)
-      return true if st.success?
-      if sensitive_template_content?
-        @validation_errors << <<-EOS
-          Validation for #{id} failed. Detailed information is unavailable as the raw error may contain sensitive data.
-        EOS
-      else
-        @validation_errors << err
-      end
-      false
+      validate_spec_with_kubectl(kubectl)
+      @validation_errors.present?
     end
 
     def validation_error_msg
@@ -430,6 +420,19 @@ module KubernetesDeploy
         label_name = 'label'.pluralize(labels.size)
         label_string = LabelSelector.new(labels).to_s
         @validation_errors << "selector #{selector} does not match #{label_name} #{label_string}"
+      end
+    end
+
+    def validate_spec_with_kubectl(kubectl)
+      command = ["create", "-f", file_path, "--dry-run", "--output=name"]
+      _, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
+        retry_whitelist: [Kubectl::ERROR_MATCHERS[:client_timeout]], attempts: 3)
+
+      return true if st.success?
+      @validation_errors << if sensitive_template_content?
+        "Validation for #{id} failed. Detailed information is unavailable as the raw error may contain sensitive data."
+      else
+        err
       end
     end
 

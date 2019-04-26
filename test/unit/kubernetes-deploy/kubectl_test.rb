@@ -225,28 +225,101 @@ class KubectlTest < KubernetesDeploy::TestCase
     refute_logs_match("oops")
   end
 
-  def test_timeout_errors_are_retried_once_even_if_no_retries_requested
-    stub_open3(
-      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
-      success: false, err: "context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
-    ).times(2)
-
+  def test_404s_are_not_retriable_by_default_but_can_be_enabled
     kubectl = build_kubectl
-    kubectl.expects(:retry_delay).returns(0).once
-    kubectl.run("get", "namespaces", use_namespace: false, attempts: 1)
-    assert_logs_match_all(["(attempt 1/2)", "(attempt 2/2)"], in_order: true)
+    kubectl.stubs(:retry_delay).returns(0)
+    not_found_err = "Error from server (NotFound): pods 'foo' not found"
+
+    stub_open3(
+      %W(kubectl get pod foo --namespace=testn --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: not_found_err
+    ).times(1)
+    kubectl.run("get", "pod", "foo", attempts: 3)
+    assert_logs_match("The following command failed and cannot be retried")
+
+    reset_logger
+
+    stub_open3(
+      %W(kubectl get pod foo --namespace=testn --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: not_found_err
+    ).times(3)
+    kubectl.run("get", "pod", "foo", attempts: 3,
+      retry_whitelist: [KubernetesDeploy::Kubectl::ERROR_MATCHERS[:not_found]])
+    assert_logs_match_all([
+      "The following command failed and will be retried (attempt 1/3)",
+      "The following command failed and will be retried (attempt 2/3)",
+      "The following command failed (attempt 3/3)",
+    ], in_order: true)
   end
 
-  def test_timeout_errors_do_not_add_additional_retries_if_some_already_permitted
+  def test_errors_other_than_404s_are_retriable_by_default
+    kubectl = build_kubectl
+    kubectl.stubs(:retry_delay).returns(0)
+
+    [
+      "context deadline exceeded (Client.Timeout exceeded while awaiting headers)",
+      'Error from server (TooManyRequests): Please try again later',
+      "some weird error",
+    ].each do |error_message|
+      stub_open3(
+        %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+        success: false, err: error_message
+      ).times(2)
+      kubectl.run("get", "namespaces", use_namespace: false, attempts: 2)
+      assert_logs_match_all([
+        "The following command failed and will be retried (attempt 1/2)",
+        "The following command failed (attempt 2/2)",
+      ], in_order: true)
+      reset_logger
+    end
+  end
+
+  def test_retry_whitelist_constraints_attempts
+    kubectl = build_kubectl
+    kubectl.stubs(:retry_delay).returns(0)
+    timeout_error = "context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+
     stub_open3(
       %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
-      success: false, err: "context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
-    ).times(2)
+      success: false, err: timeout_error
+    ).times(4)
+    kubectl.run("get", "namespaces", use_namespace: false, attempts: 4,
+      retry_whitelist: [KubernetesDeploy::Kubectl::ERROR_MATCHERS[:client_timeout]])
+    assert_logs_match_all([
+      "The following command failed and will be retried (attempt 1/4)",
+      "The following command failed and will be retried (attempt 2/4)",
+      "The following command failed and will be retried (attempt 3/4)",
+      "The following command failed (attempt 4/4)",
+    ], in_order: true)
+    reset_logger
 
+    stub_open3(
+      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: timeout_error
+    ).times(1)
+    kubectl.run("get", "namespaces", use_namespace: false, attempts: 4, retry_whitelist: [])
+    assert_logs_match("The following command failed and cannot be retried")
+  end
+
+  def test_retry_ux_when_retriable_error_followed_by_non_retriable_error
     kubectl = build_kubectl
-    kubectl.expects(:retry_delay).returns(0).once
-    kubectl.run("get", "namespaces", use_namespace: false, attempts: 2)
-    assert_logs_match_all(["(attempt 1/2)", "(attempt 2/2)"], in_order: true)
+    kubectl.stubs(:retry_delay).returns(0)
+
+    timeout_error = "context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+    not_found_err = "Error from server (NotFound): pods 'foo' not found"
+    Open3.expects(:capture3)
+      .with("kubectl", "get", "pod", "foo", "--namespace=testn", "--context=testc", "--request-timeout=#{timeout}")
+      .times(3)
+      .returns(["", timeout_error, stub(success?: false)])
+      .returns(["", timeout_error, stub(success?: false)])
+      .returns(["", not_found_err, stub(success?: false)])
+
+    kubectl.run("get", "pod", "foo", attempts: 10)
+    assert_logs_match_all([
+      "The following command failed and will be retried (attempt 1/10)",
+      "The following command failed and will be retried (attempt 2/10)",
+      "The following command failed and cannot be retried",
+    ], in_order: true)
   end
 
   def test_retry_delay_backoff

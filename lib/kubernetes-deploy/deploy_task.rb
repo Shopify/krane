@@ -552,13 +552,18 @@ module KubernetesDeploy
     end
 
     def confirm_namespace_exists
-      st, err = nil
-      with_retries(2) do
-        _, err, st = kubectl.run("get", "namespace", @namespace, use_namespace: false, log_failure: true)
-        st.success? || err.include?(KubernetesDeploy::Kubectl::NOT_FOUND_ERROR_TEXT)
-      end
-      raise FatalDeploymentError, "Failed to find namespace. #{err}" unless st.success?
+      raise FatalDeploymentError, "Failed to find namespace. #{err}" unless namespace_definition.present?
       @logger.info("Namespace #{@namespace} found")
+    end
+
+    def namespace_definition
+      @namespace_definition ||= begin
+        definition, _err, st = kubectl.run("get", "namespace", @namespace, use_namespace: false,
+          log_failure: true, raise_if_not_found: true, attempts: 3, output: 'json')
+        st.success? ? JSON.parse(definition, symbolize_names: true) : nil
+      end
+    rescue Kubectl::ResourceNotFoundError
+      nil
     end
 
     # make sure to never prune the ejson-keys secret
@@ -574,14 +579,8 @@ module KubernetesDeploy
     end
 
     def tags_from_namespace_labels
-      namespace_info = nil
-      with_retries(2) do
-        namespace_info, _, st = kubectl.run("get", "namespace", @namespace, "-o", "json", use_namespace: false,
-          log_failure: true)
-        st.success?
-      end
-      return [] if namespace_info.blank?
-      namespace_labels = JSON.parse(namespace_info, symbolize_names: true).fetch(:metadata, {}).fetch(:labels, {})
+      return [] if namespace_definition.blank?
+      namespace_labels = namespace_definition.fetch(:metadata, {}).fetch(:labels, {})
       namespace_labels.map { |key, value| "#{key}:#{value}" }
     end
 
