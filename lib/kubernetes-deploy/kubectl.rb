@@ -6,7 +6,6 @@ module KubernetesDeploy
     NOT_FOUND_ERROR_TEXT = 'NotFound'
     CLIENT_TIMEOUT_ERROR_MATCHER = /Client\.Timeout exceeded while awaiting headers/
     MAX_RETRY_DELAY = 16
-    JITTER_RANGE = [0, 0.1, 0.2, 0.3, 0.4, 0.5].freeze
 
     class ResourceNotFoundError < StandardError; end
 
@@ -58,7 +57,7 @@ module KubernetesDeploy
 
     def retry_delay(attempt)
       # exponential backoff starting at 1s with cap at 16s, offset by up to 0.5s
-      [2**(attempt - 1), MAX_RETRY_DELAY].min - JITTER_RANGE.sample
+      [2**(attempt - 1), MAX_RETRY_DELAY].min - Random.rand(0.5).round(1)
     end
 
     def version_info
