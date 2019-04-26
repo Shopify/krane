@@ -58,26 +58,7 @@ class PodTest < KubernetesDeploy::TestCase
     assert_nil(pod.failure_message)
   end
 
-  def test_deploy_failed_is_true_for_image_pull_backoff_with_specific_error
-    container_state = {
-      "state" => {
-        "waiting" => {
-          "message" => "rpc error: code = 2 desc = Error: image library/some-invalid-image not found",
-          "reason" => "ImagePullBackOff",
-        },
-      },
-    }
-    pod = build_synced_pod(build_pod_template(container_state: container_state))
-    assert(pod.deploy_failed?)
-
-    expected_msg = <<~STRING
-      The following containers encountered errors:
-      > hello-cloud: Failed to pull image busybox. Did you wait for it to be built and pushed to the registry before deploying?
-    STRING
-    assert_equal(expected_msg.strip, pod.failure_message)
-  end
-
-  def test_deploy_failed_is_false_for_image_pull_backoff_without_specific_error
+  def test_deploy_failed_is_false_for_image_pull_backoff
     # Backoffs start quickly enough that failing eagerly on this basis alone (without further error details)
     # leads to many incorrect failure judgements at scale
     container_state = {
