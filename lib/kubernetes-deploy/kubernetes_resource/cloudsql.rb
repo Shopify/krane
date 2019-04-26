@@ -24,7 +24,7 @@ module KubernetesDeploy
     private
 
     def proxy_deployment_ready?
-      return false unless status = @proxy_deployment["status"]
+      return false unless (status = @proxy_deployment["status"])
       # all cloudsql-proxy pods are running
       status.fetch("availableReplicas", -1) == status.fetch("replicas", 0)
     end

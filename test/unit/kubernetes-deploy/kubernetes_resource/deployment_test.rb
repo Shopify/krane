@@ -372,7 +372,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
     result = base_deployment_manifest.deep_merge("status" => status)
     result["metadata"]["annotations"][KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION] = rollout if rollout
 
-    if spec_override = status["replicas"].presence # ignores possibility of surge; need a spec_replicas arg for that
+    if (spec_override = status["replicas"].presence) # ignores possibility of surge; need a spec_replicas arg for that
       result["spec"]["replicas"] = spec_override
     end
 
@@ -395,7 +395,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
     base_rs_manifest = fixtures.find { |fixture| fixture["kind"] == "ReplicaSet" }
     result = base_rs_manifest.deep_merge("status" => status)
 
-    if spec_override = status["replicas"].presence # ignores possibility of surge; need a spec_replicas arg for that
+    if (spec_override = status["replicas"].presence) # ignores possibility of surge; need a spec_replicas arg for that
       result["spec"]["replicas"] = spec_override
     end
     result

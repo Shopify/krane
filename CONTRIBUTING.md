@@ -113,8 +113,9 @@ If you work for Shopify, just run `dev up`, but otherwise:
 
 1. [Install kubectl version 1.10.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
 2. [Install minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (required to run the test suite)
-3. Check out the repo
-4. Run `bin/setup` to install dependencies
+3. [Install any required minikube drivers](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) (on OS X, you may need the [hyperkit driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver)
+4. Check out the repo
+5. Run `bin/setup` to install dependencies
 
 To install this gem onto your local machine, run `bundle exec rake install`.
 
@@ -144,14 +145,11 @@ To see the full-color output of a specific integration test, you can use `PRINT_
 
 ## Releasing a new version (Shopify employees)
 
-1. Make sure all merged PRs are reflected in the changelog before creating the commit for the new version.
-2. Update the version number in `version.rb` and commit that change with message "Version x.y.z". Don't push yet or you'll confuse Shipit.
-3. Tag the version with `git tag vx.y.z -a -m "Version x.y.z"`
-4. Push both your bump commit and its tag simultaneously with `git push origin master --follow-tags` (note that you can set `git config --global push.followTags true` to turn this flag on by default)
-5. Use the [Shipit Stack](https://shipit.shopify.io/shopify/kubernetes-deploy/rubygems) to build the `.gem` file and upload to [rubygems.org](https://rubygems.org/gems/kubernetes-deploy).
-
-If you push your commit and the tag separately, Shipit usually fails with `You need to create the v0.7.9 tag first.`. To make it find your tag, go to `Settings` > `Resynchronize this stack` > `Clear git cache`.
-
+1. On a new branch, create a new heading in CHANGELOG.md for your version and move the entries from "Next" under it. Leave the "Next" heading in the file (this helps with the diff for rebases after the release).
+1. Make sure CHANGELOG.md includes all user-facing changes since the last release. Things like test changes or refactors do not need to be included.
+1. Update the version number in `version.rb`.
+1. Commit your changes with message "Version x.y.z" and open a PR.
+1. After merging your PR, deploy via [Shipit](https://shipit.shopify.io/shopify/kubernetes-deploy/rubygems). Shipit will automatically tag the release and upload the gem to [rubygems.org](https://rubygems.org/gems/kubernetes-deploy).
 
 ## CI (External contributors)
 

@@ -114,6 +114,8 @@ Refer to `kubernetes-deploy --help` for the authoritative set of options.
 resource to deploy.
 - `--selector`: Instructs kubernetes-deploy to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
 
+> **NOTICE**: Deploy Secret resources at your own risk. Although we will fix any reported leak vectors with urgency, we cannot guarantee that sensitive information will never be logged.
+
 ### Sharing a namespace
 
 By default, kubernetes-deploy will prune any resources in the target namespace which have the `kubectl.kubernetes.io/last-applied-configuration` annotation and are not a result of the current deployment process, on the assumption that there is a one-to-one relationship between application deployment and namespace, and that a deployment provisions all relevant resources in the namespace.

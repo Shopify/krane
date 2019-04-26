@@ -2,7 +2,7 @@
 module KubernetesDeploy
   class Secret < KubernetesResource
     TIMEOUT = 30.seconds
-    KUBECTL_OUTPUT_IS_SENSITIVE = true
+    SENSITIVE_TEMPLATE_CONTENT = true
 
     def status
       exists? ? "Available" : "Not Found"

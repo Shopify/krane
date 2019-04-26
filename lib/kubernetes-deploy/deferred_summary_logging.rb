@@ -47,7 +47,7 @@ module KubernetesDeploy
         level = :fatal
       end
 
-      if actions_sentence = summary.actions_sentence.presence
+      if (actions_sentence = summary.actions_sentence.presence)
         public_send(level, actions_sentence)
         blank_line(level)
       end

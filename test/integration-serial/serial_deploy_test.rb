@@ -66,6 +66,38 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
   end
 
+  def test_multiple_configuration_files
+    old_config = ENV['KUBECONFIG']
+    config_file = File.join(__dir__, '../fixtures/kube-config/unknown_config.yml')
+    ENV['KUBECONFIG'] = config_file
+    result = deploy_fixtures('hello-cloud')
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Result: FAILURE',
+      'Configuration invalid',
+      "Kube config not found at #{config_file}",
+    ], in_order: true)
+    reset_logger
+
+    ENV['KUBECONFIG'] = " : "
+    result = deploy_fixtures('hello-cloud')
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Result: FAILURE',
+      'Configuration invalid',
+      "Kube config file name(s) not set in $KUBECONFIG",
+    ], in_order: true)
+    reset_logger
+
+    default_config = "#{Dir.home}/.kube/config"
+    extra_config = File.join(__dir__, '../fixtures/kube-config/dummy_config.yml')
+    ENV['KUBECONFIG'] = "#{default_config}:#{extra_config}"
+    result = deploy_fixtures('hello-cloud', subset: ["configmap-data.yml"])
+    assert_deploy_success(result)
+  ensure
+    ENV['KUBECONFIG'] = old_config
+  end
+
   def test_cr_merging
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml)))
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml)))
@@ -332,7 +364,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   # to recreate such a condition
   def test_apply_failure_with_sensitive_resources_hides_template_content
     logger.level = 0
-    KubernetesDeploy::Deployment.any_instance.expects(:kubectl_output_is_sensitive?).returns(true).at_least_once
+    KubernetesDeploy::Deployment.any_instance.expects(:sensitive_template_content?).returns(true).at_least_once
     result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
       bad_port_name = "http_test_is_really_long_and_invalid_chars"
       svc = fixtures["web.yml.erb"]["Service"].first

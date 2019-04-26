@@ -1,5 +1,11 @@
 ## next
 
+## 0.26.3
+
+*Bug fixes*
+- Fixes a bug introduced in 0.26.0 where listing multiple files in the $KUBECONFIG environment variable would throw an error ([#468](https://github.com/Shopify/kubernetes-deploy/pull/468))
+- Fixes a bug introduced in 0.26.2 where kubernetes-render started adding YAML headers to empty render results ([#467](https://github.com/Shopify/kubernetes-deploy/pull/467))
+
 ## 0.26.2
 
 *Enhancements*
@@ -7,7 +13,7 @@
 through a yaml parser. ([#454](https://github.com/Shopify/kubernetes-deploy/pull/454))
 
 *Bug fixes*
-- Remove use of deprecated feature preventing use with Kuberentes 1.14 ([#460](https://github.com/Shopify/kubernetes-deploy/pull/460))
+- Remove use of deprecated feature preventing use with Kubernetes 1.14 ([#460](https://github.com/Shopify/kubernetes-deploy/pull/460))
 
 ## 0.26.1
 

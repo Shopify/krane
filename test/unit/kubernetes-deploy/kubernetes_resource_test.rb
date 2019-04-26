@@ -39,7 +39,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   end
 
   class DummySensitiveResource < DummyResource
-    KUBECTL_OUTPUT_IS_SENSITIVE = true
+    SENSITIVE_TEMPLATE_CONTENT = true
   end
 
   def test_unusual_timeout_output
@@ -399,7 +399,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
         count: 3,
         last_seen: start_time + 3.seconds,
         reason: "FailedSync",
-        message: <<~STRING
+        message: <<~STRING,
           Error syncing pod, skipping: failed to \"StartContainer\" for \"test\" with ErrImagePull:
            \"rpc error: code = 2 desc = unknown blob\"
         STRING
@@ -410,7 +410,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
         count: 5,
         last_seen: start_time + 5.seconds,
         reason: "FailedSync",
-        message: <<~STRING
+        message: <<~STRING,
           Error syncing pod, skipping: failed to \"StartContainer\" for \"test\" with CrashLoopBackOff: \"Back-
           off 1m20s restarting failed container=test pod=test-299526239-5vlj9_test(00cfb839-4k2p-11e7-a12d-73972af001c2)\"
         STRING
