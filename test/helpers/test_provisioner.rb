@@ -31,14 +31,6 @@ class TestProvisioner
       raise unless e.is_a?(Kubeclient::ResourceNotFoundError)
     end
 
-    private
-
-    def create_namespace(namespace)
-      ns = Kubeclient::Resource.new(kind: 'Namespace')
-      ns.metadata = { name: namespace }
-      kubeclient.create_namespace(ns)
-    end
-
     def prepare_pv(name)
       existing_pvs = kubeclient.get_persistent_volumes(label_selector: "name=#{name}")
       return if existing_pvs.present?
@@ -54,7 +46,18 @@ class TestProvisioner
         hostPath: { path: "/data/#{name}" },
         persistentVolumeReclaimPolicy: "Recycle",
       }
+
+      yield pv if block_given?
+
       kubeclient.create_persistent_volume(pv)
+    end
+
+    private
+
+    def create_namespace(namespace)
+      ns = Kubeclient::Resource.new(kind: 'Namespace')
+      ns.metadata = { name: namespace }
+      kubeclient.create_namespace(ns)
     end
   end
 end

@@ -349,14 +349,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     refute_logs_match("kind: Deployment") # content of the sensitive template
   end
 
-  def test_storage_class
-    assert_deploy_success(deploy_fixtures("pvc", subset: ["storage_class.yml"]))
-  end
-
-  def test_pvc
-    assert_deploy_success(deploy_fixtures("pvc"))
-  end
-
   private
 
   def wait_for_all_crd_deletion
