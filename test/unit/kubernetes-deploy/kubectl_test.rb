@@ -127,6 +127,9 @@ class KubectlTest < KubernetesDeploy::TestCase
     end
     assert_equal(5, metrics.length)
     assert_equal(["KubernetesDeploy.kubectl.error"], metrics.map(&:name).uniq)
+
+    expected_messages = (1..5).map { |n| "(attempt #{n}/5" }
+    assert_logs_match_all(expected_messages, in_order: true)
   end
 
   def test_custom_timeout_is_used
@@ -213,11 +216,13 @@ class KubectlTest < KubernetesDeploy::TestCase
     stub_open3(
       %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: "oops", success: false
+      resp: "oops", err: "oops", success: false
     )
     logger.level = 0
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: false, output_is_sensitive: true)
+    assert_logs_match("Kubectl err: <suppressed sensitive output>")
     refute_logs_match("Kubectl out")
+    refute_logs_match("oops")
   end
 
   def test_timeout_errors_are_retried_once_even_if_no_retries_requested
@@ -229,6 +234,7 @@ class KubectlTest < KubernetesDeploy::TestCase
     kubectl = build_kubectl
     kubectl.expects(:retry_delay).returns(0).once
     kubectl.run("get", "namespaces", use_namespace: false, attempts: 1)
+    assert_logs_match_all(["(attempt 1/2)", "(attempt 2/2)"], in_order: true)
   end
 
   def test_timeout_errors_do_not_add_additional_retries_if_some_already_permitted
@@ -240,6 +246,7 @@ class KubectlTest < KubernetesDeploy::TestCase
     kubectl = build_kubectl
     kubectl.expects(:retry_delay).returns(0).once
     kubectl.run("get", "namespaces", use_namespace: false, attempts: 2)
+    assert_logs_match_all(["(attempt 1/2)", "(attempt 2/2)"], in_order: true)
   end
 
   def test_retry_delay_backoff

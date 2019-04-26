@@ -38,16 +38,17 @@ module KubernetesDeploy
         break if st.success?
         raise(ResourceNotFoundError, err) if err.match(NOT_FOUND_ERROR_TEXT) && raise_if_not_found
 
+        attempts += 1 if err.match(CLIENT_TIMEOUT_ERROR_MATCHER) && retry_timeout?(current_attempt, attempts)
+
         if log_failure
           escaped_cmd = Shellwords.join(cmd)
           @logger.warn("The following command failed (attempt #{current_attempt}/#{attempts}): #{escaped_cmd}")
           @logger.warn(err) unless output_is_sensitive
         else
-          @logger.debug("Kubectl err: #{err}") unless output_is_sensitive
+          @logger.debug("Kubectl err: #{output_is_sensitive ? '<suppressed sensitive output>' : err}")
         end
         StatsD.increment('kubectl.error', 1, tags: { context: @context, namespace: @namespace, cmd: cmd[1] })
 
-        attempts += 1 if err.match(CLIENT_TIMEOUT_ERROR_MATCHER) && retry_timeout?(current_attempt, attempts)
         sleep(retry_delay(current_attempt)) unless current_attempt == attempts
         current_attempt += 1
       end
