@@ -10,10 +10,12 @@ module KubernetesDeploy
         # if no storage class is defined we try to find the default one
         # FIXME: This assumes the DefaultStorageClass admission plugin is turned on,
         # need a way to determine this
-        is_default_class = "storageclass.beta.kubernetes.io/is-default-class"
+        is_default_class_beta = "storageclass.beta.kubernetes.io/is-default-class"
+        is_default_class = "storageclass.kubernetes.io/is-default-class"
 
         default_sc = cache.get_all("StorageClass").select do |sc|
-          sc.dig("metadata", "annotations", is_default_class) == "true"
+          sc.dig("metadata", "annotations", is_default_class_beta) == "true" ||
+            sc.dig("metadata", "annotations", is_default_class) == "true"
         end
 
         if default_sc.length != 1
