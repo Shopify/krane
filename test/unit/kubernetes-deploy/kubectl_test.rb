@@ -244,7 +244,7 @@ class KubectlTest < KubernetesDeploy::TestCase
       success: false, err: not_found_err
     ).times(3)
     kubectl.run("get", "pod", "foo", attempts: 3,
-      retry_whitelist: [KubernetesDeploy::Kubectl::ERROR_MATCHERS[:not_found]])
+      retry_whitelist: [:not_found])
     assert_logs_match_all([
       "The following command failed and will be retried (attempt 1/3)",
       "The following command failed and will be retried (attempt 2/3)",
@@ -284,7 +284,7 @@ class KubectlTest < KubernetesDeploy::TestCase
       success: false, err: timeout_error
     ).times(4)
     kubectl.run("get", "namespaces", use_namespace: false, attempts: 4,
-      retry_whitelist: [KubernetesDeploy::Kubectl::ERROR_MATCHERS[:client_timeout]])
+      retry_whitelist: [:client_timeout])
     assert_logs_match_all([
       "The following command failed and will be retried (attempt 1/4)",
       "The following command failed and will be retried (attempt 2/4)",
@@ -299,6 +299,29 @@ class KubectlTest < KubernetesDeploy::TestCase
     ).times(1)
     kubectl.run("get", "namespaces", use_namespace: false, attempts: 4, retry_whitelist: [])
     assert_logs_match("The following command failed and cannot be retried")
+  end
+
+  def test_not_implemented_error_raised_if_retry_whitelist_needed_and_invalid
+    kubectl = build_kubectl
+    stub_open3(
+      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: "some error"
+    ).times(1)
+    assert_raises_message(NotImplementedError, "No matcher defined for :an_unhandled_error_type") do
+      kubectl.run("get", "namespaces", use_namespace: false, attempts: 4,
+        retry_whitelist: [:an_unhandled_error_type])
+    end
+  end
+
+  def test_no_error_raised_if_retry_whitelist_invalid_but_not_needed
+    kubectl = build_kubectl
+    stub_open3(
+      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+      success: true, err: ""
+    ).times(1)
+    _out, _err, st = kubectl.run("get", "namespaces", use_namespace: false, attempts: 4,
+      retry_whitelist: [:an_unhandled_error_type])
+    assert(st.success?)
   end
 
   def test_retry_ux_when_retriable_error_followed_by_non_retriable_error

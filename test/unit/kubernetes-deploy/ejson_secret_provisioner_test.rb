@@ -114,7 +114,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       kwargs: {
         log_failure: false,
         output_is_sensitive: true,
-        retry_whitelist: [KubernetesDeploy::Kubectl::ERROR_MATCHERS[:client_timeout]],
+        retry_whitelist: [:client_timeout],
         attempts: 3,
       })
   end

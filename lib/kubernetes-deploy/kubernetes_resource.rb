@@ -426,7 +426,7 @@ module KubernetesDeploy
     def validate_spec_with_kubectl(kubectl)
       command = ["create", "-f", file_path, "--dry-run", "--output=name"]
       _, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
-        retry_whitelist: [Kubectl::ERROR_MATCHERS[:client_timeout]], attempts: 3)
+        retry_whitelist: [:client_timeout], attempts: 3)
 
       return true if st.success?
       @validation_errors << if sensitive_template_content?

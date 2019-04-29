@@ -95,8 +95,11 @@ module KubernetesDeploy
     end
 
     def retriable_err?(err, retry_whitelist)
-      return retry_whitelist.any? { |retriable| err.match(retriable) } if retry_whitelist
-      !err.match(ERROR_MATCHERS[:not_found])
+      return !err.match(ERROR_MATCHERS[:not_found]) if retry_whitelist.nil?
+      retry_whitelist.any? do |retriable|
+        raise NotImplementedError, "No matcher defined for #{retriable.inspect}" unless ERROR_MATCHERS.key?(retriable)
+        err.match(ERROR_MATCHERS[retriable])
+      end
     end
 
     def extract_version_info_from_kubectl_response(response)
