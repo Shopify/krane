@@ -355,33 +355,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
-  def test_bad_container_image_on_unmanaged_pod_halts_and_fails_deploy
-    result = deploy_fixtures(
-      "hello-cloud",
-      subset: [
-        "unmanaged-pod-1.yml.erb",
-        "configmap-data.yml",
-        "redis.yml",
-        "web.yml.erb",
-      ]
-    ) do |fixtures|
-      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
-      pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
-    end
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      "Failed to deploy 1 priority resource",
-      %r{Pod\/unmanaged-pod-1-\w+-\w+: FAILED},
-      "hello-cloud: Failed to pull image",
-    ], in_order: true)
-
-    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-    hello_cloud.assert_unmanaged_pod_statuses("Pending", 1)
-    hello_cloud.assert_configmap_data_present # priority resource
-    hello_cloud.refute_redis_resources_exist(expect_pvc: true) # pvc is priority resource
-    hello_cloud.refute_web_resources_exist
-  end
-
   def test_output_of_failed_unmanaged_pod
     result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb", "configmap-data.yml"]) do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
@@ -419,22 +392,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
 
     assert_logs_match("The following containers are in a state that is unlikely to be recoverable", 1) # no duplicates
-  end
-
-  def test_bad_container_image_on_deployment_pod_fails_quickly
-    result = deploy_fixtures("invalid", subset: ["cannot_run.yml"]) do |fixtures|
-      container = fixtures["cannot_run.yml"]["Deployment"].first["spec"]["template"]["spec"]["containers"].first
-      container["image"] = "some-invalid-image:badtag"
-    end
-    assert_deploy_failure(result)
-
-    assert_logs_match_all([
-      "Failed to deploy 1 resource",
-      "Deployment/cannot-run: FAILED",
-      "The following containers are in a state that is unlikely to be recoverable:",
-      "container-cannot-run: Failed to pull image some-invalid-image:badtag.",
-      "Did you wait for it to be built and pushed to the registry before deploying?",
-    ], in_order: true)
   end
 
   def test_bad_init_container_on_deployment_fails_quickly
@@ -707,10 +664,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     @namespace = original_ns
   end
 
-  def test_failure_logs_from_unmanaged_pod_appear_in_summary_section
+  def test_unmanaged_pod_failure_halts_deploy_and_displays_logs_correctly
     result = deploy_fixtures(
       "hello-cloud",
-      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb"]
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb", "web.yml.erb"]
     ) do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       container = pod["spec"]["containers"].first
@@ -719,11 +676,21 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
 
     assert_logs_match_all([
+      "Logs from Pod/unmanaged-pod-2",
+      "Hello from the second command runner!", # logs from successful pod printed before summary
+      "Result: FAILURE",
       "Failed to deploy 1 priority resource",
-      "Logs from container 'hello-cloud':",
-      "sh: /some/bad/path: not found", # from logs
+      %r{Pod\/unmanaged-pod-1-\w+-\w+: FAILED},
+      "Logs from container 'hello-cloud'",
+      "sh: /some/bad/path: not found", # logs from failed pod printed in summary
     ], in_order: true)
-    refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary
+    refute_logs_match(%r{some/bad/path.*Result\: FAILURE}m) # failed pod logs not also displayed before summary
+
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_unmanaged_pod_statuses("Failed", 1)
+    hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
+    hello_cloud.assert_configmap_data_present # priority resource
+    hello_cloud.refute_web_resources_exist
   end
 
   # ref https://github.com/kubernetes/kubernetes/issues/26202

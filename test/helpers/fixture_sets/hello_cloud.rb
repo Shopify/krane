@@ -26,8 +26,7 @@ module FixtureSetAssertions
 
     def assert_unmanaged_pod_statuses(status, count = 2)
       pods = kubeclient.get_pods(namespace: namespace, label_selector: "type=unmanaged-pod,app=#{app_name}")
-      assert_equal(count, pods.size, "Expected to find #{count} unmanaged pod(s), found #{pods.size}")
-      assert(pods.all? { |pod| pod.status.phase == status })
+      assert_equal(count, pods.count { |pod| pod.status.phase == status })
     end
 
     def refute_unmanaged_pod_exists
