@@ -552,7 +552,7 @@ module KubernetesDeploy
     end
 
     def confirm_namespace_exists
-      raise FatalDeploymentError, "Failed to find namespace. #{err}" unless namespace_definition.present?
+      raise FatalDeploymentError, "Namespace #{@namespace} not found" unless namespace_definition.present?
       @logger.info("Namespace #{@namespace} found")
     end
 
