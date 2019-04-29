@@ -1,5 +1,16 @@
 ## next
 
+## 0.26.4
+
+*Bug fixes*
+- Adds several additional safeguards against the content of Secret resources being logged. [#474](https://github.com/Shopify/kubernetes-deploy/pull/474)
+
+*Enhancements*
+- Improves scalability by removing a check that caused recoverable registry problems to fail deploys. [#477](https://github.com/Shopify/kubernetes-deploy/pull/477)
+
+*Other*
+- Relaxes our dependency on the OJ gem. [#471](https://github.com/Shopify/kubernetes-deploy/pull/471)
+
 ## 0.26.3
 
 *Bug fixes*
