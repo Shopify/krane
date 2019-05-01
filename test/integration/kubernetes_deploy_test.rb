@@ -1295,6 +1295,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   ensure
     kubeclient.delete_persistent_volume("local0001")
+    storage_v1_kubeclient.delete_storage_class("k8s-deploy-test")
   end
 
   private

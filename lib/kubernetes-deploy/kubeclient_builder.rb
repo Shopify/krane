@@ -96,6 +96,14 @@ module KubernetesDeploy
       )
     end
 
+    def build_storage_v1_kubeclient(context)
+      build_kubeclient(
+        api_version: "v1",
+        context: context,
+        endpoint_path: "/apis/storage.k8s.io"
+      )
+    end
+
     def validate_config_files
       errors = []
       if @kubeconfig_files.empty?
