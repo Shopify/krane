@@ -1293,6 +1293,15 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     TestProvisioner.prepare_pv("local0001", storage_class_name: "k8s-deploy-test")
     assert_deploy_success(deploy_fixtures("pvc"))
 
+    assert_logs_match_all([
+      "Successfully deployed 4 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Bound},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+      %r{Pod/pvc\s+Succeeded},
+      %r{StorageClass/k8s-deploy-test\s+Exists},
+    ], in_order: true)
+
   ensure
     kubeclient.delete_persistent_volume("local0001")
     storage_v1_kubeclient.delete_storage_class("k8s-deploy-test")
