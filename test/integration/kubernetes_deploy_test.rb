@@ -659,7 +659,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     original_ns = @namespace
     @namespace = 'this-certainly-should-not-exist'
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml']))
-    assert_logs_match(/Result: FAILURE.*namespaces "this-certainly-should-not-exist" not found/m)
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Namespace this-certainly-should-not-exist not found",
+    ], in_order: true)
   ensure
     @namespace = original_ns
   end

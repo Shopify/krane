@@ -4,9 +4,7 @@ require 'test_helper'
 class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def test_resources_based_on_ejson_file_existence
     stub_ejson_keys_get_request
-    stub_kubectl_response("create", "-f", anything, "--dry-run", "--output=name",
-      kwargs: { log_failure: false, output_is_sensitive: true }, resp: dummy_secret_hash, json: false).times(3)
-
+    stub_dry_run_validation_request.times(3) # there are three secrets in the ejson
     assert_empty(build_provisioner(fixture_path('hello-cloud')).resources)
     refute_empty(build_provisioner(fixture_path('ejson-cloud')).resources)
   end
@@ -21,9 +19,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def test_resource_is_built_correctly
     stub_ejson_keys_get_request
-    stub_kubectl_response("create", "-f", anything, "--dry-run", "--output=name",
-      kwargs: { log_failure: false, output_is_sensitive: true }, resp: dummy_secret_hash, json: false).times(3)
-
+    stub_dry_run_validation_request.times(3) # there are three secrets in the ejson
     resources = build_provisioner(fixture_path('ejson-cloud')).resources
     refute_empty(resources)
 
@@ -96,7 +92,8 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def test_proactively_validates_resulting_resources_and_raises_without_logging
     stub_ejson_keys_get_request
-    KubernetesDeploy::Secret.any_instance.expects(:validate_definition).returns(false)
+    stub_dry_run_validation_request
+    KubernetesDeploy::Secret.any_instance.expects(:validation_failed?).returns(true)
     msg = "Generation of Kubernetes secrets from ejson failed: Resulting resource Secret/catphotoscom failed validation"
     assert_raises_message(KubernetesDeploy::EjsonSecretError, msg) do
       build_provisioner(fixture_path('ejson-cloud')).resources
@@ -110,6 +107,16 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     stub_kubectl_response("get", "secret", "ejson-keys",
       kwargs: { raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true },
       resp: dummy_ejson_secret)
+  end
+
+  def stub_dry_run_validation_request
+    stub_kubectl_response("create", "-f", anything, "--dry-run", "--output=name", resp: dummy_secret_hash, json: false,
+      kwargs: {
+        log_failure: false,
+        output_is_sensitive: true,
+        retry_whitelist: [:client_timeout],
+        attempts: 3,
+      })
   end
 
   def correct_ejson_key_secret_data
