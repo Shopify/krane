@@ -1290,24 +1290,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_pvc
     assert_deploy_success(deploy_fixtures("pvc", subset: ["storage_class.yml"]))
 
-    TestProvisioner.prepare_pv("local0001") do |pv|
-      pv.spec.delete_field("hostPath")
-      pv.spec[:storageClassName] = "k8s-deploy-test"
-      pv.spec[:local] = { path: "/data/local0001" }
-      pv.spec[:nodeAffinity] = {
-        required: {
-          nodeSelectorTerms: [
-            {
-              matchExpressions: [
-                { key: "fakeKey", operator: "DoesNotExist" },
-              ],
-            },
-          ],
-        },
-      }
-      pv.spec[:persistentVolumeReclaimPolicy] = "Retain"
-    end
-
+    TestProvisioner.prepare_pv("local0001", storage_class_name: "k8s-deploy-test")
     assert_deploy_success(deploy_fixtures("pvc"))
 
   ensure

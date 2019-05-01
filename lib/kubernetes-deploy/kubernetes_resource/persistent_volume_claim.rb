@@ -3,54 +3,9 @@ module KubernetesDeploy
   class PersistentVolumeClaim < KubernetesResource
     TIMEOUT = 5.minutes
 
-    def storage_class(cache)
-      storage_class = {}
-
-      if @definition.dig("spec", "storageClassName").nil?
-        # if no storage class is defined we try to find the default one
-        # FIXME: This assumes the DefaultStorageClass admission plugin is turned on,
-        # need a way to determine this
-        is_default_class_beta = "storageclass.beta.kubernetes.io/is-default-class"
-        is_default_class = "storageclass.kubernetes.io/is-default-class"
-
-        default_sc = cache.get_all("StorageClass").select do |sc|
-          sc.dig("metadata", "annotations", is_default_class_beta) == "true" ||
-            sc.dig("metadata", "annotations", is_default_class) == "true"
-        end
-
-        if default_sc.length != 1
-          warn_msg = "Multiple default StorageClasses found. If the DefaultStorageClass " \
-            "admission plugin is turned on, all PVC creation will fail."
-          @logger.warn(warn_msg) if default_sc.length > 1
-          return storage_class
-        else
-          # using default storage class
-          return default_sc[0]
-        end
-      else
-        # using storage class from pvc definition
-        sc_name = @definition.dig("spec", "storageClassName")
-
-        # a storageClassName of "" is an explicit way of saying you want a PV
-        # with no defined StorageClass. We won't look up a storage_class
-        # if that is the case
-        return storage_class if sc_name == ""
-      end
-
-      storage_class = cache.get_instance("StorageClass", sc_name)
-
-      # check the defined StorageClass exists
-      warn_msg = "StorageClass/#{sc_name} not found. This is required for #{id} to deploy."
-      @logger.warn(warn_msg) if storage_class.blank?
-
-      storage_class
-    end
-
     def sync(cache)
       super
-
-      # find the storage class (if we haven't already)
-      @storage_class ||= storage_class(cache)
+      @storage_classes = cache.get_all("StorageClass").map { |sc| StorageClass.new(sc) }
     end
 
     def status
@@ -58,19 +13,65 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
+      return false if deploy_failed?
+      return true if status == "Bound"
+
       # if the StorageClass has volumeBindingMode: WaitForFirstConsumer,
       # it won't bind until after a Pod mounts it. But it must be pre-deployed,
       # as the Pod requires it. So 'Pending' must be treated as a 'Success' state
-
-      if @storage_class["volumeBindingMode"] == "WaitForFirstConsumer"
+      if storage_class&.volume_binding_mode == "WaitForFirstConsumer"
         status == "Pending" || status == "Bound"
-      else
-        status == "Bound"
       end
     end
 
     def deploy_failed?
-      status == "Lost"
+      status == "Lost" || failure_message.present?
+    end
+
+    def failure_message
+      if @storage_classes.count(&:default?) > 1
+        "Multiple default StorageClasses found."
+      end
+    end
+
+    def timeout_message
+      return STANDARD_TIMEOUT_MESSAGE unless storage_class_name.present? && !storage_class
+      "StorageClass #{storage_class_name} not found"
+    end
+
+    private
+
+    def storage_class_name
+      @definition.dig("spec", "storageClassName")
+    end
+
+    def storage_class
+      if storage_class_name.present?
+        @storage_classes.detect { |sc| sc.name == storage_class_name }
+      else
+        @storage_classes.detect(&:default?)
+      end
+    end
+
+    class StorageClass < KubernetesResource
+      DEFAULT_CLASS_ANNOTATION = "storageclass.kubernetes.io/is-default-class"
+      DEFAULT_CLASS_BETA_ANNOTATION = "storageclass.beta.kubernetes.io/is-default-class"
+
+      attr_reader :name
+
+      def initialize(definition)
+        @definition = definition
+        @name = definition.dig("metadata", "name").to_s
+      end
+
+      def volume_binding_mode
+        @definition.dig("volumeBindingMode")
+      end
+
+      def default?
+        @definition.dig("metadata", "annotations", DEFAULT_CLASS_ANNOTATION) == "true" ||
+        @definition.dig("metadata", "annotations", DEFAULT_CLASS_BETA_ANNOTATION) == "true"
+      end
     end
   end
 end
