@@ -34,15 +34,6 @@ metadata:
 spec:
   activeDeadlineSeconds: 20
   restartPolicy: Never
-  initContainers:
-  - name: init
-    image: busybox
-    imagePullPolicy: IfNotPresent
-    securityContext:
-      privileged: true
-    volumeMounts:
-    - mountPath: /data/local0001
-      name: mnt
   containers:
   - name: hello-cloud
     image: busybox
@@ -60,7 +51,3 @@ spec:
   - name: home
     persistentVolumeClaim:
       claimName: without-storage-class
-  - name: mnt
-    hostPath:
-      path: /data/local0001
-      type: DirectoryOrCreate
