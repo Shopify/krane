@@ -1388,7 +1388,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
       "Pod/pvc: TIMED OUT (timeout: 20s)",
-      %r{\[Pod/pvc\]\s+FailedScheduling: 0/1 nodes are available: 1 node\(s\) didn't find available persistent volumes to bind. \(\d+ events\)},
+      %r{\[Pod/pvc\]\s+FailedScheduling:\ 0/1\ nodes\ are\ available:
+        \ 1\ node\(s\)\ didn't\ find\ available\ persistent\ volumes\ to\ bind.\ \(\d+\ events\)}x,
     ], in_order: true)
 
   ensure
@@ -1408,7 +1409,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Failed to deploy 1 priority resource",
       "PersistentVolumeClaim/with-storage-class: TIMED OUT (timeout: 20s)",
       "StorageClass #{scname} not found",
-      %r{\[PersistentVolumeClaim/with-storage-class\]\s+ProvisioningFailed: storageclass.storage.k8s.io "#{scname}" not found \(\d+ events\)},
+      %r{\[PersistentVolumeClaim/with-storage-class\]\s+ProvisioningFailed:
+        \ storageclass.storage.k8s.io\ "#{scname}"\ not\ found\ \(\d+\ events\)}x,
     ], in_order: true)
   end
 
