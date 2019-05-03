@@ -29,14 +29,15 @@ module KubernetesDeploy
     end
 
     def failure_message
-      if @storage_classes.count(&:default?) > 1
-        "Multiple default StorageClasses found."
+      if storage_class_name.nil? && @storage_classes.count(&:default?) > 1
+        "PVC has no StorageClass specified and there are multiple StorageClasses" \
+        "with annoated as default. This is an invalid cluster configuration."
       end
     end
 
     def timeout_message
       return STANDARD_TIMEOUT_MESSAGE unless storage_class_name.present? && !storage_class
-      "StorageClass #{storage_class_name} not found"
+      "PVC specified a StorageClass of #{storage_class_name} but the resource does not exist"
     end
 
     private
@@ -48,7 +49,7 @@ module KubernetesDeploy
     def storage_class
       if storage_class_name.present?
         @storage_classes.detect { |sc| sc.name == storage_class_name }
-      else
+      elsif storage_class_name != ""
         @storage_classes.detect(&:default?)
       end
     end
