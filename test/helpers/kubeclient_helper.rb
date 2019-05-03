@@ -48,6 +48,10 @@ module KubeclientHelper
     @networking_v1_kubeclient ||= kubeclient_builder.build_networking_v1_kubeclient(TEST_CONTEXT)
   end
 
+  def storage_v1_kubeclient
+    @storage_v1_kubeclient ||= kubeclient_builder.build_storage_v1_kubeclient(TEST_CONTEXT)
+  end
+
   def kubeclient_builder
     @kubeclient_builder ||= KubernetesDeploy::KubeclientBuilder.new
   end

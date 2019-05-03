@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  annotations:
+    kubernetes-deploy.shopify.io/timeout-override: 20s
   name: with-storage-class
 spec:
   accessModes:
@@ -22,45 +24,3 @@ spec:
     requests:
       storage: 150Mi
   volumeMode: Filesystem
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: pvc
-  labels:
-    type: unmanaged-pod
-    name: pvc
-    app: hello-cloud
-spec:
-  activeDeadlineSeconds: 20
-  restartPolicy: Never
-  initContainers:
-  - name: init
-    image: busybox
-    imagePullPolicy: IfNotPresent
-    securityContext:
-      privileged: true
-    volumeMounts:
-    - mountPath: /data/local0001
-      name: mnt
-  containers:
-  - name: hello-cloud
-    image: busybox
-    imagePullPolicy: IfNotPresent
-    command: ["sh", "-c", "echo 'Hello from the command runner!' && test 1 -eq 1"]
-    volumeMounts:
-    - mountPath: /tmp
-      name: tmp
-    - mountPath: /home
-      name: home
-  volumes:
-  - name: tmp
-    persistentVolumeClaim:
-      claimName: with-storage-class
-  - name: home
-    persistentVolumeClaim:
-      claimName: without-storage-class
-  - name: mnt
-    hostPath:
-      path: /data/local0001
-      type: DirectoryOrCreate
