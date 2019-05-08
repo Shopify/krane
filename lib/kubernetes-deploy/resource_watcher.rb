@@ -44,6 +44,9 @@ module KubernetesDeploy
         end
       end
       record_statuses_for_summary(@resources) if record_summary
+
+      _successful_resources, failed_resources = @resources.partition(&:deploy_succeeded?)
+      failed_resources.length
     end
 
     private

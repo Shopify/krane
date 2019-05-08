@@ -21,10 +21,11 @@ module KubernetesDeploy
       resources = resources_from_templates
       # should add secrets from ejson or log that they are being skipped
 
-      @logger.phase_heading("Simulating watch")
-      watch_resources(resources)
-
-      @logger.print_summary("Fake watch")
+      @logger.phase_heading("Watch")
+      failed_resources = watch_resources(resources)
+      @logger.print_summary(:failure) if failed_resources > 0
+      @logger.print_summary(:success) if failed_resources == 0
+      raise FatalDeploymentError unless failed_resources == 0
     end
 
     private
@@ -42,7 +43,7 @@ module KubernetesDeploy
     def resources_from_templates
       renderer = Renderer.new(current_sha: @sha, template_dir: @template_dir, logger: @logger, bindings: @bindings)
       discovery = TemplateDiscovery.new(namespace: @namespace, context: @context, logger: @logger)
-      resources = discovery.resources(@template_dir, renderer, cluster_resource_discoverer.crds)
+      resources = discovery.resources(@template_dir, renderer, cluster_resource_discoverer.crds.group_by(&:kind))
       resources.reject! do |r|
         if r.type == "Pod"
           basename = r.name.split("-")[0..-3].join("-")

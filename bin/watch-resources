@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require 'optparse'
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+$LOAD_PATH.unshift(File.expand_path('../../lib', __FILE__))
 require 'kubernetes-deploy'
 require 'kubernetes-deploy/watch_only_task'
 
@@ -27,11 +27,21 @@ namespace = ARGV[0]
 context = ARGV[1]
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
 
-KubernetesDeploy::WatchOnlyTask.new(
-  namespace: namespace,
-  context: context,
-  template_dir: template_dir,
-  bindings: bindings,
-  logger: logger,
-  sha: ENV["REVISION"]
-).run
+begin
+  failed_resources = 0
+  KubernetesDeploy::OptionsHelper.with_validated_template_dir(template_dir) do |dir|
+    failed_resources = KubernetesDeploy::WatchOnlyTask.new(
+      namespace: namespace,
+      context: context,
+      template_dir: dir,
+      bindings: bindings,
+      logger: logger,
+      sha: ENV["REVISION"]
+    ).run
+  end
+rescue KubernetesDeploy::FatalDeploymentError
+  exit(1)
+end
+
+exit(1) if failed_resources > 0
+exit(0)
