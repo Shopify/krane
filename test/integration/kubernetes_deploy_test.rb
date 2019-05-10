@@ -1290,11 +1290,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   # Note: These tests assume a default storage class with a dynamic provisioner and 'Immediate' bind
   def test_pvc
     pvname = "local0001"
-    scname = "k8s-deploy-test"
+    storage_class_name = "k8s-deploy-test"
 
-    assert_deploy_success(deploy_fixtures("pvc", subset: ["storage_class.yml"]))
+    assert_deploy_success(deploy_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]))
 
-    TestProvisioner.prepare_pv(pvname, storage_class_name: scname)
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
     assert_deploy_success(deploy_fixtures("pvc"))
 
     assert_logs_match_all([
@@ -1308,23 +1308,23 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   ensure
     kubeclient.delete_persistent_volume(pvname)
-    storage_v1_kubeclient.delete_storage_class(scname)
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
   end
 
   def test_pvc_no_bind
     pvname = "local0002"
-    scname = "k8s-deploy-test-no-bind"
+    storage_class_name = "k8s-deploy-test-no-bind"
 
-    result = deploy_fixtures("pvc", subset: ["storage_class.yml"]) do |fixtures|
-      sc = fixtures["storage_class.yml"]["StorageClass"].first
-      sc["metadata"]["name"] = scname
+    result = deploy_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
     end
     assert_deploy_success(result)
 
-    TestProvisioner.prepare_pv(pvname, storage_class_name: scname)
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
     result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
       pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
-      pvc["spec"]["storageClassName"] = scname
+      pvc["spec"]["storageClassName"] = storage_class_name
     end
     assert_deploy_success(result)
 
@@ -1337,24 +1337,24 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   ensure
     kubeclient.delete_persistent_volume(pvname)
-    storage_v1_kubeclient.delete_storage_class(scname)
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
   end
 
   def test_pvc_immediate_bind
     pvname = "local0003"
-    scname = "k8s-deploy-test-immediate-bind"
+    storage_class_name = "k8s-deploy-test-immediate-bind"
 
-    result = deploy_fixtures("pvc", subset: ["storage_class.yml"]) do |fixtures|
-      sc = fixtures["storage_class.yml"]["StorageClass"].first
-      sc["metadata"]["name"] = scname
+    result = deploy_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
       sc["volumeBindingMode"] = "Immediate"
     end
     assert_deploy_success(result)
 
-    TestProvisioner.prepare_pv(pvname, storage_class_name: scname)
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
     result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
       pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
-      pvc["spec"]["storageClassName"] = scname
+      pvc["spec"]["storageClassName"] = storage_class_name
     end
     assert_deploy_success(result)
 
@@ -1367,21 +1367,21 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   ensure
     kubeclient.delete_persistent_volume(pvname)
-    storage_v1_kubeclient.delete_storage_class(scname)
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
   end
 
   def test_pvc_no_pv
-    scname = "k8s-deploy-test-no-pv"
+    storage_class_name = "k8s-deploy-test-no-pv"
 
-    result = deploy_fixtures("pvc", subset: ["storage_class.yml"]) do |fixtures|
-      sc = fixtures["storage_class.yml"]["StorageClass"].first
-      sc["metadata"]["name"] = scname
+    result = deploy_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
     end
     assert_deploy_success(result)
 
     result = deploy_fixtures("pvc", subset: ["pvc.yml", "pod.yml"]) do |fixtures|
       pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
-      pvc["spec"]["storageClassName"] = scname
+      pvc["spec"]["storageClassName"] = storage_class_name
     end
     assert_deploy_failure(result)
 
@@ -1391,22 +1391,22 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
 
   ensure
-    storage_v1_kubeclient.delete_storage_class(scname)
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
   end
 
   def test_pvc_no_pv_or_sc
-    scname = "k8s-deploy-test-no-pv-or-sc"
+    storage_class_name = "k8s-deploy-test-no-pv-or-sc"
 
     result = deploy_fixtures("pvc", subset: ["pvc.yml", "pod.yml"]) do |fixtures|
       pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
-      pvc["spec"]["storageClassName"] = scname
+      pvc["spec"]["storageClassName"] = storage_class_name
     end
     assert_deploy_failure(result)
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
       "PersistentVolumeClaim/with-storage-class: TIMED OUT (timeout: 20s)",
-      "PVC specified a StorageClass of #{scname} but the resource does not exist",
+      "PVC specified a StorageClass of #{storage_class_name} but the resource does not exist",
     ], in_order: true)
   end
 

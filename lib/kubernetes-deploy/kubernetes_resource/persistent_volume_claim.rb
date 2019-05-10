@@ -13,15 +13,15 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
-      return false if deploy_failed?
       return true if status == "Bound"
 
       # if the StorageClass has volumeBindingMode: WaitForFirstConsumer,
       # it won't bind until after a Pod mounts it. But it must be pre-deployed,
       # as the Pod requires it. So 'Pending' must be treated as a 'Success' state
       if storage_class&.volume_binding_mode == "WaitForFirstConsumer"
-        status == "Pending" || status == "Bound"
+        return status == "Pending" || status == "Bound"
       end
+      false
     end
 
     def deploy_failed?
@@ -30,8 +30,8 @@ module KubernetesDeploy
 
     def failure_message
       if storage_class_name.nil? && @storage_classes.count(&:default?) > 1
-        "PVC has no StorageClass specified and there are multiple StorageClasses" \
-        "with annoated as default. This is an invalid cluster configuration."
+        "PVC has no StorageClass specified and there are multiple StorageClasses " \
+        "annotated as default. This is an invalid cluster configuration."
       end
     end
 
