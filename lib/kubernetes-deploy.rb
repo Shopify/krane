@@ -24,6 +24,6 @@ require 'kubernetes-deploy/resource_cache'
 require 'kubernetes-deploy/label_selector'
 
 module KubernetesDeploy
-  MIN_KUBE_VERSION = '1.10.0'
+  MIN_KUBE_VERSION = '1.11.0'
   StatsD.build
 end
