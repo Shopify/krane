@@ -49,6 +49,8 @@ module KubernetesDeploy
     def storage_class
       if storage_class_name.present?
         @storage_classes.detect { |sc| sc.name == storage_class_name }
+      # storage_class_name = "" is an explicit request for no storage class
+      # storage_class_name = nil is an impplicit request for default storage class
       elsif storage_class_name != ""
         @storage_classes.detect(&:default?)
       end
