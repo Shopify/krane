@@ -1,5 +1,8 @@
 ## next
 
+*Enhancements*
+- Officially support Kubernetes 1.14 [#461](https://github.com/Shopify/kubernetes-deploy/pull/461)
+
 ## 0.26.4
 
 *Bug fixes*
