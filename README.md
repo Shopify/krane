@@ -72,7 +72,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * Each app must have a deploy directory containing its Kubernetes templates (see [Templates](#using-templates-and-variables))
 
 <sup>1</sup> We run integration tests against these Kubernetes versions. You can find our
-offical compatibility chart below.
+official compatibility chart below.
 
 | Kubernetes version | Last officially supported in gem version |
 | :----------------: | :-------------------: |
@@ -80,6 +80,7 @@ offical compatibility chart below.
 |        1.6         |        0.15.2         |
 |        1.7         |        0.20.6         |
 |        1.8         |        0.21.1         |
+|        1.9         |        0.24.0         |
 
 ## Installation
 
