@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 require 'kubeclient'
-require 'kubernetes-deploy/kubeclient_builder/kube_config'
 
 module KubernetesDeploy
   class KubeclientBuilder
@@ -126,7 +125,7 @@ module KubernetesDeploy
 
     def build_kubeclient(api_version:, context:, endpoint_path: nil)
       validate_config_files!
-      @kubeclient_configs ||= @kubeconfig_files.map { |f| KubeConfig.read(f) }
+      @kubeclient_configs ||= @kubeconfig_files.map { |f| Kubeclient::Config.read(f) }
       # Find a context defined in kube conf files that matches the input context by name
       config = @kubeclient_configs.find { |c| c.contexts.include?(context) }
       raise ContextMissingError.new(context, @kubeconfig_files) unless config
