@@ -53,7 +53,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
     assert_logs_match_all([
       %r{Successfully deployed in \d.\ds: ServiceAccount/build-robot},
-      %r{Successfully deployed in \d.\ds: Pod/unmanaged-pod-.*},
+      %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-.*},
     ], in_order: true)
   end
 
@@ -80,7 +80,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       %r{Successfully deployed in \d.\ds: Role/role},
       %r{Successfully deployed in \d.\ds: RoleBinding/role-binding},
-      %r{Successfully deployed in \d.\ds: Pod/unmanaged-pod-1-.*},
+      %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-1-.*},
     ], in_order: true)
   end
 
