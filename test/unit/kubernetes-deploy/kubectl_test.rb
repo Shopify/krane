@@ -127,6 +127,9 @@ class KubectlTest < KubernetesDeploy::TestCase
     end
     assert_equal(5, metrics.length)
     assert_equal(["KubernetesDeploy.kubectl.error"], metrics.map(&:name).uniq)
+
+    expected_messages = (1..5).map { |n| "(attempt #{n}/5" }
+    assert_logs_match_all(expected_messages, in_order: true)
   end
 
   def test_custom_timeout_is_used
@@ -213,11 +216,147 @@ class KubectlTest < KubernetesDeploy::TestCase
     stub_open3(
       %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
-      resp: "", err: "oops", success: false
+      resp: "oops", err: "oops", success: false
     )
     logger.level = 0
     build_kubectl(log_failure_by_default: false).run("get", "pods", log_failure: false, output_is_sensitive: true)
+    assert_logs_match("Kubectl err: <suppressed sensitive output>")
     refute_logs_match("Kubectl out")
+    refute_logs_match("oops")
+  end
+
+  def test_404s_are_not_retriable_by_default_but_can_be_enabled
+    kubectl = build_kubectl
+    kubectl.stubs(:retry_delay).returns(0)
+    not_found_err = "Error from server (NotFound): pods 'foo' not found"
+
+    stub_open3(
+      %W(kubectl get pod foo --namespace=testn --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: not_found_err
+    ).times(1)
+    kubectl.run("get", "pod", "foo", attempts: 3)
+    assert_logs_match("The following command failed and cannot be retried")
+
+    reset_logger
+
+    stub_open3(
+      %W(kubectl get pod foo --namespace=testn --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: not_found_err
+    ).times(3)
+    kubectl.run("get", "pod", "foo", attempts: 3,
+      retry_whitelist: [:not_found])
+    assert_logs_match_all([
+      "The following command failed and will be retried (attempt 1/3)",
+      "The following command failed and will be retried (attempt 2/3)",
+      "The following command failed (attempt 3/3)",
+    ], in_order: true)
+  end
+
+  def test_errors_other_than_404s_are_retriable_by_default
+    kubectl = build_kubectl
+    kubectl.stubs(:retry_delay).returns(0)
+
+    [
+      "context deadline exceeded (Client.Timeout exceeded while awaiting headers)",
+      'Error from server (TooManyRequests): Please try again later',
+      "some weird error",
+    ].each do |error_message|
+      stub_open3(
+        %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+        success: false, err: error_message
+      ).times(2)
+      kubectl.run("get", "namespaces", use_namespace: false, attempts: 2)
+      assert_logs_match_all([
+        "The following command failed and will be retried (attempt 1/2)",
+        "The following command failed (attempt 2/2)",
+      ], in_order: true)
+      reset_logger
+    end
+  end
+
+  def test_retry_whitelist_constraints_attempts
+    kubectl = build_kubectl
+    kubectl.stubs(:retry_delay).returns(0)
+    timeout_error = "context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+
+    stub_open3(
+      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: timeout_error
+    ).times(4)
+    kubectl.run("get", "namespaces", use_namespace: false, attempts: 4,
+      retry_whitelist: [:client_timeout])
+    assert_logs_match_all([
+      "The following command failed and will be retried (attempt 1/4)",
+      "The following command failed and will be retried (attempt 2/4)",
+      "The following command failed and will be retried (attempt 3/4)",
+      "The following command failed (attempt 4/4)",
+    ], in_order: true)
+    reset_logger
+
+    stub_open3(
+      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: timeout_error
+    ).times(1)
+    kubectl.run("get", "namespaces", use_namespace: false, attempts: 4, retry_whitelist: [])
+    assert_logs_match("The following command failed and cannot be retried")
+  end
+
+  def test_not_implemented_error_raised_if_retry_whitelist_needed_and_invalid
+    kubectl = build_kubectl
+    stub_open3(
+      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+      success: false, err: "some error"
+    ).times(1)
+    assert_raises_message(NotImplementedError, "No matcher defined for :an_unhandled_error_type") do
+      kubectl.run("get", "namespaces", use_namespace: false, attempts: 4,
+        retry_whitelist: [:an_unhandled_error_type])
+    end
+  end
+
+  def test_no_error_raised_if_retry_whitelist_invalid_but_not_needed
+    kubectl = build_kubectl
+    stub_open3(
+      %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
+      success: true, err: ""
+    ).times(1)
+    _out, _err, st = kubectl.run("get", "namespaces", use_namespace: false, attempts: 4,
+      retry_whitelist: [:an_unhandled_error_type])
+    assert(st.success?)
+  end
+
+  def test_retry_ux_when_retriable_error_followed_by_non_retriable_error
+    kubectl = build_kubectl
+    kubectl.stubs(:retry_delay).returns(0)
+
+    timeout_error = "context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
+    not_found_err = "Error from server (NotFound): pods 'foo' not found"
+    Open3.expects(:capture3)
+      .with("kubectl", "get", "pod", "foo", "--namespace=testn", "--context=testc", "--request-timeout=#{timeout}")
+      .times(3)
+      .returns(["", timeout_error, stub(success?: false)])
+      .returns(["", timeout_error, stub(success?: false)])
+      .returns(["", not_found_err, stub(success?: false)])
+
+    kubectl.run("get", "pod", "foo", attempts: 10)
+    assert_logs_match_all([
+      "The following command failed and will be retried (attempt 1/10)",
+      "The following command failed and will be retried (attempt 2/10)",
+      "The following command failed and cannot be retried",
+    ], in_order: true)
+  end
+
+  def test_retry_delay_backoff
+    ktl = build_kubectl
+    max_delay_range = ((KubernetesDeploy::Kubectl::MAX_RETRY_DELAY - 0.5)..KubernetesDeploy::Kubectl::MAX_RETRY_DELAY)
+    1000.times do
+      assert_includes 0.5..1, ktl.retry_delay(1)
+      assert_includes 1.5..2, ktl.retry_delay(2)
+      assert_includes 3.5..4, ktl.retry_delay(3)
+      assert_includes 7.5..8, ktl.retry_delay(4)
+      assert_includes max_delay_range, ktl.retry_delay(5)
+      assert_includes max_delay_range, ktl.retry_delay(6)
+      assert_includes max_delay_range, ktl.retry_delay(100)
+    end
   end
 
   private

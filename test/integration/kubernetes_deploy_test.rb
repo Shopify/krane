@@ -355,33 +355,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
-  def test_bad_container_image_on_unmanaged_pod_halts_and_fails_deploy
-    result = deploy_fixtures(
-      "hello-cloud",
-      subset: [
-        "unmanaged-pod-1.yml.erb",
-        "configmap-data.yml",
-        "redis.yml",
-        "web.yml.erb",
-      ]
-    ) do |fixtures|
-      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
-      pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
-    end
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      "Failed to deploy 1 priority resource",
-      %r{Pod\/unmanaged-pod-1-\w+-\w+: FAILED},
-      "hello-cloud: Failed to pull image",
-    ], in_order: true)
-
-    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-    hello_cloud.assert_unmanaged_pod_statuses("Pending", 1)
-    hello_cloud.assert_configmap_data_present # priority resource
-    hello_cloud.refute_redis_resources_exist(expect_pvc: true) # pvc is priority resource
-    hello_cloud.refute_web_resources_exist
-  end
-
   def test_output_of_failed_unmanaged_pod
     result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb", "configmap-data.yml"]) do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
@@ -419,22 +392,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
 
     assert_logs_match("The following containers are in a state that is unlikely to be recoverable", 1) # no duplicates
-  end
-
-  def test_bad_container_image_on_deployment_pod_fails_quickly
-    result = deploy_fixtures("invalid", subset: ["cannot_run.yml"]) do |fixtures|
-      container = fixtures["cannot_run.yml"]["Deployment"].first["spec"]["template"]["spec"]["containers"].first
-      container["image"] = "some-invalid-image:badtag"
-    end
-    assert_deploy_failure(result)
-
-    assert_logs_match_all([
-      "Failed to deploy 1 resource",
-      "Deployment/cannot-run: FAILED",
-      "The following containers are in a state that is unlikely to be recoverable:",
-      "container-cannot-run: Failed to pull image some-invalid-image:badtag.",
-      "Did you wait for it to be built and pushed to the registry before deploying?",
-    ], in_order: true)
   end
 
   def test_bad_init_container_on_deployment_fails_quickly
@@ -702,15 +659,18 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     original_ns = @namespace
     @namespace = 'this-certainly-should-not-exist'
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml']))
-    assert_logs_match(/Result: FAILURE.*namespaces "this-certainly-should-not-exist" not found/m)
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Namespace this-certainly-should-not-exist not found",
+    ], in_order: true)
   ensure
     @namespace = original_ns
   end
 
-  def test_failure_logs_from_unmanaged_pod_appear_in_summary_section
+  def test_unmanaged_pod_failure_halts_deploy_and_displays_logs_correctly
     result = deploy_fixtures(
       "hello-cloud",
-      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb"]
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb", "web.yml.erb"]
     ) do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       container = pod["spec"]["containers"].first
@@ -719,11 +679,21 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
 
     assert_logs_match_all([
+      "Logs from Pod/unmanaged-pod-2",
+      "Hello from the second command runner!", # logs from successful pod printed before summary
+      "Result: FAILURE",
       "Failed to deploy 1 priority resource",
-      "Logs from container 'hello-cloud':",
-      "sh: /some/bad/path: not found", # from logs
+      %r{Pod\/unmanaged-pod-1-\w+-\w+: FAILED},
+      "Logs from container 'hello-cloud'",
+      "sh: /some/bad/path: not found", # logs from failed pod printed in summary
     ], in_order: true)
-    refute_logs_match(/no such file or directory.*Result\: FAILURE/m) # logs not also displayed before summary
+    refute_logs_match(%r{some/bad/path.*Result\: FAILURE}m) # failed pod logs not also displayed before summary
+
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_unmanaged_pod_statuses("Failed", 1)
+    hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
+    hello_cloud.assert_configmap_data_present # priority resource
+    hello_cloud.refute_web_resources_exist
   end
 
   # ref https://github.com/kubernetes/kubernetes/issues/26202
@@ -1285,6 +1255,129 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     refute_logs_match("password")
     refute_logs_match("YWRtaW4=")
+  end
+
+  # Note: These tests assume a default storage class with a dynamic provisioner and 'Immediate' bind
+  def test_pvc
+    pvname = "local0001"
+    storage_class_name = "k8s-deploy-test"
+
+    assert_deploy_success(deploy_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]))
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    assert_deploy_success(deploy_fixtures("pvc"))
+
+    assert_logs_match_all([
+      "Successfully deployed 4 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Bound},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+      %r{Pod/pvc\s+Succeeded},
+      %r{StorageClass/k8s-deploy-test\s+Exists},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname)
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
+  end
+
+  def test_pvc_no_bind
+    pvname = "local0002"
+    storage_class_name = "k8s-deploy-test-no-bind"
+
+    result = deploy_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 2 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Pending},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname)
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
+  end
+
+  def test_pvc_immediate_bind
+    pvname = "local0003"
+    storage_class_name = "k8s-deploy-test-immediate-bind"
+
+    result = deploy_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
+      sc["volumeBindingMode"] = "Immediate"
+    end
+    assert_deploy_success(result)
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 2 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Bound},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname)
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
+  end
+
+  def test_pvc_no_pv
+    storage_class_name = "k8s-deploy-test-no-pv"
+
+    result = deploy_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    result = deploy_fixtures("pvc", subset: ["pvc.yml", "pod.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_failure(result)
+
+    assert_logs_match_all([
+      "Failed to deploy 1 priority resource",
+      "Pod/pvc: TIMED OUT (timeout: 20s)",
+    ], in_order: true)
+
+  ensure
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
+  end
+
+  def test_pvc_no_pv_or_sc
+    storage_class_name = "k8s-deploy-test-no-pv-or-sc"
+
+    result = deploy_fixtures("pvc", subset: ["pvc.yml", "pod.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_failure(result)
+
+    assert_logs_match_all([
+      "Failed to deploy 1 priority resource",
+      "PersistentVolumeClaim/with-storage-class: TIMED OUT (timeout: 20s)",
+      "PVC specified a StorageClass of #{storage_class_name} but the resource does not exist",
+    ], in_order: true)
   end
 
   private
