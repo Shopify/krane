@@ -22,12 +22,10 @@ ARGV.options do |opts|
 end
 
 templates = ARGV
-logger = KubernetesDeploy::FormattedLogger.build(verbose_prefix: false)
 
 begin
   KubernetesDeploy::OptionsHelper.with_validated_template_dir(template_dir) do |dir|
     runner = KubernetesDeploy::RenderTask.new(
-      logger: logger,
       current_sha: ENV["REVISION"],
       template_dir: dir,
       bindings: bindings,

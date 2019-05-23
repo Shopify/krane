@@ -7,8 +7,8 @@ require 'kubernetes-deploy/template_discovery'
 
 module KubernetesDeploy
   class RenderTask
-    def initialize(logger:, current_sha:, template_dir:, bindings:)
-      @logger = logger
+    def initialize(logger: nil, current_sha:, template_dir:, bindings:)
+      @logger = logger || KubernetesDeploy::FormattedLogger.build
       @template_dir = template_dir
       @renderer = KubernetesDeploy::Renderer.new(
         current_sha: current_sha,

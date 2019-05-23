@@ -21,9 +21,8 @@ end
 
 namespace = ARGV[0]
 context = ARGV[1]
-logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
 
-restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: context, logger: logger,
+restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: context,
    max_watch_seconds: max_watch_seconds)
 begin
   restart.perform!(raw_deployments, selector: selector)

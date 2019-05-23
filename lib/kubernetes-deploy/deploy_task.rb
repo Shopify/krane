@@ -109,14 +109,14 @@ module KubernetesDeploy
       kubectl.server_version
     end
 
-    def initialize(namespace:, context:, current_sha:, template_dir:, logger:, kubectl_instance: nil, bindings: {},
+    def initialize(namespace:, context:, current_sha:, template_dir:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil)
       @namespace = namespace
       @namespace_tags = []
       @context = context
       @current_sha = current_sha
       @template_dir = File.expand_path(template_dir)
-      @logger = logger
+      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @kubectl = kubectl_instance
       @max_watch_seconds = max_watch_seconds
       @renderer = KubernetesDeploy::Renderer.new(

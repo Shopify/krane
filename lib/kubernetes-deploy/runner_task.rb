@@ -15,8 +15,8 @@ module KubernetesDeploy
 
     attr_reader :pod_name
 
-    def initialize(namespace:, context:, logger:, max_watch_seconds: nil)
-      @logger = logger
+    def initialize(namespace:, context:, logger: nil, max_watch_seconds: nil)
+      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @namespace = namespace
       @context = context
       @max_watch_seconds = max_watch_seconds

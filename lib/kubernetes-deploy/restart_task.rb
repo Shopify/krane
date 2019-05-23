@@ -21,10 +21,10 @@ module KubernetesDeploy
     HTTP_OK_RANGE = 200..299
     ANNOTATION = "shipit.shopify.io/restart"
 
-    def initialize(context:, namespace:, logger:, max_watch_seconds: nil)
+    def initialize(context:, namespace:, logger: nil, max_watch_seconds: nil)
       @context = context
       @namespace = namespace
-      @logger = logger
+      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @max_watch_seconds = max_watch_seconds
     end
 
