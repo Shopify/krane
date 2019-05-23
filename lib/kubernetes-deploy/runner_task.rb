@@ -1,8 +1,13 @@
 # frozen_string_literal: true
 require 'tempfile'
 
+require 'kubernetes-deploy/common'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/kubectl'
+require 'kubernetes-deploy/resource_cache'
+require 'kubernetes-deploy/resource_watcher'
+require 'kubernetes-deploy/kubernetes_resource'
+require 'kubernetes-deploy/kubernetes_resource/pod'
 
 module KubernetesDeploy
   class RunnerTask

@@ -1,8 +1,10 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'kubernetes-deploy'
 require 'kubernetes-deploy/render_task'
+require 'kubernetes-deploy/options_helper'
+require 'kubernetes-deploy/bindings_parser'
+
 require 'optparse'
 
 template_dir = nil

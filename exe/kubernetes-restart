@@ -3,8 +3,9 @@
 
 require 'optparse'
 
-require 'kubernetes-deploy'
 require 'kubernetes-deploy/restart_task'
+require 'kubernetes-deploy/options_helper'
+require 'kubernetes-deploy/label_selector'
 
 raw_deployments = nil
 max_watch_seconds = nil

@@ -1,4 +1,7 @@
 # frozen_string_literal: true
+require 'kubernetes-deploy/common'
+require 'kubernetes-deploy/kubernetes_resource'
+require 'kubernetes-deploy/kubernetes_resource/deployment'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/resource_watcher'
 require 'kubernetes-deploy/kubectl'

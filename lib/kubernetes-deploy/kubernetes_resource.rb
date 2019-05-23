@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 require 'json'
-require 'open3'
 require 'shellwords'
 
 require 'kubernetes-deploy/remote_logs'
+require 'kubernetes-deploy/duration_parser'
+require 'kubernetes-deploy/label_selector'
+require 'kubernetes-deploy/rollout_conditions'
 
 module KubernetesDeploy
   class KubernetesResource

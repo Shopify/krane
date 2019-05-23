@@ -1,6 +1,4 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/rollout_conditions'
-
 module KubernetesDeploy
   class CustomResourceDefinition < KubernetesResource
     TIMEOUT = 2.minutes

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 require 'tempfile'
 
+require 'kubernetes-deploy/common'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/template_discovery'
 

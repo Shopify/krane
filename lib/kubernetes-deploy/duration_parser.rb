@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'active_support/duration'
+
 module KubernetesDeploy
   ##
   # This class is a less strict extension of ActiveSupport::Duration::ISO8601Parser.

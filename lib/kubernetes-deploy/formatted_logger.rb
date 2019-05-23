@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'logger'
+require 'colorized_string'
 require 'kubernetes-deploy/deferred_summary_logging'
 
 module KubernetesDeploy

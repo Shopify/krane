@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'kubernetes-deploy'
 require 'kubernetes-deploy/runner_task'
+require 'kubernetes-deploy/options_helper'
 require 'optparse'
 
 template = "task-runner-template"
