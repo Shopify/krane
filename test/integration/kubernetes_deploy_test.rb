@@ -600,6 +600,22 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
+  def test_ejson_works_with_label_selectors
+    value = "master"
+    selector = KubernetesDeploy::LabelSelector.parse("branch=#{value}")
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    assert_deploy_success(deploy_fixtures("ejson-cloud", subset: ["secrets.ejson"], selector: selector))
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      %r{Secret\/catphotoscom\s+Available},
+      %r{Secret\/monitoring-token\s+Available},
+      %r{Secret\/unused-secret\s+Available},
+    ], in_order: true)
+    secret = kubeclient.get_secret('catphotoscom', @namespace)
+    assert_equal(value, secret.metadata.labels.to_h[:branch])
+  end
+
   def test_deploy_result_logging_for_mixed_result_deploy
     subset = ["bad_probe.yml", "init_crash.yml", "missing_volumes.yml", "config_map.yml"]
     result = deploy_fixtures("invalid", subset: subset) do |f|
