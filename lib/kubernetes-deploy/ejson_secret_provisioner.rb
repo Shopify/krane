@@ -106,7 +106,7 @@ module KubernetesDeploy
       end
 
       labels = { "name" => secret_name }
-      labels.reverse_merge!(@selector) if @selector
+      labels.reverse_merge!(@selector.to_h) if @selector
 
       secret = {
         'kind' => 'Secret',

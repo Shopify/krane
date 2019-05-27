@@ -101,6 +101,16 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     refute_logs_match("Secret")
   end
 
+  def test_run_with_selector_does_not_raise_exception
+    stub_ejson_keys_get_request
+    stub_dry_run_validation_request.times(3) # there are three secrets in the ejson
+    provisioner = build_provisioner(
+      fixture_path('ejson-cloud'),
+      selector: KubernetesDeploy::LabelSelector.new("app" => "yay")
+    )
+    refute_empty(provisioner.resources)
+  end
+
   private
 
   def stub_ejson_keys_get_request
@@ -162,14 +172,15 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     secret
   end
 
-  def build_provisioner(dir = nil)
+  def build_provisioner(dir = nil, selector: nil)
     dir ||= fixture_path('ejson-cloud')
     KubernetesDeploy::EjsonSecretProvisioner.new(
       namespace: 'test',
       context: KubeclientHelper::TEST_CONTEXT,
       template_dir: dir,
       logger: logger,
-      statsd_tags: []
+      statsd_tags: [],
+      selector: selector,
     )
   end
 end
