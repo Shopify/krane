@@ -1373,7 +1373,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      "Pod/pvc: TIMED OUT (timeout: 20s)",
+      "Pod/pvc: TIMED OUT (timeout: 10s)",
     ], in_order: true)
 
   ensure
@@ -1391,7 +1391,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      "PersistentVolumeClaim/with-storage-class: TIMED OUT (timeout: 20s)",
+      "PersistentVolumeClaim/with-storage-class: TIMED OUT (timeout: 10s)",
       "PVC specified a StorageClass of #{storage_class_name} but the resource does not exist",
     ], in_order: true)
   end
