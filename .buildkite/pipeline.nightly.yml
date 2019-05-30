@@ -34,8 +34,3 @@ steps:
     env:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.10-latest
-  - name: ':rubocop: RuboCop'
-    command: bundle install && bundle exec rubocop
-    plugins:
-      - docker#v3.2.0:
-        image: "circleci/ruby:2.6.3-node"
