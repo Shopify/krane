@@ -10,9 +10,9 @@ steps:
     dependencies:
       - bundler
   - label: 'Run Test Suite (:kubernetes: 1.14-latest)'
-    command: bin/ci
-    agents:
-      queue: k8s-ci
+    run: bin/ci
     env:
       LOGGING_LEVEL: 4
       KUBERNETES_VERSION: v1.14-latest
+    agents:
+      queue: k8s-ci
