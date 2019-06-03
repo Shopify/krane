@@ -62,6 +62,6 @@ class KubeClientBuilderTest < KubernetesDeploy::TestCase
     context_name = "docker-for-desktop"
     client = kubeclient_builder.build_v1_kubeclient(context_name)
     assert(!client.nil?, "Expected Kubeclient is built for context " \
-    	"#{context_name} with success.")
+      "#{context_name} with success.")
   end
 end
