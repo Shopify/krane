@@ -1374,6 +1374,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
       "Pod/pvc: TIMED OUT (timeout: 10s)",
+      %r{Pod could not be scheduled because 0/\d+ nodes are available:},
+      /\d+ node[(]s[)] didn't find available persistent volumes to bind./,
     ], in_order: true)
 
   ensure

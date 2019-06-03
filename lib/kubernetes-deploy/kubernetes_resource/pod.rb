@@ -65,10 +65,15 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      return STANDARD_TIMEOUT_MESSAGE unless readiness_probe_failure?
-      probe_failure_msgs = @containers.map(&:readiness_fail_reason).compact
-      header = "The following containers have not passed their readiness probes on at least one pod:\n"
-      header + probe_failure_msgs.join("\n")
+      if readiness_probe_failure?
+        probe_failure_msgs = @containers.map(&:readiness_fail_reason).compact
+        header = "The following containers have not passed their readiness probes on at least one pod:\n"
+        header + probe_failure_msgs.join("\n")
+      elsif failed_schedule_reason.present?
+        "Pod could not be scheduled because #{failed_schedule_reason}"
+      else
+        STANDARD_TIMEOUT_MESSAGE
+      end
     end
 
     def failure_message
@@ -97,6 +102,16 @@ module KubernetesDeploy
     end
 
     private
+
+    def failed_schedule_reason
+      if phase == "Pending"
+        conditions = @instance_data.dig('status', 'conditions') || []
+        unschedulable = conditions.find do |condition|
+          condition["type"] == "PodScheduled" && condition["status"] == "False"
+        end
+        unschedulable&.dig('message')
+      end
+    end
 
     def failed_phase?
       phase == FAILED_PHASE_NAME
