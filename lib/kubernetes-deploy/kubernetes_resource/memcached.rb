@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 module KubernetesDeploy
-  class Memcached < KubernetesResource
+  class Memcached < CustomResource
     TIMEOUT = 5.minutes
     CONFIGMAP_NAME = "memcached-url"
 
@@ -16,6 +16,7 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
+      return false unless super
       deployment_ready? && service_ready? && configmap_ready?
     end
 

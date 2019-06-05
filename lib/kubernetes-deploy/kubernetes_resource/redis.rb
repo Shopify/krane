@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 module KubernetesDeploy
-  class Redis < KubernetesResource
+  class Redis < CustomResource
     TIMEOUT = 5.minutes
     UUID_ANNOTATION = "redis.stable.shopify.io/owner_uid"
 
@@ -19,6 +19,7 @@ module KubernetesDeploy
     end
 
     def deploy_succeeded?
+      return false unless super
       deployment_ready? && service_ready?
     end
 
