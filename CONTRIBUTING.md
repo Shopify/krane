@@ -109,7 +109,7 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
 ### Contributor License Agreement
 
  New contributors will be required to sign [Shopify's Contributor License Agreement (CLA)](https://cla.shopify.com/).
- There are two versions of the CLA one for individuals and one for organizations.
+ There are two versions of the CLA: one for individuals and one for organizations.
 
 # Development
 
