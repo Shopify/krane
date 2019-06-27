@@ -501,6 +501,12 @@ To render some templates in a template dir, run kubernetes-render with the names
 kubernetes-render --template-dir=./path/to/template/dir this-template.yaml.erb that-template.yaml.erb
 ```
 
+To render a template in a template dir and output it to a file, run kubernetes-render with the name of the template and redirect the output to a file:
+
+```
+kubernetes-render --template-dir=./path/to/template/dir template.yaml.erb > template.yaml
+```
+
 *Options:*
 
 - `--template-dir=DIR`: Used to set the directory to interpret template names relative to. This is often the same directory passed as `--template-dir` when running `kubernetes-deploy` to actually deploy templates. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`.
