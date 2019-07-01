@@ -70,9 +70,9 @@ class RendererTest < KubernetesDeploy::TestCase
         d: d4
         foo: bar
       EOY
-    actual = YAML.dump(YAML.load(render('nest-as-rhs.yaml.erb')))
+    actual = YAML.dump(YAML.safe_load(render('nest-as-rhs.yaml.erb')))
     assert_equal(expected, actual)
-    actual = YAML.dump(YAML.load(render('nest-indented.yaml.erb')))
+    actual = YAML.dump(YAML.safe_load(render('nest-indented.yaml.erb')))
     assert_equal(expected, actual)
   end
 
