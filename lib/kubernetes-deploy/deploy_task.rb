@@ -75,7 +75,7 @@ module KubernetesDeploy
         Pod
       )
 
-      before_crs + cluster_resource_discoverer.crds.map(&:kind) + after_crs
+      before_crs + cluster_resource_discoverer.crds.select(&:predeployed?).map(&:kind) + after_crs
     end
 
     def prune_whitelist

@@ -2,6 +2,7 @@
 
 *Enhancements*
 - Officially support Kubernetes 1.14 [#461](https://github.com/Shopify/kubernetes-deploy/pull/461)
+- Allow customising which custom resources are deployed in the pre-deploy phase.
 
 *Other*
 - Removes special treatment of GCP authentication by upgrading to `kubeclient` 4.3.
