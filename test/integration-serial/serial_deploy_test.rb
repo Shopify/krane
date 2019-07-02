@@ -162,9 +162,22 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_custom_resources_predeployed
-    assert_deploy_success(deploy_fixtures("crd-predeploy", subset: %w(mail.yml things.yml widgets.yml)))
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml things.yml widgets.yml)) do |f|
+      mail = f.dig("mail.yml", "CustomResourceDefinition").first
+      mail["metadata"]["annotations"] = {}
+
+      things = f.dig("things.yml", "CustomResourceDefinition").first
+      things["metadata"]["annotations"] = {
+        "kubernetes-deploy.shopify.io/predeployed" => "true",
+      }
+
+      widgets = f.dig("widgets.yml", "CustomResourceDefinition").first
+      widgets["metadata"]["annotations"] = {
+        "kubernetes-deploy.shopify.io/predeployed" => "false",
+      }
+    end)
     reset_logger
-    assert_deploy_success(deploy_fixtures("crd-predeploy", subset: %w(mail_cr.yml things_cr.yml widgets_cr.yml)))
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml things_cr.yml widgets_cr.yml)))
     assert_logs_match_all([
       %r{Phase 3: Predeploying priority resources},
       %r{Successfully deployed in \d.\ds: Mail/my-first-mail},
