@@ -179,10 +179,10 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     reset_logger
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml things_cr.yml widgets_cr.yml)))
     assert_logs_match_all([
-      %r{Phase 3: Predeploying priority resources},
+      /Phase 3: Predeploying priority resources/,
       %r{Successfully deployed in \d.\ds: Mail/my-first-mail},
       %r{Successfully deployed in \d.\ds: Thing/my-first-thing},
-      %r{Phase 4: Deploying all resources},
+      /Phase 4: Deploying all resources/,
       %r{Successfully deployed in \d.\ds: Mail/my-first-mail, Thing/my-first-thing, Widget/my-first-widget},
     ], in_order: true)
     refute_logs_match(
