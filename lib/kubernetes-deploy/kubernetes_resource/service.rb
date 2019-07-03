@@ -49,7 +49,7 @@ module KubernetesDeploy
     end
 
     def requires_endpoints?
-      # service of type External don't have endpoints
+      # services of type External don't have endpoints
       return false if external_name_svc?
 
       # problem counting replicas - by default, assume endpoints are required
@@ -69,8 +69,8 @@ module KubernetesDeploy
 
     def related_replica_count
       return 0 unless selector.present?
-      return unless @related_deployments.length == 1
-      @related_deployments.first["spec"]["replicas"].to_i
+      return if @related_deployments.blank?
+      @related_deployments.inject(0) { |sum, d| sum + d["spec"]["replicas"].to_i }
     end
 
     def external_name_svc?
