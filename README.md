@@ -245,6 +245,11 @@ before the deployment is considered successful.
   - _Compatibility_: Custom Resource Definition
   - `true`: The custom resource will be pruned if the resource is not in the deploy directory.
   - All other values: The custom resource will not be pruned.
+- `kubernetes-deploy.shopify.io/predeployed`: Causes a Custom Resource to be deployed in the pre-deploy phase.
+  - _Compatibility_: Custom Resource Definition
+  - _Default_: `true`
+  - `true`: The custom resource will be deployed in the pre-deploy phase.
+  - All other values: The custom resource will be deployed in the main deployment phase.
 
 ### Running tasks at the beginning of a deploy
 

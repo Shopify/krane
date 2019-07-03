@@ -56,6 +56,11 @@ module KubernetesDeploy
       prunable == "true"
     end
 
+    def predeployed?
+      predeployed = @definition.dig("metadata", "annotations", "kubernetes-deploy.shopify.io/predeployed")
+      predeployed.nil? || predeployed == "true"
+    end
+
     def rollout_conditions
       return @rollout_conditions if defined?(@rollout_conditions)
 

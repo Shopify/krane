@@ -161,6 +161,37 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
+  def test_custom_resources_predeployed
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml things.yml widgets.yml)) do |f|
+      mail = f.dig("mail.yml", "CustomResourceDefinition").first
+      mail["metadata"]["annotations"] = {}
+
+      things = f.dig("things.yml", "CustomResourceDefinition").first
+      things["metadata"]["annotations"] = {
+        "kubernetes-deploy.shopify.io/predeployed" => "true",
+      }
+
+      widgets = f.dig("widgets.yml", "CustomResourceDefinition").first
+      widgets["metadata"]["annotations"] = {
+        "kubernetes-deploy.shopify.io/predeployed" => "false",
+      }
+    end)
+    reset_logger
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml things_cr.yml widgets_cr.yml)))
+    assert_logs_match_all([
+      /Phase 3: Predeploying priority resources/,
+      %r{Successfully deployed in \d.\ds: Mail/my-first-mail},
+      %r{Successfully deployed in \d.\ds: Thing/my-first-thing},
+      /Phase 4: Deploying all resources/,
+      %r{Successfully deployed in \d.\ds: Mail/my-first-mail, Thing/my-first-thing, Widget/my-first-widget},
+    ], in_order: true)
+    refute_logs_match(
+      %r{Successfully deployed in \d.\ds: Widget/my-first-widget},
+    )
+  ensure
+    wait_for_all_crd_deletion
+  end
+
   def test_stage_related_metrics_include_custom_tags_from_namespace
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     kubeclient.patch_namespace(hello_cloud.namespace, metadata: { labels: { foo: 'bar' } })

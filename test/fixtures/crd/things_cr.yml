@@ -1,0 +1,5 @@
+---
+apiVersion: "stable.example.io/v1"
+kind: Thing
+metadata:
+  name: my-first-thing
