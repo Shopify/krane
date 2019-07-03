@@ -163,6 +163,6 @@ Please make sure you run the tests locally before submitting your PR (see [Runni
 
 #### Employees: Triggering CI for a contributed PR
 
-Go to the [kubernetes-deploy-gem pipeline](https://buildkite.com/shopify/kubernetes-deploy-gem) and click "New Build". Use branch `external_contrib_ci` and the specific sha of the commit you want to build. Add `BUILDKITE_REFSPEC="refs/pull/${PR_NUM}/head"` in the Environment Variables section. Since CI is only visible to Shopify employees, you will need to provide any failing tests and output to the the contributor.
+Go to the [kubernetes-deploy pipeline](https://buildkite.com/shopify/kubernetes-deploy) and click "New Build". Use branch `external_contrib_ci` and the specific sha of the commit you want to build. Add `BUILDKITE_REFSPEC="refs/pull/${PR_NUM}/head"` in the Environment Variables section. Since CI is only visible to Shopify employees, you will need to provide any failing tests and output to the the contributor.
 
 <img width="350" alt="build external contrib PR" src="https://screenshot.click/2017-11-07--163728_7ovek-wrpwq.png">
