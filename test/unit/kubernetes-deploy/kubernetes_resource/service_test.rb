@@ -102,6 +102,20 @@ class ServiceTest < KubernetesDeploy::TestCase
     assert_equal("Doesn't require any endpoints", svc.status)
   end
 
+  def test_services_for_multiple_zero_replica_deployments_do_not_require_endpoints
+    svc_def = service_fixture('zero-replica-multiple')
+    svc = build_service(svc_def)
+
+    stub_kind_get("Service", items: [svc_def])
+    stub_kind_get("Deployment", items: deployment_fixtures)
+    stub_kind_get("Pod", items: [])
+    svc.sync(build_resource_cache)
+
+    assert(svc.exists?)
+    assert(svc.deploy_succeeded?)
+    assert_equal("Doesn't require any endpoints", svc.status)
+  end
+
   private
 
   def build_service(definition)
