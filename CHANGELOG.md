@@ -1,11 +1,17 @@
 ## next
 
+## 0.26.5
+
+*Bug Fixes*
+- Support 'volumeBindingMode: WaitForFirstConsumer' condition in StorageClass. [#479](https://github.com/Shopify/kubernetes-deploy/pull/479)
+- Fix: Undefined method "merge" on LabelSelector. [#488](https://github.com/Shopify/kubernetes-deploy/pull/488)
+
 *Enhancements*
-- Officially support Kubernetes 1.14 [#461](https://github.com/Shopify/kubernetes-deploy/pull/461)
+- Officially support Kubernetes 1.14. [#461](https://github.com/Shopify/kubernetes-deploy/pull/461)
 - Allow customising which custom resources are deployed in the pre-deploy phase. [#505](https://github.com/Shopify/kubernetes-deploy/pull/505)
 
 *Other*
-- Removes special treatment of GCP authentication by upgrading to `kubeclient` 4.3.
+- Removes special treatment of GCP authentication by upgrading to `kubeclient` 4.3. [#465](https://github.com/Shopify/kubernetes-deploy/pull/465)
 
 ## 0.26.4
 
