@@ -6,6 +6,12 @@
   * To see what resources may be affected, run `kubectl get $RESOURCE -o jsonpath='{ range .items[*] }{.metadata.namespace}{ "\t" }{.metadata.name}{ "\t" }{.metadata.annotations}{ "\n" }{ end }' --all-namespaces | grep "last-applied"`
   * To exclude a resource from kubernetes-deploy (and kubectl apply) management, remove the last-applied annotation `kubectl annotate $RESOURCE $SECRET_NAME kubectl.kubernetes.io/last-applied-configuration-`.
 
+*Other*
+
+- We've added a new Krane cli. This code is in alpha. We are providing
+no warranty at this time and reserve the right to make major breaking changes including
+removing it entirely at any time.
+
 ## 0.26.7
 
 *Other*

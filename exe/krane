@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "thor"
+require "kubernetes-deploy"
+
+class Krane < Thor
+  TIMEOUT_EXIT_CODE = 70
+  ERROR_EXIT_CODE = 1
+
+  desc "version", "Print the version"
+  def version
+    puts "Version #{KubernetesDeploy::VERSION}"
+  end
+end
+
+Krane.start(ARGV)
