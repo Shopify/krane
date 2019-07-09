@@ -1,0 +1,6 @@
+---
+alias: &alias
+  baz: bang
+foo: a,b,c
+bar:
+  <<: *alias

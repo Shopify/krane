@@ -1,5 +1,8 @@
 ## next
 
+*Bug Fixes*
+- Re-enable support for YAML aliases when using YAML.safe_load [#510](https://github.com/Shopify/kubernetes-deploy/pull/510)
+
 ## 0.26.5
 
 *Bug Fixes*
