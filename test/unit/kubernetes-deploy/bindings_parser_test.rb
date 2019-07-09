@@ -81,6 +81,13 @@ class BindingsParserTest < ::Minitest::Test
     assert_equal(expected, bindings.parse)
   end
 
+  def test_parses_yaml_file_with_aliases
+    expected = { "foo" => "a,b,c", "bar" => { "baz" => "bang" }, "alias" => { "baz" => "bang" } }
+    bindings = KubernetesDeploy::BindingsParser.new
+    bindings.add('@test/fixtures/for_unit_tests/bindings-with-aliases.yaml')
+    assert_equal(expected, bindings.parse)
+  end
+
   private
 
   def parse(string)
