@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 2.3.0'
   spec.add_dependency("activesupport", ">= 5.0")
   spec.add_dependency("kubeclient", "~> 4.3")
-  spec.add_dependency("googleauth", "~> 0.6.6") # https://github.com/google/google-auth-library-ruby/issues/153
+  spec.add_dependency("googleauth", "~> 0.8.0")
   spec.add_dependency("ejson", "~> 1.0")
   spec.add_dependency("colorize", "~> 0.8")
   spec.add_dependency("statsd-instrument", '~> 2.3', '>= 2.3.2')
