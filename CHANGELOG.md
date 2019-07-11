@@ -1,5 +1,10 @@
 ## next
 
+## 0.26.7
+
+*Other*
+- Bump `googleauth` dependency. ([#512](https://github.com/Shopify/kubernetes-deploy/pull/512))
+
 ## 0.26.6
 
 *Bug Fixes*
