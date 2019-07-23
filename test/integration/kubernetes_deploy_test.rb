@@ -807,6 +807,138 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_equal(1, new_ready_pods.length, "Expected exactly one new pod to be ready, saw #{new_ready_pods.length}")
   end
 
+  def test_deploy_successful_with_multiple_template_paths
+    result = deploy_dirs(fixture_path("test-partials"), fixture_path("cronjobs"),
+      bindings: { 'supports_partials' => 'yep' })
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      %r{ConfigMap/config-for-pod1\s+Available},
+      %r{ConfigMap/config-for-pod2\s+Available},
+      %r{ConfigMap/independent-configmap\s+Available},
+      %r{CronJob/my-cronjob\s+Exists},
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Pod/pod1\s+Succeeded},
+      %r{Pod/pod2\s+Succeeded},
+    ])
+  end
+
+  def test_deploy_successful_with_multiple_template_paths_multiple_partials
+    result = deploy_dirs(fixture_path("test-partials"), fixture_path("test-partials2"),
+      bindings: { 'supports_partials' => 'yep' })
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      %r{ConfigMap/config-for-pod1\s+Available},
+      %r{ConfigMap/config-for-pod2\s+Available},
+      %r{ConfigMap/independent-configmap\s+Available},
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Deployment/web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Pod/pod1\s+Succeeded},
+      %r{Pod/pod2\s+Succeeded},
+    ])
+  end
+
+  def test_deploy_successful_partials_with_filename_args
+    partial_file_1 = File.join(fixture_path("test-partials"), "deployment.yaml.erb")
+    partial_file_2 = File.join(fixture_path("test-partials2"), "deployment.yml.erb")
+    result = deploy_dirs(partial_file_1, partial_file_2, bindings: { 'supports_partials' => 'yep' })
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      %r{ConfigMap/config-for-pod1\s+Available},
+      %r{ConfigMap/config-for-pod2\s+Available},
+      %r{ConfigMap/independent-configmap\s+Available},
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Deployment/web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Pod/pod1\s+Succeeded},
+      %r{Pod/pod2\s+Succeeded},
+    ])
+  end
+
+  def test_ejson_secrets_are_created_from_multiple_template_paths
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+
+    result = deploy_dirs(fixture_path("ejson-cloud"), fixture_path("ejson-cloud2"))
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Secret/a-secret\s+Available},
+      %r{Secret/catphotoscom\s+Available},
+      %r{Secret/monitoring-token\s+Available},
+      %r{Secret/unused-secret\s+Available},
+    ])
+  end
+
+  def test_deploy_successful_with_filename_arg
+    result = deploy_dirs(File.join(fixture_path("hello-cloud"), "service-account.yml"))
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Successfully deployed 1 resource",
+      %r{ServiceAccount/build-robot(\s+)Created},
+    ], in_order: true)
+  end
+
+  def test_deploy_successful_with_both_filename_and_template_dir
+    filepath = File.join(fixture_path("hello-cloud"), "service-account.yml")
+    result = deploy_dirs(filepath, fixture_path("cronjobs"))
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Successfully deployed 2 resources",
+      %r{CronJob/my-cronjob(\s+)Exists},
+      %r{ServiceAccount/build-robot(\s+)Created},
+    ], in_order: true)
+  end
+
+  def test_deploy_successful_multiple_filenames_different_directories
+    hello_cloud_file = File.join(fixture_path("hello-cloud"), "service-account.yml")
+    cronjob_file = File.join(fixture_path("cronjobs"), "cronjob.yaml.erb")
+    result = deploy_dirs(hello_cloud_file, cronjob_file)
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Successfully deployed 2 resources",
+      %r{CronJob/my-cronjob(\s+)Exists},
+      %r{ServiceAccount/build-robot(\s+)Created},
+    ], in_order: true)
+  end
+
+  def test_deploy_successful_with_filename_arg_requiring_ejson
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+
+    ejson_path = fixture_path("ejson-cloud")
+    secrets_file = File.join(ejson_path, "secrets.ejson")
+    web_file = File.join(ejson_path, "web.yaml")
+
+    result = deploy_dirs(secrets_file, web_file)
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Secret/catphotoscom\s+Available},
+      %r{Secret/monitoring-token\s+Available},
+      %r{Secret/unused-secret\s+Available},
+    ])
+  end
+
+  def test_only_explicitly_listed_ejson_secrets_deployed_when_specifying_filename_args
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+
+    web_file = File.join(fixture_path("ejson-cloud2"), "web.yml")
+    ejson_dir = fixture_path("ejson-cloud")
+    result = deploy_dirs(web_file, ejson_dir)
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Secret/catphotoscom\s+Available},
+      %r{Secret/monitoring-token\s+Available},
+      %r{Secret/unused-secret\s+Available},
+    ])
+    refute_logs_match(%r{Secret/a-secret\s+Available})
+  end
+
   def test_deploy_aborts_immediately_if_metadata_name_missing
     result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
       definition = fixtures["configmap-data.yml"]["ConfigMap"].first

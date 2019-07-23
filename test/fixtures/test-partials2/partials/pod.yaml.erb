@@ -1,0 +1,15 @@
+metadata:
+  name: web-from-partial
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: web-from-partial
+        app: test-partials
+    spec: 
+      containers:
+      - name: partial-pod
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["sleep", "8000"]

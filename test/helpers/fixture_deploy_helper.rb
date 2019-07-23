@@ -26,7 +26,7 @@ module FixtureDeployHelper
   #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end
-  def deploy_fixtures(set, subset: nil, **args) # extra args are passed through to deploy_dir_without_profiling
+  def deploy_fixtures(set, subset: nil, **args) # extra args are passed through to deploy_dirs_without_profiling
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
 
@@ -35,7 +35,7 @@ module FixtureDeployHelper
     success = false
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
-      success = deploy_dir(target_dir, args)
+      success = deploy_dirs(target_dir, args)
     end
     success
   end
@@ -52,15 +52,15 @@ module FixtureDeployHelper
         subset.each do |file|
           FileUtils.copy_entry(File.join(fixture_path(set), file), File.join(target_dir, file))
         end
-        success = deploy_dir(target_dir, wait: wait, bindings: bindings)
+        success = deploy_dirs(target_dir, wait: wait, bindings: bindings)
       end
     else
-      success = deploy_dir(fixture_path(set), wait: wait, bindings: bindings)
+      success = deploy_dirs(fixture_path(set), wait: wait, bindings: bindings)
     end
     success
   end
 
-  def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {},
+  def deploy_dirs_without_profiling(dirs, wait: true, allow_protected_ns: false, prune: true, bindings: {},
     sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil, selector: nil)
     kubectl_instance ||= build_kubectl
 
@@ -68,7 +68,7 @@ module FixtureDeployHelper
       namespace: @namespace,
       current_sha: sha,
       context: KubeclientHelper::TEST_CONTEXT,
-      template_dir: dir,
+      template_paths: dirs,
       logger: logger,
       kubectl_instance: kubectl_instance,
       bindings: bindings,
@@ -82,19 +82,19 @@ module FixtureDeployHelper
     )
   end
 
-  # Deploys all fixtures in the given directory via KubernetesDeploy::DeployTask
+  # Deploys all fixtures in the given directories via KubernetesDeploy::DeployTask
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
-  def deploy_dir(dir, **args)
+  def deploy_dirs(*dirs, **args)
     if ENV["PROFILE"]
       deploy_result = nil
-      result = RubyProf.profile { deploy_result = deploy_dir_without_profiling(dir, args) }
+      result = RubyProf.profile { deploy_result = deploy_dirs_without_profiling(dirs, args) }
       printer = RubyProf::FlameGraphPrinter.new(result)
       filename = File.expand_path("../../../dev/profile", __FILE__)
       printer.print(File.new(filename, "a+"), {})
       deploy_result
     else
-      deploy_dir_without_profiling(dir, args)
+      deploy_dirs_without_profiling(dirs, args)
     end
   end
 
