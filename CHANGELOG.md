@@ -1,4 +1,9 @@
 ## next
+*Enhancements*
+- (alpha) Introduce a new `-f` flag for `kubernetes-deploy`. Allows passing in of multiple directories and/or filenames. Currently only usable by `kubernetes-deploy`, not `kubernetes-render`. [#514](https://github.com/Shopify/kubernetes-deploy/pull/514)
+
+*Other*
+- `EjsonSecretProvisioner#new` signature has changed. `EjsonSecretProvisioner` objects no longer have access to `kubectl`. Rather, the `ejson-keys` secret used for decryption is now passed in via the calling task. Note that we only consider the `new` and `run(!)` methods of tasks (render, deploy, etc) to have inviolable APIs, so we do not consider this change breaking. [#514](https://github.com/Shopify/kubernetes-deploy/pull/514)
 
 ## 0.26.7
 

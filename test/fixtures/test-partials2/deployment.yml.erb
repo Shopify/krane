@@ -1,0 +1,4 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+<<: <%= partial 'pod' %>  # Use same partial name as `test-partials` dir to ensure no naming collision

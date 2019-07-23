@@ -2,7 +2,6 @@
 require 'tempfile'
 
 require 'kubernetes-deploy/renderer'
-require 'kubernetes-deploy/template_discovery'
 
 module KubernetesDeploy
   class RenderTask
@@ -29,7 +28,7 @@ module KubernetesDeploy
       @logger.phase_heading("Initializing render task")
 
       filenames = if only_filenames.empty?
-        TemplateDiscovery.new(@template_dir).templates
+        Dir.foreach(@template_dir).select { |filename| filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb") }
       else
         only_filenames
       end
