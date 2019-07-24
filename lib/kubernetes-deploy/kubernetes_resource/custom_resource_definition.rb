@@ -53,7 +53,7 @@ module KubernetesDeploy
 
     def prunable?
       prunable = @definition.dig("metadata", "annotations", "kubernetes-deploy.shopify.io/prunable")
-      prunable == "true"
+      prunable.nil? || prunable == "true"
     end
 
     def predeployed?
