@@ -71,6 +71,7 @@ module KubernetesDeploy
         ServiceAccount
         Role
         RoleBinding
+        ClusterRoleBinding
         Secret
         Pod
       )
