@@ -58,7 +58,6 @@ module KubernetesDeploy
     # core/v1/Endpoints -- managed by services
     # core/v1/PersistentVolumeClaim -- would delete data
     # core/v1/ReplicationController -- superseded by deployments/replicasets
-    # extensions/v1beta1/ReplicaSet -- managed by deployments
 
     def predeploy_sequence
       before_crs = %w(
@@ -85,7 +84,10 @@ module KubernetesDeploy
         core/v1/Service
         core/v1/ResourceQuota
         core/v1/Secret
+        core/v1/ServiceAccount
+        core/v1/PodTemplate
         batch/v1/Job
+        extensions/v1beta1/ReplicaSet
         extensions/v1beta1/DaemonSet
         extensions/v1beta1/Deployment
         extensions/v1beta1/Ingress
@@ -94,6 +96,8 @@ module KubernetesDeploy
         autoscaling/v1/HorizontalPodAutoscaler
         policy/v1beta1/PodDisruptionBudget
         batch/v1beta1/CronJob
+        rbac.authorization.k8s.io/v1/Role
+        rbac.authorization.k8s.io/v1/RoleBinding
       )
       wl + cluster_resource_discoverer.crds.select(&:prunable?).map(&:group_version_kind)
     end
