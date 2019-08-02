@@ -11,3 +11,7 @@ Naming/FileName:
 
 Sorbet/ConstantsFromStrings:
   Enabled: false
+
+Layout/Tab:
+  Exclude:
+    - test/integration/kubernetes_deploy_test.rb
