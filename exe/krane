@@ -5,13 +5,18 @@ require "thor"
 require "kubernetes-deploy"
 
 class Krane < Thor
-  TIMEOUT_EXIT_CODE = 70
-  ERROR_EXIT_CODE = 1
+  package_name "Krane"
 
-  desc "version", "Print the version"
+  desc "version", "Prints the version"
   def version
-    puts "Version #{KubernetesDeploy::VERSION}"
+    logger.info("Krane Version: #{KubernetesDeploy::VERSION}")
+  end
+
+  private
+
+  def logger(verbose: false)
+    @logger ||= KubernetesDeploy::FormattedLogger.build(@namespace, @context, verbose_prefix: verbose)
   end
 end
 
-Krane.start(ARGV)
+Krane.start(ARGV) if __FILE__ == $PROGRAM_NAME
