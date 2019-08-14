@@ -4,7 +4,7 @@
 
 - We've added a new Krane cli. This code is in alpha. We are providing
 no warranty at this time and reserve the right to make major breaking changes including
-removing it entirely at any time.
+removing it entirely at any time. ([#256](https://github.com/Shopify/kubernetes-deploy/issues/256))
 
 ## 0.27.0
 *Enhancements*

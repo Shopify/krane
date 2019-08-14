@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'test_helper'
+require 'krane/cli'
 
 class KraneTest < KubernetesDeploy::TestCase
   def test_version_prints_current_version
@@ -12,7 +13,7 @@ class KraneTest < KubernetesDeploy::TestCase
   private
 
   def krane
-    @krane = Krane.new.tap do |krane|
+    @krane = Krane::CLI.new.tap do |krane|
       krane.instance_variable_set('@logger', @logger)
     end
   end

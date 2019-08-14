@@ -19,8 +19,7 @@ if ENV["PROFILE"]
 end
 
 $LOAD_PATH.unshift(File.expand_path('../../lib', __FILE__))
-$LOAD_PATH.unshift(File.expand_path('../../exe', __FILE__))
-load('krane')
+require 'krane'
 require 'kubernetes-deploy'
 require 'kubeclient'
 require 'timecop'
