@@ -32,6 +32,9 @@ if [[ ${CI:="0"} == "1" ]]; then
   bundle install --jobs 4
 fi
 
+print_header "Run CLI Tests"
+bundle exec rake cli_test
+
 print_header "Run Unit Tests"
 bundle exec rake unit_test
 
