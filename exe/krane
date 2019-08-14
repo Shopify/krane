@@ -1,22 +1,5 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require "thor"
-require "kubernetes-deploy"
-
-class Krane < Thor
-  package_name "Krane"
-
-  desc "version", "Prints the version"
-  def version
-    logger.info("Krane Version: #{KubernetesDeploy::VERSION}")
-  end
-
-  private
-
-  def logger(verbose: false)
-    @logger ||= KubernetesDeploy::FormattedLogger.build(@namespace, @context, verbose_prefix: verbose)
-  end
-end
-
-Krane.start(ARGV) if __FILE__ == $PROGRAM_NAME
+require 'krane/cli'
+Krane::CLI.start(ARGV)
