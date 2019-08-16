@@ -15,6 +15,8 @@ require 'kubernetes-deploy/oj'
 require 'kubernetes-deploy/errors'
 require 'kubernetes-deploy/formatted_logger'
 require 'kubernetes-deploy/statsd'
+require 'kubernetes-deploy/task_config'
+require 'kubernetes-deploy/validator'
 
 module KubernetesDeploy
   MIN_KUBE_VERSION = '1.10.0'

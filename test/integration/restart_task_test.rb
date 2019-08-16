@@ -174,7 +174,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_restart_failure(restart.perform(%w(web)))
     assert_logs_match_all([
       "Result: FAILURE",
-      "`walrus` context must be configured in your kubeconfig file(s)",
+      /- Context walrus missing from your kubeconfig file\(s\)/,
     ],
       in_order: true)
   end
@@ -188,7 +188,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_restart_failure(restart.perform(%w(web)))
     assert_logs_match_all([
       "Result: FAILURE",
-      "Namespace `walrus` not found in context `#{TEST_CONTEXT}`",
+      "- Cloud not find Namespace: walrus in Context: #{KubeclientHelper::TEST_CONTEXT}",
     ],
       in_order: true)
   end
