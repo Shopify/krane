@@ -321,7 +321,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     redis_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: redis_crd,
       definition: { "kind" => "Redis", "metadata" => { "name" => "test" } })
-    assert_equal(redis_cr.class, KubernetesDeploy::Redis)
+    assert_equal(redis_cr.class, KubernetesDeploy::CustomResource)
 
     # Dynamic with no rollout config
     no_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",

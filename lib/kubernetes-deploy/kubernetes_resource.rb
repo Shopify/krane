@@ -38,11 +38,7 @@ module KubernetesDeploy
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
         if (klass = class_for_kind(definition["kind"]))
-          if klass <= CustomResource
-            return klass.new(crd: crd, **opts)
-          else
-            return klass.new(**opts)
-          end
+          return klass.new(**opts)
         end
         if crd
           CustomResource.new(crd: crd, **opts)

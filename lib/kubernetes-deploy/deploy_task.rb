@@ -13,9 +13,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   ingress
   persistent_volume_claim
   pod
-  redis
   network_policy
-  memcached
   service
   pod_template
   pod_disruption_budget
