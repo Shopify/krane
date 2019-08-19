@@ -71,7 +71,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 
 ## Prerequisites
 
-* Ruby 2.3+
+* Ruby 2.4+
 * Your cluster must be running Kubernetes v1.11.0 or higher<sup>1</sup>
 * Each app must have a deploy directory containing its Kubernetes templates (see [Templates](#using-templates-and-variables))
 
