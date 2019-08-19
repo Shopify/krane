@@ -1,7 +1,7 @@
 ---
 name: kubernetes-deploy
 up:
-  - ruby: 2.3.3 # Matches gemspec
+  - ruby: 2.4.6 # Matches gemspec
   - bundler
   - homebrew:
     - Caskroom/cask/minikube
