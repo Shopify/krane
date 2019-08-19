@@ -2,13 +2,15 @@
 require 'active_support/concern'
 
 module Krane
-  module VersionCommand
-    extend ActiveSupport::Concern
+  module CLI
+    module VersionCommand
+      extend ActiveSupport::Concern
 
-    included do
-      desc "version", "Prints the version"
-      def version
-        logger.info("Krane Version: #{KubernetesDeploy::VERSION}")
+      included do
+        desc "version", "Prints the version"
+        def version
+          logger.info("Krane Version: #{KubernetesDeploy::VERSION}")
+        end
       end
     end
   end
