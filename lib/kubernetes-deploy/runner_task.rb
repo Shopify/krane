@@ -17,6 +17,7 @@ module KubernetesDeploy
 
     def initialize(namespace:, context:, logger: nil, max_watch_seconds: nil)
       @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
+      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
       @namespace = namespace
       @context = context
       @max_watch_seconds = max_watch_seconds
@@ -140,9 +141,7 @@ module KubernetesDeploy
         raise TaskConfigurationError, "Configuration invalid: #{errors.join(', ')}"
       end
 
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
-      end
+      TaskConfigValidator.new(@task_config, only: [:validate_server_version]).valid?
     end
 
     def get_template(template_name)

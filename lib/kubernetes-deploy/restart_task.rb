@@ -41,10 +41,10 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
-      errors = Validator.new(@task_config).errors
-      unless errors.empty?
+      task_config_validator = TaskConfigValidator.new(@task_config)
+      unless task_config_validator.valid?
         @logger.summary.add_action("Configuration invalid")
-        @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
+        @logger.summary.add_paragraph(task_config_validator.errors.map { |err| "- #{err}" }.join("\n"))
         raise KubernetesDeploy::TaskConfigurationError
       end
 
@@ -178,7 +178,7 @@ module KubernetesDeploy
     end
 
     def kubectl
-      @task_config.kubectl
+      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
     end
 
     def v1beta1_kubeclient
@@ -186,7 +186,7 @@ module KubernetesDeploy
     end
 
     def kubeclient_builder
-      @task_config.kubeclient_builder
+      @kubeclient_builder ||= KubeclientBuilder.new
     end
   end
 end

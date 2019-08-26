@@ -109,6 +109,7 @@ module KubernetesDeploy
 
     def initialize(namespace:, context:, current_sha:, template_dir:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil)
+      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, logger)
       @namespace = namespace
       @namespace_tags = []
       @context = context
@@ -551,9 +552,7 @@ module KubernetesDeploy
         end
       end
       raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn(KubernetesDeploy::Errors.server_version_warning(server_version))
-      end
+      TaskConfigValidator.new(@task_config, only: [:validate_server_version]).valid?
     end
 
     def confirm_namespace_exists

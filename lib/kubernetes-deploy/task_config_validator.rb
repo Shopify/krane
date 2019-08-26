@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 module KubernetesDeploy
-  class Validator
+  class TaskConfigValidator
     DEFAULT_VALIDATIONS = %i(
       validate_kubeconfig
       validate_context_exists
@@ -8,18 +8,19 @@ module KubernetesDeploy
       validate_server_version
     ).freeze
 
-    delegate :context, :namespace, :logger, :kubectl, :kubeclient_builder, to: :@task_config
+    delegate :context, :namespace, :logger, to: :@task_config
 
-    def initialize(task_config)
+    def initialize(task_config, only: nil)
       @task_config = task_config
       @errors = nil
+      @validations = only || DEFAULT_VALIDATIONS
     end
 
     def valid?
       @errors = []
-      DEFAULT_VALIDATIONS.each do |validator_name|
-        send(validator_name)
+      @validations.each do |validator_name|
         break if @errors.present?
+        send(validator_name)
       end
       @errors.empty?
     end
@@ -79,8 +80,13 @@ module KubernetesDeploy
 
     def validate_server_version
       if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
+        logger.warn(server_version_warning(kubectl.server_version))
       end
+    end
+
+    def server_version_warning(server_version)
+      "Minimum cluster version requirement of #{MIN_KUBE_VERSION} not met. "\
+      "Using #{server_version} could result in unexpected behavior as it is no longer tested against"
     end
   end
 end
