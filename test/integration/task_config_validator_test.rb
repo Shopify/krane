@@ -1,13 +1,18 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class ValidatorTest < KubernetesDeploy::IntegrationTest
+class TaskConfigValidatorTest < KubernetesDeploy::IntegrationTest
   def test_valid_configuration
     assert_predicate(validator(context: KubeclientHelper::TEST_CONTEXT, namespace: 'default'), :valid?)
   end
 
   def test_invalid_kubeconfig
     assert_match(/Context test-context missing from/, validator.errors.join("\n"))
+  end
+
+  def test_only_is_respected
+    validator = KubernetesDeploy::TaskConfigValidator.new(task_config, nil, nil, only: [])
+    assert_predicate(validator, :valid?)
   end
 
   def test_context_does_not_exists
@@ -35,7 +40,11 @@ class ValidatorTest < KubernetesDeploy::IntegrationTest
   private
 
   def validator(context: nil, namespace: nil, logger: nil)
-    KubernetesDeploy::Validator.new(task_config(context: context, namespace: namespace, logger: logger))
+    config = task_config(context: context, namespace: namespace, logger: logger)
+    kubectl = KubernetesDeploy::Kubectl.new(namespace: config.namespace,
+      context: config.context, logger: config.logger, log_failure_by_default: true)
+    kubeclient_builder = KubernetesDeploy::KubeclientBuilder.new
+    KubernetesDeploy::TaskConfigValidator.new(config, kubectl, kubeclient_builder)
   end
 
   def task_config(context: nil, namespace: nil, logger: nil)

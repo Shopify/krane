@@ -10,8 +10,10 @@ module KubernetesDeploy
 
     delegate :context, :namespace, :logger, to: :@task_config
 
-    def initialize(task_config, only: nil)
+    def initialize(task_config, kubectl, kubeclient_builder, only: nil)
       @task_config = task_config
+      @kubectl = kubectl
+      @kubeclient_builder = kubeclient_builder
       @errors = nil
       @validations = only || DEFAULT_VALIDATIONS
     end
@@ -33,7 +35,7 @@ module KubernetesDeploy
     private
 
     def validate_kubeconfig
-      @errors += kubeclient_builder.validate_config_files
+      @errors += @kubeclient_builder.validate_config_files
     end
 
     def validate_context_exists
@@ -41,7 +43,7 @@ module KubernetesDeploy
         return @errors << "Context can not be blank"
       end
 
-      _, err, st = kubectl.run("config", "get-contexts", context, "-o", "name",
+      _, err, st = @kubectl.run("config", "get-contexts", context, "-o", "name",
         use_namespace: false, use_context: false, log_failure: false)
 
       unless st.success?
@@ -53,7 +55,7 @@ module KubernetesDeploy
         return
       end
 
-      _, err, st = kubectl.run("get", "namespaces", "-o", "name",
+      _, err, st = @kubectl.run("get", "namespaces", "-o", "name",
         use_namespace: false, log_failure: false)
 
       unless st.success?
@@ -66,7 +68,7 @@ module KubernetesDeploy
         return @errors << "Namespace can not be blank"
       end
 
-      _, err, st = kubectl.run("get", "namespace", "-o", "name", namespace,
+      _, err, st = @kubectl.run("get", "namespace", "-o", "name", namespace,
         use_namespace: false, log_failure: false)
 
       unless st.success?
@@ -79,8 +81,8 @@ module KubernetesDeploy
     end
 
     def validate_server_version
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        logger.warn(server_version_warning(kubectl.server_version))
+      if @kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
+        logger.warn(server_version_warning(@kubectl.server_version))
       end
     end
 

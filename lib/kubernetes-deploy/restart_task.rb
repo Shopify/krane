@@ -41,7 +41,7 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
-      task_config_validator = TaskConfigValidator.new(@task_config)
+      task_config_validator = TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder)
       unless task_config_validator.valid?
         @logger.summary.add_action("Configuration invalid")
         @logger.summary.add_paragraph(task_config_validator.errors.map { |err| "- #{err}" }.join("\n"))

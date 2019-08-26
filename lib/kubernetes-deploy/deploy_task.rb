@@ -552,7 +552,7 @@ module KubernetesDeploy
         end
       end
       raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
-      TaskConfigValidator.new(@task_config, only: [:validate_server_version]).valid?
+      TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder, only: [:validate_server_version]).valid?
     end
 
     def confirm_namespace_exists

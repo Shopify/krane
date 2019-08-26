@@ -141,7 +141,7 @@ module KubernetesDeploy
         raise TaskConfigurationError, "Configuration invalid: #{errors.join(', ')}"
       end
 
-      TaskConfigValidator.new(@task_config, only: [:validate_server_version]).valid?
+      TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder, only: [:validate_server_version]).valid?
     end
 
     def get_template(template_name)
