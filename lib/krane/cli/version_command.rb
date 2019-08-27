@@ -1,16 +1,20 @@
 # frozen_string_literal: true
-require 'active_support/concern'
 
 module Krane
   module CLI
-    module VersionCommand
-      extend ActiveSupport::Concern
+    class VersionCommand
 
-      included do
-        desc "version", "Prints the version"
-        def version
-          logger.info("Krane Version: #{KubernetesDeploy::VERSION}")
-        end
+      OPTIONS = {
+        #check: { type: :string, banner: 'context',
+        #  desc: 'Verify if Krane is compatible with your local and remote k8s versions.' }
+      }
+
+      def self.from_options(options)
+        # This code will use the Validtor object being added in a different PR.
+        #if options[:check]
+        #  $stderr.puts("Checking if context: #{options[:check]} is valid")
+        #end
+        $stderr.puts("Krane Version: #{KubernetesDeploy::VERSION}")
       end
     end
   end
