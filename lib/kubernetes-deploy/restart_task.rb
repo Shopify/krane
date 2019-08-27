@@ -22,10 +22,10 @@ module KubernetesDeploy
     ANNOTATION = "shipit.shopify.io/restart"
 
     def initialize(context:, namespace:, logger: nil, max_watch_seconds: nil)
-      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, logger)
+      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
+      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
       @context = context
       @namespace = namespace
-      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @max_watch_seconds = max_watch_seconds
     end
 

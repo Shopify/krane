@@ -3,7 +3,8 @@ module KubernetesDeploy
   class TaskConfigValidator
     DEFAULT_VALIDATIONS = %i(
       validate_kubeconfig
-      validate_context_exists
+      validate_context_exists_in_kubeconfig
+      validate_context_reachable
       validate_namespace_exists
       validate_server_version
     ).freeze
@@ -38,7 +39,7 @@ module KubernetesDeploy
       @errors += @kubeclient_builder.validate_config_files
     end
 
-    def validate_context_exists
+    def validate_context_exists_in_kubeconfig
       unless context.present?
         return @errors << "Context can not be blank"
       end
@@ -52,9 +53,10 @@ module KubernetesDeploy
         else
           "Something went wrong. #{err} "
         end
-        return
       end
+    end
 
+    def validate_context_reachable
       _, err, st = @kubectl.run("get", "namespaces", "-o", "name",
         use_namespace: false, log_failure: false)
 

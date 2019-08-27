@@ -109,13 +109,13 @@ module KubernetesDeploy
 
     def initialize(namespace:, context:, current_sha:, template_dir:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil)
-      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, logger)
+      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
+      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
       @namespace = namespace
       @namespace_tags = []
       @context = context
       @current_sha = current_sha
       @template_dir = File.expand_path(template_dir)
-      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @kubectl = kubectl_instance
       @max_watch_seconds = max_watch_seconds
       @renderer = KubernetesDeploy::Renderer.new(
