@@ -7,9 +7,11 @@ module KubernetesDeploy
       super
       if exists? && selector.present?
         @related_deployments = cache.get_all(Deployment.kind, selector)
+        @related_statefulsets = cache.get_all(StatefulSet.kind, selector)
         @related_pods = cache.get_all(Pod.kind, selector)
       else
         @related_deployments = []
+        @related_statefulsets = []
         @related_pods = []
       end
     end
@@ -30,7 +32,7 @@ module KubernetesDeploy
       return false unless exists?
       return exists? unless requires_endpoints?
       # We can't use endpoints if we want the service to be able to fail fast when the pods are down
-      exposes_zero_replica_deployment? || selects_some_pods?
+      exposes_zero_replica_workload? || selects_some_pods?
     end
 
     def deploy_failed?
@@ -43,7 +45,7 @@ module KubernetesDeploy
 
     private
 
-    def exposes_zero_replica_deployment?
+    def exposes_zero_replica_workload?
       return false unless related_replica_count
       related_replica_count == 0
     end
@@ -69,8 +71,12 @@ module KubernetesDeploy
 
     def related_replica_count
       return 0 unless selector.present?
-      return if @related_deployments.blank?
-      @related_deployments.inject(0) { |sum, d| sum + d["spec"]["replicas"].to_i }
+
+      if @related_deployments.present?
+        @related_deployments.inject(0) { |sum, d| sum + d["spec"]["replicas"].to_i }
+      elsif @related_statefulsets.present?
+        @related_statefulsets.inject(0) { |sum, d| sum + d["spec"]["replicas"].to_i }
+      end
     end
 
     def external_name_svc?

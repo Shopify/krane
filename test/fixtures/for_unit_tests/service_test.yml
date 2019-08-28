@@ -139,3 +139,36 @@ spec:
       containers:
       - name: app
         image: busybox
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zero-replica-statefulset
+spec:
+  selector:
+    type: zero-replica-statefulset
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  labels:
+    type: zero-replica-statefulset
+  name: stateful-busybox
+spec:
+  serviceName: "zero-replica-statefulset"
+  replicas: 0
+  template:
+    metadata:
+      labels:
+        app: hello-cloud
+        name: stateful-busybox
+        type: zero-replica-statefulset
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        ports:
+        - containerPort: 80
