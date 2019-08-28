@@ -135,6 +135,34 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
+  def test_crd_pruning_deprecated
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml widgets_deprecated.yml)))
+    assert_logs_match_all([
+      "Phase 1: Initializing deploy",
+      "Detected non-namespaced resources which will never be pruned:",
+      " - CustomResourceDefinition/mail.stable.example.io",
+      "Phase 3: Deploying all resources",
+      "CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
+      %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted},
+      "Template warning:",
+      "kubernetes-deploy.shopify.io as a prefix for annotations is deprecated:",
+    ])
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml widgets_cr.yml configmap-data.yml)))
+    # Deploy any other non-priority (predeployable) resource to trigger pruning
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(configmap-data.yml configmap2.yml)))
+
+    assert_predicate(build_kubectl.run("get", "mail.stable.example.io", "my-first-mail").last, :success?)
+    refute_logs_match(
+      /The following resources were pruned: #{prune_matcher("mail", "stable.example.io", "my-first-mail")}/
+    )
+    assert_logs_match_all([
+      /The following resources were pruned: #{prune_matcher("widget", "stable.example.io", "my-first-widget")}/,
+      "Pruned 1 resource and successfully deployed 2 resource",
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
   def test_crd_pruning
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml widgets.yml)))
     assert_logs_match_all([
@@ -161,8 +189,8 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_custom_resources_predeployed
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml things.yml widgets.yml)) do |f|
+  def test_custom_resources_predeployed_deprecated
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml things.yml widgets_deprecated.yml)) do |f|
       mail = f.dig("mail.yml", "CustomResourceDefinition").first
       mail["metadata"]["annotations"] = {}
 
@@ -171,9 +199,40 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
         "kubernetes-deploy.shopify.io/predeployed" => "true",
       }
 
-      widgets = f.dig("widgets.yml", "CustomResourceDefinition").first
+      widgets = f.dig("widgets_deprecated.yml", "CustomResourceDefinition").first
       widgets["metadata"]["annotations"] = {
         "kubernetes-deploy.shopify.io/predeployed" => "false",
+      }
+    end)
+    reset_logger
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml things_cr.yml widgets_cr.yml)))
+    assert_logs_match_all([
+      /Phase 3: Predeploying priority resources/,
+      %r{Successfully deployed in \d.\ds: Mail/my-first-mail},
+      %r{Successfully deployed in \d.\ds: Thing/my-first-thing},
+      /Phase 4: Deploying all resources/,
+      %r{Successfully deployed in \d.\ds: Mail/my-first-mail, Thing/my-first-thing, Widget/my-first-widget},
+    ], in_order: true)
+    refute_logs_match(
+      %r{Successfully deployed in \d.\ds: Widget/my-first-widget},
+    )
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_custom_resources_predeployed
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml things.yml widgets.yml)) do |f|
+      mail = f.dig("mail.yml", "CustomResourceDefinition").first
+      mail["metadata"]["annotations"] = {}
+
+      things = f.dig("things.yml", "CustomResourceDefinition").first
+      things["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true",
+      }
+
+      widgets = f.dig("widgets.yml", "CustomResourceDefinition").first
+      widgets["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "false",
       }
     end)
     reset_logger
@@ -242,6 +301,17 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
   end
 
+  def test_cr_deploys_without_rollout_conditions_when_none_present_deprecated
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_deprecated.yml)))
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
+    assert_logs_match_all([
+      "Don't know how to monitor resources of type Widget. Assuming Widget/my-first-widget deployed successfully.",
+      %r{Widget/my-first-widget\s+Exists},
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
   def test_cr_deploys_without_rollout_conditions_when_none_present
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets.yml)))
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
@@ -255,6 +325,35 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
 
   def test_cr_success_with_default_rollout_conditions
     assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_conditions.yml"]))
+    success_conditions = {
+      "status" => {
+        "observedGeneration" => 1,
+        "conditions" => [
+          {
+            "type" => "Ready",
+            "reason" => "test",
+            "message" => "test",
+            "status" => "True",
+          },
+        ],
+      },
+    }
+
+    result = deploy_fixtures("crd", subset: ["with_default_conditions_cr.yml"]) do |resource|
+      cr = resource["with_default_conditions_cr.yml"]["Parameterized"].first
+      cr.merge!(success_conditions)
+    end
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Successfully deployed in .*: Parameterized\/with-default-params},
+      %r{Parameterized/with-default-params\s+Healthy},
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
+  def test_cr_succes_with_default_rollout_conditions_deprecated_annotation
+    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_conditions_deprecated.yml"]))
     success_conditions = {
       "status" => {
         "observedGeneration" => 1,

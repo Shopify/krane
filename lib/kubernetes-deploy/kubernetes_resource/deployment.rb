@@ -4,7 +4,9 @@ require 'kubernetes-deploy/kubernetes_resource/replica_set'
 module KubernetesDeploy
   class Deployment < KubernetesResource
     TIMEOUT = 7.minutes
-    REQUIRED_ROLLOUT_ANNOTATION = 'kubernetes-deploy.shopify.io/required-rollout'
+    REQUIRED_ROLLOUT_ANNOTATION_SUFFIX = "required-rollout"
+    REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED = "kubernetes-deploy.shopify.io/#{REQUIRED_ROLLOUT_ANNOTATION_SUFFIX}"
+    REQUIRED_ROLLOUT_ANNOTATION = "krane.shopify.io/#{REQUIRED_ROLLOUT_ANNOTATION_SUFFIX}"
     REQUIRED_ROLLOUT_TYPES = %w(maxUnavailable full none).freeze
     DEFAULT_REQUIRED_ROLLOUT = 'full'
 
@@ -103,8 +105,8 @@ module KubernetesDeploy
 
       strategy = @definition.dig('spec', 'strategy', 'type').to_s
       if required_rollout.downcase == 'maxunavailable' && strategy.present? && strategy.downcase != 'rollingupdate'
-        @validation_errors << "'#{REQUIRED_ROLLOUT_ANNOTATION}: #{required_rollout}' is incompatible "\
-        "with strategy '#{strategy}'"
+        @validation_errors << "'#{krane_annotation_key(REQUIRED_ROLLOUT_ANNOTATION_SUFFIX)}: #{required_rollout}' "\
+          "is incompatible with strategy '#{strategy}'"
       end
 
       @validation_errors.empty?
@@ -148,7 +150,7 @@ module KubernetesDeploy
     end
 
     def rollout_annotation_err_msg
-      "'#{REQUIRED_ROLLOUT_ANNOTATION}: #{required_rollout}' is invalid. "\
+      "'#{krane_annotation_key(REQUIRED_ROLLOUT_ANNOTATION_SUFFIX)}: #{required_rollout}' is invalid. "\
         "Acceptable values: #{REQUIRED_ROLLOUT_TYPES.join(', ')}"
     end
 
@@ -201,7 +203,7 @@ module KubernetesDeploy
     end
 
     def required_rollout
-      @definition.dig('metadata', 'annotations', REQUIRED_ROLLOUT_ANNOTATION).presence || DEFAULT_REQUIRED_ROLLOUT
+      krane_annotation_value("required-rollout") || DEFAULT_REQUIRED_ROLLOUT
     end
 
     def percent?(value)
