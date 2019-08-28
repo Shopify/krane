@@ -8,13 +8,13 @@ module KubernetesDeploy
     def sync(cache)
       super
       if exists? && selector.present?
-        @related_deployments = cache.get_all(Deployment.kind, selector)
-        @related_statefulsets = cache.get_all(StatefulSet.kind, selector)
         @related_pods = cache.get_all(Pod.kind, selector)
+        # Optimization: assume that the pod selector matches the workload selector
+        @related_workloads = workloads_fetcher(cache, selector)
+        @related_workloads = workloads_fetcher(cache, nil) if @related_workloads.blank?
       else
-        @related_deployments = []
-        @related_statefulsets = []
         @related_pods = []
+        @related_workloads = []
       end
     end
 
@@ -48,6 +48,15 @@ module KubernetesDeploy
 
     private
 
+    def workloads_fetcher(cache, workload_selector)
+      related_deployments = cache.get_all(Deployment.kind, workload_selector)
+      related_statefulsets = cache.get_all(StatefulSet.kind, workload_selector)
+      (related_deployments + related_statefulsets).select do |workload|
+        # verify that the workload is responsible for pods that match the selector
+        selector.all? { |k, v| workload['spec']['template']['metadata']['labels'][k] == v }
+      end
+    end
+
     def exposes_zero_replica_workload?
       return false unless related_replica_count
       related_replica_count == 0
@@ -75,10 +84,8 @@ module KubernetesDeploy
     def related_replica_count
       return 0 unless selector.present?
 
-      if @related_deployments.present?
-        @related_deployments.inject(0) { |sum, d| sum + d["spec"]["replicas"].to_i }
-      elsif @related_statefulsets.present?
-        @related_statefulsets.inject(0) { |sum, d| sum + d["spec"]["replicas"].to_i }
+      if @related_workloads.present?
+        @related_workloads.inject(0) { |sum, d| sum + d["spec"]["replicas"].to_i }
       end
     end
 

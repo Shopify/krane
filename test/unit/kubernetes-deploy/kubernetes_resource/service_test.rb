@@ -136,6 +136,21 @@ class ServiceTest < KubernetesDeploy::TestCase
     assert_equal("Doesn't require any endpoints", svc.status)
   end
 
+  def test_service_finds_deployment_with_different_pod_and_workload_labels
+    svc_def = service_fixture('standard-mis-matched-lables')
+    svc = build_service(svc_def)
+
+    stub_kind_get("Service", items: [svc_def])
+    stub_kind_get("Deployment", items: deployment_fixtures)
+    stub_kind_get("Pod", items: pod_fixtures)
+    stub_kind_get("StatefulSet", items: [])
+    svc.sync(build_resource_cache)
+
+    assert(svc.exists?)
+    assert(svc.deploy_succeeded?)
+    assert_equal("Doesn't require any endpoints", svc.status)
+  end
+
   private
 
   def build_service(definition)
