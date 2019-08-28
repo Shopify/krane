@@ -69,6 +69,8 @@ module KubernetesDeploy
         ConfigMap
         PersistentVolumeClaim
         ServiceAccount
+        ClusterRole
+        ClusterRoleBinding
         Role
         RoleBinding
         Secret
