@@ -143,6 +143,18 @@ module FixtureSetAssertions
       assert(desired.present?, "Service account #{name} does not exist")
     end
 
+    def assert_clusterrole_present(name)
+      cluster_roles = rbac_v1_kubeclient.get_cluster_roles
+      desired = cluster_roles.find { |sa| sa.metadata.name == name }
+      assert(desired.present?, "ClusterRole #{name} does not exist")
+    end
+
+    def assert_clusterrole_binding_present(name)
+      cluster_role_bindings = rbac_v1_kubeclient.get_cluster_role_bindings
+      desired = cluster_role_bindings.find { |sa| sa.metadata.name == name }
+      assert(desired.present?, "ClusterRole binding #{name} does not exist")
+    end
+
     def assert_role_present(name)
       roles = rbac_v1_kubeclient.get_roles(namespace: namespace)
       desired = roles.find { |sa| sa.metadata.name == name }

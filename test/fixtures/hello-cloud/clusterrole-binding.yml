@@ -1,0 +1,13 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: clusterrole
+subjects:
+- kind: ServiceAccount
+  name: build-robot
+  namespace: default
