@@ -43,6 +43,7 @@ require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/cluster_resource_discovery'
 require 'kubernetes-deploy/template_set'
+require 'kubernetes-deploy/template_sets'
 
 module KubernetesDeploy
   class DeployTask
@@ -215,7 +216,7 @@ module KubernetesDeploy
     end
 
     def ejson_provisioners
-      @ejson_provisoners ||= @template_sets.select(&:ejson_secrets_file).map do |template_set|
+      @ejson_provisoners ||= @template_sets.ejson_secrets_file.compact.map do |template_set|
         EjsonSecretProvisioner.new(
           namespace: @namespace,
           context: @context,
@@ -287,14 +288,12 @@ module KubernetesDeploy
       @logger.info("Discovering resources:")
       resources = []
       crds_by_kind = cluster_resource_discoverer.crds.group_by(&:kind)
-      @template_sets.each do |template_set|
-        template_set.with_resource_definitions(render_erb: true) do |r_def|
-          crd = crds_by_kind[r_def["kind"]]&.first
-          r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-            statsd_tags: @namespace_tags, crd: crd)
-          resources << r
-          @logger.info("  - #{r.id}")
-        end
+      @template_sets.with_resource_definitions(render_erb: true) do |r_def|
+        crd = crds_by_kind[r_def["kind"]]&.first
+        r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
+          statsd_tags: @namespace_tags, crd: crd)
+        resources << r
+        @logger.info("  - #{r.id}")
       end
 
       secrets_from_ejson.each do |secret|
@@ -329,7 +328,7 @@ module KubernetesDeploy
     def validate_configuration(allow_protected_ns:, prune:)
       errors = []
       errors += kubeclient_builder.validate_config_files
-      errors += @template_sets.flat_map(&:validate)
+      errors += @template_sets.validate
 
       if @namespace.blank?
         errors << "Namespace must be specified"
