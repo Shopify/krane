@@ -1,8 +1,13 @@
 # frozen_string_literal: true
 require 'tempfile'
 
+require 'kubernetes-deploy/common'
 require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/kubectl'
+require 'kubernetes-deploy/resource_cache'
+require 'kubernetes-deploy/resource_watcher'
+require 'kubernetes-deploy/kubernetes_resource'
+require 'kubernetes-deploy/kubernetes_resource/pod'
 
 module KubernetesDeploy
   class RunnerTask
@@ -10,8 +15,8 @@ module KubernetesDeploy
 
     attr_reader :pod_name
 
-    def initialize(namespace:, context:, logger:, max_watch_seconds: nil)
-      @logger = logger
+    def initialize(namespace:, context:, logger: nil, max_watch_seconds: nil)
+      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @namespace = namespace
       @context = context
       @max_watch_seconds = max_watch_seconds

@@ -1,4 +1,8 @@
 # frozen_string_literal: true
+
+require 'kubernetes-deploy/concurrency'
+require 'kubernetes-deploy/resource_cache'
+
 module KubernetesDeploy
   class ResourceWatcher
     extend KubernetesDeploy::StatsD::MeasureMethods

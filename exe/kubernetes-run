@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'kubernetes-deploy'
 require 'kubernetes-deploy/runner_task'
+require 'kubernetes-deploy/options_helper'
 require 'optparse'
 
 template = "task-runner-template"
@@ -25,12 +25,10 @@ end
 
 namespace = ARGV[0]
 context = ARGV[1]
-logger = KubernetesDeploy::FormattedLogger.build(namespace, context)
 
 runner = KubernetesDeploy::RunnerTask.new(
   namespace: namespace,
   context: context,
-  logger: logger,
   max_watch_seconds: max_watch_seconds
 )
 
