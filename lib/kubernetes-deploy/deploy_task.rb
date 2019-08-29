@@ -42,7 +42,6 @@ require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/cluster_resource_discovery'
-require 'kubernetes-deploy/template_set'
 require 'kubernetes-deploy/template_sets'
 
 module KubernetesDeploy
@@ -216,7 +215,7 @@ module KubernetesDeploy
     end
 
     def ejson_provisioners
-      @ejson_provisoners ||= @template_sets.ejson_secrets_file.compact.map do |template_set|
+      @ejson_provisoners ||= @template_sets.ejson_secrets_files.map do |template_set|
         EjsonSecretProvisioner.new(
           namespace: @namespace,
           context: @context,

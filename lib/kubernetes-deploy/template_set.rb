@@ -2,30 +2,6 @@
 
 module KubernetesDeploy
   class TemplateSet
-    VALID_TEMPLATES = %w(.yml.erb .yml .yaml .yaml.erb)
-    class << self
-      def with_dirs_and_files(dirs_and_files)
-        resource_templates = {}
-        dir_paths, file_paths = dirs_and_files.partition { |path| File.directory?(path) }
-
-        # Directory paths
-        dir_paths.each_with_object(resource_templates) do |template_dir, hash|
-          hash[template_dir] = Dir.foreach(template_dir).select do |filename|
-            filename.end_with?(*VALID_TEMPLATES) || filename == EjsonSecretProvisioner::EJSON_SECRETS_FILE
-          end
-        end
-        # Filename paths
-        file_paths.each_with_object(resource_templates) do |filename, hash|
-          dir_name = File.dirname(filename)
-          hash[dir_name] ||= []
-          hash[dir_name] << File.basename(filename) unless hash[dir_name].include?(filename)
-        end
-        resource_templates.map do |path, files|
-          yield path, files
-        end
-      end
-    end
-
     def initialize(template_dir:, file_whitelist: [], logger:, renderer:)
       @template_dir = template_dir
       @files = file_whitelist
@@ -52,7 +28,7 @@ module KubernetesDeploy
     def validate
       errors = []
       if Dir.entries(@template_dir).none? do |filename|
-           filename.end_with?(*VALID_TEMPLATES) || EjsonSecretProvisioner::EJSON_SECRETS_FILE
+           filename.end_with?(*TemplateSets::VALID_TEMPLATES) || EjsonSecretProvisioner::EJSON_SECRETS_FILE
          end
         return errors << "Template directory #{@template_dir} does not contain any valid templates"
       end

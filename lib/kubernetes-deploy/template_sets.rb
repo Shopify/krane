@@ -1,11 +1,11 @@
 # frozen_string_literal: true
+require 'kubernetes-deploy/template_set'
 
 module KubernetesDeploy
   class TemplateSets
     VALID_TEMPLATES = %w(.yml.erb .yml .yaml .yaml.erb)
     class << self
       def new_from_dirs_and_files(dirs_and_files, logger:, current_sha:, bindings:)
-        template_sets = TemplateSets.new
         resource_templates = {}
         dir_paths, file_paths = dirs_and_files.partition { |path| File.directory?(path) }
 
@@ -20,7 +20,9 @@ module KubernetesDeploy
           dir_name = File.dirname(filename)
           hash[dir_name] ||= []
           hash[dir_name] << File.basename(filename) unless hash[dir_name].include?(filename)
-        end
+				end
+				
+				template_sets = TemplateSets.new
         resource_templates.map do |path, files|
           template_sets << TemplateSet.new(template_dir: path, file_whitelist: files, logger: logger,
               renderer: Renderer.new(
@@ -46,8 +48,8 @@ module KubernetesDeploy
       end
     end
 
-    def ejson_secrets_file
-      @template_sets.flat_map(&:ejson_secrets_file)
+    def ejson_secrets_files
+      @template_sets.map(&:ejson_secrets_file).compact
     end
 
     def validate
