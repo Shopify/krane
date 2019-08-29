@@ -9,9 +9,7 @@ module KubernetesDeploy
       super
       if exists? && selector.present?
         @related_pods = cache.get_all(Pod.kind, selector)
-        # Optimization: assume that the pod selector matches the workload selector
-        @related_workloads = workloads_fetcher(cache, selector)
-        @related_workloads = workloads_fetcher(cache, nil) if @related_workloads.blank?
+        @related_workloads = fetch_related_workloads(cache)
       else
         @related_pods = []
         @related_workloads = []
@@ -48,11 +46,10 @@ module KubernetesDeploy
 
     private
 
-    def workloads_fetcher(cache, workload_selector)
-      related_deployments = cache.get_all(Deployment.kind, workload_selector)
-      related_statefulsets = cache.get_all(StatefulSet.kind, workload_selector)
+    def fetch_related_workloads(cache)
+      related_deployments = cache.get_all(Deployment.kind)
+      related_statefulsets = cache.get_all(StatefulSet.kind)
       (related_deployments + related_statefulsets).select do |workload|
-        # verify that the workload is responsible for pods that match the selector
         selector.all? { |k, v| workload['spec']['template']['metadata']['labels'][k] == v }
       end
     end

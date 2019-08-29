@@ -191,7 +191,7 @@ spec:
   replicas: 0
   selector:
     matchLabels:
-      type: mis-matched-deployment
+      type: mis-matched-pod
   template:
     metadata:
       labels:
