@@ -7,8 +7,7 @@ class TaskConfigValidatorTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_only_is_respected
-    validator = KubernetesDeploy::TaskConfigValidator.new(task_config, nil, nil, only: [])
-    assert_predicate(validator, :valid?)
+    assert_predicate(validator(only: []), :valid?)
   end
 
   def test_invalid_kubeconfig

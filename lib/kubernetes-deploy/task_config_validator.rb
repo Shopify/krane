@@ -5,8 +5,8 @@ module KubernetesDeploy
       validate_kubeconfig
       validate_context_exists_in_kubeconfig
       validate_context_reachable
-      validate_namespace_exists
       validate_server_version
+      validate_namespace_exists
     ).freeze
 
     delegate :context, :namespace, :logger, to: :@task_config
