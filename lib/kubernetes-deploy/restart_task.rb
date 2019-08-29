@@ -41,14 +41,9 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
-      task_config_validator = TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder)
-      unless task_config_validator.valid?
-        @logger.summary.add_action("Configuration invalid")
-        @logger.summary.add_paragraph(task_config_validator.errors.map { |err| "- #{err}" }.join("\n"))
-        raise KubernetesDeploy::TaskConfigurationError
-      end
-
+      verify_config!
       deployments = identify_target_deployments(deployments_names, selector: selector)
+
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
 
@@ -171,6 +166,15 @@ module KubernetesDeploy
           },
         },
       }
+    end
+
+    def verify_config!
+      task_config_validator = TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder)
+      unless task_config_validator.valid?
+        @logger.summary.add_action("Configuration invalid")
+        @logger.summary.add_paragraph(task_config_validator.errors.map { |err| "- #{err}" }.join("\n"))
+        raise KubernetesDeploy::TaskConfigurationError
+      end
     end
 
     def kubeclient
