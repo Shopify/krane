@@ -42,7 +42,7 @@ module KubernetesDeploy
 
     def with_resource_definitions(render_erb: false)
       @template_sets.flat_map do |template_set|
-        template_set.with_resource_definitions do |r_def|
+        template_set.with_resource_definitions(render_erb: render_erb) do |r_def|
           yield r_def
         end
       end
