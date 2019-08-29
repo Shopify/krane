@@ -4,18 +4,18 @@ require 'krane/cli/krane'
 
 class KraneTest < KubernetesDeploy::TestCase
   def test_version_prints_current_version
-    assert_output(nil, /Krane Version: #{KubernetesDeploy::VERSION}/) { krane.version }
+    assert_output(/krane #{KubernetesDeploy::VERSION}/) { krane.version }
   end
 
   def test_version_success_as_black_box
-    out, err, status = krane_black_box
+    out, err, status = krane_black_box("version")
     assert_predicate(status, :success?)
-    assert_empty(out)
-    assert_match(KubernetesDeploy::VERSION, err)
+    assert_empty(err)
+    assert_match(KubernetesDeploy::VERSION, out)
   end
 
   def test_version_failure_as_black_box
-    out, err, status = krane_black_box("-q")
+    out, err, status = krane_black_box("version", "-q")
     assert_equal(status.exitstatus, 1)
     assert_empty(out)
     assert_match("ERROR", err)
@@ -27,8 +27,8 @@ class KraneTest < KubernetesDeploy::TestCase
     Krane::CLI::Krane.new
   end
 
-  def krane_black_box(args = "")
+  def krane_black_box(command, args = "")
     path = File.expand_path("../../../exe/krane", __FILE__)
-    Open3.capture3("#{path} version #{args}")
+    Open3.capture3("#{path} #{command} #{args}")
   end
 end
