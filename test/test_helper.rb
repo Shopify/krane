@@ -218,6 +218,10 @@ module KubernetesDeploy
       end
     end
 
+    def task_config(context: KubeclientHelper::TEST_CONTEXT, namespace: @namespace, logger: @logger)
+      KubernetesDeploy::TaskConfig.new(context, namespace, logger)
+    end
+
     private
 
     def log_to_real_fds?

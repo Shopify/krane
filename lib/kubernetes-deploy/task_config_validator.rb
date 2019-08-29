@@ -61,7 +61,7 @@ module KubernetesDeploy
         use_namespace: false, log_failure: false)
 
       unless st.success?
-        @errors << "Something went wrong connectting to #{context}. #{err} "
+        @errors << "Something went wrong connecting to #{context}. #{err} "
       end
     end
 
@@ -75,7 +75,7 @@ module KubernetesDeploy
 
       unless st.success?
         @errors << if err.match("Error from server [(]NotFound[)]: namespace")
-          "Cloud not find Namespace: #{namespace} in Context: #{context}"
+          "Could not find Namespace: #{namespace} in Context: #{context}"
         else
           "Could not connect to kubernetes cluster. #{err}"
         end

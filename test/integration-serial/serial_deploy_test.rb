@@ -75,7 +75,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       'Result: FAILURE',
       'Configuration invalid',
-      "Kube config not found at #{config_file}",
+      "Kubeconfig not found at #{config_file}",
     ], in_order: true)
     reset_logger
 
@@ -85,7 +85,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match_all([
       'Result: FAILURE',
       'Configuration invalid',
-      "Kube config file name(s) not set in $KUBECONFIG",
+      "Kubeconfig file name(s) not set in $KUBECONFIG",
     ], in_order: true)
     reset_logger
 

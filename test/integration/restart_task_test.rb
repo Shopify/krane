@@ -188,7 +188,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_restart_failure(restart.perform(%w(web)))
     assert_logs_match_all([
       "Result: FAILURE",
-      "- Cloud not find Namespace: walrus in Context: #{KubeclientHelper::TEST_CONTEXT}",
+      "- Could not find Namespace: walrus in Context: #{KubeclientHelper::TEST_CONTEXT}",
     ],
       in_order: true)
   end
