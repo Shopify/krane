@@ -14,7 +14,7 @@ module Krane
         #if options[:check]
         #  $stderr.puts("Checking if context: #{options[:check]} is valid")
         #end
-        $stderr.puts("Krane Version: #{KubernetesDeploy::VERSION}")
+        puts("krane #{KubernetesDeploy::VERSION}")
       end
     end
   end
