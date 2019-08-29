@@ -215,12 +215,12 @@ module KubernetesDeploy
     end
 
     def ejson_provisioners
-      @ejson_provisoners ||= @template_sets.ejson_secrets_files.map do |template_set|
+      @ejson_provisoners ||= @template_sets.ejson_secrets_files.map do |ejson_secret_file|
         EjsonSecretProvisioner.new(
           namespace: @namespace,
           context: @context,
           ejson_keys_secret: ejson_keys_secret,
-          ejson_file: template_set.ejson_secrets_file,
+          ejson_file: ejson_secrets_file,
           logger: @logger,
           statsd_tags: @namespace_tags,
           selector: @selector,

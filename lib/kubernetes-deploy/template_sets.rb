@@ -20,9 +20,9 @@ module KubernetesDeploy
           dir_name = File.dirname(filename)
           hash[dir_name] ||= []
           hash[dir_name] << File.basename(filename) unless hash[dir_name].include?(filename)
-				end
-				
-				template_sets = TemplateSets.new
+        end
+
+        template_sets = TemplateSets.new
         resource_templates.map do |path, files|
           template_sets << TemplateSet.new(template_dir: path, file_whitelist: files, logger: logger,
               renderer: Renderer.new(
@@ -36,8 +36,12 @@ module KubernetesDeploy
       end
     end
 
-    def <<(template_set)
-      @template_sets << template_set
+		def <<(template_set)
+			if template_set.is_a?(TemplateSet)
+				@template_sets << template_set
+			else
+				raise InvalidTemplateError, "Expected TemplateSet but got #{template_set.class}"
+			end
     end
 
     def with_resource_definitions(render_erb: false)
