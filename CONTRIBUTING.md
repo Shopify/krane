@@ -47,7 +47,7 @@ We handle Kubernetes secrets, so it is critical that changes do not cause the co
 
 **Project architecture**
 
-The main interface of this project is our four tasks: `DeployTask`, `RestartTask`, `RunnerTask`, and `RenderTask`. The code in these classes should be high-level abstractions, with implementation details encapsulated in other classes. The public interface of these tasks is a `run` method (and a `run!` equivalent), the body of which should read like a set of phases and steps.
+The main interface of this project is our four tasks: `DeployTask`, `RestartTask`, `RunnerTask`, and `RenderTask`. The code in these classes should be high-level abstractions, with implementation details encapsulated in other classes. The public interface of these tasks is a `run` method (and a `run!` equivalent), the body of which should read like a set of phases and steps. Note that non-task classes are considered internal and we reserve the right to change their API at any time.
 
 An important design principle of the tasks is that they should try to fail fast before touching the cluster if they will not succeed overall. Part of how we achieve this is by separating each task into phases, where the first phase simply gathers information and runs validations to determine what needs to be done and whether that will be able to succeed. In practice, this is the “Initializing <task>” phase for all tasks, plus the “Checking initial resource statuses” phase for DeployTask. Our users should be able to assume that these initial phases never modify their clusters.
 
