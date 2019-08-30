@@ -22,7 +22,7 @@ module KubernetesDeploy
         end
         @files.each do |filename|
           next if filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
-          templates(filename: filename, render_erb: render_erb) do |r_def|
+          templates(filename: filename) do |r_def|
             yield r_def
           end
         end
@@ -58,9 +58,9 @@ module KubernetesDeploy
 
       private
 
-      def templates(filename:, render_erb: false)
+      def templates(filename:)
         file_content = File.read(File.join(@template_dir, filename))
-        rendered_content = render_erb ? @renderer.render_template(filename, file_content) : file_content
+        rendered_content = @renderer ? @renderer.render_template(filename, file_content) : file_content
         YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
           next if doc.blank?
           unless doc.is_a?(Hash)
