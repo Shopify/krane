@@ -40,7 +40,8 @@ module KubernetesDeploy
     end
 
     def timeout_message
-      "This service does not seem to select any pods. This means its spec.selector is probably incorrect."
+      "This service does not seem to select any pods and this is likely invalid. "\
+      "Please confirm the spec.selector is correct and the targeted workload is healthy."
     end
 
     private
