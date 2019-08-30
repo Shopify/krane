@@ -31,7 +31,7 @@ ARGV.options do |opts|
     template_dir = dir
   end
   opts.on("-f [PATHS]", Array, "comma separated list of template directories and/or filenames") do |paths|
-    template_paths = paths
+    template_paths += paths
   end
 
   opts.on("--verbose-log-prefix", "Add [context][namespace] to the log prefix") { verbose_log_prefix = true }
