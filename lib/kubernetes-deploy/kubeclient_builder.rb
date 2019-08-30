@@ -106,11 +106,11 @@ module KubernetesDeploy
     def validate_config_files
       errors = []
       if @kubeconfig_files.empty?
-        errors << "Kube config file name(s) not set in $KUBECONFIG"
+        errors << "Kubeconfig file name(s) not set in $KUBECONFIG"
       else
         @kubeconfig_files.each do |f|
           # If any files in the list are not valid, we can't be sure the merged context list is what the user intended
-          errors << "Kube config not found at #{f}" unless File.file?(f)
+          errors << "Kubeconfig not found at #{f}" unless File.file?(f)
         end
       end
       errors

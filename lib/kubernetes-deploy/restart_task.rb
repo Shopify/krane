@@ -22,9 +22,10 @@ module KubernetesDeploy
     ANNOTATION = "shipit.shopify.io/restart"
 
     def initialize(context:, namespace:, logger: nil, max_watch_seconds: nil)
+      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
+      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
       @context = context
       @namespace = namespace
-      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @max_watch_seconds = max_watch_seconds
     end
 
@@ -40,11 +41,9 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
-      verify_namespace
+      verify_config!
       deployments = identify_target_deployments(deployments_names, selector: selector)
-      if kubectl.server_version < Gem::Version.new(MIN_KUBE_VERSION)
-        @logger.warn(KubernetesDeploy::Errors.server_version_warning(kubectl.server_version))
-      end
+
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
 
@@ -120,13 +119,6 @@ module KubernetesDeploy
       end
     end
 
-    def verify_namespace
-      kubeclient.get_namespace(@namespace)
-      @logger.info("Namespace #{@namespace} found in context #{@context}")
-    rescue Kubeclient::ResourceNotFoundError
-      raise NamespaceNotFoundError.new(@namespace, @context)
-    end
-
     def patch_deployment_with_restart(record)
       v1beta1_kubeclient.patch_deployment(
         record.metadata.name,
@@ -174,6 +166,15 @@ module KubernetesDeploy
           },
         },
       }
+    end
+
+    def verify_config!
+      task_config_validator = TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder)
+      unless task_config_validator.valid?
+        @logger.summary.add_action("Configuration invalid")
+        @logger.summary.add_paragraph(task_config_validator.errors.map { |err| "- #{err}" }.join("\n"))
+        raise KubernetesDeploy::TaskConfigurationError
+      end
     end
 
     def kubeclient

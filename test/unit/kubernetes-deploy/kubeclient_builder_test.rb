@@ -13,14 +13,14 @@ class KubeClientBuilderTest < KubernetesDeploy::TestCase
     builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: config_file)
     errors = builder.validate_config_files
     assert_equal(1, errors.length)
-    assert_equal(errors.first, "Kube config not found at #{config_file}")
+    assert_equal(errors.first, "Kubeconfig not found at #{config_file}")
   end
 
   def test_build_runs_config_validation
     config_file = File.join(__dir__, '../../fixtures/kube-config/unknown_config.yml')
     kubeclient_builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: config_file)
 
-    expected_err = /Kube config not found at .*unknown_config.yml/
+    expected_err = /Kubeconfig not found at .*unknown_config.yml/
     assert_raises_message(KubernetesDeploy::TaskConfigurationError, expected_err) do
       kubeclient_builder.build_v1_kubeclient('test-context')
     end
@@ -30,12 +30,12 @@ class KubeClientBuilderTest < KubernetesDeploy::TestCase
     builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: " : ")
     errors = builder.validate_config_files
     assert_equal(1, errors.length)
-    assert_equal(errors.first, "Kube config file name(s) not set in $KUBECONFIG")
+    assert_equal(errors.first, "Kubeconfig file name(s) not set in $KUBECONFIG")
 
     builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: "")
     errors = builder.validate_config_files
     assert_equal(1, errors.length)
-    assert_equal(errors.first, "Kube config file name(s) not set in $KUBECONFIG")
+    assert_equal(errors.first, "Kubeconfig file name(s) not set in $KUBECONFIG")
   end
 
   def test_multiple_valid_configuration_files
