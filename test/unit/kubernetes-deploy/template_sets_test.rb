@@ -41,6 +41,13 @@ class TemplateSetsTest < KubernetesDeploy::TestCase
     assert_equal(template_sets.validate, expected)
   end
 
+  def test_template_sets_append_raises_on_bad_type
+    template_sets = template_sets_from_paths(fixture_path("hello-cloud"))
+    assert_raises(KubernetesDeploy::InvalidTemplateError) do
+      template_sets << {}
+    end
+  end
+
   private
 
   def template_sets_from_paths(*paths)
