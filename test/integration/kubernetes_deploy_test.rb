@@ -15,7 +15,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       %r{- Pod/unmanaged-pod-2-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 24 resources",
+      "Successfully deployed 25 resources",
     ], in_order: true)
     refute_logs_match(/Using resource selector/)
 
@@ -98,6 +98,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       prune_matcher("configmap", "", "hello-cloud-configmap-data"),
       prune_matcher("pod", "", "unmanaged-pod-"),
       prune_matcher("service", "", "web"),
+      prune_matcher("service", "", "stateful-busybox"),
       prune_matcher("resourcequota", "", "resource-quotas"),
       prune_matcher("deployment", "extensions", "web"),
       prune_matcher("ingress", "extensions", "web"),
@@ -113,7 +114,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       prune_matcher("role", "rbac.authorization.k8s.io", "role"),
       prune_matcher("rolebinding", "rbac.authorization.k8s.io", "role-binding"),
     ] # not necessarily listed in this order
-    expected_msgs = [/Pruned 18 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 19 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -783,6 +784,22 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
+  def test_can_deploy_statefulset_with_zero_replicas
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "stateful_set.yml"]) do |fixtures|
+      stateful = fixtures["stateful_set.yml"]["StatefulSet"].first
+      stateful["spec"]["replicas"] = 0
+    end
+    assert_deploy_success(result)
+
+    pods = kubeclient.get_pods(namespace: @namespace)
+    assert_equal(0, pods.length, "Pods were running from zero-replica deployment")
+
+    assert_logs_match_all([
+      %r{Service/stateful-busybox\s+Doesn't require any endpoint},
+      %r{StatefulSet/stateful-busybox\s+0 replicas},
+    ])
+  end
+
   def test_deploy_successful_with_partial_availability
     result = deploy_fixtures("slow-cloud", sha: "deploy1")
     assert_deploy_success(result)
@@ -907,7 +924,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_deploy_failure(result)
     assert_logs_match_all([
-      "Failed to deploy 1 resource",
+      "Successfully deployed 1 resource and failed to deploy 1 resource",
       "StatefulSet/stateful-busybox: FAILED",
       "app: Crashing repeatedly (exit 1). See logs for more information.",
       "Events (common success events excluded):",

@@ -1,3 +1,20 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stateful-busybox
+  labels:
+    name: stateful-busybox
+    app: hello-cloud
+spec:
+  ports:
+  - port: 80
+    name: http
+    targetPort: http
+  selector:
+    name: stateful-busybox
+    app: hello-cloud
+---
 apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
