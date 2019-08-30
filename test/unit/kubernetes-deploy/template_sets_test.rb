@@ -27,7 +27,7 @@ class TemplateSetsTest < KubernetesDeploy::TestCase
     template_sets = template_sets_from_paths(bad_filepath)
     expected = [
       "File #{bad_filepath} does not have valid suffix (supported suffixes: " \
-				".yml.erb, .yml, .yaml, .yaml.erb, or secrets.ejson)",
+        ".yml.erb, .yml, .yaml, .yaml.erb, or secrets.ejson)",
     ]
     assert_equal(template_sets.validate, expected)
   end
