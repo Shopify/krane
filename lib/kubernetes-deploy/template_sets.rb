@@ -9,16 +9,17 @@ module KubernetesDeploy
         dir_paths, file_paths = paths.partition { |path| File.directory?(path) }
 
         # Directory paths
-        dir_paths.each_with_object(resource_templates) do |template_dir, hash|
-          hash[template_dir] = Dir.foreach(template_dir).select do |filename|
+        dir_paths.each do |template_dir|
+          resource_templates[template_dir] = Dir.foreach(template_dir).select do |filename|
             filename.end_with?(*VALID_TEMPLATES) || filename == EjsonSecretProvisioner::EJSON_SECRETS_FILE
           end
         end
+
         # Filename paths
-        file_paths.each_with_object(resource_templates) do |filename, hash|
+        file_paths.each do |filename|
           dir_name = File.dirname(filename)
-          hash[dir_name] ||= []
-          hash[dir_name] << File.basename(filename) unless hash[dir_name].include?(filename)
+          resource_templates[dir_name] ||= []
+          resource_templates[dir_name] << File.basename(filename) unless resource_templates[dir_name].include?(filename)
         end
 
         template_sets = TemplateSets.new

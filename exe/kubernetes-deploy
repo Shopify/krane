@@ -56,16 +56,16 @@ ARGV.options do |opts|
   bindings = parser.parse
 end
 
-# Deprecation path: this can be removed when --template-dir is fully replaced by -f
-if template_dir && !template_paths.empty?
-  puts "Error: --template-dir and -f flags cannot be combined"
-  exit(1)
-end
-template_paths = [template_dir] if template_paths.empty? && template_dir
-
 namespace = ARGV[0]
 context = ARGV[1]
 logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
+
+# Deprecation path: this can be removed when --template-dir is fully replaced by -f
+if template_dir && !template_paths.empty?
+  logger.error("Error: --template-dir and -f flags cannot be combined")
+  exit(1)
+end
+template_paths = [template_dir] if template_paths.empty? && template_dir
 
 begin
   KubernetesDeploy::OptionsHelper.with_validated_template_paths(template_paths) do |paths|
