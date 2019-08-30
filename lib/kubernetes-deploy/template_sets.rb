@@ -97,7 +97,8 @@ module KubernetesDeploy
     def validate
       errors = []
       if Dir.entries(@template_dir).none? do |filename|
-           filename.end_with?(*TemplateSets::VALID_TEMPLATES) || EjsonSecretProvisioner::EJSON_SECRETS_FILE
+           filename.end_with?(*TemplateSets::VALID_TEMPLATES) ||
+           filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
          end
         return errors << "Template directory #{@template_dir} does not contain any valid templates"
       end
@@ -105,9 +106,10 @@ module KubernetesDeploy
         filename = File.join(@template_dir, filename)
         if !File.exist?(filename)
           errors << "File #{filename} does not exist"
-        elsif !filename.end_with?(*VALID_TEMPLATES)
-          errors << "File #{filename} does not use valid suffix (supported suffixes: " \
-            "#{TemplateSets::VALID_TEMPLATES.join(", ")}, #{EjsonSecretProvisioner::EJSON_SECRETS_FILE})"
+        elsif !filename.end_with?(*TemplateSets::VALID_TEMPLATES) &&
+              !filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
+          errors << "File #{filename} does not have valid suffix (supported suffixes: " \
+            "#{TemplateSets::VALID_TEMPLATES.join(', ')}, or #{EjsonSecretProvisioner::EJSON_SECRETS_FILE})"
         end
       end
       errors
