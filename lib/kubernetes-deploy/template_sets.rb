@@ -36,12 +36,12 @@ module KubernetesDeploy
       end
     end
 
-		def <<(template_set)
-			if template_set.is_a?(TemplateSet)
-				@template_sets << template_set
-			else
-				raise InvalidTemplateError, "Expected TemplateSet but got #{template_set.class}"
-			end
+    def <<(template_set)
+      if template_set.is_a?(TemplateSet)
+        @template_sets << template_set
+      else
+        raise InvalidTemplateError, "Expected TemplateSet but got #{template_set.class}"
+      end
     end
 
     def with_resource_definitions(render_erb: false)
