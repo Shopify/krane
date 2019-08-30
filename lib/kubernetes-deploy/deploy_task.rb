@@ -106,7 +106,7 @@ module KubernetesDeploy
     def server_version
       kubectl.server_version
     end
-    
+
     def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil)
       template_dir = File.expand_path(template_dir) if template_dir
@@ -122,6 +122,7 @@ module KubernetesDeploy
       end
       @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
+      @bindings = bindings
       @namespace = namespace
       @namespace_tags = []
       @context = context
@@ -287,7 +288,8 @@ module KubernetesDeploy
       @logger.info("Discovering resources:")
       resources = []
       crds_by_kind = cluster_resource_discoverer.crds.group_by(&:kind)
-      @template_sets.with_resource_definitions(render_erb: true) do |r_def|
+      @template_sets.with_resource_definitions(render_erb: true,
+          current_sha: @current_sha, bindings: @bindings) do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
           statsd_tags: @namespace_tags, crd: crd)

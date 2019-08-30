@@ -25,7 +25,7 @@ templates = ARGV
 logger = KubernetesDeploy::FormattedLogger.build(verbose_prefix: false)
 
 begin
-  KubernetesDeploy::OptionsHelper.with_validated_template_paths(template_dir) do |dir|
+  KubernetesDeploy::OptionsHelper.with_processed_template_paths(template_dir) do |dir|
     runner = KubernetesDeploy::RenderTask.new(
       current_sha: ENV["REVISION"],
       template_dir: dir.first,

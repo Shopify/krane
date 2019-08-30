@@ -68,7 +68,7 @@ end
 template_paths = [template_dir] if template_paths.empty? && template_dir
 
 begin
-  KubernetesDeploy::OptionsHelper.with_validated_template_paths(template_paths) do |paths|
+  KubernetesDeploy::OptionsHelper.with_processed_template_paths(template_paths) do |paths|
     runner = KubernetesDeploy::DeployTask.new(
       namespace: namespace,
       context: context,
