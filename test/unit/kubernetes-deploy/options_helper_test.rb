@@ -13,15 +13,19 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
 
   def test_template_dir_with_default_env_var
     with_env("ENVIRONMENT", "test") do
-      KubernetesDeploy::OptionsHelper.with_processed_template_paths([]) do |template_paths|
-        assert_equal(template_paths, [File.join("config", "deploy", "test")])
+      assert_raises_message(KubernetesDeploy::OptionsHelper::OptionsError,
+        "Template directory config/deploy/test does not exist") do
+        KubernetesDeploy::OptionsHelper.with_processed_template_paths([])
       end
     end
   end
 
   def test_missing_template_dir_raises
     with_env("ENVIRONMENT", nil) do
-      assert_raises(KubernetesDeploy::OptionsHelper::OptionsError) do
+      assert_raises_message(KubernetesDeploy::OptionsHelper::OptionsError,
+        "Template directory is unknown. " \
+        "Either specify --template-dir argument or set $ENVIRONMENT to use config/deploy/$ENVIRONMENT " \
+        "as a default path.") do
         KubernetesDeploy::OptionsHelper.with_processed_template_paths([]) do
         end
       end

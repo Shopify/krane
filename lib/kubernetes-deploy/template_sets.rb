@@ -43,6 +43,7 @@ module KubernetesDeploy
            end
           return errors << "Template directory #{@template_dir} does not contain any valid templates"
         end
+
         @files.each do |filename|
           filename = File.join(@template_dir, filename)
           if !File.exist?(filename)

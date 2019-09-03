@@ -38,8 +38,11 @@ module KubernetesDeploy
 
         unless template_dir
           raise OptionsError, "Template directory is unknown. " \
-            "Either specify --template-dir argument or set $ENVIRONMENT to use config/deploy/$ENVIRONMENT " \
-            "as a default path."
+          "Either specify --template-dir argument or set $ENVIRONMENT to use config/deploy/$ENVIRONMENT " \
+          "as a default path."
+        end
+        unless Dir.exist?(template_dir)
+          raise OptionsError, "Template directory #{template_dir} does not exist."
         end
 
         template_dir
