@@ -97,16 +97,12 @@ module KubernetesDeploy
           resource_templates[dir_name] << File.basename(filename) unless resource_templates[dir_name].include?(filename)
         end
 
-        template_sets = TemplateSets.new
+        template_sets = []
         resource_templates.each do |template_dir, files|
           template_sets << TemplateSet.new(template_dir: template_dir, file_whitelist: files, logger: logger)
         end
-        template_sets
+        TemplateSets.new(template_sets: template_sets)
       end
-    end
-
-    def <<(template_set)
-      @template_sets << template_set
     end
 
     def with_resource_definitions(render_erb: false, current_sha: nil, bindings: nil)
@@ -131,8 +127,8 @@ module KubernetesDeploy
 
     private
 
-    def initialize
-      @template_sets = []
+    def initialize(template_sets: [])
+      @template_sets = template_sets
     end
   end
 end
