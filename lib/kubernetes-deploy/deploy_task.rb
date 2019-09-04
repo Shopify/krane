@@ -579,7 +579,7 @@ module KubernetesDeploy
 
     def ejson_keys_secret
       @ejson_keys_secret ||= begin
-        out, err, st = @kubectl.run("get", "secret", EjsonSecretProvisioner::EJSON_KEYS_SECRET, output: "json",
+        out, err, st = kubectl.run("get", "secret", EjsonSecretProvisioner::EJSON_KEYS_SECRET, output: "json",
           raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true)
         unless st.success?
           raise EjsonSecretError, "Error retrieving Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err}"
