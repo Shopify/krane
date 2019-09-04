@@ -111,16 +111,9 @@ module KubernetesDeploy
       max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil)
       template_dir = File.expand_path(template_dir) if template_dir
       template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
-      @template_sets = TemplateSet.with_dirs_and_files(template_paths) do |dir, files|
-        TemplateSet.new(
-          template_dir: dir,
-          file_whitelist: files,
-          logger: logger,
-          renderer: Renderer.new(current_sha: current_sha, logger: logger,
-            bindings: bindings, template_dir: dir)
-        )
-      end
+
       @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
+      @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths, logger: @logger)
       @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
       @bindings = bindings
       @namespace = namespace
