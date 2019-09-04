@@ -1,6 +1,8 @@
-## next
+## 0.27.0
 *Enhancements*
 - (alpha) Introduce a new `-f` flag for `kubernetes-deploy`. Allows passing in of multiple directories and/or filenames. Currently only usable by `kubernetes-deploy`, not `kubernetes-render`. [#514](https://github.com/Shopify/kubernetes-deploy/pull/514)
+- Initial implementation of shared task validation objects. [#533](https://github.com/Shopify/kubernetes-deploy/pull/533)
+- Restructure `require`s so that requiring a given task actually gives you the dependencies you need, and doesn't give what you don't need. [#487](https://github.com/Shopify/kubernetes-deploy/pull/487)
 
 - **[Breaking change]** Added ServiceAccount, PodTemplate, ReplicaSet, Role, and RoleBinding to the prune whitelist.
   * To see what resources may be affected, run `kubectl get $RESOURCE -o jsonpath='{ range .items[*] }{.metadata.namespace}{ "\t" }{.metadata.name}{ "\t" }{.metadata.annotations}{ "\n" }{ end }' --all-namespaces | grep "last-applied"`
