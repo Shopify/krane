@@ -1,5 +1,11 @@
 ## next
 
+*Enhancements*
+- Officially support Kubernetes 1.15 ([#XXX](https://github.com/Shopify/kubernetes-deploy/pull/XXX))
+
+*Other*
+- Kubernetes 1.10 is no longer officially supported as of this version
+
 ## 0.27.0
 *Enhancements*
 - (alpha) Introduce a new `-f` flag for `kubernetes-deploy`. Allows passing in of multiple directories and/or filenames. Currently only usable by `kubernetes-deploy`, not `kubernetes-render`. [#514](https://github.com/Shopify/kubernetes-deploy/pull/514)

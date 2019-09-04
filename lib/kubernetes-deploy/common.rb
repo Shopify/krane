@@ -19,6 +19,6 @@ require 'kubernetes-deploy/task_config'
 require 'kubernetes-deploy/task_config_validator'
 
 module KubernetesDeploy
-  MIN_KUBE_VERSION = '1.10.0'
+  MIN_KUBE_VERSION = '1.11.0'
   StatsD.build
 end
