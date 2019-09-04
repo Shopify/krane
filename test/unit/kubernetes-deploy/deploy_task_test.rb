@@ -14,11 +14,11 @@ class DeployTaskTest < KubernetesDeploy::TestCase
       context: "",
       logger: logger,
       current_sha: "",
-      template_dir: "unknown",
+      template_paths: ["unknown"],
     ).run
     assert_logs_match("Configuration invalid")
     assert_logs_match("Namespace must be specified")
     assert_logs_match("Context must be specified")
-    assert_logs_match(/Template directory (\S+) doesn't exist/)
+    assert_logs_match(/File (\S+) does not exist/)
   end
 end

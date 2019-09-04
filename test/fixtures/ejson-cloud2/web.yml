@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: web2
+spec:
+  replicas: 1
+  progressDeadlineSeconds: 60
+  template:
+    metadata:
+      labels:
+        name: web2
+        app: ejson-cloud
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - mountPath: /keys
+          name: ejson-keys
+        env:
+        - name: MONITORING_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: monitoring-token
+              key: api-token
+      volumes:
+      - name: ejson-keys
+        secret:
+          secretName: ejson-keys

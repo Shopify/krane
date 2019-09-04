@@ -17,10 +17,11 @@ module KubernetesDeploy
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
 
-    def initialize(namespace:, context:, template_dir:, logger:, statsd_tags:, selector: nil)
+    def initialize(namespace:, context:, ejson_keys_secret:, ejson_file:, logger:, statsd_tags:, selector: nil)
       @namespace = namespace
       @context = context
-      @ejson_file = "#{template_dir}/#{EJSON_SECRETS_FILE}"
+      @ejson_keys_secret = ejson_keys_secret
+      @ejson_file = ejson_file
       @logger = logger
       @statsd_tags = statsd_tags
       @selector = selector
@@ -37,20 +38,12 @@ module KubernetesDeploy
       @resources ||= build_secrets
     end
 
-    def ejson_keys_secret
-      @ejson_keys_secret ||= begin
-        out, err, st = @kubectl.run("get", "secret", EJSON_KEYS_SECRET, output: "json",
-          raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true)
-        unless st.success?
-          raise EjsonSecretError, "Error retrieving Secret/#{EJSON_KEYS_SECRET}: #{err}"
-        end
-        JSON.parse(out)
-      end
-    end
-
     private
 
     def build_secrets
+      unless @ejson_keys_secret
+        raise EjsonSecretError, "Secret #{EJSON_KEYS_SECRET} not provided, cannot decrypt secrets"
+      end
       return [] unless File.exist?(@ejson_file)
       with_decrypted_ejson do |decrypted|
         secrets = decrypted[EJSON_SECRET_KEY]
@@ -153,7 +146,7 @@ module KubernetesDeploy
     end
 
     def fetch_private_key_from_secret
-      encoded_private_key = ejson_keys_secret["data"][public_key]
+      encoded_private_key = @ejson_keys_secret["data"][public_key]
       unless encoded_private_key
         raise EjsonSecretError, "Private key for #{public_key} not found in #{EJSON_KEYS_SECRET} secret"
       end
