@@ -1,7 +1,7 @@
 ## next
 
 *Enhancements*
-- Officially support Kubernetes 1.15 ([#XXX](https://github.com/Shopify/kubernetes-deploy/pull/XXX))
+- Officially support Kubernetes 1.15 ([#546](https://github.com/Shopify/kubernetes-deploy/pull/546))
 
 *Other*
 - Kubernetes 1.10 is no longer officially supported as of this version
