@@ -23,7 +23,7 @@ module Krane
         VersionCommand.from_options(options)
       end
 
-      desc("restart NAMESPACE CONTEXT", "Restarts things")
+      desc("restart NAMESPACE CONTEXT", "Restart the pods in one or more deployments")
       expand_options(RestartCommand::OPTIONS)
       def restart(namespace, context)
         rescue_and_exit do

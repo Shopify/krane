@@ -37,7 +37,7 @@ module KubernetesDeploy
     end
     alias_method :perform, :run
 
-    def run!(deployments_names = nil, selector: nil, verify: true)
+    def run!(deployments_names = nil, selector: nil, verify_result: true)
       start = Time.now.utc
       @logger.reset
 
@@ -48,12 +48,12 @@ module KubernetesDeploy
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
 
-      @logger.phase_heading("Waiting for rollout")
-      if verify
+      if verify_result
+        @logger.phase_heading("Waiting for rollout")
         resources = build_watchables(deployments, start)
         verify_restart(resources)
       else
-        warning = "Result verification is disabled for this restart"
+        warning = "Result verification is disabled for this task"
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
       end
       StatsD.distribution('restart.duration', StatsD.duration(start), tags: tags('success', deployments))

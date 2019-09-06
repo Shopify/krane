@@ -260,6 +260,69 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert(fetch_restarted_at("web"), "RESTARTED_AT is present after the restart")
   end
 
+  def test_verify_result_false_succeds
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]))
+
+    refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
+    refute(fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment")
+
+    restart = build_restart_task
+    assert_restart_success(restart.perform(verify_result: false))
+
+    assert_logs_match_all([
+      "Configured to restart all deployments with the `shipit.shopify.io/restart` annotation",
+      "Triggered `web` restart",
+      "Result: SUCCESS",
+      "Result verification is disabled for this task",
+    ],
+      in_order: true)
+
+    assert(fetch_restarted_at("web"), "RESTARTED_AT is present after the restart")
+    refute(fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment")
+  end
+
+  def test_verify_result_false_fails_on_config_checks
+    restart = build_restart_task
+    assert_restart_failure(restart.perform(verify_result: false))
+    assert_logs_match_all([
+      "Configured to restart all deployments with the `shipit.shopify.io/restart` annotation",
+      "Result: FAILURE",
+      %r{No deployments with the `shipit\.shopify\.io/restart` annotation found in namespace},
+    ],
+      in_order: true)
+  end
+
+  def test_verify_result_false_succeds_quickly_when_verification_would_timeout
+    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+      deployment = fixtures["web.yml.erb"]["Deployment"].first
+      deployment["spec"]["progressDeadlineSeconds"] = 30
+      container = deployment["spec"]["template"]["spec"]["containers"].first
+      container["readinessProbe"] = {
+        "failureThreshold" => 1,
+        "periodSeconds" => 1,
+        "initialDelaySeconds" => 0,
+        "exec" => {
+          "command" => [
+            "/bin/sh",
+            "-c",
+            "test $(env | grep -s RESTARTED_AT -c) -eq 0",
+          ],
+        },
+      }
+    end
+    assert_deploy_success(success)
+
+    restart = build_restart_task
+    restart.perform!(%w(web), verify_result: false)
+
+    assert_logs_match_all([
+      "Triggered `web` restart",
+      "Result: SUCCESS",
+      "Result verification is disabled for this task",
+    ],
+      in_order: true)
+  end
+
   private
 
   def build_restart_task

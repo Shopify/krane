@@ -3,8 +3,9 @@
 module Krane
   module CLI
     class RestartCommand
+      DEFAULT_GLOBAL_TIMEOUT = '300s'
       OPTIONS = {
-        "global-timeout" => { default: '300s', type: :string },
+        "global-timeout" => { default: DEFAULT_GLOBAL_TIMEOUT, type: :string },
         "deployments" => { type: :string },
         "selector" => { type: :string },
         "verify-result" => { type: :boolean, default: true },
@@ -21,7 +22,7 @@ module Krane
         restart.run!(
           options[:deployments]&.split(","),
           selector: selector,
-          verify: options["verify-result"]
+          verify_result: options["verify-result"]
         )
       end
     end

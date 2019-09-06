@@ -223,6 +223,11 @@ module KubernetesDeploy
       KubernetesDeploy::TaskConfig.new(context, namespace, logger)
     end
 
+    def krane_black_box(command, args = "")
+      path = File.expand_path("../../exe/krane", __FILE__)
+      Open3.capture3("#{path} #{command} #{args}")
+    end
+
     private
 
     def log_to_real_fds?
