@@ -151,6 +151,39 @@ class ServiceTest < KubernetesDeploy::TestCase
     assert_equal("Doesn't require any endpoints", svc.status)
   end
 
+  def test_ensures_populated_status_for_load_balancers
+    svc_def = service_fixture('standard-lb')
+    svc = build_service(svc_def)
+
+    stub_kind_get("Service", items: [svc_def])
+    stub_kind_get("Deployment", items: deployment_fixtures)
+    stub_kind_get("Pod", items: pod_fixtures)
+    stub_kind_get("StatefulSet", items: [])
+    svc.sync(build_resource_cache)
+
+    assert_includes(svc.to_yaml, 'type: LoadBalancer')
+    assert(svc.exists?)
+    refute(svc.deploy_succeeded?)
+    assert_equal("LoadBalancer IP address is not provisioned yet", svc.status)
+
+    svc_def = svc_def.deep_merge('status' => {
+      'loadBalancer' => {
+        'ingress' => [{
+          'ip' => '146.148.47.155',
+        }],
+      },
+    })
+    stub_kind_get("Service", items: [svc_def])
+    stub_kind_get("Deployment", items: deployment_fixtures)
+    stub_kind_get("Pod", items: pod_fixtures)
+    stub_kind_get("StatefulSet", items: [])
+    svc.sync(build_resource_cache)
+
+    assert(svc.exists?)
+    assert(svc.deploy_succeeded?)
+    assert_equal("Selects at least 1 pod", svc.status)
+  end
+
   private
 
   def build_service(definition)

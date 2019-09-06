@@ -200,3 +200,12 @@ spec:
       containers:
       - name: app
         image: busybox
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: standard-lb
+spec:
+  type: LoadBalancer
+  selector:
+    type: standard

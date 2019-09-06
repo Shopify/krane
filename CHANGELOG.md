@@ -1,5 +1,8 @@
 ## next
 
+*Enhancements*
+- Make sure that we only declare a Service of type LoadBalancer as deployed after its IP address is published. [#547](https://github.com/Shopify/kubernetes-deploy/pull/547)
+
 *Other*
 
 - We've added a new Krane cli. This code is in alpha. We are providing
