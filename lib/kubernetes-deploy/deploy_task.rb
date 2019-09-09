@@ -24,9 +24,6 @@ require 'kubernetes-deploy/kubernetes_resource'
   service_account
   daemon_set
   resource_quota
-  elasticsearch
-  statefulservice
-  topic
   stateful_set
   cron_job
   job
