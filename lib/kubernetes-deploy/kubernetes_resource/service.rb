@@ -19,6 +19,8 @@ module KubernetesDeploy
     def status
       if !exists?
         "Not found"
+      elsif requires_publishing? && !published?
+        "LoadBalancer IP address is not provisioned yet"
       elsif !requires_endpoints?
         "Doesn't require any endpoints"
       elsif selects_some_pods?
@@ -30,6 +32,7 @@ module KubernetesDeploy
 
     def deploy_succeeded?
       return false unless exists?
+      return published? if requires_publishing?
       return exists? unless requires_endpoints?
       # We can't use endpoints if we want the service to be able to fail fast when the pods are down
       exposes_zero_replica_workload? || selects_some_pods?
@@ -88,6 +91,14 @@ module KubernetesDeploy
 
     def external_name_svc?
       @definition["spec"]["type"] == "ExternalName"
+    end
+
+    def requires_publishing?
+      @definition["spec"]["type"] == "LoadBalancer"
+    end
+
+    def published?
+      @instance_data.dig('status', 'loadBalancer', 'ingress').present?
     end
   end
 end
