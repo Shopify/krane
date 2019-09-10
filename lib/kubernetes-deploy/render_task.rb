@@ -69,10 +69,10 @@ module KubernetesDeploy
       @logger.info("Rendering #{file_basename}...")
       file_content = File.read(File.join(@template_dir, filename))
       rendered_content = @renderer.render_template(filename, file_content)
-      implicit = true
-      YAML.parse_stream(rendered_content, "<rendered> #{filename}") { |d| implicit = d.implicit }
+      implicit = []
+      YAML.parse_stream(rendered_content, "<rendered> #{filename}") { |d| implicit << d.implicit }
       if rendered_content.present?
-        stream.puts "---\n" if implicit
+        stream.puts "---\n" if implicit.first
         stream.puts rendered_content
         @logger.info("Rendered #{file_basename}")
       else
