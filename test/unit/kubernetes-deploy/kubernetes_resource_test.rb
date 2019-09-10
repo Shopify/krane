@@ -316,12 +316,12 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_build_handles_hardcoded_and_core_and_dynamic_objects
     # Hardcoded CRs
-    elasticsearch_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: [], definition: build_crd(name: "elasticsearch"))
-    elasticsearch_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: [], crd: elasticsearch_crd,
-      definition: { "kind" => "Elasticsearch", "metadata" => { "name" => "test" } })
-    assert_equal(elasticsearch_cr.class, KubernetesDeploy::Elasticsearch)
+    cloudsql_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+      logger: @logger, statsd_tags: [], definition: build_crd(name: "cloudsql"))
+    cloudsql_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+      logger: @logger, statsd_tags: [], crd: cloudsql_crd,
+      definition: { "kind" => "Cloudsql", "metadata" => { "name" => "test" } })
+    assert_equal(cloudsql_cr.class, KubernetesDeploy::Cloudsql)
 
     # Dynamic with no rollout config
     no_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
