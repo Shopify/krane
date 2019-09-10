@@ -3,9 +3,9 @@
 module Krane
   module CLI
     class RestartCommand
-      DEFAULT_GLOBAL_TIMEOUT = '300s'
+      DEFAULT_RESTART_TIMEOUT = '300s'
       OPTIONS = {
-        "global-timeout" => { default: DEFAULT_GLOBAL_TIMEOUT, type: :string, banner: "duration" },
+        "global-timeout" => { default: DEFAULT_RESTART_TIMEOUT, type: :string, banner: "duration" },
         "deployments" => { type: :string, banner: "list,of,deployments" },
         "selector" => { type: :string, banner: "'label=value'" },
         "verify-result" => { type: :boolean, default: true },
