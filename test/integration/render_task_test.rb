@@ -269,8 +269,8 @@ class RenderTaskTest < KubernetesDeploy::TestCase
 
   def test_render_only_adds_initial_doc_seperator_when_missing
     render = build_render_task(fixture_path('partials'))
-    fixture = 'no-doc-seperator.yml.erb'
-    expected = "---\n# This doc has no yaml seperator\nkey1: foo\n---\nkey2: bar\n"
+    fixture = 'no-doc-separator.yml.erb'
+    expected = "---\n# The first doc has no yaml separator\nkey1: foo\n---\nkey2: bar\n"
 
     assert_render_success(render.run(mock_output_stream, [fixture, fixture]))
     stdout_assertion do |output|
