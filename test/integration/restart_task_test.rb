@@ -260,7 +260,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert(fetch_restarted_at("web"), "RESTARTED_AT is present after the restart")
   end
 
-  def test_verify_result_false_succeds
+  def test_verify_result_false_succeeds
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]))
 
     refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
@@ -292,7 +292,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
       in_order: true)
   end
 
-  def test_verify_result_false_succeds_quickly_when_verification_would_timeout
+  def test_verify_result_false_succeeds_quickly_when_verification_would_timeout
     success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
       deployment["spec"]["progressDeadlineSeconds"] = 30
