@@ -15,6 +15,8 @@ module KubernetesDeploy
     GLOBAL = false
     TIMEOUT = 5.minutes
     LOG_LINE_COUNT = 250
+    SERVER_DRY_RUN_DISABLED_ERROR =
+      /(unknown flag: --server-dry-run)|(doesn't support dry-run)|(dryRun alpha feature is disabled)/
 
     DISABLE_FETCHING_LOG_INFO = 'DISABLE_FETCHING_LOG_INFO'
     DISABLE_FETCHING_EVENT_INFO = 'DISABLE_FETCHING_EVENT_INFO'
@@ -464,9 +466,10 @@ module KubernetesDeploy
     end
 
     def validate_spec_with_kubectl(kubectl)
-      command = ["create", "-f", file_path, "--dry-run", "--output=name"]
-      _, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
-        retry_whitelist: [:client_timeout], attempts: 3)
+      _, err, st = validate_with_dry_run_option(kubectl, "--server-dry-run")
+      if !st.success? && err.match(SERVER_DRY_RUN_DISABLED_ERROR)
+        _, err, st = validate_with_dry_run_option(kubectl, "--dry-run")
+      end
 
       return true if st.success?
       @validation_errors << if sensitive_template_content?
@@ -474,6 +477,12 @@ module KubernetesDeploy
       else
         err
       end
+    end
+
+    def validate_with_dry_run_option(kubectl, dry_run_option)
+      command = ["apply", "-f", file_path, dry_run_option, "--output=name"]
+      kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
+                               retry_whitelist: [:client_timeout], attempts: 3)
     end
 
     def labels

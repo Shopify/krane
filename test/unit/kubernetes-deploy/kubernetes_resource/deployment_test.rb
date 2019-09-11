@@ -187,7 +187,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
       template: build_deployment_template(rollout: 'bad', use_deprecated: true),
       replica_sets: []
     )
-    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('apply', '-f', anything, '--server-dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
     refute(deploy.validate_definition(kubectl))
@@ -201,7 +201,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
   def test_validation_fails_with_invalid_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: 'bad'), replica_sets: [])
-    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('apply', '-f', anything, '--server-dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
     refute(deploy.validate_definition(kubectl))
@@ -215,7 +215,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
   def test_validation_with_percent_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10%'), replica_sets: [])
-    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('apply', '-f', anything, '--server-dry-run', '--output=name', anything).returns(
       ["", "", SystemExit.new(0)]
     )
     assert(deploy.validate_definition(kubectl))
@@ -227,7 +227,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
       template: build_deployment_template(rollout: '10', use_deprecated: true),
       replica_sets: []
     )
-    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('apply', '-f', anything, '--server-dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
 
@@ -241,7 +241,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
   def test_validation_with_number_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10'), replica_sets: [])
-    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('apply', '-f', anything, '--server-dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
 
@@ -258,7 +258,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
       template: build_deployment_template(rollout: 'maxUnavailable', strategy: 'Recreate', use_deprecated: true),
       replica_sets: [build_rs_template]
     )
-    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('apply', '-f', anything, '--server-dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
     refute(deploy.validate_definition(kubectl))
@@ -275,7 +275,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
       template: build_deployment_template(rollout: 'maxUnavailable', strategy: 'Recreate'),
       replica_sets: [build_rs_template]
     )
-    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('apply', '-f', anything, '--server-dry-run', '--output=name', anything).returns(
       ["", "super failed", SystemExit.new(1)]
     )
     refute(deploy.validate_definition(kubectl))
@@ -292,7 +292,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
       template: build_deployment_template(rollout: 'maxUnavailable', strategy: nil),
       replica_sets: [build_rs_template]
     )
-    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+    kubectl.expects(:run).with('apply', '-f', anything, '--server-dry-run', '--output=name', anything).returns(
       ["", "", SystemExit.new(0)]
     )
     assert(deploy.validate_definition(kubectl))

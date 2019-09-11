@@ -36,6 +36,15 @@ module KubernetesDeploy
       _kubectl.server_version
     end
 
+    def server_dry_run_available?
+      @server_dry_run ||= begin
+        file_path = "#{fixture_path('hello-cloud')}/service-account.yml"
+        command = ["apply", "-f", file_path, "--server-dry-run", "--output=name"]
+        _, _, st = _kubectl.run(*command, log_failure: false, attempts: 3)
+        st.success?
+      end
+    end
+
     def _kubectl
       @_kubectl ||= KubernetesDeploy::Kubectl.new(namespace: "default", context: TEST_CONTEXT, logger: logger,
         log_failure_by_default: true, default_timeout: '5s')

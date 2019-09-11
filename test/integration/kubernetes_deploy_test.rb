@@ -36,7 +36,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     assert_logs_match(%r{ConfigMap/hello-cloud-configmap-data\s+Available}, 1)
   end
 
-  def test_service_account_predeployed_before_unmanaged_pod
+  def test_unautomounted_service_account_predeployed_without_server_dry_run
     # Add a valid service account in unmanaged pod
     service_account_name = "build-robot"
     result = deploy_fixtures("hello-cloud",
@@ -45,16 +45,39 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
       pod["spec"]["serviceAccountName"] = service_account_name
       pod["spec"]["automountServiceAccountToken"] = false
     end
-    # Expect the service account is deployed before the unmanaged pod
-    assert_deploy_success(result)
-    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-    hello_cloud.assert_configmap_data_present
-    hello_cloud.assert_all_service_accounts_up
-    hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
-    assert_logs_match_all([
-      %r{Successfully deployed in \d.\ds: ServiceAccount/build-robot},
-      %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-.*},
-    ], in_order: true)
+
+    unless server_dry_run_available?
+      # Expect the service account is deployed before the unmanaged pod
+      assert_deploy_success(result)
+      hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+      hello_cloud.assert_configmap_data_present
+      hello_cloud.assert_all_service_accounts_up
+      hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
+      assert_logs_match_all([
+        %r{Successfully deployed in \d.\ds: ServiceAccount/build-robot},
+        %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-.*},
+      ], in_order: true)
+    end
+  end
+
+  def test_unautomounted_service_account_deploy_fail_with_server_dry_run
+    service_account_name = "build-robot"
+    result = deploy_fixtures("hello-cloud",
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "service-account.yml"]) do |fixtures|
+      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
+      pod["spec"]["serviceAccountName"] = service_account_name
+      pod["spec"]["automountServiceAccountToken"] = false
+    end
+
+    if server_dry_run_available?
+      assert_deploy_failure(result)
+      assert_logs_match_all([
+        "Template validation failed",
+        /Invalid template: Pod-unmanaged-pod-1/,
+        "> Error message:",
+        /pods "unmanaged-pod-1-.*" is forbidden: error looking up .*serviceaccount "build-robot" not found/,
+      ], in_order: true)
+    end
   end
 
   def test_role_and_role_binding_predeployed_before_unmanaged_pod
@@ -329,21 +352,35 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
 
     assert_deploy_failure(result)
-    assert_logs_match_all([
-      "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
-      /Invalid template: Deployment-web.*\.yml/,
-      "> Error message:",
-      /Error from server \(Invalid\): error when creating.*Deployment\.?\w* "web" is invalid/,
-      "> Template content:",
-      "              name: http_test_is_really_long_and_invalid_chars",
-
-      /Invalid template: Service-web.*\.yml/,
-      "> Error message:",
-      /Error from server \(Invalid\): error when creating.*Service "web" is invalid/,
-      "> Template content:",
-      "        targetPort: http_test_is_really_long_and_invalid_chars",
-    ], in_order: true)
+    expect_log = if server_dry_run_available?
+      [
+        "Template validation failed",
+        /Invalid template: Deployment-web.*\.yml/,
+        "> Error message:",
+        '    The Deployment "web" is invalid:',
+        'spec.template.spec.containers[0].ports[0].name: Invalid value: "http_test_is_really_long_and_invalid_chars"',
+        /Invalid template: Service-web.*\.yml/,
+        "> Error message:",
+        '    The Service "web" is invalid:',
+        'spec.ports[0].targetPort: Invalid value: "http_test_is_really_long_and_invalid_chars"',
+      ]
+    else
+      [
+        "Command failed: apply -f",
+        "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+        /Invalid template: Deployment-web.*\.yml/,
+        "> Error message:",
+        /Error from server \(Invalid\): error when creating.*Deployment\.?\w* "web" is invalid/,
+        "> Template content:",
+        "              name: http_test_is_really_long_and_invalid_chars",
+        /Invalid template: Service-web.*\.yml/,
+        "> Error message:",
+        /Error from server \(Invalid\): error when creating.*Service "web" is invalid/,
+        "> Template content:",
+        "        targetPort: http_test_is_really_long_and_invalid_chars",
+      ]
+    end
+    assert_logs_match_all(expect_log, in_order: true)
   end
 
   def test_invalid_k8s_spec_that_is_valid_yaml_but_has_no_template_path_in_error_prints_helpful_message
@@ -352,13 +389,23 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       svc["spec"]["ports"].first["targetPort"] = "http_test_is_really_long_and_invalid_chars"
     end
     assert_deploy_failure(result)
-    assert_logs_match_all([
-      "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
-      "Unidentified error(s):",
-      '    The Service "web" is invalid:',
-      'spec.ports[0].targetPort: Invalid value: "http_test_is_really_long_and_invalid_chars"',
-    ], in_order: true)
+    expected_log = if server_dry_run_available?
+      [
+        "Template validation failed",
+        /Invalid template: Service-web/,
+        "> Error message:",
+      ]
+    else
+      [
+        "Command failed: apply -f",
+        "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+        "Unidentified error(s):",
+      ]
+    end
+    expected_log += ['    The Service "web" is invalid:',
+                     'spec.ports[0].targetPort: Invalid value: "http_test_is_really_long_and_invalid_chars"']
+
+    assert_logs_match_all(expected_log, in_order: true)
   end
 
   def test_output_of_failed_unmanaged_pod
@@ -667,24 +714,26 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     refute_logs_match("sidecar must exit 0") # this container is ready
 
     # Debug info for missing volume timeout
-    assert_logs_match_all([
+    expect_log = [
       %r{Deployment/missing-volumes: TIMED OUT \(progress deadline: \d+s\)},
       "Timeout reason: ProgressDeadlineExceeded",
       /Latest ReplicaSet: missing-volumes-\w+/,
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
-      /FailedMount.*secrets? "catphotoscom" not found/, # event
-    ], in_order: true)
+    ]
+    expect_log << /FailedMount.*secrets? "catphotoscom" not found/ unless server_dry_run_available?
+    assert_logs_match_all(expect_log, in_order: true)
 
     # Debug info for failure
-    assert_logs_match_all([
+    expect_log = [
       "Deployment/init-crash: FAILED",
       /Latest ReplicaSet: init-crash-\w+/,
       "The following containers are in a state that is unlikely to be recoverable:",
       "init-crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
-      "Scaled up replica set init-crash-", # event
       "this is a log from the crashing init container",
-    ], in_order: true)
+    ]
+    expect_log.insert(-2, "Scaled up replica set init-crash-") unless server_dry_run_available?
+    assert_logs_match_all(expect_log, in_order: true)
 
     # Excludes noisy events
     refute_logs_match(/Started container with id/)
@@ -742,12 +791,22 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
     assert_deploy_failure(result)
 
-    assert_logs_match_all([
-      "Command failed: apply -f",
-      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
-      "Unidentified error(s):",
-      /The Deployment "web" is invalid.*`selector` does not match template `labels`/,
-    ], in_order: true)
+    expect_log = if server_dry_run_available?
+      [
+        "Template validation failed",
+        /Invalid template: Deployment-web.*\.yml/,
+        "> Error message:",
+        /The Deployment "web" is invalid.*`selector` does not match template `labels`/,
+      ]
+    else
+      [
+        "Command failed: apply -f",
+        "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+        "Unidentified error(s):",
+        /The Deployment "web" is invalid.*`selector` does not match template `labels`/,
+      ]
+    end
+    assert_logs_match_all(expect_log, in_order: true)
   end
 
   def test_scale_existing_deployment_down_to_zero
@@ -1048,16 +1107,15 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_bad_container_on_daemon_sets_fails
     assert_deploy_failure(deploy_fixtures("invalid", subset: ["crash_loop_daemon_set.yml"]))
     num_ds = expected_daemonset_pod_count
-    assert_logs_match_all([
+    expect_log = [
       "Failed to deploy 1 resource",
       "DaemonSet/crash-loop: FAILED",
       "crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
       "Final status: #{num_ds} updatedNumberScheduled, #{num_ds} desiredNumberScheduled, 0 numberReady",
-      "Events (common success events excluded):",
-      "BackOff: Back-off restarting failed container",
       "Logs from container 'crash-loop-back-off':",
       "this is a log from the crashing container",
-    ], in_order: true)
+    ]
+    assert_logs_match_all(expect_log, in_order: true)
   end
 
   def test_bad_container_on_stateful_sets_fails_with_rolling_update
@@ -1070,15 +1128,18 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
 
     assert_deploy_failure(result)
-    assert_logs_match_all([
+    expect_log = [
       "Successfully deployed 1 resource and failed to deploy 1 resource",
       "StatefulSet/stateful-busybox: FAILED",
       "app: Crashing repeatedly (exit 1). See logs for more information.",
-      "Events (common success events excluded):",
-      %r{\[Pod/stateful-busybox-\d\]\tBackOff: Back-off restarting failed container},
       "Logs from container 'app':",
       "ls: /not-a-dir: No such file or directory",
-    ], in_order: true)
+    ]
+    unless server_dry_run_available?
+      expect_log.insert(-3, "Events (common success events excluded):",
+        %r{\[Pod/stateful-busybox-\d\]\tBackOff: Back-off restarting failed container})
+    end
+    assert_logs_match_all(expect_log, in_order: true)
   end
 
   def test_on_delete_stateful_sets_are_not_monitored
@@ -1109,7 +1170,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_resource_quotas_are_deployed_first
     result = deploy_fixtures("resource-quota")
     assert_deploy_failure(result, :timed_out)
-    assert_logs_match_all([
+    expect_log = [
       "Predeploying priority resources",
       "Deploying ResourceQuota/resource-quotas (timeout: 30s)",
       "Deployment/web rollout timed out",
@@ -1118,8 +1179,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "ResourceQuota/resource-quotas",
       %r{Deployment/web: TIMED OUT \(progress deadline: \d+s\)},
       "Timeout reason: ProgressDeadlineExceeded",
-      "failed quota: resource-quotas", # from an event
-    ], in_order: true)
+    ]
+    expect_log << "failed quota: resource-quotas" unless server_dry_run_available?
+    assert_logs_match_all(expect_log, in_order: true)
 
     rqs = kubeclient.get_resource_quotas(namespace: @namespace)
     assert_equal(1, rqs.length)
@@ -1259,13 +1321,16 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
 
     assert_deploy_failure(fixtures)
-    assert_logs_match_all([
+    expect_log = [
       "Deploying Job/hello-job (timeout: 600s)",
       "Result: FAILURE",
       "Job/hello-job: FAILED",
       "Final status: Failed",
-      %r{\[Job/hello-job\]\tDeadlineExceeded: Job was active longer than specified deadline \(\d+ events\)},
-    ])
+    ]
+    unless server_dry_run_available?
+      expect_log << /DeadlineExceeded.*Job was active longer than specified deadline/
+    end
+    assert_logs_match_all(expect_log)
   end
 
   def test_resource_watcher_reports_failed_after_timeout
@@ -1372,10 +1437,18 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
     assert_deploy_failure(result)
     refute_logs_match(%r{Kubectl err:.*something/invalid})
-    assert_logs_match_all([
-      "Command failed: apply -f",
-      /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
-    ])
+    if server_dry_run_available?
+      assert_logs_match_all([
+        "Template validation failed",
+        'Invalid template: Secret-hello-secret',
+        /Detailed.* is unavailable as .* may contain sensitive data./,
+      ])
+    else
+      assert_logs_match_all([
+        "Command failed: apply -f",
+        /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
+      ])
+    end
   end
 
   def test_validation_failure_on_sensitive_resources_does_not_print_template
