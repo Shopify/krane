@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress
+  labels:
+    name: standard
+    app: standard
+spec:
+  rules:
+  - host: test-ingress.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: standard-lb
+          servicePort: 80
