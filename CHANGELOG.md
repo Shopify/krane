@@ -2,9 +2,16 @@
 
 *Enhancements*
 - Officially support Kubernetes 1.15 ([#546](https://github.com/Shopify/kubernetes-deploy/pull/546))
+- Make sure that we only declare a Service of type LoadBalancer as deployed after its IP address is published. [#547](https://github.com/Shopify/kubernetes-deploy/pull/547)
+
 
 *Other*
-- Kubernetes 1.10 is no longer officially supported as of this version
+- Kubernetes 1.10 is no longer officially supported as of this version ([#546](https://github.com/Shopify/kubernetes-deploy/pull/546))
+- We've added a new Krane cli. This code is in alpha. We are providing
+no warranty at this time and reserve the right to make major breaking changes including
+removing it entirely at any time. ([#256](https://github.com/Shopify/kubernetes-deploy/issues/256))
+- Deprecate `kubernetes-deploy.shopify.io` annotations in favour of `krane.shopify.io`.
+
 
 ## 0.27.0
 *Enhancements*

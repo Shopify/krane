@@ -97,6 +97,49 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     assert_operator(events, :empty?)
   end
 
+  def test_deprecated_annotation_generates_warning
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("60S", use_deprecated: true))
+    customized_resource.validate_definition(kubectl)
+    assert(customized_resource.has_warnings?, "Deprecated annotation did not generate a warning")
+    assert_equal("kubernetes-deploy.shopify.io as a prefix for annotations is deprecated: "\
+      "Use the 'krane.shopify.io' annotation prefix instead",
+      customized_resource.validation_warning_msg)
+  end
+
+  def test_multiple_deprecated_annotations_generates_only_one_warning
+    definition_extras = build_timeout_metadata("60S", use_deprecated: true).dup
+    definition_extras['metadata']['annotations']['kubernetes-deploy.shopify.io/something'] = "thing"
+    customized_resource = DummyResource.new(definition_extras: definition_extras)
+    customized_resource.validate_definition(kubectl)
+
+    warning_message = <<~MESSAGE.strip
+      kubernetes-deploy.shopify.io as a prefix for annotations is deprecated: Use the 'krane.shopify.io' annotation prefix instead
+    MESSAGE
+
+    assert(customized_resource.has_warnings?, "Deprecated annotation did not generate a warning")
+    assert_equal(customized_resource.validation_warning_msg, warning_message)
+  end
+
+  def test_valid_annotations_generate_no_warning
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("60S"))
+    customized_resource.validate_definition(kubectl)
+    refute(customized_resource.has_warnings?, "Valid annotation generated a warning")
+  end
+
+  def test_can_override_hardcoded_timeout_via_an_annotation_deprecated
+    basic_resource = DummyResource.new
+    assert_equal(300, basic_resource.timeout)
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("60S", use_deprecated: true))
+    assert_equal(60, customized_resource.timeout)
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("60M", use_deprecated: true))
+    assert_equal(3600, customized_resource.timeout)
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("1H", use_deprecated: true))
+    assert_equal(3600, customized_resource.timeout)
+  end
+
   def test_can_override_hardcoded_timeout_via_an_annotation
     basic_resource = DummyResource.new
     assert_equal(300, basic_resource.timeout)
@@ -109,6 +152,14 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("1H"))
     assert_equal(3600, customized_resource.timeout)
+  end
+
+  def test_blank_timeout_annotation_is_invalid_deprecated
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("", use_deprecated: true))
+    customized_resource.validate_definition(kubectl)
+    assert(customized_resource.validation_failed?, "Blank annotation was valid")
+    assert_equal("#{timeout_override_err_prefix_deprecated}: Invalid ISO 8601 duration: \"\" is empty duration",
+      customized_resource.validation_error_msg)
   end
 
   def test_blank_timeout_annotation_is_invalid
@@ -124,6 +175,24 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     assert_equal(300, basic_resource.timeout)
     basic_resource.validate_definition(kubectl)
     refute(basic_resource.validation_failed?)
+  end
+
+  def test_timeout_override_lower_bound_validation_deprecation
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("-1S", use_deprecated: true))
+    customized_resource.validate_definition(kubectl)
+    assert(customized_resource.validation_failed?, "Annotation with '-1' was valid")
+    assert_equal("#{timeout_override_err_prefix_deprecated}: Value must be greater than 0",
+      customized_resource.validation_error_msg)
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("0S", use_deprecated: true))
+    customized_resource.validate_definition(kubectl)
+    assert(customized_resource.validation_failed?, "Annotation with '0' was valid")
+    assert_equal("#{timeout_override_err_prefix_deprecated}: Value must be greater than 0",
+      customized_resource.validation_error_msg)
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("1S", use_deprecated: true))
+    customized_resource.validate_definition(kubectl)
+    refute(customized_resource.validation_failed?, "Annotation with '1' was invalid")
   end
 
   def test_timeout_override_lower_bound_validation
@@ -142,6 +211,18 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("1S"))
     customized_resource.validate_definition(kubectl)
     refute(customized_resource.validation_failed?, "Annotation with '1' was invalid")
+  end
+
+  def test_timeout_override_upper_bound_validation_deprecated
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H1S", use_deprecated: true))
+    customized_resource.validate_definition(kubectl)
+    assert(customized_resource.validation_failed?, "Annotation with '24H1S' was valid")
+    expected_message = "#{timeout_override_err_prefix_deprecated}: Value must be less than 24h"
+    assert_equal(expected_message, customized_resource.validation_error_msg)
+
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H", use_deprecated: true))
+    customized_resource.validate_definition(kubectl)
+    refute(customized_resource.validation_failed?, "Annotation with '24H' was invalid")
   end
 
   def test_timeout_override_upper_bound_validation
@@ -167,6 +248,23 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     refute_includes(resource.validation_error_msg, 'S3CR3T')
   end
 
+  def test_annotation_and_kubectl_error_messages_are_combined_deprecated
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("bad", use_deprecated: true))
+    kubectl.expects(:run).returns([
+      "{}",
+      "Error from kubectl: Something else in this template was not valid",
+      stub(success?: false),
+    ])
+
+    customized_resource.validate_definition(kubectl)
+    assert(customized_resource.validation_failed?, "Expected resource to be invalid")
+    expected = <<~STRING.strip
+      #{timeout_override_err_prefix_deprecated}: Invalid ISO 8601 duration: "BAD"
+      Error from kubectl: Something else in this template was not valid
+    STRING
+    assert_equal(expected, customized_resource.validation_error_msg)
+  end
+
   def test_annotation_and_kubectl_error_messages_are_combined
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("bad"))
     kubectl.expects(:run).returns([
@@ -182,6 +280,12 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       Error from kubectl: Something else in this template was not valid
     STRING
     assert_equal(expected, customized_resource.validation_error_msg)
+  end
+
+  def test_calling_timeout_before_validation_with_invalid_annotation_does_not_raise_deprecated
+    customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("bad", use_deprecated: true))
+    assert_equal(300, customized_resource.timeout)
+    assert_nil(customized_resource.timeout_override)
   end
 
   def test_calling_timeout_before_validation_with_invalid_annotation_does_not_raise
@@ -201,6 +305,20 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
       dummy.deploy_started_at = Time.now.utc - 301
       assert dummy.deploy_timed_out?
+    end
+  end
+
+  def test_deploy_timed_out_respects_annotation_based_timeouts_deprecated
+    Timecop.freeze do
+      custom_dummy = DummyResource.new(definition_extras: build_timeout_metadata("3s", use_deprecated: true))
+      refute custom_dummy.deploy_timed_out?
+      assert_equal 3, custom_dummy.timeout
+
+      custom_dummy.deploy_started_at = Time.now.utc - 3
+      refute custom_dummy.deploy_timed_out?
+
+      custom_dummy.deploy_started_at = Time.now.utc - 4
+      assert custom_dummy.deploy_timed_out?
     end
   end
 
@@ -356,16 +474,26 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
     @kubectl ||= build_runless_kubectl
   end
 
-  def timeout_override_err_prefix
+  def timeout_override_err_prefix_deprecated
     "kubernetes-deploy.shopify.io/timeout-override annotation is invalid"
   end
 
-  def build_timeout_metadata(value)
+  def timeout_override_err_prefix
+    "krane.shopify.io/timeout-override annotation is invalid"
+  end
+
+  def build_timeout_metadata(value, use_deprecated: false)
+    timeout_override_annotation = if use_deprecated
+      KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED
+    else
+      KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION
+    end
+
     {
       "metadata" => {
         "name" => "customized",
         "annotations" => {
-          KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => value,
+          timeout_override_annotation => value,
         },
       },
     }

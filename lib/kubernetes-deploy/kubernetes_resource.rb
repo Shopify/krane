@@ -30,7 +30,9 @@ module KubernetesDeploy
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
 
-    TIMEOUT_OVERRIDE_ANNOTATION = "kubernetes-deploy.shopify.io/timeout-override"
+    TIMEOUT_OVERRIDE_ANNOTATION_SUFFIX = "timeout-override"
+    TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED = "kubernetes-deploy.shopify.io/#{TIMEOUT_OVERRIDE_ANNOTATION_SUFFIX}"
+    TIMEOUT_OVERRIDE_ANNOTATION = "krane.shopify.io/#{TIMEOUT_OVERRIDE_ANNOTATION_SUFFIX}"
     LAST_APPLIED_ANNOTATION = "kubectl.kubernetes.io/last-applied-configuration"
     SENSITIVE_TEMPLATE_CONTENT = false
 
@@ -93,7 +95,8 @@ module KubernetesDeploy
 
     def timeout_override
       return @timeout_override if defined?(@timeout_override)
-      @timeout_override = DurationParser.new(timeout_annotation).parse!.to_i
+
+      @timeout_override = DurationParser.new(krane_annotation_value(TIMEOUT_OVERRIDE_ANNOTATION_SUFFIX)).parse!.to_i
     rescue DurationParser::ParsingError
       @timeout_override = nil
     end
@@ -113,6 +116,7 @@ module KubernetesDeploy
       @statsd_report_done = false
       @disappeared = false
       @validation_errors = []
+      @validation_warnings = []
       @instance_data = {}
     end
 
@@ -122,10 +126,20 @@ module KubernetesDeploy
 
     def validate_definition(kubectl, selector: nil)
       @validation_errors = []
+      @validation_warnings = []
       validate_selector(selector) if selector
       validate_timeout_annotation
+      validate_annotation_version
       validate_spec_with_kubectl(kubectl)
       @validation_errors.present?
+    end
+
+    def validation_warning_msg
+      @validation_warnings.join("\n")
+    end
+
+    def has_warnings?
+      @validation_warnings.present?
     end
 
     def validation_error_msg
@@ -396,20 +410,44 @@ module KubernetesDeploy
     private
 
     def validate_timeout_annotation
-      return if timeout_annotation.nil?
+      timeout_override_value = krane_annotation_value(TIMEOUT_OVERRIDE_ANNOTATION_SUFFIX)
+      timeout_annotation_key = krane_annotation_key(TIMEOUT_OVERRIDE_ANNOTATION_SUFFIX)
+      return if timeout_override_value.nil?
 
-      override = DurationParser.new(timeout_annotation).parse!
+      override = DurationParser.new(timeout_override_value).parse!
       if override <= 0
-        @validation_errors << "#{TIMEOUT_OVERRIDE_ANNOTATION} annotation is invalid: Value must be greater than 0"
+        @validation_errors << "#{timeout_annotation_key} annotation is invalid: Value must be greater than 0"
       elsif override > 24.hours
-        @validation_errors << "#{TIMEOUT_OVERRIDE_ANNOTATION} annotation is invalid: Value must be less than 24h"
+        @validation_errors << "#{timeout_annotation_key} annotation is invalid: Value must be less than 24h"
       end
     rescue DurationParser::ParsingError => e
-      @validation_errors << "#{TIMEOUT_OVERRIDE_ANNOTATION} annotation is invalid: #{e}"
+      @validation_errors << "#{timeout_annotation_key} annotation is invalid: #{e}"
     end
 
-    def timeout_annotation
-      @definition.dig("metadata", "annotations", TIMEOUT_OVERRIDE_ANNOTATION)
+    def validate_annotation_version
+      return if validation_warning_msg.include?("annotations is deprecated")
+      annotation_keys = @definition.dig("metadata", "annotations")&.keys
+      annotation_keys&.each do |annotation|
+        if annotation.include?("kubernetes-deploy.shopify.io")
+          annotation_prefix = annotation.split('/').first
+          @validation_warnings << "#{annotation_prefix} as a prefix for annotations is deprecated: "\
+            "Use the 'krane.shopify.io' annotation prefix instead"
+          return
+        end
+      end
+    end
+
+    def krane_annotation_value(suffix)
+      @definition.dig("metadata", "annotations", "kubernetes-deploy.shopify.io/#{suffix}") ||
+        @definition.dig("metadata", "annotations", "krane.shopify.io/#{suffix}")
+    end
+
+    def krane_annotation_key(suffix)
+      if @definition.dig("metadata", "annotations", "kubernetes-deploy.shopify.io/#{suffix}")
+        "kubernetes-deploy.shopify.io/#{suffix}"
+      elsif @definition.dig("metadata", "annotations", "krane.shopify.io/#{suffix}")
+        "krane.shopify.io/#{suffix}"
+      end
     end
 
     def validate_selector(selector)

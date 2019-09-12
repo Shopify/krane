@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: widgets.stable.example.io
   annotations:
-    krane.shopify.io/prunable: "true"
+    kubernetes-deploy.shopify.io/prunable: "true"
 spec:
   group: stable.example.io
   version: v1
