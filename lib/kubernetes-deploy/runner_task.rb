@@ -35,7 +35,7 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing task")
-      validate_configuration(task_template, args)
+      verify_config!(task_template, args)
       pod = build_pod(task_template, entrypoint, args, env_vars, verify_result)
       validate_pod(pod)
 
@@ -107,7 +107,7 @@ module KubernetesDeploy
       @logger.summary.add_paragraph(warning)
     end
 
-    def validate_configuration(task_template, args)
+    def verify_config!(task_template, args)
       @logger.info("Validating configuration")
       errors = []
 
@@ -115,33 +115,18 @@ module KubernetesDeploy
         errors << "Task template name can't be nil"
       end
 
-      if @namespace.blank?
-        errors << "Namespace can't be empty"
-      end
-
       if args.blank?
         errors << "Args can't be nil"
       end
 
-      begin
-        kubeclient.get_namespace(@namespace) if @namespace.present?
-        @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
-
-      rescue Kubeclient::ResourceNotFoundError
-        errors << "Namespace was not found"
-      rescue Kubeclient::HttpError
-        errors << "Could not connect to kubernetes cluster"
-      rescue KubernetesDeploy::KubeclientBuilder::ContextMissingError
-        errors << "Could not connect to kubernetes cluster - context invalid"
-      end
-
-      unless errors.empty?
+      task_config_validator = TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder)
+      unless task_config_validator.valid?
         @logger.summary.add_action("Configuration invalid")
-        @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
-        raise TaskConfigurationError, "Configuration invalid: #{errors.join(', ')}"
+        @logger.summary.add_paragraph([task_config_validator.errors + errors].map { |err| "- #{err}" }.join("\n"))
+        raise KubernetesDeploy::TaskConfigurationError
       end
 
-      TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder, only: [:validate_server_version]).valid?
+      @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
     end
 
     def get_template(template_name)

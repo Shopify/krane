@@ -13,7 +13,6 @@ class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
     # Sketchy, but stubbing the kubeclient doesn't work (and wouldn't be concurrency-friendly)
     # Finding a way to reliably trigger a create failure would be much better, if possible
     mock = mock()
-    mock.expects(:get_namespace)
     template = kubeclient.get_pod_template('hello-cloud-template-runner', @namespace)
     mock.expects(:get_pod_template).returns(template)
     mock.expects(:create_pod).raises(Kubeclient::HttpError.new("409", "Pod with same name exists", {}))

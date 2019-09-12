@@ -179,7 +179,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_run_fails_if_context_is_invalid
-    task_runner = build_task_runner(context: "missing")
+    task_runner = build_task_runner(context: "unknown")
     assert_task_run_failure(task_runner.run(run_params))
 
     assert_logs_match_all([
@@ -187,7 +187,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "Validating configuration",
       "Result: FAILURE",
       "Configuration invalid",
-      "- Could not connect to kubernetes cluster - context invalid",
+      "Context unknown missing from your kubeconfig file(s)",
     ], in_order: true)
   end
 
@@ -200,7 +200,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "Validating configuration",
       "Result: FAILURE",
       "Configuration invalid",
-      "- Namespace was not found",
+      "Could not find Namespace:",
     ], in_order: true)
   end
 
