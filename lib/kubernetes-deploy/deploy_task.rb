@@ -255,6 +255,11 @@ module KubernetesDeploy
       KubernetesDeploy::Concurrency.split_across_threads(resources) do |r|
         r.validate_definition(kubectl, selector: @selector)
       end
+
+      resources.select(&:has_warnings?).each do |resource|
+        record_warnings(warning: resource.validation_warning_msg, filename: File.basename(resource.file_path))
+      end
+
       failed_resources = resources.select(&:validation_failed?)
       return unless failed_resources.present?
 
@@ -317,6 +322,12 @@ module KubernetesDeploy
         end
       end
       @logger.summary.add_paragraph(debug_msg)
+    end
+
+    def record_warnings(warning:, filename:)
+      warn_msg = "Template warning: #{filename}\n"
+      warn_msg += "> Warning message:\n#{FormattedLogger.indent_four(warning)}"
+      @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
     end
 
     def validate_configuration(allow_protected_ns:, prune:)

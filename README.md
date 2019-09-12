@@ -1,3 +1,7 @@
+# krane
+
+As this project approaches the v1.0 milestone, we're excited to announce that `kubernetes-deploy` will be [officially renamed as `krane`](https://github.com/Shopify/kubernetes-deploy/issues/30#issuecomment-468750341). Follow the [1.0 requirement label](https://github.com/Shopify/kubernetes-deploy/issues?q=is%3Aissue+is%3Aopen+label%3A%22%3Arocket%3A+1.0+requirement%22) to keep up with the progress.
+
 # kubernetes-deploy [![Build status](https://badge.buildkite.com/61937e40a1fc69754d9d198be120543d6de310de2ba8d3cb0e.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy) [![codecov](https://codecov.io/gh/Shopify/kubernetes-deploy/branch/master/graph/badge.svg)](https://codecov.io/gh/Shopify/kubernetes-deploy)
 
 `kubernetes-deploy` is a command line tool that helps you ship changes to a Kubernetes namespace and understand the result. At Shopify, we use it within our much-beloved, open-source [Shipit](https://github.com/Shopify/shipit-engine#kubernetes) deployment app.
@@ -228,10 +232,10 @@ This is a limitation of the current implementation.
 
 
 ### Customizing behaviour with annotations
-- `kubernetes-deploy.shopify.io/timeout-override`: Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours.
+- `krane.shopify.io/timeout-override`: Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours.
   - _Example values_: 45s / 3m / 1h / PT0.25H
   - _Compatibility_: all resource types
-- `kubernetes-deploy.shopify.io/required-rollout`: Modifies how much of the rollout needs to finish
+- `krane.shopify.io/required-rollout`: Modifies how much of the rollout needs to finish
 before the deployment is considered successful.
   - _Compatibility_: Deployment
   - `full`: The deployment is successful when all pods in the new `replicaSet` are ready.
@@ -242,11 +246,11 @@ before the deployment is considered successful.
   that use the `RollingUpdate` strategy.
   - Percent (e.g. 90%): The deploy is successful when the number of new pods that are ready is equal to
   `spec.replicas` * Percent.
-- `kubernetes-deploy.shopify.io/prunable`: Allows a Custom Resource to be pruned during deployment.
+- `krane.shopify.io/prunable`: Allows a Custom Resource to be pruned during deployment.
   - _Compatibility_: Custom Resource Definition
   - `true`: The custom resource will be pruned if the resource is not in the deploy directory.
   - All other values: The custom resource will not be pruned.
-- `kubernetes-deploy.shopify.io/predeployed`: Causes a Custom Resource to be deployed in the pre-deploy phase.
+- `krane.shopify.io/predeployed`: Causes a Custom Resource to be deployed in the pre-deploy phase.
   - _Compatibility_: Custom Resource Definition
   - _Default_: `true`
   - `true`: The custom resource will be deployed in the pre-deploy phase.
@@ -335,12 +339,12 @@ This feature is only available on clusters running Kubernetes 1.11+ since it rel
 *Requirements:*
 
 * The custom resource must expose a `status` subresource with an `observedGeneration` field.
-* The `kubernetes-deploy.shopify.io/instance-rollout-conditions` annotation must be present on the CRD that defines the custom resource.
-* (optional) The `kubernetes-deploy.shopify.io/instance-timeout` annotation can be added to the CRD that defines the custom resource to override the global default timeout for all instances of that resource. This annotation can use ISO8601 format or unprefixed ISO8601 time components (e.g. '1H', '60S').
+* The `krane.shopify.io/instance-rollout-conditions` annotation must be present on the CRD that defines the custom resource.
+* (optional) The `krane.shopify.io/instance-timeout` annotation can be added to the CRD that defines the custom resource to override the global default timeout for all instances of that resource. This annotation can use ISO8601 format or unprefixed ISO8601 time components (e.g. '1H', '60S').
 
 #### Specifying pass/fail conditions
 
-The presence of a valid `kubernetes-deploy.shopify.io/instance-rollout-conditions` annotation on a CRD will cause kubernetes-deploy to monitor the rollout of all instances of that custom resource. Its value can either be `"true"` (giving you the defaults described in the next section) or a valid JSON string with the following format:
+The presence of a valid `krane.shopify.io/instance-rollout-conditions` annotation on a CRD will cause kubernetes-deploy to monitor the rollout of all instances of that custom resource. Its value can either be `"true"` (giving you the defaults described in the next section) or a valid JSON string with the following format:
 ```
 '{
   "success_conditions": [
@@ -364,7 +368,7 @@ You **must** ensure that your custom resource controller sets `.status.observedG
 
 #### Example
 
-As an example, the following is the default configuration that will be used if you set `kubernetes-deploy.shopify.io/instance-rollout-conditions: "true"` on the CRD that defines the custom resources you wish to monitor:
+As an example, the following is the default configuration that will be used if you set `krane.shopify.io/instance-rollout-conditions: "true"` on the CRD that defines the custom resources you wish to monitor:
 
 ```
 '{

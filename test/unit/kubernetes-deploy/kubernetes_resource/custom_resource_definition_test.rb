@@ -103,7 +103,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       "The CRD that specifies this resource is using invalid rollout conditions. Kubernetes-deploy will not be " \
       "able to continue until those rollout conditions are fixed.\nRollout conditions can be found on the CRD " \
       "that defines this resource (unittests.stable.example.io), under the annotation " \
-      "kubernetes-deploy.shopify.io/instance-rollout-conditions.\nValidation failed with: " \
+      "krane.shopify.io/instance-rollout-conditions.\nValidation failed with: " \
       "Rollout conditions are not valid JSON:"
     ))
   end

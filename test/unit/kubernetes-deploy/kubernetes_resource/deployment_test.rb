@@ -158,6 +158,18 @@ class DeploymentTest < KubernetesDeploy::TestCase
     refute(deploy.deploy_succeeded?)
   end
 
+  def test_deploy_succeeded_raises_with_invalid_rollout_annotation_deprecated
+    deploy = build_synced_deployment(
+      template: build_deployment_template(rollout: 'bad', use_deprecated: true),
+      replica_sets: [build_rs_template]
+    )
+    msg = "'#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: bad' is "\
+      "invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
+    assert_raises_message(KubernetesDeploy::FatalDeploymentError, msg) do
+      deploy.deploy_succeeded?
+    end
+  end
+
   def test_deploy_succeeded_raises_with_invalid_rollout_annotation
     deploy = build_synced_deployment(
       template: build_deployment_template(rollout: 'bad'),
@@ -168,6 +180,23 @@ class DeploymentTest < KubernetesDeploy::TestCase
     assert_raises_message(KubernetesDeploy::FatalDeploymentError, msg) do
       deploy.deploy_succeeded?
     end
+  end
+
+  def test_validation_fails_with_invalid_rollout_annotation_deprecated
+    deploy = build_synced_deployment(
+      template: build_deployment_template(rollout: 'bad', use_deprecated: true),
+      replica_sets: []
+    )
+    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+      ["", "super failed", SystemExit.new(1)]
+    )
+    refute(deploy.validate_definition(kubectl))
+
+    expected = <<~STRING.strip
+      super failed
+      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: bad' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+    STRING
+    assert_equal(expected, deploy.validation_error_msg)
   end
 
   def test_validation_fails_with_invalid_rollout_annotation
@@ -193,6 +222,23 @@ class DeploymentTest < KubernetesDeploy::TestCase
     assert_empty(deploy.validation_error_msg)
   end
 
+  def test_validation_with_number_rollout_annotation_deprecated
+    deploy = build_synced_deployment(
+      template: build_deployment_template(rollout: '10', use_deprecated: true),
+      replica_sets: []
+    )
+    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+      ["", "super failed", SystemExit.new(1)]
+    )
+
+    refute(deploy.validate_definition(kubectl))
+    expected = <<~STRING.strip
+      super failed
+      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: 10' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+    STRING
+    assert_equal(expected, deploy.validation_error_msg)
+  end
+
   def test_validation_with_number_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10'), replica_sets: [])
     kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
@@ -203,6 +249,23 @@ class DeploymentTest < KubernetesDeploy::TestCase
     expected = <<~STRING.strip
       super failed
       '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: 10' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+    STRING
+    assert_equal(expected, deploy.validation_error_msg)
+  end
+
+  def test_validation_fails_with_invalid_mix_of_annotation_deprecated
+    deploy = build_synced_deployment(
+      template: build_deployment_template(rollout: 'maxUnavailable', strategy: 'Recreate', use_deprecated: true),
+      replica_sets: [build_rs_template]
+    )
+    kubectl.expects(:run).with('create', '-f', anything, '--dry-run', '--output=name', anything).returns(
+      ["", "super failed", SystemExit.new(1)]
+    )
+    refute(deploy.validate_definition(kubectl))
+
+    expected = <<~STRING.strip
+      super failed
+      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: maxUnavailable' is incompatible with strategy 'Recreate'
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -366,11 +429,17 @@ class DeploymentTest < KubernetesDeploy::TestCase
   private
 
   def build_deployment_template(status: { 'replicas' => 3 }, rollout: nil,
-    strategy: 'rollingUpdate', max_unavailable: nil)
+    strategy: 'rollingUpdate', max_unavailable: nil, use_deprecated: false)
+
+    required_rollout_annotation = if use_deprecated
+      KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED
+    else
+      KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION
+    end
 
     base_deployment_manifest = fixtures.find { |fixture| fixture["kind"] == "Deployment" }
     result = base_deployment_manifest.deep_merge("status" => status)
-    result["metadata"]["annotations"][KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION] = rollout if rollout
+    result["metadata"]["annotations"][required_rollout_annotation] = rollout if rollout
 
     if (spec_override = status["replicas"].presence) # ignores possibility of surge; need a spec_replicas arg for that
       result["spec"]["replicas"] = spec_override

@@ -53,7 +53,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
         metadata:
           name: unmanaged-pod-1-kbbbbbb-aaaa
           annotations:
-            kubernetes-deploy.shopify.io/timeout-override: 60s
+            krane.shopify.io/timeout-override: 60s
           labels:
             type: unmanaged-pod
             name: unmanaged-pod-1-kbbbbbb-aaaa
