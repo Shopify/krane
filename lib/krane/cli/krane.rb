@@ -5,6 +5,7 @@ require 'thor'
 require 'krane/cli/version_command'
 require 'krane/cli/restart_command'
 require 'krane/cli/run_command'
+require 'krane/cli/render_command'
 
 module Krane
   module CLI
@@ -16,6 +17,12 @@ module Krane
 
       def self.expand_options(task_options)
         task_options.each { |option_name, config| method_option(option_name, config) }
+      end
+
+      desc("render", "Render templates")
+      expand_options(RenderCommand::OPTIONS)
+      def render
+        RenderCommand.from_options(options)
       end
 
       desc("version", "Prints the version")

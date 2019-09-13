@@ -55,24 +55,18 @@ module KubernetesDeploy
     end
 
     def render_templates(stream, template_sets)
-      exceptions = []
       @logger.phase_heading("Rendering template(s)")
       count = 0
-      begin
-        template_sets.with_resource_definitions_and_filename(render_erb: true,
-            current_sha: @current_sha, bindings: @bindings, raw: true) do |rendered_content, filename|
-          render_filename(rendered_content, filename, stream)
-          count += 1
-        end
-      rescue KubernetesDeploy::InvalidTemplateError => exception
-        exceptions << exception
-        log_invalid_template(exception)
+      template_sets.with_resource_definitions_and_filename(render_erb: true,
+          current_sha: @current_sha, bindings: @bindings, raw: true) do |rendered_content, filename|
+        render_filename(rendered_content, filename, stream)
+        count += 1
       end
 
-      unless exceptions.empty?
-        raise exceptions[0]
-      end
       count
+    rescue KubernetesDeploy::InvalidTemplateError => exception
+      log_invalid_template(exception)
+      raise
     end
 
     def render_filename(rendered_content, filename, stream)

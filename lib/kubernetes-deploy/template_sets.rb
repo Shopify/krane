@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+require 'enumerable/with_delayed_exceptions'
+require 'kubernetes-deploy/ejson_secret_provisioner'
 
 module KubernetesDeploy
   class TemplateSets
@@ -12,7 +14,6 @@ module KubernetesDeploy
       end
 
       def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
-        exceptions = []
         if render_erb
           @renderer = Renderer.new(
             template_dir: @template_dir,
@@ -21,18 +22,10 @@ module KubernetesDeploy
             bindings: bindings,
           )
         end
-        @files.each do |filename|
+        @files.with_delayed_exceptions(KubernetesDeploy::InvalidTemplateError) do |filename|
           next if filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
-          begin
-            templates(filename: filename, raw: raw) do |r_def|
-              yield r_def, filename
-            end
-          rescue KubernetesDeploy::InvalidTemplateError => exception
-            exceptions << exception
-          end
+          templates(filename: filename, raw: raw) { |r_def| yield r_def, filename }
         end
-
-        raise exceptions[0] if exceptions.present?
       end
 
       def ejson_secrets_file
@@ -115,22 +108,16 @@ module KubernetesDeploy
     end
 
     def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
-      exceptions = []
-      @template_sets.each do |template_set|
-        begin
-          template_set.with_resource_definitions_and_filename(
-            render_erb: render_erb,
-            current_sha: current_sha,
-            bindings: bindings,
-            raw: raw
-          ) do |r_def, filename|
-            yield r_def, filename
-          end
-        rescue KubernetesDeploy::Renderer::InvalidPartialError => exception
-          exceptions << exception
+      @template_sets.with_delayed_exceptions(KubernetesDeploy::Renderer::InvalidPartialError) do |template_set|
+        template_set.with_resource_definitions_and_filename(
+          render_erb: render_erb,
+          current_sha: current_sha,
+          bindings: bindings,
+          raw: raw
+        ) do |r_def, filename|
+          yield r_def, filename
         end
       end
-      raise exceptions[0] if exceptions.present?
     end
 
     def with_resource_definitions(render_erb: false, current_sha: nil, bindings: nil, raw: false)
