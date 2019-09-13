@@ -5,10 +5,14 @@ module Krane
     class RestartCommand
       DEFAULT_RESTART_TIMEOUT = '300s'
       OPTIONS = {
-        "global-timeout" => { default: DEFAULT_RESTART_TIMEOUT, type: :string, banner: "duration" },
-        "deployments" => { type: :string, banner: "list,of,deployments" },
-        "selector" => { type: :string, banner: "'label=value'" },
-        "verify-result" => { type: :boolean, default: true },
+        "deployments" => { type: :string, banner: "list,of,deployments",
+          desc: "List of workload names to restart" },
+        "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_RESTART_TIMEOUT,
+          desc: "Max duration to monitor workloads correctly restarted" },
+        "selector" => { type: :string, banner: "'label=value'",
+          desc: "Select workloads by selector(s)" },
+        "verify-result" => { type: :boolean, default: true,
+          desc: "Verify workloads correctly restarted" },
       }
 
       def self.from_options(namespace, context, options)
