@@ -5,6 +5,11 @@
 - Make sure that we only declare a Service of type LoadBalancer as deployed after its IP address is published. [#547](https://github.com/Shopify/kubernetes-deploy/pull/547)
 
 
+*Bug Fixes*
+- Fix a bug in rendering where we failed to add a yaml doc separator (`---`) to
+  an implicit document if there are multiple documents in the file.
+  ([#551](https://github.com/Shopify/kubernetes-deploy/pull/551))
+
 *Other*
 - Kubernetes 1.10 is no longer officially supported as of this version ([#546](https://github.com/Shopify/kubernetes-deploy/pull/546))
 - We've added a new Krane cli. This code is in alpha. We are providing
