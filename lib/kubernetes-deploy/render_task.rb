@@ -3,18 +3,16 @@ require 'tempfile'
 
 require 'kubernetes-deploy/common'
 require 'kubernetes-deploy/renderer'
+require 'kubernetes-deploy/template_sets'
 
 module KubernetesDeploy
   class RenderTask
-    def initialize(logger: nil, current_sha:, template_dir:, bindings:)
+    def initialize(logger: nil, current_sha:, template_dir: nil, template_paths: [], bindings:)
       @logger = logger || KubernetesDeploy::FormattedLogger.build
       @template_dir = template_dir
-      @renderer = KubernetesDeploy::Renderer.new(
-        current_sha: current_sha,
-        bindings: bindings,
-        template_dir: @template_dir,
-        logger: @logger,
-      )
+      @template_paths = template_paths.map { |path| File.expand_path(path) }
+      @bindings = bindings
+      @current_sha = current_sha
     end
 
     def run(*args)
@@ -28,16 +26,12 @@ module KubernetesDeploy
       @logger.reset
       @logger.phase_heading("Initializing render task")
 
-      filenames = if only_filenames.empty?
-        Dir.foreach(@template_dir).select { |filename| filename.end_with?(".yml.erb", ".yml", ".yaml", ".yaml.erb") }
-      else
-        only_filenames
-      end
+      ts = TemplateSets.from_dirs_and_files(paths: template_sets_paths(only_filenames), logger: @logger)
 
-      validate_configuration(filenames)
-      render_filenames(stream, filenames)
+      validate_configuration(ts, only_filenames)
+      count = render_templates(stream, ts)
 
-      @logger.summary.add_action("Successfully rendered #{filenames.size} template(s)")
+      @logger.summary.add_action("Successfully rendered #{count} template(s)")
       @logger.print_summary(:success)
     rescue KubernetesDeploy::FatalDeploymentError
       @logger.print_summary(:failure)
@@ -46,29 +40,44 @@ module KubernetesDeploy
 
     private
 
-    def render_filenames(stream, filenames)
+    def template_sets_paths(only_filenames)
+      if @template_paths.present?
+        # Validation will catch @template_paths & @template_dir being present
+        @template_paths
+      elsif only_filenames.blank?
+        [File.expand_path(@template_dir || '')]
+      else
+        absolute_template_dir = File.expand_path(@template_dir || '')
+        only_filenames.map do |name|
+          File.join(absolute_template_dir, name)
+        end
+      end
+    end
+
+    def render_templates(stream, template_sets)
       exceptions = []
       @logger.phase_heading("Rendering template(s)")
-
-      filenames.each do |filename|
-        begin
-          render_filename(filename, stream)
-        rescue KubernetesDeploy::InvalidTemplateError => exception
-          exceptions << exception
-          log_invalid_template(exception)
+      count = 0
+      begin
+        template_sets.with_resource_definitions_and_filename(render_erb: true,
+            current_sha: @current_sha, bindings: @bindings, raw: true) do |rendered_content, filename|
+          render_filename(rendered_content, filename, stream)
+          count += 1
         end
+      rescue KubernetesDeploy::InvalidTemplateError => exception
+        exceptions << exception
+        log_invalid_template(exception)
       end
 
       unless exceptions.empty?
         raise exceptions[0]
       end
+      count
     end
 
-    def render_filename(filename, stream)
+    def render_filename(rendered_content, filename, stream)
       file_basename = File.basename(filename)
       @logger.info("Rendering #{file_basename}...")
-      file_content = File.read(File.join(@template_dir, filename))
-      rendered_content = @renderer.render_template(filename, file_content)
       implicit = []
       YAML.parse_stream(rendered_content, "<rendered> #{filename}") { |d| implicit << d.implicit }
       if rendered_content.present?
@@ -82,27 +91,29 @@ module KubernetesDeploy
       raise InvalidTemplateError.new("Template is not valid YAML. #{exception.message}", filename: filename)
     end
 
-    def validate_configuration(filenames)
+    def validate_configuration(template_sets, filenames)
       @logger.info("Validating configuration")
       errors = []
-
-      if filenames.empty?
-        errors << "no templates found in template dir #{@template_dir}"
+      if @template_dir.present? && @template_paths.present?
+        errors << "template_dir and template_paths can not be combined"
       end
 
-      absolute_template_dir = File.expand_path(@template_dir)
-
-      filenames.each do |filename|
-        absolute_file = File.expand_path(File.join(@template_dir, filename))
-        if !File.exist?(absolute_file)
-          errors << "Filename \"#{absolute_file}\" could not be found"
-        elsif !File.file?(absolute_file)
-          errors << "Filename \"#{absolute_file}\" is not a file"
-        elsif !absolute_file.start_with?(absolute_template_dir)
-          errors << "Filename \"#{absolute_file}\" is outside the template directory," \
-          " which was resolved as #{absolute_template_dir}"
+      if filenames.present?
+        if @template_dir.nil?
+          errors << "template_dir must be set to use filenames"
+        else
+          absolute_template_dir = File.expand_path(@template_dir)
+          filenames.each do |filename|
+            absolute_file = File.expand_path(File.join(@template_dir, filename))
+            unless absolute_file.start_with?(absolute_template_dir)
+              errors << "Filename \"#{absolute_file}\" is outside the template directory," \
+              " which was resolved as #{absolute_template_dir}"
+            end
+          end
         end
       end
+
+      errors += template_sets.validate
 
       unless errors.empty?
         @logger.summary.add_action("Configuration invalid")

@@ -11,7 +11,8 @@ module KubernetesDeploy
         @logger = logger
       end
 
-      def with_resource_definitions(render_erb: false, current_sha: nil, bindings: nil)
+      def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
+        exceptions = []
         if render_erb
           @renderer = Renderer.new(
             template_dir: @template_dir,
@@ -22,10 +23,16 @@ module KubernetesDeploy
         end
         @files.each do |filename|
           next if filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
-          templates(filename: filename) do |r_def|
-            yield r_def
+          begin
+            templates(filename: filename, raw: raw) do |r_def|
+              yield r_def, filename
+            end
+          rescue KubernetesDeploy::InvalidTemplateError => exception
+            exceptions << exception
           end
         end
+
+        raise exceptions[0] if exceptions.present?
       end
 
       def ejson_secrets_file
@@ -59,7 +66,7 @@ module KubernetesDeploy
 
       private
 
-      def templates(filename:)
+      def templates(filename:, raw:)
         file_content = File.read(File.join(@template_dir, filename))
         rendered_content = @renderer ? @renderer.render_template(filename, file_content) : file_content
         YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
@@ -68,8 +75,9 @@ module KubernetesDeploy
             raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
               filename: filename, content: doc)
           end
-          yield doc
+          yield doc unless raw
         end
+        yield rendered_content if raw
       rescue InvalidTemplateError => err
         err.filename ||= filename
         raise err
@@ -106,15 +114,29 @@ module KubernetesDeploy
       end
     end
 
-    def with_resource_definitions(render_erb: false, current_sha: nil, bindings: nil)
+    def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
+      exceptions = []
       @template_sets.each do |template_set|
-        template_set.with_resource_definitions(
-          render_erb: render_erb,
-          current_sha: current_sha,
-          bindings: bindings
-        ) do |r_def|
-          yield r_def
+        begin
+          template_set.with_resource_definitions_and_filename(
+            render_erb: render_erb,
+            current_sha: current_sha,
+            bindings: bindings,
+            raw: raw
+          ) do |r_def, filename|
+            yield r_def, filename
+          end
+        rescue KubernetesDeploy::Renderer::InvalidPartialError => exception
+          exceptions << exception
         end
+      end
+      raise exceptions[0] if exceptions.present?
+    end
+
+    def with_resource_definitions(render_erb: false, current_sha: nil, bindings: nil, raw: false)
+      with_resource_definitions_and_filename(render_erb: render_erb,
+        current_sha: current_sha, bindings: bindings, raw: raw) do |r_def, _|
+        yield r_def
       end
     end
 

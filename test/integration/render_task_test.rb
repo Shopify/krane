@@ -223,7 +223,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
 
     assert_render_failure(render.run(mock_output_stream, ["../"]))
     assert_logs_match_all([
-      %r{test/fixtures" is not a file},
+      "is outside the template directory, which was resolved as",
     ])
   end
 
@@ -237,11 +237,12 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def test_render_empty_template_dir
-    render = build_render_task(Dir.mktmpdir)
+    tmp_dir = Dir.mktmpdir
+    render = build_render_task(tmp_dir)
 
     assert_render_failure(render.run(mock_output_stream))
     assert_logs_match_all([
-      /no templates found in template dir/,
+      "Template directory #{tmp_dir} does not contain any valid templates",
     ])
   end
 
