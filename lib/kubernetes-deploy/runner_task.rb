@@ -154,8 +154,8 @@ module KubernetesDeploy
         raise TaskConfigurationError, message
       end
 
-      container.command = entrypoint
-      container.args = args
+      container.command = entrypoint if entrypoint
+      container.args = args if args
 
       env_args = env_vars.map do |env|
         key, value = env.split('=', 2)
