@@ -26,9 +26,4 @@ class VersionTest < KubernetesDeploy::TestCase
   def krane
     Krane::CLI::Krane.new
   end
-
-  def krane_black_box(command, args = "")
-    path = File.expand_path("../../../exe/krane", __FILE__)
-    Open3.capture3("#{path} #{command} #{args}")
-  end
 end

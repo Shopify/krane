@@ -14,11 +14,4 @@ class KraneTest < KubernetesDeploy::TestCase
     assert_predicate(status, :success?)
     assert_empty(err)
   end
-
-  private
-
-  def krane_black_box(command, args = "")
-    path = File.expand_path("../../../exe/krane", __FILE__)
-    Open3.capture3("#{path} #{command} #{args}")
-  end
 end
