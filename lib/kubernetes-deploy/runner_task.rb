@@ -8,6 +8,7 @@ require 'kubernetes-deploy/resource_cache'
 require 'kubernetes-deploy/resource_watcher'
 require 'kubernetes-deploy/kubernetes_resource'
 require 'kubernetes-deploy/kubernetes_resource/pod'
+require 'kubernetes-deploy/runner_task_config_validator'
 
 module KubernetesDeploy
   class RunnerTask
@@ -35,7 +36,11 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing task")
+
+      @logger.info("Validating configuration")
       verify_config!(task_template, args)
+      @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
+
       pod = build_pod(task_template, entrypoint, args, env_vars, verify_result)
       validate_pod(pod)
 
@@ -108,25 +113,14 @@ module KubernetesDeploy
     end
 
     def verify_config!(task_template, args)
-      @logger.info("Validating configuration")
-      errors = []
-
-      if task_template.blank?
-        errors << "Task template name can't be nil"
-      end
-
-      if args.blank?
-        errors << "Args can't be nil"
-      end
-
-      task_config_validator = TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder)
+      task_config_validator = RunnerTaskConfigValidator.new(@task_config, kubectl, kubeclient_builder)
+      task_config_validator.template = task_template
+      task_config_validator.args = args
       unless task_config_validator.valid?
         @logger.summary.add_action("Configuration invalid")
-        @logger.summary.add_paragraph([task_config_validator.errors + errors].map { |err| "- #{err}" }.join("\n"))
+        @logger.summary.add_paragraph([task_config_validator.errors].map { |err| "- #{err}" }.join("\n"))
         raise KubernetesDeploy::TaskConfigurationError
       end
-
-      @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
     end
 
     def get_template(template_name)
