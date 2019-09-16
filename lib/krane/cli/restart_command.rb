@@ -5,7 +5,7 @@ module Krane
     class RestartCommand
       DEFAULT_RESTART_TIMEOUT = '300s'
       OPTIONS = {
-        "deployments" => { type: :string, banner: "list,of,deployments",
+        "deployments" => { type: :array, banner: "list of deployments",
                            desc: "List of workload names to restart" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_RESTART_TIMEOUT,
                               desc: "Max duration to monitor workloads correctly restarted" },
@@ -24,7 +24,7 @@ module Krane
           max_watch_seconds: KubernetesDeploy::DurationParser.new(options["global-timeout"]).parse!.to_i,
         )
         restart.run!(
-          options[:deployments]&.split(","),
+          options[:deployments],
           selector: selector,
           verify_result: options["verify-result"]
         )

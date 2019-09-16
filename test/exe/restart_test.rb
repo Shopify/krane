@@ -19,7 +19,7 @@ class RestartTest < KubernetesDeploy::TestCase
     set_krane_restart_expecations(deployments: ['web'])
     krane_restart!(flags: '--deployments web')
     set_krane_restart_expecations(deployments: ['web', 'jobs'])
-    krane_restart!(flags: '--deployments web,jobs')
+    krane_restart!(flags: '--deployments web jobs')
   end
 
   def test_restart_parses_selector
