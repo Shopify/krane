@@ -29,14 +29,15 @@ module KubernetesDeploy
       @max_watch_seconds = max_watch_seconds
     end
 
-    def perform(*args)
+    def run(*args)
       perform!(*args)
       true
     rescue FatalDeploymentError
       false
     end
+    alias_method :perform, :run
 
-    def perform!(deployments_names = nil, selector: nil)
+    def run!(deployments_names = nil, selector: nil, verify_result: true)
       start = Time.now.utc
       @logger.reset
 
@@ -47,16 +48,14 @@ module KubernetesDeploy
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
 
-      @logger.phase_heading("Waiting for rollout")
-      resources = build_watchables(deployments, start)
-      ResourceWatcher.new(resources: resources, logger: @logger, operation_name: "restart",
-        timeout: @max_watch_seconds, namespace: @namespace, context: @context).run
-      failed_resources = resources.reject(&:deploy_succeeded?)
-      success = failed_resources.empty?
-      if !success && failed_resources.all?(&:deploy_timed_out?)
-        raise DeploymentTimeoutError
+      if verify_result
+        @logger.phase_heading("Waiting for rollout")
+        resources = build_watchables(deployments, start)
+        verify_restart(resources)
+      else
+        warning = "Result verification is disabled for this task"
+        @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
       end
-      raise FatalDeploymentError unless success
       StatsD.distribution('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
@@ -69,6 +68,7 @@ module KubernetesDeploy
       @logger.print_summary(:failure)
       raise
     end
+    alias_method :perform!, :run!
 
     private
 
@@ -166,6 +166,17 @@ module KubernetesDeploy
           },
         },
       }
+    end
+
+    def verify_restart(resources)
+      ResourceWatcher.new(resources: resources, logger: @logger, operation_name: "restart",
+        timeout: @max_watch_seconds, namespace: @namespace, context: @context).run
+      failed_resources = resources.reject(&:deploy_succeeded?)
+      success = failed_resources.empty?
+      if !success && failed_resources.all?(&:deploy_timed_out?)
+        raise DeploymentTimeoutError
+      end
+      raise FatalDeploymentError unless success
     end
 
     def verify_config!
