@@ -113,9 +113,8 @@ module KubernetesDeploy
     end
 
     def verify_config!(task_template, args)
-      task_config_validator = RunnerTaskConfigValidator.new(@task_config, kubectl, kubeclient_builder)
-      task_config_validator.template = task_template
-      task_config_validator.args = args
+      task_config_validator = RunnerTaskConfigValidator.new(task_template, args, @task_config, kubectl,
+        kubeclient_builder)
       unless task_config_validator.valid?
         @logger.summary.add_action("Configuration invalid")
         @logger.summary.add_paragraph([task_config_validator.errors].map { |err| "- #{err}" }.join("\n"))
