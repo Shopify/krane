@@ -22,7 +22,9 @@ module Krane
       desc("render", "Render templates")
       expand_options(RenderCommand::OPTIONS)
       def render
-        RenderCommand.from_options(options)
+        rescue_and_exit do
+          RenderCommand.from_options(options)
+        end
       end
 
       desc("version", "Prints the version")

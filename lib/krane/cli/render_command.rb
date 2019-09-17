@@ -23,7 +23,7 @@ module Krane
             template_paths: paths,
             bindings: bindings_parser.parse,
           )
-          runner.run(STDOUT)
+          runner.run!(STDOUT)
         end
       end
     end

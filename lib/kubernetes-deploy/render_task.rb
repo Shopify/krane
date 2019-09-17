@@ -90,6 +90,8 @@ module KubernetesDeploy
       errors = []
       if @template_dir.present? && @template_paths.present?
         errors << "template_dir and template_paths can not be combined"
+      elsif @template_dir.blank? && @template_paths.blank?
+        errors << "template_dir or template_paths must be set"
       end
 
       if filenames.present?

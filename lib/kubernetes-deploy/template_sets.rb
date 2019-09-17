@@ -1,12 +1,14 @@
 # frozen_string_literal: true
-require 'enumerable/with_delayed_exceptions'
+require 'kubernetes-deploy/delayed_exceptions'
 require 'kubernetes-deploy/ejson_secret_provisioner'
 
 module KubernetesDeploy
   class TemplateSets
+    include DelayedExceptions
     VALID_TEMPLATES = %w(.yml.erb .yml .yaml .yaml.erb)
     # private inner class
     class TemplateSet
+      include DelayedExceptions
       def initialize(template_dir:, file_whitelist: [], logger:)
         @template_dir = template_dir
         @files = file_whitelist
@@ -22,7 +24,7 @@ module KubernetesDeploy
             bindings: bindings,
           )
         end
-        @files.with_delayed_exceptions(KubernetesDeploy::InvalidTemplateError) do |filename|
+        with_delayed_exceptions(@files, KubernetesDeploy::InvalidTemplateError) do |filename|
           next if filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
           templates(filename: filename, raw: raw) { |r_def| yield r_def, filename }
         end
@@ -108,7 +110,7 @@ module KubernetesDeploy
     end
 
     def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
-      @template_sets.with_delayed_exceptions(KubernetesDeploy::Renderer::InvalidPartialError) do |template_set|
+      with_delayed_exceptions(@template_sets, KubernetesDeploy::InvalidTemplateError) do |template_set|
         template_set.with_resource_definitions_and_filename(
           render_erb: render_erb,
           current_sha: current_sha,

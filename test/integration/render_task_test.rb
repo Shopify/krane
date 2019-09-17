@@ -318,6 +318,65 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     assert_logs_match("Rendered effectively_empty.yml.erb successfully, but the result was blank")
   end
 
+  def test_render_task_template_paths_xor_templae_dir
+    render = KubernetesDeploy::RenderTask.new(
+      logger: logger,
+      current_sha: "k#{SecureRandom.hex(6)}",
+      bindings: {},
+      template_dir: fixture_path('collection-with-erb'),
+      template_paths: [fixture_path('collection-with-erb')]
+    )
+
+    assert_render_failure(render.run(mock_output_stream))
+    assert_logs_match_all([
+      "template_dir and template_paths can not be combined",
+    ], in_order: true)
+
+    render = KubernetesDeploy::RenderTask.new(
+      logger: logger,
+      current_sha: "k#{SecureRandom.hex(6)}",
+      bindings: {},
+    )
+
+    assert_render_failure(render.run(mock_output_stream))
+    assert_logs_match_all([
+      "template_dir or template_paths must be set",
+    ], in_order: true)
+  end
+
+  def test_render_task_invalid_filenames_with_template_paths
+    render = build_render_task_with_template_paths(fixture_path('collection-with-erb'))
+
+    assert_render_failure(render.run(mock_output_stream, ['blah']))
+    assert_logs_match_all([
+      "template_dir must be set to use filenames",
+    ], in_order: true)
+  end
+
+  def test_render_task_with_template_paths
+    render = build_render_task_with_template_paths(
+      File.join(fixture_path('hello-cloud'), 'configmap-data.yml')
+    )
+
+    assert_render_success(render.run(mock_output_stream))
+
+    stdout_assertion do |output|
+      assert_equal output, <<~RENDERED
+        ---
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: hello-cloud-configmap-data
+          labels:
+            name: hello-cloud-configmap-data
+            app: hello-cloud
+        data:
+          datapoint1: value1
+          datapoint2: value2
+      RENDERED
+    end
+  end
+
   private
 
   def build_render_task(template_dir, bindings = {})
@@ -326,6 +385,15 @@ class RenderTaskTest < KubernetesDeploy::TestCase
       current_sha: "k#{SecureRandom.hex(6)}",
       bindings: bindings,
       template_dir: template_dir
+    )
+  end
+
+  def build_render_task_with_template_paths(template_paths, bindings = {})
+    KubernetesDeploy::RenderTask.new(
+      logger: logger,
+      current_sha: "k#{SecureRandom.hex(6)}",
+      bindings: bindings,
+      template_paths: Array(template_paths)
     )
   end
 

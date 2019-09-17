@@ -41,6 +41,40 @@ class TemplateSetsTest < KubernetesDeploy::TestCase
     assert_equal(template_sets.validate, expected)
   end
 
+  def test_with_resource_definitions_and_filename_raw
+    path = File.join(fixture_path("hello-cloud"), "rq.yml")
+    template_sets = template_sets_from_paths(path)
+
+    template_sets.with_resource_definitions_and_filename(raw: true) do |rendered, _|
+      assert_match 'kind: ResourceQuota', rendered
+    end
+  end
+
+  def test_with_resource_definitions_and_filename_delays_errors
+    # Ordered so that failure is first
+    paths = [File.join(fixture_path("test-partials/partials"), "independent-configmap.yml.erb"),
+             File.join(fixture_path("hello-cloud"), "rq.yml")]
+    template_sets = template_sets_from_paths(*paths)
+
+    file_names = []
+    template_sets.with_resource_definitions_and_filename(render_erb: true,
+     bindings: { data: "1" }) do |rendered_content, filename|
+      file_names << filename
+      refute_empty rendered_content
+    end
+    assert_equal(paths.map { |f| File.basename(f) }.sort, file_names.sort)
+
+    file_names = []
+    assert_raises(KubernetesDeploy::InvalidTemplateError) do
+      template_sets.with_resource_definitions_and_filename(render_erb: true,
+       bindings: {}) do |rendered_content, filename|
+        file_names << filename
+        refute_empty rendered_content
+      end
+    end
+    assert_equal(file_names.count, 1)
+  end
+
   private
 
   def template_sets_from_paths(*paths)
