@@ -61,7 +61,8 @@ module FixtureDeployHelper
   end
 
   def deploy_dirs_without_profiling(dirs, wait: true, allow_protected_ns: false, prune: true, bindings: {},
-    sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil, selector: nil)
+    sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil, selector: nil,
+    protected_namespaces: nil)
     kubectl_instance ||= build_kubectl
 
     deploy = KubernetesDeploy::DeployTask.new(
@@ -74,6 +75,7 @@ module FixtureDeployHelper
       bindings: bindings,
       max_watch_seconds: max_watch_seconds,
       selector: selector,
+      protected_namespaces: protected_namespaces,
     )
     deploy.run(
       verify_result: wait,
@@ -95,6 +97,14 @@ module FixtureDeployHelper
       deploy_result
     else
       deploy_dirs_without_profiling(dirs, args)
+    end
+  end
+
+  def setup_template_dir(set, subset: nil)
+    fixtures = load_fixtures(set, subset)
+    Dir.mktmpdir("fixture_dir") do |target_dir|
+      write_fixtures_to_dir(fixtures, target_dir)
+      yield target_dir if block_given?
     end
   end
 

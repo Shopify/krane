@@ -58,6 +58,15 @@ class KraneTest < KubernetesDeploy::IntegrationTest
     assert_match(test_sha, out)
   end
 
+  def test_deploy_black_box
+    setup_template_dir("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]) do |target_dir|
+      out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} -f #{target_dir}")
+      assert_empty(out)
+      assert_match("Success", err)
+      assert_predicate(status, :success?)
+    end
+  end
+
   private
 
   def task_runner_pods

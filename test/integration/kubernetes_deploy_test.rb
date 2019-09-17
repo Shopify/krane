@@ -194,6 +194,15 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     @namespace = generated_ns
   end
 
+  def test_deploy_succeeds_with_specific_protected_namespaces
+    generated_ns = @namespace
+    @namespace = 'default' # this should fail if we use the default options for protected namespaces
+    protected_namespaces = %w(kube-system kube-public)
+    assert_deploy_success(deploy_fixtures("hello-cloud", prune: true, protected_namespaces: protected_namespaces))
+  ensure
+    @namespace = generated_ns
+  end
+
   def test_refuses_deploy_to_protected_namespace_without_override
     generated_ns = @namespace
     @namespace = 'default'

@@ -105,7 +105,7 @@ module KubernetesDeploy
     end
 
     def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
-      max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil)
+      max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil, protected_namespaces: nil)
       template_dir = File.expand_path(template_dir) if template_dir
       template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
 
@@ -120,6 +120,7 @@ module KubernetesDeploy
       @kubectl = kubectl_instance
       @max_watch_seconds = max_watch_seconds
       @selector = selector
+      @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
     end
 
     def run(*args)
@@ -147,7 +148,7 @@ module KubernetesDeploy
       end
 
       @logger.phase_heading("Deploying all resources")
-      if PROTECTED_NAMESPACES.include?(@namespace) && prune
+      if @protected_namespaces.include?(@namespace) && prune
         raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
       end
 
@@ -334,7 +335,7 @@ module KubernetesDeploy
 
       if @namespace.blank?
         errors << "Namespace must be specified"
-      elsif PROTECTED_NAMESPACES.include?(@namespace)
+      elsif @protected_namespaces.include?(@namespace)
         if allow_protected_ns && prune
           errors << "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
         elsif allow_protected_ns

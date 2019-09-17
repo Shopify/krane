@@ -6,6 +6,7 @@ require 'krane/cli/version_command'
 require 'krane/cli/restart_command'
 require 'krane/cli/run_command'
 require 'krane/cli/render_command'
+require 'krane/cli/deploy_command'
 
 module Krane
   module CLI
@@ -46,6 +47,14 @@ module Krane
       def run_command(namespace, context)
         rescue_and_exit do
           RunCommand.from_options(namespace, context, options)
+        end
+      end
+
+      desc("deploy NAMESPACE CONTEXT", "Apply a configuration to a resource or set of resources")
+      expand_options(DeployCommand::OPTIONS)
+      def deploy(namespace, context)
+        rescue_and_exit do
+          DeployCommand.from_options(namespace, context, options)
         end
       end
 
