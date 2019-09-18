@@ -179,7 +179,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_run_fails_if_context_is_invalid
-    task_runner = build_task_runner(context: "missing")
+    task_runner = build_task_runner(context: "unknown")
     assert_task_run_failure(task_runner.run(run_params))
 
     assert_logs_match_all([
@@ -187,7 +187,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "Validating configuration",
       "Result: FAILURE",
       "Configuration invalid",
-      "- Could not connect to kubernetes cluster - context invalid",
+      "Context unknown missing from your kubeconfig file(s)",
     ], in_order: true)
   end
 
@@ -200,8 +200,52 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       "Validating configuration",
       "Result: FAILURE",
       "Configuration invalid",
-      "- Namespace was not found",
+      "Could not find Namespace:",
     ], in_order: true)
+  end
+
+  def test_run_fails_if_args_are_missing
+    task_runner = build_task_runner
+    result = task_runner.run(task_template: 'hello-cloud-template-runner',
+      entrypoint: ['/bin/sh', '-c'],
+      args: nil,
+      env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
+    assert_task_run_failure(result)
+
+    assert_logs_match_all([
+      "Initializing task",
+      "Validating configuration",
+      "Result: FAILURE",
+      "Configuration invalid",
+      "Args can't be nil",
+    ], in_order: true)
+  end
+
+  def test_run_fails_if_task_template_is_blank
+    task_runner = build_task_runner
+    result = task_runner.run(task_template: '',
+      entrypoint: ['/bin/sh', '-c'],
+      args: nil,
+      env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
+    assert_task_run_failure(result)
+
+    assert_logs_match_all([
+      "Initializing task",
+      "Validating configuration",
+      "Result: FAILURE",
+      "Configuration invalid",
+      "Task template name can't be nil",
+    ], in_order: true)
+  end
+
+  def test_run_bang_fails_if_task_template_or_args_are_invalid
+    task_runner = build_task_runner
+    assert_raises(KubernetesDeploy::TaskConfigurationError) do
+      task_runner.run!(task_template: '',
+        entrypoint: ['/bin/sh', '-c'],
+        args: nil,
+        env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
+    end
   end
 
   def test_run_with_template_missing
