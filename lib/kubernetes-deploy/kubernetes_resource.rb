@@ -466,17 +466,16 @@ module KubernetesDeploy
     end
 
     def validate_spec_with_kubectl(kubectl)
-      _, err, st = validate_with_dry_run_option(kubectl, "--server-dry-run")
-      if !st.success? && err.match(SERVER_DRY_RUN_DISABLED_ERROR)
-        _, err, st = validate_with_dry_run_option(kubectl, "--dry-run")
+      _, err, st = validate_with_dry_run_option(kubectl, "--dry-run")
+      if st.success? && sensitive_template_content?
+        _, err, st = validate_with_dry_run_option(kubectl, "--server-dry-run")
+        unless st.success? || err.match(SERVER_DRY_RUN_DISABLED_ERROR)
+          @validation_errors << "Validation for #{id} failed. Detailed information is unavailable as the raw error may contain sensitive data."
+        end
       end
 
       return true if st.success?
-      @validation_errors << if sensitive_template_content?
-        "Validation for #{id} failed. Detailed information is unavailable as the raw error may contain sensitive data."
-      else
-        err
-      end
+      @validation_errors << err
     end
 
     def validate_with_dry_run_option(kubectl, dry_run_option)
