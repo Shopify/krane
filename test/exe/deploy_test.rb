@@ -74,6 +74,16 @@ class DeployTest < KubernetesDeploy::TestCase
     krane_deploy!(flags: '--filenames /my/other/file/path')
   end
 
+  def test_deploy_fails_without_filename
+    krane = Krane::CLI::Krane.new(
+      [deploy_task_config.namespace, deploy_task_config.context],
+      []
+    )
+    assert_raises_message(Thor::RequiredArgumentMissingError, "No value provided for required options '--filenames'") do
+      krane.invoke("deploy")
+    end
+  end
+
   private
 
   def set_krane_deploy_expectations(new_args: {}, run_args: {})
