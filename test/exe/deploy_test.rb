@@ -71,7 +71,7 @@ class DeployTest < KubernetesDeploy::TestCase
     set_krane_deploy_expectations(new_args: { template_paths: ['/my/file/path'] })
     krane_deploy!(flags: '-f /my/file/path')
     set_krane_deploy_expectations(new_args: { template_paths: ['/my/other/file/path'] })
-    krane_deploy!(flags: '--filename /my/other/file/path')
+    krane_deploy!(flags: '--filenames /my/other/file/path')
   end
 
   private

@@ -6,9 +6,9 @@ module KubernetesDeploy
 
     STDIN_TEMP_FILE = "from_stdin.yml.erb"
     class << self
-      def with_processed_template_paths(template_paths, krane_cli: false)
+      def with_processed_template_paths(template_paths, require_explicit_path: false)
         validated_paths = []
-        if template_paths.empty? && !krane_cli
+        if template_paths.empty? && !require_explicit_path
           validated_paths << default_template_dir
         else
           template_paths.uniq!

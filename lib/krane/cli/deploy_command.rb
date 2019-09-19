@@ -10,13 +10,13 @@ module Krane
         kube-public
       )
       OPTIONS = {
-        "bindings" => { type: :array, banner: "foo=bar,abc=def",
+        "bindings" => { type: :array, banner: "foo=bar abc=def",
                         desc: "Expose additional variables to ERB templates (format: k1=v1,k2=v2, JSON string or file "\
                           "(JSON or YAML) path prefixed by '@')" },
-        "filename" => { type: :string, banner: '/tmp/my-resource.yml', aliases: :f,
-                        desc: "Path to a file that contains the configuration to apply" },
+        "filenames" => { type: :string, banner: '/tmp/my-resource.yml', aliases: :f, required: true,
+                         desc: "Path to a file that contains the configuration to apply" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_DEPLOY_TIMEOUT,
-                              desc: "Max duration to monitor workloads correctly restarted" },
+                              desc: "Max duration to monitor workloads correctly deployed" },
         "protected-namespaces" => { type: :string, banner: "list,of,namespaces",
                                     desc: "Enable deploys to a list of selected namespaces; set to an empty string "\
                                       "to disable",
@@ -28,7 +28,7 @@ module Krane
         "verbose-log-prefix" => { type: :boolean, desc: "Add [context][namespace] to the log prefix",
                                   default: true },
         "verify-result" => { type: :boolean, default: true,
-                             desc: "Verify workloads correctly restarted" },
+                             desc: "Verify workloads correctly deployed" },
       }
 
       def self.from_options(namespace, context, options)
@@ -51,10 +51,8 @@ module Krane
           options['protected-namespaces'].split(',')
         end
 
-        template_paths = []
-        template_paths << options[:filename] if options[:filename]
-
-        KubernetesDeploy::OptionsHelper.with_processed_template_paths(template_paths, krane_cli: true) do |paths|
+        KubernetesDeploy::OptionsHelper.with_processed_template_paths([options[:filenames]],
+          require_explicit_path: true) do |paths|
           deploy = KubernetesDeploy::DeployTask.new(
             namespace: namespace,
             context: context,
