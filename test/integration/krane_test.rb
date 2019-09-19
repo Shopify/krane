@@ -59,8 +59,9 @@ class KraneTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_deploy_black_box
-    setup_template_dir("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]) do |target_dir|
-      out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} -f #{target_dir}")
+    setup_template_dir("hello-cloud") do |target_dir|
+      flags = "-f #{target_dir} --render-erb --bindings deployment_id=1 current_sha=123"
+      out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} #{flags}")
       assert_empty(out)
       assert_match("Success", err)
       assert_predicate(status, :success?)
