@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 require 'krane/cli/krane'
+require 'kubernetes-deploy/bindings_parser'
 
 class DeployTest < KubernetesDeploy::TestCase
   def test_deploy_with_default_options
@@ -23,8 +24,6 @@ class DeployTest < KubernetesDeploy::TestCase
   end
 
   def test_deploy_parses_bindings
-    # FIXME: this require is only needed intermittently
-    require 'kubernetes-deploy/bindings_parser'
     bindings_parser = KubernetesDeploy::BindingsParser.new
     bindings_parser.expects(:add).with('foo=bar')
     bindings_parser.expects(:add).with('abc=def')
