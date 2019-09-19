@@ -504,10 +504,19 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     end
     assert_deploy_failure(result)
     refute_logs_match(%r{Kubectl err:.*something/invalid})
-    assert_logs_match_all([
-      "Command failed: apply -f",
-      /Invalid template: Deployment-web.*\.yml/,
-    ])
+
+    if server_dry_run_available?
+      assert_logs_match_all([
+        "Template validation failed",
+        /Invalid template: Deployment-web.*\.yml/,
+      ])
+    else
+      assert_logs_match_all([
+        "Command failed: apply -f",
+        /Invalid template: Deployment-web.*\.yml/,
+      ])
+    end
+
     refute_logs_match("kind: Deployment") # content of the sensitive template
   end
 
