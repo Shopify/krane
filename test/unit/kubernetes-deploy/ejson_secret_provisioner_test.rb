@@ -114,13 +114,13 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def stub_server_dry_run_validation_request
     stub_kubectl_response("apply", "-f", anything, "--server-dry-run", "--output=name",
-     resp: dummy_secret_hash, json: false,
-     kwargs: {
-       log_failure: false,
-       output_is_sensitive: true,
-       retry_whitelist: [:client_timeout],
-       attempts: 3,
-     })
+      resp: dummy_secret_hash, json: false,
+      kwargs: {
+        log_failure: false,
+        output_is_sensitive: true,
+        retry_whitelist: [:client_timeout],
+        attempts: 3,
+      })
   end
 
   def correct_ejson_key_secret_data

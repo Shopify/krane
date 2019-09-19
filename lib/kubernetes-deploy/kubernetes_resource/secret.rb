@@ -3,6 +3,7 @@ module KubernetesDeploy
   class Secret < KubernetesResource
     TIMEOUT = 30.seconds
     SENSITIVE_TEMPLATE_CONTENT = true
+    SERVER_DRY_RUNNABLE = true
 
     def status
       exists? ? "Available" : "Not Found"

@@ -37,6 +37,7 @@ module KubernetesDeploy
     TIMEOUT_OVERRIDE_ANNOTATION = "krane.shopify.io/#{TIMEOUT_OVERRIDE_ANNOTATION_SUFFIX}"
     LAST_APPLIED_ANNOTATION = "kubectl.kubernetes.io/last-applied-configuration"
     SENSITIVE_TEMPLATE_CONTENT = false
+    SERVER_DRY_RUNNABLE = false
 
     class << self
       def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil)
@@ -345,6 +346,10 @@ module KubernetesDeploy
       self.class::SENSITIVE_TEMPLATE_CONTENT
     end
 
+    def server_dry_runnable?
+      self.class::SERVER_DRY_RUNNABLE
+    end
+
     class Event
       EVENT_SEPARATOR = "ENDEVENT--BEGINEVENT"
       FIELD_SEPARATOR = "ENDFIELD--BEGINFIELD"
@@ -467,7 +472,7 @@ module KubernetesDeploy
 
     def validate_spec_with_kubectl(kubectl)
       _, err, st = validate_with_dry_run_option(kubectl, "--dry-run")
-      if st.success? && sensitive_template_content?
+      if st.success? && server_dry_runnable?
         _, err, st = validate_with_dry_run_option(kubectl, "--server-dry-run")
         if st.success? || err.match(SERVER_DRY_RUN_DISABLED_ERROR)
           return true
