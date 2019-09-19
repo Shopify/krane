@@ -62,7 +62,7 @@ module FixtureDeployHelper
 
   def deploy_dirs_without_profiling(dirs, wait: true, allow_protected_ns: false, prune: true, bindings: {},
     sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil, selector: nil,
-    protected_namespaces: nil)
+    protected_namespaces: nil, render_erb: true)
     kubectl_instance ||= build_kubectl
 
     deploy = KubernetesDeploy::DeployTask.new(
@@ -76,6 +76,7 @@ module FixtureDeployHelper
       max_watch_seconds: max_watch_seconds,
       selector: selector,
       protected_namespaces: protected_namespaces,
+      render_erb: render_erb,
     )
     deploy.run(
       verify_result: wait,

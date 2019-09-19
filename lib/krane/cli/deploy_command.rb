@@ -23,6 +23,7 @@ module Krane
                                     default: PROTECTED_NAMESPACES.join(',') },
         "prune" => { type: :boolean, desc: "Enable deletion of resources that do not appear in the template dir",
                      default: true },
+        "render-erb" => { type: :boolean, desc: "Enable ERB rendering", default: false },
         "selector" => { type: :string, banner: "'label=value'",
                         desc: "Select workloads by selector(s)" },
         "verbose-log-prefix" => { type: :boolean, desc: "Add [context][namespace] to the log prefix",

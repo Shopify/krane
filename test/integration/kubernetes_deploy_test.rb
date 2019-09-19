@@ -1584,6 +1584,15 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
+  def test_fail_erb_templates_if_rendering_is_disabled
+    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb"], render_erb: false)
+    # Expect that deploy will fail due to the ERB tags in this template
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Name: "unmanaged-pod-1-<%= deployment_id %>"',
+    ], in_order: true)
+  end
+
   private
 
   def expected_daemonset_pod_count
