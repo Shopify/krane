@@ -5,19 +5,18 @@ module Krane
     class RenderCommand
       OPTIONS = {
         bindings: { type: :array, desc: 'Bindings for erb' },
-        f: { type: :array, required: true, desc: 'Directories and files to render' },
+        filenames: { type: :array, required: true, aliases: 'f', desc: 'Directories and files to render' },
       }
 
       def self.from_options(options)
         require 'kubernetes-deploy/render_task'
-        require 'kubernetes-deploy/template_sets'
         require 'kubernetes-deploy/bindings_parser'
         require 'kubernetes-deploy/options_helper'
 
         bindings_parser = KubernetesDeploy::BindingsParser.new
         options[:bindings]&.each { |b| bindings_parser.add(b) }
 
-        KubernetesDeploy::OptionsHelper.with_processed_template_paths(options[:f]) do |paths|
+        KubernetesDeploy::OptionsHelper.with_processed_template_paths(options[:filenames]) do |paths|
           runner = KubernetesDeploy::RenderTask.new(
             current_sha: ENV["REVISION"],
             template_paths: paths,

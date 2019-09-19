@@ -2,6 +2,8 @@
 require 'integration_test_helper'
 
 class KraneTest < KubernetesDeploy::IntegrationTest
+  include EnvTestHelper
+
   def test_restart_black_box
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]))
     refute(fetch_restarted_at("web"), "RESTARTED_AT env on fresh deployment")

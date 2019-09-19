@@ -5,32 +5,35 @@ require 'krane/cli/krane'
 class RendertTest < KubernetesDeploy::TestCase
   include EnvTestHelper
   def test_render_with_default_options
-    install_krane_render_expecations
+    install_krane_render_expectations
     krane_render!
   end
 
   def test_render_parses_paths
     paths = "/dev/null /dev/yes /dev/no"
-    install_krane_render_expecations(template_paths: paths.split)
+    install_krane_render_expectations(template_paths: paths.split)
     krane_render!("-f #{paths}")
+
+    install_krane_render_expectations(template_paths: paths.split)
+    krane_render!("--filenames #{paths}")
   end
 
   def test_render_parses_bindings
-    install_krane_render_expecations(bindings: { "foo" => "1", "bar" => "2" })
+    install_krane_render_expectations(bindings: { "foo" => "1", "bar" => "2" })
     krane_render!("-f /dev/null --bindings foo=1,bar=2")
   end
 
   def test_render_uses_current_sha
     test_sha = "TEST"
     with_env("REVISION", test_sha) do
-      install_krane_render_expecations
+      install_krane_render_expectations
       krane_render!
     end
   end
 
   private
 
-  def install_krane_render_expecations(new_args = {})
+  def install_krane_render_expectations(new_args = {})
     options = default_options(new_args)
     response = mock('RenderTask')
     response.expects(:run!).with(STDOUT).returns(true)

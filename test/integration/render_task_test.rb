@@ -318,7 +318,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     assert_logs_match("Rendered effectively_empty.yml.erb successfully, but the result was blank")
   end
 
-  def test_render_task_template_paths_xor_templae_dir
+  def test_render_task_template_paths_xor_template_dir
     render = KubernetesDeploy::RenderTask.new(
       logger: logger,
       current_sha: "k#{SecureRandom.hex(6)}",
