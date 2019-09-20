@@ -59,6 +59,10 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 * [Prerequisites](#prerequisites-2)
 * [Usage](#usage-3)
 
+**KUBERNETES-DIFF**
+* [Prerequisites](#prerequisites-3)
+* [Usage](#usage-4)
+
 **CONTRIBUTING**
 * [Contributing](#contributing)
 * [Code of Conduct](#code-of-conduct)
@@ -522,6 +526,27 @@ kubernetes-render --template-dir=./path/to/template/dir template.yaml.erb > temp
 
 - `--template-dir=DIR`: Used to set the directory to interpret template names relative to. This is often the same directory passed as `--template-dir` when running `kubernetes-deploy` to actually deploy templates. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`.
 - `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-render --bindings=color=blue,size=large some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
+
+
+# kubernetes-diff / krane diff
+`kubernetes-diff` is a tool for showing difference between local files and current version in the cluster. Recommended to use as a part of your Kubernetes CI/CD to validate changes before applying them.
+Has been also implemented as `krane diff` version as a preparation to the renaming project.
+
+
+## Prerequisites
+ * `kubernetes-diff` works only in Kubernetes clusters with `server-side dry-run` enabled. [Documentation](https://kubernetes.io/blog/2019/01/14/apiserver-dry-run-and-kubectl-diff/)
+
+## Usage
+To show a diff between local and the cluster state run:
+
+```
+kubernetes-diff <kube namespace> <kube context> <arguments>
+krane diff <kube namespace> <kube context> <arguments>
+```
+
+*Options:*
+Refer to `kubernetes-diff --help` for the authoritative set of options.
+Refer to `krane help diff` for the authoritative set of options.
 
 
 # Contributing
