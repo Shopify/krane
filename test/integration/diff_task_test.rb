@@ -29,7 +29,7 @@ class DiffTaskTest < KubernetesDeploy::IntegrationTest
     assert_diff_success(diff.run(stream: mock_output_stream))
 
     stdout_assertion do |output|
-      assert_match("+  datapoint3: value3", output)
+      assert_match("datapoint3: value3", output)
     end
   end
 

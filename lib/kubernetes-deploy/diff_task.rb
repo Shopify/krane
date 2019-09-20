@@ -47,10 +47,9 @@ module KubernetesDeploy
 
     def initialize(
       namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
-      selector: nil, template_paths: [], template_dir: nil
+      selector: nil, template_paths: ["."]
     )
-      template_dir = File.expand_path(template_dir) if template_dir
-      template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
+      template_paths = (template_paths.map { |path| File.expand_path(path) }).compact
 
       @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths, logger: @logger)
