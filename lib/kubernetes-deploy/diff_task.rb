@@ -83,6 +83,10 @@ module KubernetesDeploy
       run_diff(resources, stream)
 
       @logger.print_summary(:success)
+    rescue FatalDeploymentError => error
+      @logger.summary.add_action(error.message) if error.message != error.class.to_s
+      @logger.print_summary(:failure)
+      raise
     end
 
     private
@@ -296,6 +300,7 @@ module KubernetesDeploy
         @logger.info(run_string)
         output, err, diff_st = kubectl.run("diff", "-f", r.file_path, log_failure: true, fail_expected: true)
 
+
         if output.blank?
           no_diff_string = ColorizedString.new("Local and cluster versions are identical").yellow
           @logger.info(no_diff_string)
@@ -303,12 +308,14 @@ module KubernetesDeploy
 
         # Kubectl DIFF currently spits out exit code 1 in all cases - PR to customize that is open
         # https://github.com/kubernetes/kubernetes/pull/82336
-        # next if diff_st.success?
-        # raise FatalDeploymentError, <<~MSG
-        #   Failed to replace or create resource: #{r.id}
-        #   #{err}
-        # MSG
-        stream.puts output
+        if diff_st.success? || err == "exit status 1"
+          stream.puts output
+          next
+        end
+        raise FatalDeploymentError, <<~MSG
+          Failed to diff resource: #{r.id}
+          #{err}
+        MSG
       end
     end
   end
