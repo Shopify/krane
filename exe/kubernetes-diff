@@ -67,7 +67,6 @@ begin
 
     runner.run!(stream: STDOUT)
   end
-  # TODO: Rename errors
 rescue KubernetesDeploy::DeploymentTimeoutError
   exit(70)
 rescue KubernetesDeploy::FatalDeploymentError
