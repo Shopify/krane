@@ -1372,10 +1372,18 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
     assert_deploy_failure(result)
     refute_logs_match(%r{Kubectl err:.*something/invalid})
-    assert_logs_match_all([
-      "Command failed: apply -f",
-      /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
-    ])
+    if server_dry_run_available?
+      assert_logs_match_all([
+        "Template validation failed",
+        'Invalid template: Secret-hello-secret',
+        /Detailed.* is unavailable as .* may contain sensitive data./,
+      ])
+    else
+      assert_logs_match_all([
+        "Command failed: apply -f",
+        /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
+      ])
+    end
   end
 
   def test_validation_failure_on_sensitive_resources_does_not_print_template

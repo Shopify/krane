@@ -36,6 +36,10 @@ module KubernetesDeploy
       _kubectl.server_version
     end
 
+    def server_dry_run_available?
+      kube_server_version >= Gem::Version.new('1.13')
+    end
+
     def _kubectl
       @_kubectl ||= KubernetesDeploy::Kubectl.new(namespace: "default", context: TEST_CONTEXT, logger: logger,
         log_failure_by_default: true, default_timeout: '5s')

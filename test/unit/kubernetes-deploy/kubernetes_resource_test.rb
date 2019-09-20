@@ -40,6 +40,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   class DummySensitiveResource < DummyResource
     SENSITIVE_TEMPLATE_CONTENT = true
+    SERVER_DRY_RUNNABLE = true
   end
 
   def test_unusual_timeout_output
