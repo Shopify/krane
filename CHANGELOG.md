@@ -4,6 +4,7 @@
 - Officially support Kubernetes 1.15 ([#546](https://github.com/Shopify/kubernetes-deploy/pull/546))
 - Make sure that we only declare a Service of type LoadBalancer as deployed after its IP address is published. [#547](https://github.com/Shopify/kubernetes-deploy/pull/547)
 - Add more validations to `RunnerTask`. [#554](https://github.com/Shopify/kubernetes-deploy/pull/554)
+- Validate secrets with `--server-dry-run` on supported clusters. [#553](https://github.com/Shopify/kubernetes-deploy/pull/553) 
 
 
 *Bug Fixes*
