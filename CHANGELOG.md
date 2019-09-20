@@ -1,12 +1,15 @@
 ## next
 
+*Important!*
+- The next release will be 1.0.0, which means that master will contain breaking changes.
+
+## 0.28.0
+
 *Enhancements*
 - Officially support Kubernetes 1.15 ([#546](https://github.com/Shopify/kubernetes-deploy/pull/546))
 - Make sure that we only declare a Service of type LoadBalancer as deployed after its IP address is published. [#547](https://github.com/Shopify/kubernetes-deploy/pull/547)
 - Add more validations to `RunnerTask`. [#554](https://github.com/Shopify/kubernetes-deploy/pull/554)
 - Validate secrets with `--server-dry-run` on supported clusters. [#553](https://github.com/Shopify/kubernetes-deploy/pull/553) 
-
-
 *Bug Fixes*
 - Fix a bug in rendering where we failed to add a yaml doc separator (`---`) to
   an implicit document if there are multiple documents in the file.
@@ -17,10 +20,10 @@
 - We've added a new Krane cli. This code is in alpha. We are providing
 no warranty at this time and reserve the right to make major breaking changes including
 removing it entirely at any time. ([#256](https://github.com/Shopify/kubernetes-deploy/issues/256))
-- Deprecate `kubernetes-deploy.shopify.io` annotations in favour of `krane.shopify.io`.
-
+- Deprecate `kubernetes-deploy.shopify.io` annotations in favour of `krane.shopify.io` ([#539](https://github.com/Shopify/kubernetes-deploy/pull/539))
 
 ## 0.27.0
+
 *Enhancements*
 - (alpha) Introduce a new `-f` flag for `kubernetes-deploy`. Allows passing in of multiple directories and/or filenames. Currently only usable by `kubernetes-deploy`, not `kubernetes-render`. [#514](https://github.com/Shopify/kubernetes-deploy/pull/514)
 - Initial implementation of shared task validation objects. [#533](https://github.com/Shopify/kubernetes-deploy/pull/533)
