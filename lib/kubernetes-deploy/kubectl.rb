@@ -26,7 +26,8 @@ module KubernetesDeploy
     end
 
     def run(*args, log_failure: nil, use_context: true, use_namespace: true, output: nil,
-      raise_if_not_found: false, attempts: 1, output_is_sensitive: nil, retry_whitelist: nil)
+      raise_if_not_found: false, attempts: 1, output_is_sensitive: nil, retry_whitelist: nil,
+      fail_expected: false)
       log_failure = @log_failure_by_default if log_failure.nil?
       output_is_sensitive = @output_is_sensitive_default if output_is_sensitive.nil?
       cmd = build_command_from_options(args, use_namespace, use_context, output)
@@ -37,7 +38,7 @@ module KubernetesDeploy
         out, err, st = Open3.capture3(*cmd)
         @logger.debug("Kubectl out: " + out.gsub(/\s+/, ' ')) unless output_is_sensitive
 
-        break if st.success?
+        break if st.success? || fail_expected
         raise(ResourceNotFoundError, err) if err.match(ERROR_MATCHERS[:not_found]) && raise_if_not_found
 
         if log_failure

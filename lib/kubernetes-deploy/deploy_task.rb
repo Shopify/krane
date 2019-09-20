@@ -479,12 +479,14 @@ module KubernetesDeploy
         bad_files = find_bad_files_from_kubectl_output(line)
         if bad_files.present?
           bad_files.each do |f|
-            if filenames_with_sensitive_content.include?(f[:filename])
+            record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content])
+            ### Disabled until the bug is fixed or skip CLI option introduced ###
+            # if filenames_with_sensitive_content.include?(f[:filename])
               # Hide the error and template contents in case it has senitive information
-              record_invalid_template(err: "SUPPRESSED FOR SECURITY", filename: f[:filename], content: nil)
-            else
-              record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content])
-            end
+            #   record_invalid_template(err: "SUPPRESSED FOR SECURITY", filename: f[:filename], content: nil)
+            # else
+            #   record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content])
+            # end
           end
         else
           unidentified_errors << line

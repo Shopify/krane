@@ -4,6 +4,7 @@ require 'krane'
 require 'thor'
 require 'krane/cli/version_command'
 require 'krane/cli/restart_command'
+require 'krane/cli/diff_command'
 
 module Krane
   module CLI
@@ -28,6 +29,14 @@ module Krane
       def restart(namespace, context)
         rescue_and_exit do
           RestartCommand.from_options(namespace, context, options)
+        end
+      end
+
+      desc("diff NAMESPACE CONTEXT", "Diff")
+      expand_options(DiffCommand::OPTIONS)
+      def diff(namespace, context)
+        rescue_and_exit do
+          DiffCommand.from_options(namespace, context, options)
         end
       end
 

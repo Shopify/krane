@@ -127,6 +127,7 @@ module KubernetesDeploy
     end
     alias_method :assert_restart_success, :assert_deploy_success
     alias_method :assert_task_run_success, :assert_deploy_success
+    alias_method :assert_diff_success, :assert_deploy_success
 
     def assert_logs_match(regexp, times = nil)
       logging_assertion do |logs|
@@ -185,6 +186,14 @@ module KubernetesDeploy
       raise ArgumentError,
         "Fixture set #{set_name} does not exist as directory #{source_dir}" unless File.directory?(source_dir)
       source_dir
+    end
+
+    def fixture_files_path(set_name, files: [])
+      fixtures = []
+      files.each do |file|
+        fixtures << fixture_path(set_name) + "/" + file
+      end
+      fixtures
     end
 
     def stub_kubectl_response(*args, kwargs: {}, resp:, err: "", success: true, json: true, times: 1)

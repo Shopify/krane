@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'kubernetes-deploy/diff_task'
+require 'kubernetes-deploy/options_helper'
+require 'kubernetes-deploy/bindings_parser'
+require 'kubernetes-deploy/label_selector'
+
+require 'optparse'
+
+template_dir = nil
+template_paths = []
+bindings = {}
+verbose_log_prefix = false
+selector = nil
+
+ARGV.options do |opts|
+  parser = KubernetesDeploy::BindingsParser.new
+  opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
+    "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") { |b| parser.add(b) }
+
+  opts.on("--verbose-log-prefix", "Add [context][namespace] to the log prefix") { verbose_log_prefix = true }
+  opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT)") { |v| template_dir = v }
+  opts.on("-f [PATHS]", Array, "comma separated list of template directories and/or filenames") do |paths|
+    template_paths += paths
+  end
+
+  opts.on("--selector=SELECTOR", "Ensure that all resources in your template dir match the given selector, " \
+    "and restrict pruning to deployed resources it selects.  (format: k1=v1,k2=v2)") do |s|
+    selector = KubernetesDeploy::LabelSelector.parse(s)
+  end
+
+  opts.on_tail("-h", "--help", "Print this help") do
+    puts opts
+    exit
+  end
+  opts.on_tail("-v", "--version", "Show version") do
+    puts "v#{KubernetesDeploy::VERSION}"
+    exit
+  end
+  opts.parse!
+  bindings = parser.parse
+end
+
+namespace = ARGV[0]
+context = ARGV[1]
+logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
+
+# Deprecation path: this can be removed when --template-dir is fully replaced by -f
+if template_dir && !template_paths.empty?
+  logger.error("Error: --template-dir and -f flags cannot be combined")
+  exit(1)
+end
+template_paths = [template_dir] if template_paths.empty? && template_dir
+
+begin
+  KubernetesDeploy::OptionsHelper.with_processed_template_paths(template_paths) do |paths|
+    runner = KubernetesDeploy::DiffTask.new(
+      namespace: namespace,
+      context: context,
+      current_sha: ENV["REVISION"],
+      template_paths: paths,
+      bindings: bindings,
+      logger: logger,
+      selector: selector,
+    )
+
+    runner.run!(stream: STDOUT)
+  end
+  # TODO: Rename errors
+rescue KubernetesDeploy::DeploymentTimeoutError
+  exit(70)
+rescue KubernetesDeploy::FatalDeploymentError
+  exit(1)
+rescue KubernetesDeploy::OptionsHelper::OptionsError => e
+  logger.error(e.message)
+  exit(1)
+end
