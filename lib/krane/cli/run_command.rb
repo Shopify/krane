@@ -43,7 +43,7 @@ module Krane
         runner.run!(
           verify_result: options['verify-result'],
           task_template: options['template'],
-          entrypoint: options['command'],
+          command: options['command'],
           args: options['arguments']&.split(" "),
           env_vars: options['env-vars'],
         )

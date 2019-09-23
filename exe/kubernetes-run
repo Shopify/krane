@@ -35,7 +35,7 @@ runner = KubernetesDeploy::RunnerTask.new(
 success = runner.run(
   verify_result: verify_result,
   task_template: template,
-  entrypoint: entrypoint,
+  command: entrypoint,
   args: ARGV[2..-1],
   env_vars: env_vars
 )

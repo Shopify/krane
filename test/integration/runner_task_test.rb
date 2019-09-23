@@ -207,7 +207,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   def test_run_fails_if_task_template_is_blank
     task_runner = build_task_runner
     result = task_runner.run(task_template: '',
-      entrypoint: ['/bin/sh', '-c'],
+      command: ['/bin/sh', '-c'],
       args: nil,
       env_vars: { MY_CUSTOM_VARIABLE: "MITTENS" })
     assert_task_run_failure(result)
@@ -225,7 +225,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     task_runner = build_task_runner
     assert_raises(KubernetesDeploy::TaskConfigurationError) do
       task_runner.run!(task_template: '',
-        entrypoint: ['/bin/sh', '-c'],
+        command: ['/bin/sh', '-c'],
         args: nil,
         env_vars: { MY_CUSTOM_VARIABLE: "MITTENS" })
     end
@@ -272,7 +272,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     task_runner = build_task_runner
     result = task_runner.run(
       task_template: 'hello-cloud-template-runner',
-      entrypoint: ['/bin/sh', '-c'],
+      command: ['/bin/sh', '-c'],
       args: ['echo "The value is: $MY_CUSTOM_VARIABLE"'],
       env_vars: { MY_CUSTOM_VARIABLE: "MITTENS", SOME_VARIABLE: "GLOVES" }
     )

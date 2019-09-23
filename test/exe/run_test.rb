@@ -23,7 +23,7 @@ class RunTest < KubernetesDeploy::TestCase
   end
 
   def test_run_parses_command
-    set_krane_run_expectations(run_args: { entrypoint: %w(/bin/sh) })
+    set_krane_run_expectations(run_args: { command: %w(/bin/sh) })
     krane_run!(flags: '--command /bin/sh')
   end
 
@@ -94,7 +94,7 @@ class RunTest < KubernetesDeploy::TestCase
       run_args: {
         verify_result: true,
         task_template: 'task-runner-template',
-        entrypoint: nil,
+        command: nil,
         args: nil,
         env_vars: {},
       }.merge(run_args),
