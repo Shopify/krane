@@ -4,7 +4,8 @@ require 'kubernetes-deploy/restart_task'
 
 class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_by_annotation
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]))
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"],
+      render_erb: true))
 
     refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
     refute(fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment")
@@ -30,10 +31,12 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_by_selector
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
-      selector: KubernetesDeploy::LabelSelector.parse("branch=master")))
+      selector: KubernetesDeploy::LabelSelector.parse("branch=master"),
+      render_erb: true))
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "staging" },
-      selector: KubernetesDeploy::LabelSelector.parse("branch=staging")))
+      selector: KubernetesDeploy::LabelSelector.parse("branch=staging"),
+      render_erb: true))
 
     refute(fetch_restarted_at("master-web"), "no RESTARTED_AT env on fresh deployment")
     refute(fetch_restarted_at("staging-web"), "no RESTARTED_AT env on fresh deployment")
@@ -69,7 +72,8 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_named_deployments_twice
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]))
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
+      render_erb: true))
 
     refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
 
@@ -100,7 +104,8 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_with_same_resource_twice
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]))
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
+      render_erb: true))
 
     refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
 
@@ -131,7 +136,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_one_not_existing_deployment
-    assert(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]))
+    assert(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"], render_erb: true))
 
     restart = build_restart_task
     assert_restart_failure(restart.perform(%w(walrus web)))
@@ -194,7 +199,8 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_failure
-    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
+      render_erb: true) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
       deployment["spec"]["progressDeadlineSeconds"] = 30
       container = deployment["spec"]["template"]["spec"]["containers"].first
@@ -231,7 +237,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_successful_with_partial_availability
-    result = deploy_fixtures("slow-cloud") do |fixtures|
+    result = deploy_fixtures("slow-cloud", render_erb: true) do |fixtures|
       web = fixtures["web.yml.erb"]["Deployment"].first
       web["spec"]["strategy"]['rollingUpdate']['maxUnavailable'] = '50%'
       container = web["spec"]["template"]["spec"]["containers"].first
@@ -261,7 +267,8 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_verify_result_false_succeeds
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]))
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"],
+      render_erb: true))
 
     refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
     refute(fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment")
@@ -293,7 +300,8 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_verify_result_false_succeeds_quickly_when_verification_would_timeout
-    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
+    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
+      render_erb: true) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
       deployment["spec"]["progressDeadlineSeconds"] = 30
       container = deployment["spec"]["template"]["spec"]["containers"].first
