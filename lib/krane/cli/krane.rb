@@ -50,7 +50,7 @@ module Krane
         end
       end
 
-      desc("deploy NAMESPACE CONTEXT", "Apply a configuration to a resource or set of resources")
+      desc("deploy NAMESPACE CONTEXT", "Ship resources to a namespace")
       expand_options(DeployCommand::OPTIONS)
       def deploy(namespace, context)
         rescue_and_exit do

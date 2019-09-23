@@ -55,11 +55,7 @@ class DeployTest < KubernetesDeploy::TestCase
 
     set_krane_deploy_expectations(new_args: { protected_namespaces: ['foo', 'bar'] },
       run_args: { allow_protected_ns: true })
-    krane_deploy!(flags: '--protected-namespaces foo,bar')
-
-    set_krane_deploy_expectations(new_args: { protected_namespaces: [] },
-      run_args: { allow_protected_ns: false })
-    krane_deploy!(flags: "--protected-namespaces=")
+    krane_deploy!(flags: '--protected-namespaces foo bar')
 
     set_krane_deploy_expectations(new_args: { protected_namespaces: [] },
       run_args: { allow_protected_ns: false })

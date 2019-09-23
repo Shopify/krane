@@ -11,16 +11,16 @@ module Krane
       )
       OPTIONS = {
         "bindings" => { type: :array, banner: "foo=bar abc=def",
-                        desc: "Expose additional variables to ERB templates (format: k1=v1,k2=v2, JSON string or file "\
+                        desc: "Expose additional variables to ERB templates (format: k1=v1 k2=v2, JSON string or file "\
                           "(JSON or YAML) path prefixed by '@')" },
         "filenames" => { type: :string, banner: '/tmp/my-resource.yml', aliases: :f, required: true,
-                         desc: "Path to a file that contains the configuration to apply" },
+                         desc: "Path to file or directory that contains the configuration to apply" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_DEPLOY_TIMEOUT,
                               desc: "Max duration to monitor workloads correctly deployed" },
-        "protected-namespaces" => { type: :string, banner: "list,of,namespaces",
+        "protected-namespaces" => { type: :array, banner: "namespace1 namespace2 namespaceN",
                                     desc: "Enable deploys to a list of selected namespaces; set to an empty string "\
                                       "to disable",
-                                    default: PROTECTED_NAMESPACES.join(',') },
+                                    default: PROTECTED_NAMESPACES },
         "prune" => { type: :boolean, desc: "Enable deletion of resources that do not appear in the template dir",
                      default: true },
         "render-erb" => { type: :boolean, desc: "Enable ERB rendering", default: false },
@@ -46,10 +46,9 @@ module Krane
         logger = KubernetesDeploy::FormattedLogger.build(namespace, context,
           verbose_prefix: options['verbose-log-prefix'])
 
-        protected_namespaces = if %w('' "").include?(options['protected-namespaces'])
-          []
-        else
-          options['protected-namespaces'].split(',')
+        protected_namespaces = options['protected-namespaces']
+        if options['protected-namespaces'].size == 1 && %w('' "").include?(options['protected-namespaces'][0])
+          protected_namespaces = []
         end
 
         KubernetesDeploy::OptionsHelper.with_processed_template_paths([options[:filenames]],
