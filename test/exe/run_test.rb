@@ -49,11 +49,18 @@ class RunTest < KubernetesDeploy::TestCase
     assert_match("ERROR", err)
   end
 
-  def test_run_failure_with_too_many_args
+  def test_run_failure_with_too_many_args_as_black_box
     out, err, status = krane_black_box('run', 'ns ctx some_extra_arg')
     assert_equal(1, status.exitstatus)
     assert_empty(out)
     assert_match("ERROR", err)
+  end
+
+  def test_run_failure_with_bad_timeout_as_black_box
+    out, err, status = krane_black_box('run', 'ns ctx --global-timeout=mittens')
+    assert_equal(1, status.exitstatus)
+    assert_empty(out)
+    assert_match("Error parsing duration", err)
   end
 
   private
