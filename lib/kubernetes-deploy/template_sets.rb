@@ -1,17 +1,21 @@
 # frozen_string_literal: true
+require 'kubernetes-deploy/delayed_exceptions'
+require 'kubernetes-deploy/ejson_secret_provisioner'
 
 module KubernetesDeploy
   class TemplateSets
+    include DelayedExceptions
     VALID_TEMPLATES = %w(.yml.erb .yml .yaml .yaml.erb)
     # private inner class
     class TemplateSet
+      include DelayedExceptions
       def initialize(template_dir:, file_whitelist: [], logger:)
         @template_dir = template_dir
         @files = file_whitelist
         @logger = logger
       end
 
-      def with_resource_definitions(render_erb: false, current_sha: nil, bindings: nil)
+      def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
         if render_erb
           @renderer = Renderer.new(
             template_dir: @template_dir,
@@ -20,11 +24,9 @@ module KubernetesDeploy
             bindings: bindings,
           )
         end
-        @files.each do |filename|
+        with_delayed_exceptions(@files, KubernetesDeploy::InvalidTemplateError) do |filename|
           next if filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
-          templates(filename: filename) do |r_def|
-            yield r_def
-          end
+          templates(filename: filename, raw: raw) { |r_def| yield r_def, filename }
         end
       end
 
@@ -59,7 +61,7 @@ module KubernetesDeploy
 
       private
 
-      def templates(filename:)
+      def templates(filename:, raw:)
         file_content = File.read(File.join(@template_dir, filename))
         rendered_content = @renderer ? @renderer.render_template(filename, file_content) : file_content
         YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
@@ -68,8 +70,9 @@ module KubernetesDeploy
             raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
               filename: filename, content: doc)
           end
-          yield doc
+          yield doc unless raw
         end
+        yield rendered_content if raw
       rescue InvalidTemplateError => err
         err.filename ||= filename
         raise err
@@ -106,15 +109,23 @@ module KubernetesDeploy
       end
     end
 
-    def with_resource_definitions(render_erb: false, current_sha: nil, bindings: nil)
-      @template_sets.each do |template_set|
-        template_set.with_resource_definitions(
+    def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
+      with_delayed_exceptions(@template_sets, KubernetesDeploy::InvalidTemplateError) do |template_set|
+        template_set.with_resource_definitions_and_filename(
           render_erb: render_erb,
           current_sha: current_sha,
-          bindings: bindings
-        ) do |r_def|
-          yield r_def
+          bindings: bindings,
+          raw: raw
+        ) do |r_def, filename|
+          yield r_def, filename
         end
+      end
+    end
+
+    def with_resource_definitions(render_erb: false, current_sha: nil, bindings: nil, raw: false)
+      with_resource_definitions_and_filename(render_erb: render_erb,
+        current_sha: current_sha, bindings: bindings, raw: raw) do |r_def, _|
+        yield r_def
       end
     end
 
