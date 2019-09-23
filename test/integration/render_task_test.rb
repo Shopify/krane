@@ -341,7 +341,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     assert_render_failure(render.run(mock_output_stream))
     assert_logs_match_all([
       "template_dir or template_paths must be set",
-    ], in_order: true)
+    ])
   end
 
   def test_render_task_invalid_filenames_with_template_paths

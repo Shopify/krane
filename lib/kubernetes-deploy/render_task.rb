@@ -59,7 +59,7 @@ module KubernetesDeploy
       count = 0
       template_sets.with_resource_definitions_and_filename(render_erb: true,
           current_sha: @current_sha, bindings: @bindings, raw: true) do |rendered_content, filename|
-        render_filename(rendered_content, filename, stream)
+        write_to_stream(rendered_content, filename, stream)
         count += 1
       end
 
@@ -69,7 +69,7 @@ module KubernetesDeploy
       raise
     end
 
-    def render_filename(rendered_content, filename, stream)
+    def write_to_stream(rendered_content, filename, stream)
       file_basename = File.basename(filename)
       @logger.info("Rendering #{file_basename}...")
       implicit = []
