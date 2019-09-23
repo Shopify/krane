@@ -4,21 +4,21 @@ require 'krane/cli/krane'
 
 class RestartTest < KubernetesDeploy::TestCase
   def test_restart_with_default_options
-    set_krane_restart_expecations
+    set_krane_restart_expectations
     krane_restart!
   end
 
   def test_restart_parses_global_timeout
-    set_krane_restart_expecations(new_args: { max_watch_seconds: 10 })
+    set_krane_restart_expectations(new_args: { max_watch_seconds: 10 })
     krane_restart!(flags: '--global-timeout 10s')
-    set_krane_restart_expecations(new_args: { max_watch_seconds: 60**2 })
+    set_krane_restart_expectations(new_args: { max_watch_seconds: 60**2 })
     krane_restart!(flags: '--global-timeout 1h')
   end
 
   def test_restart_passes_deployments_transparently
-    set_krane_restart_expecations(deployments: ['web'])
+    set_krane_restart_expectations(deployments: ['web'])
     krane_restart!(flags: '--deployments web')
-    set_krane_restart_expecations(deployments: ['web', 'jobs'])
+    set_krane_restart_expectations(deployments: ['web', 'jobs'])
     krane_restart!(flags: '--deployments web jobs')
   end
 
@@ -33,9 +33,9 @@ class RestartTest < KubernetesDeploy::TestCase
   end
 
   def test_restart_passes_verify_result
-    set_krane_restart_expecations(run_args: { verify_result: true })
+    set_krane_restart_expectations(run_args: { verify_result: true })
     krane_restart!(flags: '--verify-result true')
-    set_krane_restart_expecations(run_args: { verify_result: false })
+    set_krane_restart_expectations(run_args: { verify_result: false })
     krane_restart!(flags: '--verify-result false')
   end
 
@@ -48,7 +48,7 @@ class RestartTest < KubernetesDeploy::TestCase
 
   private
 
-  def set_krane_restart_expecations(new_args: {}, deployments: nil, run_args: {})
+  def set_krane_restart_expectations(new_args: {}, deployments: nil, run_args: {})
     options = default_options(new_args, deployments, run_args)
     response = mock('RestartTask')
     response.expects(:run!).with(options[:deployments], options[:run_args]).returns(true)

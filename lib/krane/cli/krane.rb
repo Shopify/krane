@@ -4,6 +4,7 @@ require 'krane'
 require 'thor'
 require 'krane/cli/version_command'
 require 'krane/cli/restart_command'
+require 'krane/cli/run_command'
 
 module Krane
   module CLI
@@ -28,6 +29,14 @@ module Krane
       def restart(namespace, context)
         rescue_and_exit do
           RestartCommand.from_options(namespace, context, options)
+        end
+      end
+
+      desc("run NAMESPACE CONTEXT", "Run a pod that exits upon completing a task")
+      expand_options(RunCommand::OPTIONS)
+      def run_command(namespace, context)
+        rescue_and_exit do
+          RunCommand.from_options(namespace, context, options)
         end
       end
 

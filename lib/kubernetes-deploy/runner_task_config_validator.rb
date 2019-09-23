@@ -5,16 +5,10 @@ module KubernetesDeploy
       super(*arguments)
       @template = template
       @args = args
-      @validations += %i(validate_template validate_args)
+      @validations += %i(validate_template)
     end
 
     private
-
-    def validate_args
-      if @args.blank?
-        @errors << "Args can't be nil"
-      end
-    end
 
     def validate_template
       if @template.blank?
