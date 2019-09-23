@@ -209,7 +209,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     result = task_runner.run(task_template: '',
       entrypoint: ['/bin/sh', '-c'],
       args: nil,
-      env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
+      env_vars: { MY_CUSTOM_VARIABLE: "MITTENS" })
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -227,7 +227,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       task_runner.run!(task_template: '',
         entrypoint: ['/bin/sh', '-c'],
         args: nil,
-        env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
+        env_vars: { MY_CUSTOM_VARIABLE: "MITTENS" })
     end
   end
 
@@ -274,7 +274,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       task_template: 'hello-cloud-template-runner',
       entrypoint: ['/bin/sh', '-c'],
       args: ['echo "The value is: $MY_CUSTOM_VARIABLE"'],
-      env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"]
+      env_vars: { MY_CUSTOM_VARIABLE: "MITTENS", SOME_VARIABLE: "GLOVES" }
     )
     assert_task_run_success(result)
 

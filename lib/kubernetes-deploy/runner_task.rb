@@ -31,7 +31,7 @@ module KubernetesDeploy
       false
     end
 
-    def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: true)
+def run!(task_template:, entrypoint:, args:, env_vars: {}, verify_result: true)
       start = Time.now.utc
       @logger.reset
 
@@ -157,8 +157,7 @@ module KubernetesDeploy
       container.command = entrypoint if entrypoint
       container.args = args if args
 
-      env_args = env_vars.map do |env|
-        key, value = env.split('=', 2)
+      env_args = env_vars.map do |key, value|
         { name: key, value: value }
       end
       container.env ||= []

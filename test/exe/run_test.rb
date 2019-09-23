@@ -38,8 +38,8 @@ class RunTest < KubernetesDeploy::TestCase
   end
 
   def test_run_parses_env_vars
-    set_krane_run_expectations(run_args: { env_vars: %w(SOMETHING=8000 FOO=bar) })
-    krane_run!(flags: '--env-vars SOMETHING=8000,FOO=bar')
+    set_krane_run_expectations(run_args: { env_vars: { 'SOMETHING' => '8000', 'FOO' => 'bar' } })
+    krane_run!(flags: '--env-vars SOMETHING:8000 FOO:bar')
   end
 
   def test_run_failure_with_not_enough_arguments_as_black_box
@@ -89,7 +89,7 @@ class RunTest < KubernetesDeploy::TestCase
         task_template: 'task-runner-template',
         entrypoint: nil,
         args: nil,
-        env_vars: [],
+        env_vars: {},
       }.merge(run_args),
     }
   end
