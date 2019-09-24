@@ -3,6 +3,10 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
+*Other*
+- **[Breaking change]** Simplify how the user passes environment variables to the `krane run` `--env-vars` argument, "`--env-vars KEY:value FOO:bar`" ([#563](https://github.com/Shopify/kubernetes-deploy/pull/563))
+- **[Breaking change]** Remove `kuberenetes-run`. Use `krane run` instead ([#563](https://github.com/Shopify/kubernetes-deploy/pull/563))
+
 ## 0.28.0
 
 *Enhancements*
