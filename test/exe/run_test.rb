@@ -23,7 +23,7 @@ class RunTest < KubernetesDeploy::TestCase
   end
 
   def test_run_parses_command
-    set_krane_run_expectations(run_args: { command: %w(/bin/sh) })
+    set_krane_run_expectations(run_args: { entrypoint: %w(/bin/sh) })
     krane_run!(flags: '--command /bin/sh')
   end
 
@@ -38,8 +38,8 @@ class RunTest < KubernetesDeploy::TestCase
   end
 
   def test_run_parses_env_vars
-    set_krane_run_expectations(run_args: { env_vars: { 'SOMETHING' => '8000', 'FOO' => 'bar' } })
-    krane_run!(flags: '--env-vars SOMETHING:8000 FOO:bar')
+    set_krane_run_expectations(run_args: { env_vars: %w(SOMETHING=8000 FOO=bar) })
+    krane_run!(flags: '--env-vars SOMETHING=8000,FOO=bar')
   end
 
   def test_run_failure_with_not_enough_arguments_as_black_box
@@ -49,18 +49,11 @@ class RunTest < KubernetesDeploy::TestCase
     assert_match("ERROR", err)
   end
 
-  def test_run_failure_with_too_many_args_as_black_box
+  def test_run_failure_with_too_many_args
     out, err, status = krane_black_box('run', 'ns ctx some_extra_arg')
     assert_equal(1, status.exitstatus)
     assert_empty(out)
     assert_match("ERROR", err)
-  end
-
-  def test_run_failure_with_bad_timeout_as_black_box
-    out, err, status = krane_black_box('run', 'ns ctx --global-timeout=mittens')
-    assert_equal(1, status.exitstatus)
-    assert_empty(out)
-    assert_match("Error parsing duration", err)
   end
 
   private
@@ -94,9 +87,9 @@ class RunTest < KubernetesDeploy::TestCase
       run_args: {
         verify_result: true,
         task_template: 'task-runner-template',
-        command: nil,
+        entrypoint: nil,
         args: nil,
-        env_vars: {},
+        env_vars: [],
       }.merge(run_args),
     }
   end

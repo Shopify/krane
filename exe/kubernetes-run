@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'kubernetes-deploy/runner_task'
+require 'kubernetes-deploy/options_helper'
+require 'optparse'
+
+template = "task-runner-template"
+entrypoint = nil
+env_vars = []
+verify_result = true
+max_watch_seconds = nil
+
+ARGV.options do |opts|
+  opts.on("--skip-wait", "Skip verification of pod success") { verify_result = false }
+  opts.on("--max-watch-seconds=seconds",
+    "Timeout error is raised if the pod runs for longer than the specified number of seconds") do |t|
+    max_watch_seconds = t.to_i
+  end
+  opts.on("--template=TEMPLATE") { |n| template = n }
+  opts.on("--env-vars=ENV_VARS") { |vars| env_vars = vars.split(",") }
+  opts.on("--entrypoint=ENTRYPOINT") { |c| entrypoint = [c] }
+  opts.parse!
+end
+
+namespace = ARGV[0]
+context = ARGV[1]
+
+runner = KubernetesDeploy::RunnerTask.new(
+  namespace: namespace,
+  context: context,
+  max_watch_seconds: max_watch_seconds
+)
+
+success = runner.run(
+  verify_result: verify_result,
+  task_template: template,
+  entrypoint: entrypoint,
+  args: ARGV[2..-1],
+  env_vars: env_vars
+)
+exit(1) unless success
