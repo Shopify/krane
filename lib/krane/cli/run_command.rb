@@ -25,10 +25,10 @@ module Krane
           default: 'task-runner-template',
         },
         "env-vars" => {
-          type: :hash,
-          banner: "VAR:val FOO:bar",
-          desc: "A space-separated list of environment variables written as e.g. PORT:8000",
-          default: {},
+          type: :string,
+          banner: "VAR=val,FOO=bar",
+          desc: "A Comma-separated list of env vars",
+          default: '',
         },
       }
 
@@ -43,9 +43,9 @@ module Krane
         runner.run!(
           verify_result: options['verify-result'],
           task_template: options['template'],
-          command: options['command'],
+          entrypoint: options['command'],
           args: options['arguments']&.split(" "),
-          env_vars: options['env-vars'],
+          env_vars: options['env-vars'].split(','),
         )
       end
     end

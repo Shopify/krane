@@ -22,7 +22,7 @@ module TaskRunnerTestHelper
   def run_params(log_lines: 5, log_interval: 0.1, verify_result: true)
     {
       task_template: 'hello-cloud-template-runner',
-      command: ['/bin/sh', '-c'],
+      entrypoint: ['/bin/sh', '-c'],
       args: [
         "i=1; " \
         "while [ $i -le #{log_lines} ]; do " \
