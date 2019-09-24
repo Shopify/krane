@@ -3,6 +3,9 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
+*Bug Fixes*
+- Handle improper duration values more elegantly with better messaging
+
 *Other*
 - We now require Ruby 2.4.x since Ruby 2.3 is past EoL.
 
