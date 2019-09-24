@@ -84,6 +84,7 @@ module KubernetesDeploy
         core/v1/Secret
         core/v1/ServiceAccount
         core/v1/PodTemplate
+        core/v1/PersistentVolumeClaim
         batch/v1/Job
         extensions/v1beta1/ReplicaSet
         extensions/v1beta1/DaemonSet
