@@ -121,6 +121,7 @@ module KubernetesDeploy
       @validation_errors = []
       @validation_warnings = []
       @instance_data = {}
+      @server_dry_run_validated = false
     end
 
     def to_kubeclient_resource
@@ -350,6 +351,10 @@ module KubernetesDeploy
       self.class::SERVER_DRY_RUNNABLE
     end
 
+    def server_dry_run_validated?
+      @server_dry_run_validated
+    end
+
     class Event
       EVENT_SEPARATOR = "ENDEVENT--BEGINEVENT"
       FIELD_SEPARATOR = "ENDFIELD--BEGINFIELD"
@@ -474,9 +479,8 @@ module KubernetesDeploy
       _, err, st = validate_with_dry_run_option(kubectl, "--dry-run")
       if st.success? && server_dry_runnable?
         _, err, st = validate_with_dry_run_option(kubectl, "--server-dry-run")
-        if st.success? || err.match(SERVER_DRY_RUN_DISABLED_ERROR)
-          return true
-        end
+        @server_dry_run_validated = true if st.success?
+        return true if st.success? || err.match(SERVER_DRY_RUN_DISABLED_ERROR)
       end
 
       return true if st.success?
