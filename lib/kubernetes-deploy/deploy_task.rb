@@ -483,10 +483,15 @@ module KubernetesDeploy
         bad_files = find_bad_files_from_kubectl_output(line)
         if bad_files.present?
           bad_files.each do |f|
-            if filenames_with_sensitive_content.include?(f[:filename]) && !server_dry_run_validated_resource.include?(f[:filename])
+            if filenames_with_sensitive_content.include?(f[:filename])
               # Hide the error and template contents in case it has sensitive information
-              # we display full error messages from kubernetes as we assume there's no sensitive info leak after server-dry-run
-              record_invalid_template(err: "SUPPRESSED FOR SECURITY", filename: f[:filename], content: nil)
+              # we display full error messages as we assume there's no sensitive info leak after server-dry-run
+              err_msg = if server_dry_run_validated_resource.include?(f[:filename])
+                f[:err]
+              else
+                "SUPPRESSED FOR SECURITY"
+              end
+              record_invalid_template(err: err_msg, filename: f[:filename], content: nil)
             else
               record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content])
             end
