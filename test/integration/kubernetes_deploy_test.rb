@@ -724,7 +724,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml']))
     assert_logs_match_all([
       "Result: FAILURE",
-      "Namespace this-certainly-should-not-exist not found",
+      "Could not find Namespace: this-certainly-should-not-exist",
     ], in_order: true)
   ensure
     @namespace = original_ns
@@ -1646,10 +1646,37 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
     assert_logs_match_all([
       'Name: "unmanaged-pod-1-<%= deployment_id %>"',
+      ], in_order: true)
+  end
+
+  def test_deploy_fails_if_context_is_invalid
+    task_runner = build_deploy_runner(context: "unknown")
+    assert_task_run_failure(task_runner.run(run_params))
+
+    assert_logs_match_all([
+      "Context unknown missing from your kubeconfig file(s)",
+    ], in_order: true)
+  end
+
+  def test_deploy_fails_if_namespace_is_invalid
+    task_runner = build_deploy_runner(ns: "unknown")
+    assert_task_run_failure(task_runner.run(run_params))
+
+    assert_logs_match_all([
+      "Could not find Namespace: unknown in Context: minikube",
     ], in_order: true)
   end
 
   private
+
+  def build_deploy_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, max_watch_seconds: nil)
+    KubernetesDeploy::DeployTask.new(context: context, namespace: ns, logger: logger,
+      max_watch_seconds: max_watch_seconds, template_paths: ['./test/fixtures/hello-cloud'], current_sha: '123')
+  end
+
+  def run_params
+    { verify_result: true, prune: true }
+  end
 
   def expected_daemonset_pod_count
     nodes = kubeclient.get_nodes
