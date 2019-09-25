@@ -1664,6 +1664,25 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Could not find Namespace: unknown in Context: minikube",
+      ], in_order: true)
+    end
+
+  def test_deploy_allow_globals_warns
+    result = deploy_fixtures("globals")
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      'The ability for this task to deploy global resources will be removed in the next version:',
+      '    testing-storage-class (StorageClass) in ',
+    ], in_order: true)
+  end
+
+  def test_deploy_globals_without_allow_globals_fails
+    result = deploy_fixtures("globals", allow_globals: false)
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Deploying global resource is not allowed from this command',
+      'Global resources:',
+      '    testing-storage-class (StorageClass) in ',
     ], in_order: true)
   end
 

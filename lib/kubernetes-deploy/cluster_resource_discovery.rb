@@ -16,7 +16,23 @@ module KubernetesDeploy
       end
     end
 
+    def globals
+      @globals ||= fetch_globals.map do |gv|
+        kind, group = gv.split(".", 2)
+        { group: group, kind: kind.singularize }
+      end
+    end
+
     private
+
+    def fetch_globals
+      raw_names, _, st = kubectl.run("api-resources", "--namespaced=false", output: "name", attempts: 5)
+      if st.success?
+        raw_names.split("\n")
+      else
+        []
+      end
+    end
 
     def fetch_crds
       raw_json, _, st = kubectl.run("get", "CustomResourceDefinition", output: "json", attempts: 5)

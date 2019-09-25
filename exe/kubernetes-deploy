@@ -78,6 +78,7 @@ begin
       logger: logger,
       max_watch_seconds: max_watch_seconds,
       selector: selector,
+      allow_globals: true
     )
 
     runner.run!(

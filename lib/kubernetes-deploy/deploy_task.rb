@@ -30,6 +30,7 @@ require 'kubernetes-deploy/kubernetes_resource'
   custom_resource_definition
   horizontal_pod_autoscaler
   secret
+  global_kubernetes_resource
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -102,6 +103,10 @@ module KubernetesDeploy
       wl + cluster_resource_discoverer.crds.select(&:prunable?).map(&:group_version_kind)
     end
 
+    def global_resources
+      cluster_resource_discoverer.globals.map { |g| g[:kind] }
+    end
+
     def server_version
       kubectl.server_version
     end
@@ -123,7 +128,7 @@ module KubernetesDeploy
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil, protected_namespaces: nil,
-      render_erb: true)
+      render_erb: true, allow_globals: false)
       template_dir = File.expand_path(template_dir) if template_dir
       template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
 
@@ -140,6 +145,7 @@ module KubernetesDeploy
       @selector = selector
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
       @render_erb = render_erb
+      @allow_globals = allow_globals
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -288,15 +294,34 @@ module KubernetesDeploy
       end
 
       failed_resources = resources.select(&:validation_failed?)
-      return unless failed_resources.present?
+      if failed_resources.present?
 
-      failed_resources.each do |r|
-        content = File.read(r.file_path) if File.file?(r.file_path) && !r.sensitive_template_content?
-        record_invalid_template(err: r.validation_error_msg, filename: File.basename(r.file_path), content: content)
+        failed_resources.each do |r|
+          content = File.read(r.file_path) if File.file?(r.file_path) && !r.sensitive_template_content?
+          record_invalid_template(err: r.validation_error_msg, filename: File.basename(r.file_path), content: content)
+        end
+        raise FatalDeploymentError, "Template validation failed"
       end
-      raise FatalDeploymentError, "Template validation failed"
+      validate_globals(resources)
     end
     measure_method(:validate_resources)
+
+    def validate_globals(resources)
+      return unless (global = resources.select(&:global?).presence)
+      global_names = global.map do |resource|
+        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
+      end
+      global_names = FormattedLogger.indent_four(global_names.join("\n"))
+
+      if @allow_globals
+        msg = "The ability for this task to deploy global resources will be removed in the next version:"
+        msg += "\n#{global_names}"
+        @logger.summary.add_paragraph(ColorizedString.new(msg).yellow)
+      else
+        @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
+        raise FatalDeploymentError, "Deploying global resource is not allowed from this command."
+      end
+    end
 
     def check_initial_status(resources)
       cache = ResourceCache.new(@namespace, @context, @logger)
@@ -317,7 +342,7 @@ module KubernetesDeploy
           current_sha: @current_sha, bindings: @bindings) do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd)
+          statsd_tags: @namespace_tags, crd: crd, globals: global_resources)
         resources << r
         @logger.info("  - #{r.id}")
       end
@@ -327,10 +352,6 @@ module KubernetesDeploy
         @logger.info("  - #{secret.id} (from ejson)")
       end
 
-      if (global = resources.select(&:global?).presence)
-        @logger.warn("Detected non-namespaced #{'resource'.pluralize(global.count)} which will never be pruned:")
-        global.each { |r| @logger.warn("  - #{r.id}") }
-      end
       resources.sort
     rescue InvalidTemplateError => e
       record_invalid_template(err: e.message, filename: e.filename, content: e.content)

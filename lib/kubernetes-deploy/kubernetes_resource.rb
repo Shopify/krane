@@ -40,7 +40,7 @@ module KubernetesDeploy
     SERVER_DRY_RUNNABLE = false
 
     class << self
-      def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil)
+      def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil, globals: [])
         validate_definition_essentials(definition)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
@@ -50,8 +50,13 @@ module KubernetesDeploy
         if crd
           CustomResource.new(crd: crd, **opts)
         else
-          inst = new(**opts)
-          inst.type = definition["kind"]
+          type = definition["kind"]
+          inst = if globals.include?(type.downcase)
+            KubernetesDeploy::GlobalKubernetesResource.new(**opts)
+          else
+            new(**opts)
+          end
+          inst.type = type
           inst
         end
       end
