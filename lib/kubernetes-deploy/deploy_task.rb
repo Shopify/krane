@@ -105,7 +105,8 @@ module KubernetesDeploy
     end
 
     def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
-      max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil)
+      max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil, protected_namespaces: nil,
+      render_erb: true)
       template_dir = File.expand_path(template_dir) if template_dir
       template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
 
@@ -120,6 +121,8 @@ module KubernetesDeploy
       @kubectl = kubectl_instance
       @max_watch_seconds = max_watch_seconds
       @selector = selector
+      @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
+      @render_erb = render_erb
     end
 
     def run(*args)
@@ -147,7 +150,7 @@ module KubernetesDeploy
       end
 
       @logger.phase_heading("Deploying all resources")
-      if PROTECTED_NAMESPACES.include?(@namespace) && prune
+      if @protected_namespaces.include?(@namespace) && prune
         raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
       end
 
@@ -283,7 +286,7 @@ module KubernetesDeploy
       @logger.info("Discovering resources:")
       resources = []
       crds_by_kind = cluster_resource_discoverer.crds.group_by(&:kind)
-      @template_sets.with_resource_definitions(render_erb: true,
+      @template_sets.with_resource_definitions(render_erb: @render_erb,
           current_sha: @current_sha, bindings: @bindings) do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
@@ -334,7 +337,7 @@ module KubernetesDeploy
 
       if @namespace.blank?
         errors << "Namespace must be specified"
-      elsif PROTECTED_NAMESPACES.include?(@namespace)
+      elsif @protected_namespaces.include?(@namespace)
         if allow_protected_ns && prune
           errors << "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
         elsif allow_protected_ns

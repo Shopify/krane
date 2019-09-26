@@ -194,6 +194,15 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     @namespace = generated_ns
   end
 
+  def test_deploy_succeeds_with_specific_protected_namespaces
+    generated_ns = @namespace
+    @namespace = 'default' # this should fail if we use the default options for protected namespaces
+    protected_namespaces = %w(kube-system kube-public)
+    assert_deploy_success(deploy_fixtures("hello-cloud", prune: true, protected_namespaces: protected_namespaces))
+  ensure
+    @namespace = generated_ns
+  end
+
   def test_refuses_deploy_to_protected_namespace_without_override
     generated_ns = @namespace
     @namespace = 'default'
@@ -1572,6 +1581,15 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Failed to deploy 1 priority resource",
       "PersistentVolumeClaim/with-storage-class: TIMED OUT (timeout: 10s)",
       "PVC specified a StorageClass of #{storage_class_name} but the resource does not exist",
+    ], in_order: true)
+  end
+
+  def test_fail_erb_templates_if_rendering_is_disabled
+    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb"], render_erb: false)
+    # Expect that deploy will fail due to the ERB tags in this template
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Name: "unmanaged-pod-1-<%= deployment_id %>"',
     ], in_order: true)
   end
 
