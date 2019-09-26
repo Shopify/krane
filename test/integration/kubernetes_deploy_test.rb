@@ -320,7 +320,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   # https://github.com/kubernetes/kubernetes/issues/42057 shows how this manifested for a particular field,
   # and although that particular case has been fixed, other invalid specs still aren't caught until apply.
   def test_multiple_invalid_k8s_specs_fails_on_apply_and_prints_template
-    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "secret.yml"]) do |fixtures|
       bad_port_name = "http_test_is_really_long_and_invalid_chars"
       svc = fixtures["web.yml.erb"]["Service"].first
       svc["spec"]["ports"].first["targetPort"] = bad_port_name
