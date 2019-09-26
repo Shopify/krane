@@ -65,3 +65,13 @@ spec:
         image: busybox
         imagePullPolicy: IfNotPresent
         command: ["tail", "-f", "/dev/null"]
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-secret
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: cGFzc3dvcmQ=
+

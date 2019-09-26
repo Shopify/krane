@@ -479,7 +479,7 @@ module KubernetesDeploy
       _, err, st = validate_with_dry_run_option(kubectl, "--dry-run")
       if st.success? && server_dry_runnable?
         _, err, st = validate_with_dry_run_option(kubectl, "--server-dry-run")
-        @server_dry_run_validated = true if st.success?
+        @server_dry_run_validated = st.success?
         return true if st.success? || err.match(SERVER_DRY_RUN_DISABLED_ERROR)
       end
 

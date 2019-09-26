@@ -502,7 +502,7 @@ module KubernetesDeploy
       end
       return unless unidentified_errors.any?
 
-      if filenames_with_sensitive_content.any? { |f| !server_dry_run_validated_resource.include?(f) }
+      if (filenames_with_sensitive_content - server_dry_run_validated_resource).present?
         warn_msg = "WARNING: There was an error applying some or all resources. The raw output may be sensitive and " \
           "so cannot be displayed."
         @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
