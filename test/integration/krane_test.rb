@@ -87,6 +87,29 @@ class KraneTest < KubernetesDeploy::IntegrationTest
     end
   end
 
+  def test_global_deploy_black_box_success
+    setup_template_dir("globals") do |target_dir|
+      flags = "-f #{target_dir}"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("Success", err)
+      assert_predicate(status, :success?)
+    end
+  ensure
+    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
+  end
+
+  def test_global_deploy_black_box_failure
+    setup_template_dir("resource-quota") do |target_dir|
+      flags = "-f #{target_dir}"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("FAILURE", err)
+      refute_predicate(status, :success?)
+      assert_equal(status.exitstatus, 1)
+    end
+  end
+
   private
 
   def task_runner_pods

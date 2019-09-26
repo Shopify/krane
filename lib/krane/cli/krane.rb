@@ -7,6 +7,7 @@ require 'krane/cli/restart_command'
 require 'krane/cli/run_command'
 require 'krane/cli/render_command'
 require 'krane/cli/deploy_command'
+require 'krane/cli/global_deploy_command'
 
 module Krane
   module CLI
@@ -55,6 +56,14 @@ module Krane
       def deploy(namespace, context)
         rescue_and_exit do
           DeployCommand.from_options(namespace, context, options)
+        end
+      end
+
+      desc("global-deploy CONTEXT", "Ship global resources to a cluster")
+      expand_options(GlobalDeployCommand::OPTIONS)
+      def global_deploy(context)
+        rescue_and_exit do
+          GlobalDeployCommand.from_options(context, options)
         end
       end
 
