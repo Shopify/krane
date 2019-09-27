@@ -33,7 +33,7 @@ module Krane
       }
 
       def self.from_options(namespace, context, options)
-        require 'kubernetes-deploy/deploy_task'
+        require 'krane/deploy_task'
         require 'kubernetes-deploy/options_helper'
         require 'kubernetes-deploy/bindings_parser'
         require 'kubernetes-deploy/label_selector'
@@ -53,7 +53,7 @@ module Krane
 
         KubernetesDeploy::OptionsHelper.with_processed_template_paths([options[:filenames]],
           require_explicit_path: true) do |paths|
-          deploy = KubernetesDeploy::DeployTask.new(
+          deploy = ::Krane::DeployTask.new(
             namespace: namespace,
             context: context,
             current_sha: ENV["REVISION"],
