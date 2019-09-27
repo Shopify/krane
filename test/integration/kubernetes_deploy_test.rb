@@ -1578,7 +1578,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       sc["volumeBindingMode"] = "Immediate"
     end
     assert_deploy_success(result)
-
     TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
     result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
       pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
