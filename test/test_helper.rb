@@ -202,6 +202,7 @@ module KubernetesDeploy
       def obj.run(*)
         ["", "", SystemExit.new(0)]
       end
+
       def obj.server_version
         Gem::Version.new('1.13.6')
       end
