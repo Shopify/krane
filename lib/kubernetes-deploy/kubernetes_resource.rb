@@ -15,6 +15,7 @@ module KubernetesDeploy
     GLOBAL = false
     TIMEOUT = 5.minutes
     LOG_LINE_COUNT = 250
+    SERVER_DRY_RUN_MIN_VERSION = "1.13"
     SERVER_DRY_RUN_DISABLED_ERROR =
       /(unknown flag: --server-dry-run)|(doesn't support dry-run)|(dryRun alpha feature is disabled)/
 
@@ -347,7 +348,7 @@ module KubernetesDeploy
       self.class::SENSITIVE_TEMPLATE_CONTENT
     end
 
-    def server_dry_runnable?
+    def server_dry_runnable_resource?
       self.class::SERVER_DRY_RUNNABLE
     end
 
@@ -476,11 +477,15 @@ module KubernetesDeploy
     end
 
     def validate_spec_with_kubectl(kubectl)
-      _, err, st = validate_with_dry_run_option(kubectl, "--dry-run")
-      if st.success? && server_dry_runnable?
+      err = ""
+      if server_dry_run_enabled?(kubectl) && server_dry_runnable_resource?
         _, err, st = validate_with_dry_run_option(kubectl, "--server-dry-run")
         @server_dry_run_validated = st.success?
-        return true if st.success? || err.match(SERVER_DRY_RUN_DISABLED_ERROR)
+        return true if st.success?
+      end
+
+      if err.empty? || err.match(SERVER_DRY_RUN_DISABLED_ERROR)
+        _, err, st = validate_with_dry_run_option(kubectl, "--dry-run")
       end
 
       return true if st.success?
@@ -495,6 +500,10 @@ module KubernetesDeploy
       command = ["apply", "-f", file_path, dry_run_option, "--output=name"]
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
                                retry_whitelist: [:client_timeout], attempts: 3)
+    end
+
+    def server_dry_run_enabled?(kubectl)
+      kubectl.server_version >= Gem::Version.new(SERVER_DRY_RUN_MIN_VERSION)
     end
 
     def labels
