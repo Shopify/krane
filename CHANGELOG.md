@@ -3,11 +3,20 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
+## 0.29.0
+
+*Enchantments*
+- The KubernetesDeploy::RenderTask now supports a template_paths argument ([#555](https://github.com/Shopify/kubernetes-deploy/pull/546))
+- We no longer hide errors from apply if all sensitive resources have passed server-dry-run validation. ([#570](https://github.com/Shopify/kubernetes-deploy/pull/570))
+
+
 *Bug Fixes*
 - Handle improper duration values more elegantly with better messaging
 
+
 *Other*
 - We now require Ruby 2.4.x since Ruby 2.3 is past EoL.
+- Lock statsd-instrument to 2.3.X due to breaking changes in 2.5.0
 
 ## 0.28.0
 
