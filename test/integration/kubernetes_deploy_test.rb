@@ -1670,7 +1670,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     result = deploy_fixtures("globals")
     assert_deploy_success(result)
     assert_logs_match_all([
-      'The ability for this task to deploy global resources will be removed in the next version:',
+      "The ability for this task to deploy global resources will be removed in the next version,"\
+      " which will affect the following resources:",
       '    testing-storage-class (StorageClass) in ',
     ], in_order: true)
   end
@@ -1679,7 +1680,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     result = deploy_fixtures("globals", allow_globals: false)
     assert_deploy_failure(result)
     assert_logs_match_all([
-      'Deploying global resource is not allowed from this command',
+      'This command is namespaced and cannot be used to deploy global resources.',
       'Global resources:',
       '    testing-storage-class (StorageClass) in ',
     ], in_order: true)
