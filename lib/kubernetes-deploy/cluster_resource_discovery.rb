@@ -16,10 +16,10 @@ module KubernetesDeploy
       end
     end
 
-    def globals
+    def global_resource_names
       @globals ||= fetch_globals.map do |gv|
-        kind, group = gv.split(".", 2)
-        { group: group, kind: kind.singularize }
+        kind, _group = gv.split(".", 2)
+        kind.singularize
       end
     end
 

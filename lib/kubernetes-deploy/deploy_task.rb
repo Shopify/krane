@@ -30,7 +30,6 @@ require 'kubernetes-deploy/kubernetes_resource'
   custom_resource_definition
   horizontal_pod_autoscaler
   secret
-  global_kubernetes_resource
 ).each do |subresource|
   require "kubernetes-deploy/kubernetes_resource/#{subresource}"
 end
@@ -103,8 +102,8 @@ module KubernetesDeploy
       wl + cluster_resource_discoverer.crds.select(&:prunable?).map(&:group_version_kind)
     end
 
-    def global_resources
-      cluster_resource_discoverer.globals.map { |g| g[:kind] }
+    def global_resource_names
+      cluster_resource_discoverer.global_resource_names
     end
 
     def server_version
@@ -342,7 +341,7 @@ module KubernetesDeploy
           current_sha: @current_sha, bindings: @bindings) do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, globals: global_resources)
+          statsd_tags: @namespace_tags, crd: crd, global_names: global_resource_names)
         resources << r
         @logger.info("  - #{r.id}")
       end

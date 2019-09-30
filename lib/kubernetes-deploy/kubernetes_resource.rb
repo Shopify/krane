@@ -10,7 +10,7 @@ require 'kubernetes-deploy/rollout_conditions'
 module KubernetesDeploy
   class KubernetesResource
     attr_reader :name, :namespace, :context
-    attr_writer :type, :deploy_started_at
+    attr_writer :type, :deploy_started_at, :global
 
     GLOBAL = false
     TIMEOUT = 5.minutes
@@ -40,7 +40,7 @@ module KubernetesDeploy
     SERVER_DRY_RUNNABLE = false
 
     class << self
-      def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil, globals: [])
+      def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [])
         validate_definition_essentials(definition)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
@@ -51,12 +51,9 @@ module KubernetesDeploy
           CustomResource.new(crd: crd, **opts)
         else
           type = definition["kind"]
-          inst = if globals.include?(type.downcase)
-            KubernetesDeploy::GlobalKubernetesResource.new(**opts)
-          else
-            new(**opts)
-          end
+          inst = new(**opts)
           inst.type = type
+          inst.global = true if global_names.include?(type.downcase)
           inst
         end
       end
@@ -421,7 +418,7 @@ module KubernetesDeploy
     end
 
     def global?
-      self.class::GLOBAL
+      @global || self.class::GLOBAL
     end
 
     private
