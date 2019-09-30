@@ -1386,6 +1386,30 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
   end
 
+  def test_apply_failure_with_sensitive_resources_not_leak_sensitive_content
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "secret.yml"]) do |fixtures|
+      svc = fixtures["web.yml.erb"]["Service"].first
+      svc["spec"]["ports"].first["targetPort"] = "http_test_is_really_long_and_invalid_chars"
+    end
+    assert_deploy_failure(result)
+    if server_dry_run_available?
+      assert_logs_match_all([
+        "Command failed: apply -f",
+        "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+        "Unidentified error(s):",
+        '    The Service "web" is invalid:',
+        'spec.ports[0].targetPort: Invalid value: "http_test_is_really_long_and_invalid_chars"',
+      ], in_order: true)
+    else
+      assert_logs_match_all([
+        "Command failed: apply -f",
+        /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
+      ])
+    end
+
+
+  end
+
   def test_validation_failure_on_sensitive_resources_does_not_print_template
     selector = KubernetesDeploy::LabelSelector.parse("branch=master")
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: %w(secret.yml), selector: selector))

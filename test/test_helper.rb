@@ -203,8 +203,8 @@ module KubernetesDeploy
         ["", "", SystemExit.new(0)]
       end
 
-      def obj.server_version
-        Gem::Version.new('1.13.6')
+      def obj.server_dry_run_enabled?
+        true
       end
       obj
     end

@@ -15,7 +15,6 @@ module KubernetesDeploy
     GLOBAL = false
     TIMEOUT = 5.minutes
     LOG_LINE_COUNT = 250
-    SERVER_DRY_RUN_MIN_VERSION = "1.13"
     SERVER_DRY_RUN_DISABLED_ERROR =
       /(unknown flag: --server-dry-run)|(doesn't support dry-run)|(dryRun alpha feature is disabled)/
 
@@ -478,7 +477,7 @@ module KubernetesDeploy
 
     def validate_spec_with_kubectl(kubectl)
       err = ""
-      if server_dry_run_enabled?(kubectl) && server_dry_runnable_resource?
+      if kubectl.server_dry_run_enabled? && server_dry_runnable_resource?
         _, err, st = validate_with_dry_run_option(kubectl, "--server-dry-run")
         @server_dry_run_validated = st.success?
         return true if st.success?
