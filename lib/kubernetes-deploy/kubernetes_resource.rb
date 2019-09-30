@@ -501,10 +501,6 @@ module KubernetesDeploy
                                retry_whitelist: [:client_timeout], attempts: 3)
     end
 
-    def server_dry_run_enabled?(kubectl)
-      kubectl.server_version >= Gem::Version.new(SERVER_DRY_RUN_MIN_VERSION)
-    end
-
     def labels
       @definition.dig("metadata", "labels")
     end
