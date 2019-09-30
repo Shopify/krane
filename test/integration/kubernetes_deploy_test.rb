@@ -1406,8 +1406,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
         /WARNING:.*The raw output may be sensitive and so cannot be displayed/,
       ])
     end
-
-
   end
 
   def test_validation_failure_on_sensitive_resources_does_not_print_template
