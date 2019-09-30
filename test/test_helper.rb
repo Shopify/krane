@@ -202,6 +202,10 @@ module KubernetesDeploy
       def obj.run(*)
         ["", "", SystemExit.new(0)]
       end
+
+      def obj.server_dry_run_enabled?
+        true
+      end
       obj
     end
 

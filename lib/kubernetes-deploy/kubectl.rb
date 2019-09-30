@@ -9,6 +9,7 @@ module KubernetesDeploy
     }
     DEFAULT_TIMEOUT = 15
     MAX_RETRY_DELAY = 16
+    SERVER_DRY_RUN_MIN_VERSION = "1.13"
 
     class ResourceNotFoundError < StandardError; end
 
@@ -82,6 +83,10 @@ module KubernetesDeploy
 
     def server_version
       version_info[:server]
+    end
+
+    def server_dry_run_enabled?
+      server_version >= Gem::Version.new(SERVER_DRY_RUN_MIN_VERSION)
     end
 
     private

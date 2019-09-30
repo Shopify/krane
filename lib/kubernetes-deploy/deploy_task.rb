@@ -478,27 +478,36 @@ module KubernetesDeploy
         .select(&:sensitive_template_content?)
         .map { |r| File.basename(r.file_path) }
 
+      server_dry_run_validated_resource = resources
+        .select(&:server_dry_run_validated?)
+        .map { |r| File.basename(r.file_path) }
+
       err.each_line do |line|
         bad_files = find_bad_files_from_kubectl_output(line)
-        if bad_files.present?
-          bad_files.each do |f|
-            if filenames_with_sensitive_content.include?(f[:filename])
-              # Hide the error and template contents in case it has senitive information
-              record_invalid_template(err: "SUPPRESSED FOR SECURITY", filename: f[:filename], content: nil)
-            else
-              record_invalid_template(err: f[:err], filename: f[:filename], content: f[:content])
-            end
-          end
-        else
+        unless bad_files.present?
           unidentified_errors << line
+          next
+        end
+
+        bad_files.each do |f|
+          err_msg = f[:err]
+          if filenames_with_sensitive_content.include?(f[:filename])
+            # Hide the error and template contents in case it has sensitive information
+            # we display full error messages as we assume there's no sensitive info leak after server-dry-run
+            err_msg = "SUPPRESSED FOR SECURITY" unless server_dry_run_validated_resource.include?(f[:filename])
+            record_invalid_template(err: err_msg, filename: f[:filename], content: nil)
+          else
+            record_invalid_template(err: err_msg, filename: f[:filename], content: f[:content])
+          end
         end
       end
+      return unless unidentified_errors.any?
 
-      if unidentified_errors.present? && filenames_with_sensitive_content.any?
+      if (filenames_with_sensitive_content - server_dry_run_validated_resource).present?
         warn_msg = "WARNING: There was an error applying some or all resources. The raw output may be sensitive and " \
           "so cannot be displayed."
         @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-      elsif unidentified_errors.present?
+      else
         heading = ColorizedString.new('Unidentified error(s):').red
         msg = FormattedLogger.indent_four(unidentified_errors.join)
         @logger.summary.add_paragraph("#{heading}\n#{msg}")

@@ -3,8 +3,8 @@ require 'test_helper'
 
 class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def test_resources_based_on_ejson_file_existence
-    stub_dry_run_validation_request.times(3) # there are three secrets in the ejson
-    stub_server_dry_run_validation_request.times(3)
+    stub_server_dry_run_version_request
+    stub_server_dry_run_validation_request.times(3) # there are three secrets in the ejson
     assert_empty(build_provisioner(fixture_path('hello-cloud')).resources)
     refute_empty(build_provisioner(fixture_path('ejson-cloud')).resources)
   end
@@ -18,8 +18,8 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_resource_is_built_correctly
-    stub_dry_run_validation_request.times(3) # there are three secrets in the ejson
-    stub_server_dry_run_validation_request.times(3)
+    stub_server_dry_run_version_request
+    stub_server_dry_run_validation_request.times(3) # there are three secrets in the ejson
     resources = build_provisioner(fixture_path('ejson-cloud')).resources
     refute_empty(resources)
 
@@ -79,7 +79,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_proactively_validates_resulting_resources_and_raises_without_logging
-    stub_dry_run_validation_request
+    stub_server_dry_run_version_request
     stub_server_dry_run_validation_request
     KubernetesDeploy::Secret.any_instance.expects(:validation_failed?).returns(true)
     msg = "Generation of Kubernetes secrets from ejson failed: Resulting resource Secret/catphotoscom failed validation"
@@ -90,7 +90,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_run_with_selector_does_not_raise_exception
-    stub_dry_run_validation_request.times(3) # there are three secrets in the ejson
+    stub_server_dry_run_version_request
     stub_server_dry_run_validation_request.times(3) # there are three secrets in the ejson
     provisioner = build_provisioner(
       fixture_path('ejson-cloud'),
@@ -121,6 +121,15 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
         retry_whitelist: [:client_timeout],
         attempts: 3,
       })
+  end
+
+  def stub_server_dry_run_version_request
+    stub_kubectl_response("version",
+      resp: dummy_version, json: false,
+        kwargs: {
+          use_namespace: false,
+          log_failure: true,
+        })
   end
 
   def correct_ejson_key_secret_data
@@ -164,6 +173,10 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       secret['metadata']['annotations'] = { KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION => true }
     end
     secret
+  end
+
+  def dummy_version
+    'Server: version.Info{Major:"1", Minor:"13", GitVersion:"v1.13.6", GitCommit:"a6a8ec"}'
   end
 
   def build_provisioner(dir = nil, selector: nil, ejson_keys_secret: dummy_ejson_secret)
