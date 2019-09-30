@@ -9,8 +9,7 @@ class TestProvisioner
     def prepare_cluster
       WebMock.allow_net_connect!
       $stderr.print("Preparing test cluster... ")
-      prepare_pv("pv0001")
-      prepare_pv("pv0002")
+      [ENV['PARALLELISM'].to_i, 2].max.times { |i| prepare_pv("pv000#{i}") }
       $stderr.puts "Done."
       WebMock.disable_net_connect!
     end
