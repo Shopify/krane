@@ -17,18 +17,20 @@ module KubernetesDeploy
     end
 
     def global_resource_names
-      @globals ||= fetch_globals.map do |gv|
-        kind, _group = gv.split(".", 2)
-        kind.singularize
-      end
+      @globals ||= fetch_globals.map { |g| g["kind"] }
     end
 
     private
 
     def fetch_globals
-      raw_names, _, st = kubectl.run("api-resources", "--namespaced=false", output: "name", attempts: 5)
+      raw, _, st = kubectl.run("api-resources", "--namespaced=false", output: "wide", attempts: 5)
       if st.success?
-        raw_names.split("\n")
+        rows = raw.split("\n")
+        header = rows.shift.downcase.scan(/[a-z]+[\W]*/).each_with_object({}) do |match, hash|
+          start = hash.values.map(&:last).max.to_i
+          hash[match.strip] = [start, start + match.length]
+        end
+        rows.map { |r| header.map { |k, (s, e)| [k.strip, r[s...e].strip] }.to_h }
       else
         []
       end

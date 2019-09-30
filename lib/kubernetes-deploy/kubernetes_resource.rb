@@ -53,7 +53,7 @@ module KubernetesDeploy
           type = definition["kind"]
           inst = new(**opts)
           inst.type = type
-          inst.global = true if global_names.include?(type.downcase)
+          inst.global = true if global_names.map(&:downcase).include?(type.downcase)
           inst
         end
       end
