@@ -3,6 +3,11 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
+*Enchantments*
+- **[Breaking change]** Added PersistentVolumeClaim to the prune whitelist. ([#573](https://github.com/Shopify/kubernetes-deploy/pull/573))
+  * To see what resources may be affected, run `kubectl get pvc -o jsonpath='{ range .items[*] }{.metadata.namespace}{ "\t" }{.metadata.name}{ "\t" }{.metadata.annotations}{ "\n" }{ end }' --all-namespaces | grep "last-applied"`
+  * To exclude a resource from kubernetes-deploy (and kubectl apply) management, remove the last-applied annotation `kubectl annotate pvc $PVC_NAME kubectl.kubernetes.io/last-applied-configuration-`.
+
 ## 0.29.0
 
 *Enchantments*
@@ -25,7 +30,6 @@
 - Make sure that we only declare a Service of type LoadBalancer as deployed after its IP address is published. [#547](https://github.com/Shopify/kubernetes-deploy/pull/547)
 - Add more validations to `RunnerTask`. [#554](https://github.com/Shopify/kubernetes-deploy/pull/554)
 - Validate secrets with `--server-dry-run` on supported clusters. [#553](https://github.com/Shopify/kubernetes-deploy/pull/553)
-- Add resource type `PersistentVolumeClaim` to prune whitelist. [#573](https://github.com/Shopify/kubernetes-deploy/pull/573)
 *Bug Fixes*
 - Fix a bug in rendering where we failed to add a yaml doc separator (`---`) to
   an implicit document if there are multiple documents in the file.
