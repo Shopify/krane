@@ -29,6 +29,13 @@ module KubernetesDeploy
         end
       end
 
+      def with_processed_task_template(template_paths)
+        unless template_paths
+          raise OptionsError, "Task template is unknown. " \
+          "Please specify task template with --template argument."
+        end
+      end
+
       private
 
       def default_template_dir

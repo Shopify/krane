@@ -5,7 +5,7 @@ require 'kubernetes-deploy/runner_task'
 require 'kubernetes-deploy/options_helper'
 require 'optparse'
 
-template = "task-runner-template"
+template = nil
 entrypoint = nil
 env_vars = []
 verify_result = true
@@ -26,17 +26,24 @@ end
 namespace = ARGV[0]
 context = ARGV[1]
 
-runner = KubernetesDeploy::RunnerTask.new(
-  namespace: namespace,
-  context: context,
-  max_watch_seconds: max_watch_seconds
-)
+begin
+  KubernetesDeploy::OptionsHelper.with_processed_task_template(template) do |path|
+    runner = KubernetesDeploy::RunnerTask.new(
+      namespace: namespace,
+      context: context,
+      max_watch_seconds: max_watch_seconds
+    )
 
-success = runner.run(
-  verify_result: verify_result,
-  task_template: template,
-  entrypoint: entrypoint,
-  args: ARGV[2..-1],
-  env_vars: env_vars
-)
-exit(1) unless success
+    success = runner.run(
+      verify_result: verify_result,
+      task_template: path,
+      entrypoint: entrypoint,
+      args: ARGV[2..-1],
+      env_vars: env_vars
+    )
+    exit(1) unless success
+  end
+rescue KubernetesDeploy::OptionsHelper::OptionsError => e
+  logger.error(e.message)
+  exit(1)
+end
