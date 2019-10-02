@@ -5,23 +5,21 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   include StatsDHelper
   # This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace
   def test_deploying_to_protected_namespace_with_override_does_not_prune
-    KubernetesDeploy::DeployTask.stub_const(:PROTECTED_NAMESPACES, [@namespace]) do
-      assert_deploy_success(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml', 'disruption-budgets.yml'],
-        allow_protected_ns: true, prune: false))
-      hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-      hello_cloud.assert_configmap_data_present
-      hello_cloud.assert_poddisruptionbudget
-      assert_logs_match_all([
-        /cannot be pruned/,
-        /Please do not deploy to #{@namespace} unless you really know what you are doing/,
-      ])
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml', 'disruption-budgets.yml'],
+      protected_namespaces: [@namespace], allow_protected_ns: true, prune: false))
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_configmap_data_present
+    hello_cloud.assert_poddisruptionbudget
+    assert_logs_match_all([
+      /cannot be pruned/,
+      /Please do not deploy to #{@namespace} unless you really know what you are doing/,
+    ])
 
-      result = deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"],
-        allow_protected_ns: true, prune: false)
-      assert_deploy_success(result)
-      hello_cloud.assert_configmap_data_present # not pruned
-      hello_cloud.assert_poddisruptionbudget
-    end
+    result = deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"],
+      protected_namespaces: [@namespace], allow_protected_ns: true, prune: false)
+    assert_deploy_success(result)
+    hello_cloud.assert_configmap_data_present # not pruned
+    hello_cloud.assert_poddisruptionbudget
   end
 
   # This cannot be run in parallel because it needs to manipulate the global log level
@@ -54,12 +52,8 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
       result = deploy_fixtures('hello-cloud', kubectl_instance: kubectl_instance)
       assert_deploy_failure(result)
       assert_logs_match_all([
-        'The following command failed (attempt 1/1): kubectl version',
-        'Unable to connect to the server',
-        'Unable to connect to the server',
-        'Unable to connect to the server',
         'Result: FAILURE',
-        "Failed to reach server for #{TEST_CONTEXT}",
+        "Something went wrong connecting to #{TEST_CONTEXT}",
       ], in_order: true)
     ensure
       ENV['KUBECONFIG'] = old_config

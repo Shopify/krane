@@ -215,7 +215,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_refuses_deploy_to_protected_namespace_without_override
     generated_ns = @namespace
     @namespace = 'default'
-    assert_deploy_failure(deploy_fixtures("hello-cloud", prune: false))
+    assert_deploy_failure(deploy_fixtures("hello-cloud"))
     assert_logs_match_all([
       "Configuration invalid",
       "- Refusing to deploy to protected namespace",
@@ -1646,7 +1646,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
     assert_logs_match_all([
       'Name: "unmanaged-pod-1-<%= deployment_id %>"',
-      ], in_order: true)
+    ], in_order: true)
   end
 
   def test_deploy_fails_if_context_is_invalid

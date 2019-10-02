@@ -1,14 +1,9 @@
 # frozen_string_literal: true
 module KubernetesDeploy
   class DeployTaskConfigValidator < TaskConfigValidator
-    PROTECTED_NAMESPACES = %w(
-      default
-      kube-system
-      kube-public
-    )
-
-    def initialize(allow_protected_ns, prune, *arguments)
+    def initialize(protected_namespaces, allow_protected_ns, prune, *arguments)
       super(*arguments)
+      @protected_namespaces = protected_namespaces
       @allow_protected_ns = allow_protected_ns
       @prune = prune
       @validations += %i(validate_protected_namespaces)
@@ -17,7 +12,7 @@ module KubernetesDeploy
     private
 
     def validate_protected_namespaces
-      if PROTECTED_NAMESPACES.include?(namespace)
+      if @protected_namespaces.include?(namespace)
         if @allow_protected_ns && @prune
           @errors << "Refusing to deploy to protected namespace '#{namespace}' with pruning enabled"
         elsif @allow_protected_ns

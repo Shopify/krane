@@ -332,8 +332,8 @@ module KubernetesDeploy
     end
 
     def validate_configuration(allow_protected_ns:, prune:)
-      task_config_validator =
-        DeployTaskConfigValidator.new(@namespace, allow_protected_ns, prune, @task_config, kubectl, kubeclient_builder)
+      task_config_validator = DeployTaskConfigValidator.new(@protected_namespaces, allow_protected_ns, prune,
+        @task_config, kubectl, kubeclient_builder)
       errors = []
       errors += task_config_validator.errors
       errors += @template_sets.validate
