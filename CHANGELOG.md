@@ -25,6 +25,7 @@
 - Make sure that we only declare a Service of type LoadBalancer as deployed after its IP address is published. [#547](https://github.com/Shopify/kubernetes-deploy/pull/547)
 - Add more validations to `RunnerTask`. [#554](https://github.com/Shopify/kubernetes-deploy/pull/554)
 - Validate secrets with `--server-dry-run` on supported clusters. [#553](https://github.com/Shopify/kubernetes-deploy/pull/553)
+- Add resource type `PersistentVolumeClaim` to prune whitelist. [#573](https://github.com/Shopify/kubernetes-deploy/pull/573)
 *Bug Fixes*
 - Fix a bug in rendering where we failed to add a yaml doc separator (`---`) to
   an implicit document if there are multiple documents in the file.
