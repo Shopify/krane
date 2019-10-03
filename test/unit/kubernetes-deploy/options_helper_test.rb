@@ -32,6 +32,14 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
     end
   end
 
+  def test_missing_task_template_raises
+    assert_raises_message(KubernetesDeploy::OptionsHelper::OptionsError,
+      "Task template is unknown. Please specify task template with --template argument.") do
+      KubernetesDeploy::OptionsHelper.with_processed_task_template('') do
+      end
+    end
+  end
+
   def test_with_explicit_template_dir_with_env_var_set
     with_env("ENVIRONMENT", "test") do
       KubernetesDeploy::OptionsHelper.with_processed_template_paths([fixture_path('hello-cloud')]) do |template_paths|

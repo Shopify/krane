@@ -30,7 +30,7 @@ module KubernetesDeploy
       end
 
       def with_processed_task_template(template_paths)
-        unless template_paths
+        if template_paths.nil? || template_paths.empty?
           raise OptionsError, "Task template is unknown. " \
           "Please specify task template with --template argument."
         end
