@@ -13,3 +13,4 @@ gem 'codecov', require: false
 gem 'ruby-prof', require: false
 gem 'ruby-prof-flamegraph', require: false
 gem 'minitest-reporters'
+gem 'yard', require: false

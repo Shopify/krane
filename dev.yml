@@ -24,3 +24,5 @@ commands:
     syntax:
       optional:
         argument: TEST_REGEX
+  doc:
+    run: bundle exec yard doc
