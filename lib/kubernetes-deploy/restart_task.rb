@@ -7,6 +7,7 @@ require 'kubernetes-deploy/resource_watcher'
 require 'kubernetes-deploy/kubectl'
 
 module KubernetesDeploy
+  # Restart the pods in one or more deployments
   class RestartTask
     class FatalRestartError < FatalDeploymentError; end
 
@@ -21,6 +22,12 @@ module KubernetesDeploy
     HTTP_OK_RANGE = 200..299
     ANNOTATION = "shipit.shopify.io/restart"
 
+    # Initializes the task
+    #
+    # @param context [String] Kubernetes context / cluster
+    # @param namespace [String] Kubernetes namespace
+    # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
+    # @param max_watch_seconds [Integer] Timeout in seconds
     def initialize(context:, namespace:, logger: nil, max_watch_seconds: nil)
       @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
@@ -29,6 +36,9 @@ module KubernetesDeploy
       @max_watch_seconds = max_watch_seconds
     end
 
+    # Runs the task, returning a boolean representing success or failure
+    #
+    # @return [Boolean]
     def run(*args)
       perform!(*args)
       true
@@ -37,6 +47,13 @@ module KubernetesDeploy
     end
     alias_method :perform, :run
 
+    # Runs the task, raising exceptions in case of issues
+    #
+    # @param deployments_names [Array<String>] Array of workload names to restart
+    # @param selector [Hash] Selector(s) parsed by KubernetesDeploy::LabelSelector
+    # @param verify_result [Boolean] Wait for completion and verify success
+    #
+    # @return [nil]
     def run!(deployments_names = nil, selector: nil, verify_result: true)
       start = Time.now.utc
       @logger.reset

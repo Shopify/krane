@@ -42,6 +42,7 @@ require 'kubernetes-deploy/cluster_resource_discovery'
 require 'kubernetes-deploy/template_sets'
 
 module KubernetesDeploy
+  # Ship resources to a namespace
   class DeployTask
     extend KubernetesDeploy::StatsD::MeasureMethods
 
@@ -104,6 +105,20 @@ module KubernetesDeploy
       kubectl.server_version
     end
 
+    # Initializes the task
+    #
+    # @param namespace [String] Kubernetes namespace
+    # @param context [String] Kubernetes context / cluster
+    # @param current_sha [String] The SHA of the commit
+    # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
+    # @param kubectl_instance [Kubectl] Kubectl instance
+    # @param bindings [Hash] Bindings parsed by KubernetesDeploy::BindingsParser
+    # @param max_watch_seconds [Integer] Timeout in seconds
+    # @param selector [Hash] Selector(s) parsed by KubernetesDeploy::LabelSelector
+    # @param template_paths [Array<String>] An array of template paths
+    # @param template_dir [String] Path to a directory with templates (deprecated)
+    # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults to KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES)
+    # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil, protected_namespaces: nil,
       render_erb: true)
@@ -125,6 +140,9 @@ module KubernetesDeploy
       @render_erb = render_erb
     end
 
+    # Runs the task, returning a boolean representing success or failure
+    #
+    # @return [Boolean]
     def run(*args)
       run!(*args)
       true
@@ -132,6 +150,13 @@ module KubernetesDeploy
       false
     end
 
+    # Runs the task, raising exceptions in case of issues
+    #
+    # @param verify_result [Boolean] Wait for completion and verify success
+    # @param allow_protected_ns [Boolean] Enable deploying to protected namespaces
+    # @param prune [Boolean] Enable deletion of resources that do not appear in the template dir
+    #
+    # @return [nil]
     def run!(verify_result: true, allow_protected_ns: false, prune: true)
       start = Time.now.utc
       @logger.reset
