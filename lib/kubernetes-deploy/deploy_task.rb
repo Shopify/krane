@@ -40,6 +40,7 @@ require 'kubernetes-deploy/ejson_secret_provisioner'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/cluster_resource_discovery'
 require 'kubernetes-deploy/template_sets'
+require 'kubernetes-deploy/deploy_task_config_validator'
 
 module KubernetesDeploy
   # Ship resources to a namespace
@@ -357,36 +358,17 @@ module KubernetesDeploy
     end
 
     def validate_configuration(allow_protected_ns:, prune:)
+      task_config_validator = DeployTaskConfigValidator.new(@protected_namespaces, allow_protected_ns, prune,
+        @task_config, kubectl, kubeclient_builder)
       errors = []
-      errors += kubeclient_builder.validate_config_files
+      errors += task_config_validator.errors
       errors += @template_sets.validate
-
-      if @namespace.blank?
-        errors << "Namespace must be specified"
-      elsif @protected_namespaces.include?(@namespace)
-        if allow_protected_ns && prune
-          errors << "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
-        elsif allow_protected_ns
-          @logger.warn("You're deploying to protected namespace #{@namespace}, which cannot be pruned.")
-          @logger.warn("Existing resources can only be removed manually with kubectl. " \
-            "Removing templates from the set deployed will have no effect.")
-          @logger.warn("***Please do not deploy to #{@namespace} unless you really know what you are doing.***")
-        else
-          errors << "Refusing to deploy to protected namespace '#{@namespace}'"
-        end
-      end
-
-      if @context.blank?
-        errors << "Context must be specified"
-      end
-
       unless errors.empty?
+        @logger.summary.add_action("Configuration invalid")
         @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
-        raise FatalDeploymentError, "Configuration invalid"
+        raise KubernetesDeploy::TaskConfigurationError
       end
 
-      confirm_context_exists
-      confirm_namespace_exists
       confirm_ejson_keys_not_prunable if prune
       @logger.info("Using resource selector #{@selector}") if @selector
       @namespace_tags |= tags_from_namespace_labels
@@ -552,37 +534,6 @@ module KubernetesDeploy
           bad_files << { filename: File.basename(path), err: line, content: content }
         end
       end
-    end
-
-    def confirm_context_exists
-      out, err, st = kubectl.run("config", "get-contexts", "-o", "name",
-        use_namespace: false, use_context: false, log_failure: false)
-      available_contexts = out.split("\n")
-      if !st.success?
-        raise FatalDeploymentError, err
-      elsif !available_contexts.include?(@context)
-        raise FatalDeploymentError, "Context #{@context} is not available. Valid contexts: #{available_contexts}"
-      end
-      confirm_cluster_reachable
-      @logger.info("Context #{@context} found")
-    end
-
-    def confirm_cluster_reachable
-      success = false
-      with_retries(2) do
-        begin
-          success = kubectl.version_info
-        rescue KubectlError
-          success = false
-        end
-      end
-      raise FatalDeploymentError, "Failed to reach server for #{@context}" unless success
-      TaskConfigValidator.new(@task_config, kubectl, kubeclient_builder, only: [:validate_server_version]).valid?
-    end
-
-    def confirm_namespace_exists
-      raise FatalDeploymentError, "Namespace #{@namespace} not found" unless namespace_definition.present?
-      @logger.info("Namespace #{@namespace} found")
     end
 
     def namespace_definition
