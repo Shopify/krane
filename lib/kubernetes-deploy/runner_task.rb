@@ -11,11 +11,18 @@ require 'kubernetes-deploy/kubernetes_resource/pod'
 require 'kubernetes-deploy/runner_task_config_validator'
 
 module KubernetesDeploy
+  # Run a pod that exits upon completing a task
   class RunnerTask
     class TaskTemplateMissingError < TaskConfigurationError; end
 
     attr_reader :pod_name
 
+    # Initializes the runner task
+    #
+    # @param namespace [String] Kubernetes namespace
+    # @param context [String] Kubernetes context / cluster
+    # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
+    # @param max_watch_seconds [Integer] Timeout in seconds
     def initialize(namespace:, context:, logger: nil, max_watch_seconds: nil)
       @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
@@ -24,6 +31,9 @@ module KubernetesDeploy
       @max_watch_seconds = max_watch_seconds
     end
 
+    # Runs the task, returning a boolean representing success or failure
+    #
+    # @return [Boolean]
     def run(*args)
       run!(*args)
       true
@@ -31,6 +41,15 @@ module KubernetesDeploy
       false
     end
 
+    # Runs the task, raising exceptions in case of issues
+    #
+    # @param task_template [String] The template file you'll be rendering
+    # @param entrypoint [Array<String>] Override the default command in the container image
+    # @param args [Array<String>] Override the default arguments for the command
+    # @param env_vars [Array<String>] List of env vars
+    # @param verify_result [Boolean] Wait for completion and verify pod success
+    #
+    # @return [nil]
     def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: true)
       start = Time.now.utc
       @logger.reset

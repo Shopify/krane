@@ -6,7 +6,15 @@ require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/template_sets'
 
 module KubernetesDeploy
+  # Render templates
   class RenderTask
+    # Initializes the render task
+    #
+    # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
+    # @param current_sha [String] The SHA of the commit
+    # @param template_dir [String] Path to a directory with templates to render (deprecated)
+    # @param template_paths [Array<String>] An array of template paths to render
+    # @param bindings [Hash] Bindings parsed by KubernetesDeploy::BindingsParser
     def initialize(logger: nil, current_sha:, template_dir: nil, template_paths: [], bindings:)
       @logger = logger || KubernetesDeploy::FormattedLogger.build
       @template_dir = template_dir
@@ -15,6 +23,9 @@ module KubernetesDeploy
       @current_sha = current_sha
     end
 
+    # Runs the task, returning a boolean representing success or failure
+    #
+    # @return [Boolean]
     def run(*args)
       run!(*args)
       true
@@ -22,6 +33,12 @@ module KubernetesDeploy
       false
     end
 
+    # Runs the task, raising exceptions in case of issues
+    #
+    # @param stream [IO] Place to stream the output to
+    # @param only_filenames [Array<String>] List of filenames to render
+    #
+    # @return [nil]
     def run!(stream, only_filenames = [])
       @logger.reset
       @logger.phase_heading("Initializing render task")

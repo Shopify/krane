@@ -3,12 +3,10 @@
 require 'active_support/duration'
 
 module KubernetesDeploy
-  ##
   # This class is a less strict extension of ActiveSupport::Duration::ISO8601Parser.
   # In addition to full ISO8601 durations, it can parse unprefixed ISO8601 time components (e.g. '1H').
   # It is also case-insensitive.
   # For example, this class considers the values "1H", "1h" and "PT1H" to be valid and equivalent.
-
   class DurationParser
     class ParsingError < ArgumentError; end
 
