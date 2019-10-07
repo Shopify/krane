@@ -117,7 +117,8 @@ module KubernetesDeploy
     # @param selector [Hash] Selector(s) parsed by KubernetesDeploy::LabelSelector
     # @param template_paths [Array<String>] An array of template paths
     # @param template_dir [String] Path to a directory with templates (deprecated)
-    # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults to KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES)
+    # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults
+    #   to KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil, protected_namespaces: nil,

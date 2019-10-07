@@ -8,7 +8,6 @@ require 'kubernetes-deploy/template_sets'
 module KubernetesDeploy
   # Render templates
   class RenderTask
-
     # Initializes the task
     #
     # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
