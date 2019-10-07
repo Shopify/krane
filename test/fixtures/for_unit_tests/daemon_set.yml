@@ -3,15 +3,17 @@ kind: DaemonSet
 metadata:
   name: ds-app
   generation: 2
+  uid: 'c31a9b4e-e6dd-11e9-8f47-e6322f98393a'
 spec:
   selector:
     matchLabels:
       app: ds-app
       name: ds-app
+  templateGeneration: 2
   template:
     metadata:
       labels:
-        app: hello-cloud
+        app: ds-app
         name: ds-app
     spec:
       containers:
