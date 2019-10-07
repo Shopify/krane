@@ -35,7 +35,7 @@ class OptionsHelperTest < KubernetesDeploy::TestCase
   def test_missing_task_template_raises
     assert_raises_message(KubernetesDeploy::OptionsHelper::OptionsError,
       "Task template is unknown. Please specify task template with --template argument.") do
-      KubernetesDeploy::OptionsHelper.with_processed_task_template('') do
+      KubernetesDeploy::OptionsHelper.with_processed_task_template(nil) do
       end
     end
   end

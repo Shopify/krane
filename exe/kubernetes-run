@@ -25,6 +25,7 @@ end
 
 namespace = ARGV[0]
 context = ARGV[1]
+logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: false)
 
 begin
   KubernetesDeploy::OptionsHelper.with_processed_task_template(template) do |path|
