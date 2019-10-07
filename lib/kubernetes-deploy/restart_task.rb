@@ -42,7 +42,7 @@ module KubernetesDeploy
     def run(*args)
       perform!(*args)
       true
-    rescue FatalDeploymentError
+    rescue FatalDeploymentError, TaskConfigurationError
       false
     end
     alias_method :perform, :run

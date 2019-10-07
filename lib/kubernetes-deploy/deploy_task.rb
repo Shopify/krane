@@ -148,7 +148,7 @@ module KubernetesDeploy
     def run(*args)
       run!(*args)
       true
-    rescue FatalDeploymentError
+    rescue FatalDeploymentError, TaskConfigurationError
       false
     end
 

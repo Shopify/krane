@@ -37,7 +37,7 @@ module KubernetesDeploy
     def run(*args)
       run!(*args)
       true
-    rescue DeploymentTimeoutError, FatalDeploymentError
+    rescue DeploymentTimeoutError, FatalDeploymentError, TaskConfigurationError
       false
     end
 
