@@ -47,6 +47,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
   * [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy)
   * [Deploying Kubernetes secrets (from EJSON)](#deploying-kubernetes-secrets-from-ejson)
   * [Deploying custom resources](#deploying-custom-resources)
+* [Walk through the steps of a deployment](#deploy-walkthrough)
 
 **KUBERNETES-RESTART**
 * [Usage](#usage-1)
@@ -419,6 +420,89 @@ status:
 - Since `$.status.conditions[?(@.type == "Ready")].status == "False"`, the resource is not considered successful yet.
 - `$.status.conditions[?(@.type == "Failed")].status == "True"` means that a failure condition has been fulfilled and the resource is considered failed.
 - Since `error_msg_path` is specified, kubernetes-deploy will log the contents of `$.status.conditions[?(@.type == "Failed")].message`, which in this case is: `resource is failed`.
+
+### Deploy walkthrough
+
+Let's walk through what happens when you run the `deploy` task with [this directory of templates](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud). You can see this for yourself by running the following command:
+
+```bash
+krane deploy my-namespace my-k8s-cluster -f test/fixtures/hello-cloud --render-erb
+```
+
+As soon as you run this, you'll start seeing some output being streamed to STDERR.
+
+#### Phase 1: Initializing deploy
+
+In this phase, we:
+
+- Perform basic validation to ensure we can proceed with the deploy. This includes checking if we can reach the context, if the context is valid, if the namespace exists within the context, and more. We try to validate as much as we can before trying to ship something because we want to avoid having an incomplete deploy in case of a failure (this is especially important because there's no rollback support).
+- List out all the resources we want to deploy (as described in the template files we used).
+- Render ERB templates and apply partials, if enabled (which is the case for this example). If enabled, we also perform basic validation on the parsed templates.
+
+#### Phase 2: Checking initial resource statuses
+
+In this phase, we check resource statuses. For each resource listed in the previous step, we check Kubernetes for their status; in the first deploy this might show a bunch of items as "Not Found", but for the deploy of a new version, this is an example of what it could look like:
+
+```
+Certificate/services-foo-tls     Exists
+Cloudsql/foo-production          Provisioned
+Deployment/jobs                  3 replicas, 3 updatedReplicas, 3 availableReplicas
+Deployment/web                   3 replicas, 3 updatedReplicas, 3 availableReplicas
+Ingress/web                      Created
+Memcached/foo-production         Healthy
+Pod/db-migrate-856359            Unknown
+Pod/upload-assets-856359         Unknown
+Redis/foo-production             Healthy
+Service/web                      Selects at least 1 pod
+```
+
+The next phase might be either "Predeploying priority resources" (if there's any) or "Deploying all resources". In this example we'll go through the former, as we do have predeployable resources.
+
+#### Phase 3: Predeploying priority resources
+
+This is the first phase that could modify the cluster.
+
+In this phase we predeploy certain types of resources (e.g. `ConfigMap`, `PersistentVolumeClaim`, `Secret`, ...) to make sure the latest version will be available when resources that might consume them (e.g. `Deployment`) are deployed. This phase will be skipped if the templates don't include any resources that would need to be predeployed.
+
+When this runs, we essentially run `kubectl apply` on those templates and periodically check the cluster for the current status of each resource so we can display error or success information. This will look different depending on the type of resource. If you're running the command described above, you should see something like this in the output:
+
+```
+Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)
+Successfully deployed in 0.2s: ConfigMap/hello-cloud-configmap-data
+
+Deploying PersistentVolumeClaim/hello-cloud-redis (timeout: 300s)
+Successfully deployed in 3.3s: PersistentVolumeClaim/hello-cloud-redis
+
+Deploying Role/role (timeout: 300s)
+Don't know how to monitor resources of type Role. Assuming Role/role deployed successfully.
+Successfully deployed in 0.2s: Role/role
+```
+
+As you can see, different types of resources might have different timeout values and different success criteria; in some specific cases (such as with Role) we might not know how to confirm success or failure, so we use a higher timeout value and assume it did work.
+
+#### Phase 4: Deploying all resources
+
+In this phase, we:
+
+- Deploy all resources found in the templates, including resources that were predeployed in the previous step (which should be treated as a no-op by Kubernetes). We deploy everything so the pruning logic (described below) doesn't remove any predeployed resources.
+- Prune resources not found in the templates (you can disable this by using `--no-prune`).
+
+Just like in the previous phase, we essentially run `kubectl apply` on those templates and periodically check the cluster for the current status of each resource so we can display error or success information.
+
+If pruning is enabled (which, again, is the default), any [resource which type is listed in `DeployTask.prune_whitelist`](https://github.com/Shopify/kubernetes-deploy/blob/ac42ad7c8c4f6f6b27e706d6642ebe002ca1f683/lib/kubernetes-deploy/deploy_task.rb#L80-L104) that we can find in the namespace but not in the templates will be removed. A particular message about pruning will be printed in the next phase if any resource matches this criteria.
+
+#### Result
+
+The result section will show:
+- A global status: if **all** resources were deployed successfully, this will show up as "SUCCESS"; if at least one resource failed to deploy (due to an error or timeout), this will show up as "FAILURE".
+- A list of resources and their individual status: this will show up as something like "Available", "Created", and "1 replica, 1 availableReplica, 1 readyReplica".
+
+At this point the command also returns a status code:
+- If it was a success, `0`
+- If there was a timeout, `70`
+- If any other failure happened, `1`
+
+**On timeouts**: It's important to notice that a single resource timeout or a global deploy timeout doesn't necessarily mean that the operation failed. Since Kubernetes updates are asynchronous, maybe something was just too slow to return in the configured time; in those cases, usually running the deploy again might work (that should be a no-op for most - if not all - resources).
 
 # kubernetes-restart
 
