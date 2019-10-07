@@ -8,7 +8,7 @@ require 'kubernetes-deploy/template_sets'
 module KubernetesDeploy
   # Render templates
   class RenderTask
-    # Initializes the task
+    # Initializes the render task
     #
     # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
     # @param current_sha [String] The SHA of the commit

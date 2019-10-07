@@ -22,7 +22,7 @@ module KubernetesDeploy
     HTTP_OK_RANGE = 200..299
     ANNOTATION = "shipit.shopify.io/restart"
 
-    # Initializes the task
+    # Initializes the restart task
     #
     # @param context [String] Kubernetes context / cluster
     # @param namespace [String] Kubernetes namespace

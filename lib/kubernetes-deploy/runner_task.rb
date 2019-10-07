@@ -17,7 +17,7 @@ module KubernetesDeploy
 
     attr_reader :pod_name
 
-    # Initializes the task
+    # Initializes the runner task
     #
     # @param namespace [String] Kubernetes namespace
     # @param context [String] Kubernetes context / cluster

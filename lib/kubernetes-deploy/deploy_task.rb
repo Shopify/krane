@@ -105,10 +105,10 @@ module KubernetesDeploy
       kubectl.server_version
     end
 
-    # Initializes the task
+    # Initializes the deploy task
     #
     # @param namespace [String] Kubernetes namespace
-    # @param context [String] Kubernetes context / cluster
+    # @param context [String] Kubernetes context
     # @param current_sha [String] The SHA of the commit
     # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
     # @param kubectl_instance [Kubectl] Kubectl instance
