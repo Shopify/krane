@@ -480,7 +480,7 @@ Based on this specification `kubernetes-run` will create a new pod with the entr
 
 *Options:*
 
-* `--template=TEMPLATE`:  Specifies the name of the PodTemplate to use, required to be provided.
+* `--template=TEMPLATE`:  Specifies the name of the PodTemplate to use (default is `task-runner-template` if this option is not set).
 * `--env-vars=ENV_VARS`: Accepts a comma separated list of environment variables to be added to the pod template. For example, `--env-vars="ENV=VAL,ENV2=VAL2"` will make `ENV` and `ENV2` available to the container.
 * `--entrypoint=ENTRYPOINT`: Specify the entrypoint to use to start the task runner container.
 * `--skip-wait`: Skip verification of pod success
