@@ -133,8 +133,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml widgets_deprecated.yml)))
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
-      "Detected non-namespaced resources which will never be pruned:",
-      " - CustomResourceDefinition/mail.stable.example.io",
       "Phase 3: Deploying all resources",
       "CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
       %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted},
@@ -161,8 +159,6 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml widgets.yml)))
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
-      "Detected non-namespaced resources which will never be pruned:",
-      " - CustomResourceDefinition/mail.stable.example.io",
       "Phase 3: Deploying all resources",
       "CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
       %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted},

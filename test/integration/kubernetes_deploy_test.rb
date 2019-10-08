@@ -1578,7 +1578,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       sc["volumeBindingMode"] = "Immediate"
     end
     assert_deploy_success(result)
-
     TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
     result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
       pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
@@ -1664,6 +1663,26 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Could not find Namespace: unknown in Context: minikube",
+    ], in_order: true)
+  end
+
+  def test_deploy_allow_globals_warns
+    result = deploy_fixtures("globals")
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "The ability for this task to deploy global resources will be removed in the next version,"\
+      " which will affect the following resources:",
+      '    testing-storage-class (StorageClass) in ',
+    ], in_order: true)
+  end
+
+  def test_deploy_globals_without_allow_globals_fails
+    result = deploy_fixtures("globals", allow_globals: false)
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'This command is namespaced and cannot be used to deploy global resources.',
+      'Global resources:',
+      '    testing-storage-class (StorageClass) in ',
     ], in_order: true)
   end
 
