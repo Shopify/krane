@@ -31,24 +31,17 @@ class RunTest < KubernetesDeploy::TestCase
 
   def test_run_parses_arguments
     set_krane_run_expectations(run_args: { args: %w(hello) })
-    krane_run!(flags: '--template some-name --arguments hello')
+    krane_run!(flags: '--arguments hello')
   end
 
   def test_run_parses_template
     set_krane_run_expectations(run_args: { task_template: TASK_TEMPLATE })
-    krane_run!(flags: '--template some-name')
+    krane_run!(flags: "--template #{TASK_TEMPLATE}")
   end
 
   def test_run_parses_env_vars
     set_krane_run_expectations(run_args: { env_vars: %w(SOMETHING=8000 FOO=bar) })
     krane_run!(flags: '--env-vars SOMETHING=8000,FOO=bar')
-  end
-
-  def test_run_failure_with_no_template_given
-    out, err, status = krane_black_box('run', 'no task template given')
-    assert_equal(1, status.exitstatus)
-    assert_empty(out)
-    assert_match("No value provided for required options '--template'\n", err)
   end
 
   def test_run_failure_with_not_enough_arguments_as_black_box
@@ -82,10 +75,10 @@ class RunTest < KubernetesDeploy::TestCase
   end
 
   def krane_run!(flags: '')
-    cmd_flags = "#{flags} --template #{TASK_TEMPLATE}".split
+    flags += " --template #{TASK_TEMPLATE}" unless flags.include?('--template')
     krane = Krane::CLI::Krane.new(
       [run_task_config.namespace, run_task_config.context],
-      cmd_flags
+      flags.split
     )
     krane.invoke("run_command")
   end
