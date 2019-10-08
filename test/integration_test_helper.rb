@@ -41,7 +41,7 @@ module KubernetesDeploy
     end
 
     def _kubectl
-      @_kubectl ||= KubernetesDeploy::Kubectl.new(namespace: "default", context: TEST_CONTEXT, logger: logger,
+      @_kubectl ||= KubernetesDeploy::Kubectl.new(task_config: task_config(namespace: "default"),
         log_failure_by_default: true, default_timeout: '5s')
     end
   end

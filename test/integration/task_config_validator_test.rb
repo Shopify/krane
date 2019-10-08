@@ -52,8 +52,7 @@ class TaskConfigValidatorTest < KubernetesDeploy::IntegrationTest
     context ||= "test-context"
     namespace ||= "test-namespace"
     config = task_config(context: context, namespace: namespace, logger: logger)
-    kubectl = KubernetesDeploy::Kubectl.new(namespace: config.namespace,
-      context: config.context, logger: config.logger, log_failure_by_default: true)
+    kubectl = KubernetesDeploy::Kubectl.new(task_config: config, log_failure_by_default: true)
     kubeclient_builder ||= KubernetesDeploy::KubeclientBuilder.new
     KubernetesDeploy::TaskConfigValidator.new(config, kubectl, kubeclient_builder, only: only)
   end

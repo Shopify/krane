@@ -11,18 +11,6 @@ class KubectlTest < KubernetesDeploy::TestCase
     Open3.expects(:capture3).never
   end
 
-  def test_raises_if_initialized_with_null_context
-    assert_raises_message(ArgumentError, "context is required") do
-      KubernetesDeploy::Kubectl.new(namespace: 'test', context: nil, logger: logger, log_failure_by_default: true)
-    end
-  end
-
-  def test_raises_if_initialized_with_null_namespace
-    assert_raises_message(ArgumentError, "namespace is required") do
-      KubernetesDeploy::Kubectl.new(namespace: nil, context: 'test', logger: logger, log_failure_by_default: true)
-    end
-  end
-
   def test_run_constructs_the_expected_command_and_returns_the_correct_values
     stub_open3(
       %w(kubectl get pods --output=json) +
@@ -133,7 +121,8 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def test_custom_timeout_is_used
-    custom_kubectl = KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: logger,
+    task_config = KubernetesDeploy::TaskConfig.new('testc', 'testn', logger)
+    custom_kubectl = KubernetesDeploy::Kubectl.new(task_config: task_config,
     log_failure_by_default: true, default_timeout: '5s')
     stub_open3(
       %w(kubectl get pods --namespace=testn --context=testc --request-timeout=5s),
@@ -381,8 +370,8 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def build_kubectl(log_failure_by_default: true)
-    KubernetesDeploy::Kubectl.new(namespace: 'testn', context: 'testc', logger: logger,
-      log_failure_by_default: log_failure_by_default)
+    task_config = KubernetesDeploy::TaskConfig.new('testc', 'testn', logger)
+    KubernetesDeploy::Kubectl.new(task_config: task_config, log_failure_by_default: log_failure_by_default)
   end
 
   def stub_open3(command, resp:, err: "", success: true)

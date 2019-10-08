@@ -59,7 +59,8 @@ module KubernetesDeploy
     end
 
     def kubectl
-      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
+      task_config = TaskConfig.new(@context, @namespace, @logger)
+      @kubectl ||= Kubectl.new(task_config: task_config, log_failure_by_default: false)
     end
 
     def rfc3339_timestamp(time)
