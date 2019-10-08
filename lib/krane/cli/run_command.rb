@@ -22,7 +22,7 @@ module Krane
         "template" => {
           type: :string,
           desc: "The template file you'll be rendering",
-          default: 'task-runner-template',
+          required: true,
         },
         "env-vars" => {
           type: :string,
