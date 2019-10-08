@@ -35,8 +35,8 @@ class RunTest < KubernetesDeploy::TestCase
   end
 
   def test_run_parses_template
-    set_krane_run_expectations(run_args: { task_template: TASK_TEMPLATE })
-    krane_run!(flags: "--template #{TASK_TEMPLATE}")
+    set_krane_run_expectations(run_args: { task_template: 'some-name' })
+    krane_run!(flags: '--template some-name')
   end
 
   def test_run_parses_env_vars
