@@ -16,7 +16,7 @@ module KubernetesDeploy
       end
     end
 
-    def global_resource_names
+    def global_resource_kinds
       @globals ||= fetch_globals.map { |g| g["kind"] }
     end
 
@@ -26,11 +26,16 @@ module KubernetesDeploy
       raw, _, st = kubectl.run("api-resources", "--namespaced=false", output: "wide", attempts: 5)
       if st.success?
         rows = raw.split("\n")
-        header = rows.shift.downcase.scan(/[a-z]+[\W]*/).each_with_object({}) do |match, hash|
-          start = hash.values.map(&:last).max.to_i
-          hash[match.strip] = [start, start + match.length]
+        header = rows[0]
+        resources = rows[1..-1]
+        full_width_field_names = header.downcase.scan(/[a-z]+[\W]*/)
+        cursor = 0
+        fields = full_width_field_names.each_with_object({}) do |name, hash|
+          start = cursor
+          cursor = start + name.length
+          hash[name.strip] = [start, cursor - 1]
         end
-        rows.map { |r| header.map { |k, (s, e)| [k.strip, r[s...e].strip] }.to_h }
+        resources.map { |r| fields.map { |k, (s, e)| [k.strip, r[s..e].strip] }.to_h }
       else
         []
       end

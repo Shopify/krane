@@ -1663,8 +1663,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Could not find Namespace: unknown in Context: minikube",
-      ], in_order: true)
-    end
+    ], in_order: true)
+  end
 
   def test_deploy_allow_globals_warns
     result = deploy_fixtures("globals")

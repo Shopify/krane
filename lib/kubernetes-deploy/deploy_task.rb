@@ -102,10 +102,6 @@ module KubernetesDeploy
       wl + cluster_resource_discoverer.crds.select(&:prunable?).map(&:group_version_kind)
     end
 
-    def global_resource_names
-      cluster_resource_discoverer.global_resource_names
-    end
-
     def server_version
       kubectl.server_version
     end
@@ -226,6 +222,10 @@ module KubernetesDeploy
     end
 
     private
+
+    def global_resource_names
+      cluster_resource_discoverer.global_resource_kinds
+    end
 
     def kubeclient_builder
       @kubeclient_builder ||= KubeclientBuilder.new
