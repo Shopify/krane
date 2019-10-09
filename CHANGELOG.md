@@ -3,6 +3,11 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
+*Enchantments*
+- **[Breaking change]** Added PersistentVolumeClaim to the prune whitelist. ([#573](https://github.com/Shopify/kubernetes-deploy/pull/573))
+  * To see what resources may be affected, run `kubectl get pvc -o jsonpath='{ range .items[*] }{.metadata.namespace}{ "\t" }{.metadata.name}{ "\t" }{.metadata.annotations}{ "\n" }{ end }' --all-namespaces | grep "last-applied"`
+  * To exclude a resource from kubernetes-deploy (and kubectl apply) management, remove the last-applied annotation `kubectl annotate pvc $PVC_NAME kubectl.kubernetes.io/last-applied-configuration-`.
+
 ## 0.29.0
 
 *Enchantments*
