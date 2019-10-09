@@ -17,11 +17,11 @@ module Krane
 
       def self.from_options(namespace, context, options)
         require 'krane/restart_task'
-        selector = Krane::LabelSelector.parse(options[:selector]) if options[:selector]
-        restart = Krane::RestartTask.new(
+        selector = ::Krane::LabelSelector.parse(options[:selector]) if options[:selector]
+        restart = ::Krane::RestartTask.new(
           namespace: namespace,
           context: context,
-          max_watch_seconds: Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
+          max_watch_seconds: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
         )
         restart.run!(
           options[:deployments],

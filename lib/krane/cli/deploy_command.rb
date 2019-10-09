@@ -39,12 +39,12 @@ module Krane
         require 'krane/bindings_parser'
         require 'krane/label_selector'
 
-        bindings_parser = Krane::BindingsParser.new
+        bindings_parser = ::Krane::BindingsParser.new
         options[:bindings]&.each { |binding_pair| bindings_parser.add(binding_pair) }
 
-        selector = Krane::LabelSelector.parse(options[:selector]) if options[:selector]
+        selector = ::Krane::LabelSelector.parse(options[:selector]) if options[:selector]
 
-        logger = Krane::FormattedLogger.build(namespace, context,
+        logger = ::Krane::FormattedLogger.build(namespace, context,
           verbose_prefix: options['verbose-log-prefix'])
 
         protected_namespaces = options['protected-namespaces']
@@ -52,7 +52,7 @@ module Krane
           protected_namespaces = []
         end
 
-        Krane::OptionsHelper.with_processed_template_paths(options[:filenames],
+        ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames],
           require_explicit_path: true) do |paths|
           deploy = ::Krane::DeployTask.new(
             namespace: namespace,
@@ -61,7 +61,7 @@ module Krane
             template_paths: paths,
             bindings: bindings_parser.parse,
             logger: logger,
-            max_watch_seconds: Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
+            max_watch_seconds: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
             selector: selector,
             protected_namespaces: protected_namespaces,
           )
