@@ -6,7 +6,7 @@ module Krane
       OPTIONS = {}
 
       def self.from_options(_)
-        puts("krane #{Krane::VERSION}")
+        puts("krane #{::Krane::VERSION}")
       end
     end
   end
