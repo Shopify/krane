@@ -9,7 +9,7 @@ class DeployTaskTest < KubernetesDeploy::TestCase
   end
 
   def test_initializer_without_valid_file
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).at_least_once.returns(["", "", SystemExit.new(0)])
+    KubernetesDeploy::Kubectl.any_instance.expects(:run).at_least_once.returns(["{}", "", SystemExit.new(0)])
     KubernetesDeploy::Kubectl.any_instance.expects(:server_version).at_least_once.returns(
       Gem::Version.new(KubernetesDeploy::MIN_KUBE_VERSION)
     )

@@ -2,9 +2,7 @@
 module KubernetesDeploy
   class DeployTaskConfigValidator < TaskConfigValidator
     def initialize(protected_namespaces, allow_protected_ns, prune, *arguments)
-      task_config = arguments.first
-      skip = task_config.allow_globals ? [:validate_namespace_exists] : []
-      super(*arguments, skip: skip)
+      super(*arguments)
       @protected_namespaces = protected_namespaces
       @allow_protected_ns = allow_protected_ns
       @prune = prune

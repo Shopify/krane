@@ -4,7 +4,7 @@ require 'concurrent/hash'
 
 module KubernetesDeploy
   class ResourceCache
-    delegate :namespace, :context, :logger, :allow_globals, to: :@task_config
+    delegate :namespace, :context, :logger, :global_mode, to: :@task_config
 
     def initialize(task_config)
       @task_config = task_config
@@ -53,7 +53,7 @@ module KubernetesDeploy
       resource_class = KubernetesResource.class_for_kind(kind)
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
       raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
-         output_is_sensitive: output_is_sensitive, use_namespace: !allow_globals)
+         output_is_sensitive: output_is_sensitive, use_namespace: !global_mode)
       raise KubectlError unless st.success?
 
       instances = {}

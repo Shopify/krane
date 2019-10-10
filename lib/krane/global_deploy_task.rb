@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/deploy_task'
+require 'kubernetes-deploy/global_deploy_task_config_validator'
 
 module Krane
   class GlobalDeployTask < KubernetesDeploy::DeployTask
@@ -7,11 +8,11 @@ module Krane
       super(args.merge(allow_globals: true))
     end
 
-    private
-
-    def namespace_definition
-      nil
+    def run!(**args)
+      super(args.merge(task_config_validator: GlobalDeployTaskConfigValidator))
     end
+
+    private
 
     def validate_globals(resources)
       return unless (namespaced = resources.reject(&:global?).presence)

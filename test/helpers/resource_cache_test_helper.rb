@@ -6,7 +6,7 @@ module ResourceCacheTestHelper
       kind,
       "--chunk-size=0",
       resp: { items: items },
-      kwargs: { attempts: 5, output_is_sensitive: false },
+      kwargs: { attempts: 5, output_is_sensitive: false, use_namespace: true },
       times: times,
     )
   end

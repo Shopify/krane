@@ -7,7 +7,7 @@ class HorizontalPodAutoscalerTest < KubernetesDeploy::TestCase
   # We can't get integration coverage for HPA right now because the metrics server just isn't reliable enough on our CI
   def test_hpa_is_whitelisted_for_pruning
     KubernetesDeploy::Kubectl.any_instance.expects("run")
-      .with("get", "CustomResourceDefinition", output: "json", attempts: 5)
+      .with("get", "CustomResourceDefinition", output: "json", attempts: 5, use_namespace: false)
       .returns(['{ "items": [] }', "", SystemExit.new(0)])
     task = KubernetesDeploy::DeployTask.new(namespace: 'test', context: KubeclientHelper::TEST_CONTEXT,
       current_sha: 'foo', template_paths: [''], logger: logger)

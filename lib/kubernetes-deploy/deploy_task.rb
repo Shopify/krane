@@ -8,7 +8,6 @@ require 'kubernetes-deploy/common'
 require 'kubernetes-deploy/concurrency'
 require 'kubernetes-deploy/resource_cache'
 require 'kubernetes-deploy/kubernetes_resource'
-require 'kubernetes-deploy/deploy_task_config'
 %w(
   custom_resource
   cloudsql
@@ -131,7 +130,7 @@ module KubernetesDeploy
 
       @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths, logger: @logger)
-      @task_config = KubernetesDeploy::DeployTaskConfig.new(context, namespace, @logger, allow_globals)
+      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger, allow_globals && namespace.empty?)
       @bindings = bindings
       @namespace = namespace
       @namespace_tags = []
@@ -162,12 +161,15 @@ module KubernetesDeploy
     # @param prune [Boolean] Enable deletion of resources that do not appear in the template dir
     #
     # @return [nil]
-    def run!(verify_result: true, allow_protected_ns: false, prune: true)
+    def run!(verify_result: true, allow_protected_ns: false, prune: true,
+      task_config_validator: DeployTaskConfigValidator)
       start = Time.now.utc
       @logger.reset
 
       @logger.phase_heading("Initializing deploy")
-      validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
+      validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune,
+        task_config_validator: task_config_validator)
+
       resources = discover_resources
       validate_resources(resources)
 
@@ -376,8 +378,8 @@ module KubernetesDeploy
       @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
     end
 
-    def validate_configuration(allow_protected_ns:, prune:)
-      task_config_validator = DeployTaskConfigValidator.new(@protected_namespaces, allow_protected_ns, prune,
+    def validate_configuration(allow_protected_ns:, prune:, task_config_validator:)
+      task_config_validator = task_config_validator.new(@protected_namespaces, allow_protected_ns, prune,
         @task_config, kubectl, kubeclient_builder)
       errors = []
       errors += task_config_validator.errors
@@ -476,7 +478,7 @@ module KubernetesDeploy
 
         output_is_sensitive = resources.any?(&:sensitive_template_content?)
         out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
-        use_namespace: !@task_config.allow_globals)
+        use_namespace: !@task_config.global_mode)
 
         if st.success?
           log_pruning(out) if prune
@@ -557,13 +559,7 @@ module KubernetesDeploy
     end
 
     def namespace_definition
-      @namespace_definition ||= begin
-        definition, _err, st = kubectl.run("get", "namespace", @namespace, use_namespace: false,
-          log_failure: true, raise_if_not_found: true, attempts: 3, output: 'json')
-        st.success? ? JSON.parse(definition, symbolize_names: true) : nil
-      end
-    rescue Kubectl::ResourceNotFoundError
-      nil
+      @task_config.namespace_definition
     end
 
     # make sure to never prune the ejson-keys secret

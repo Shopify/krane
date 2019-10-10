@@ -411,7 +411,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_disappeared_is_false_if_resource_has_been_deployed_and_we_get_a_server_error
     dummy = DummyResource.new
-    cache = KubernetesDeploy::ResourceCache.new(task_config: task_config(namespace: 'test', context: 'minikube'))
+    cache = KubernetesDeploy::ResourceCache.new(task_config(namespace: 'test', context: 'minikube'))
     KubernetesDeploy::Kubectl.any_instance.expects(:run).returns(["", "NotFound", stub(success?: false)]).twice
 
     dummy.sync(cache)

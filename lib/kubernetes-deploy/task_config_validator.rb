@@ -70,10 +70,12 @@ module KubernetesDeploy
         return @errors << "Namespace can not be blank"
       end
 
-      _, err, st = @kubectl.run("get", "namespace", "-o", "name", namespace,
-        use_namespace: false, log_failure: false)
+      definition, err, st = @kubectl.run("get", "namespace", namespace,
+        use_namespace: false, log_failure: false, attempts: 3, output: 'json')
 
-      unless st.success?
+      if st.success?
+        @task_config.namespace_definition = JSON.parse(definition, symbolize_names: true)
+      else
         @errors << if err.match("Error from server [(]NotFound[)]: namespace")
           "Could not find Namespace: #{namespace} in Context: #{context}"
         else
