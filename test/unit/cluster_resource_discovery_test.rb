@@ -21,7 +21,7 @@ class ClusterResourceDiscoveryTest < KubernetesDeploy::TestCase
 
   def mocked_cluster_resource_discovery(response, success: true)
     KubernetesDeploy::Kubectl.any_instance.stubs(:run).returns([response, "", stub(success?: success)])
-    KubernetesDeploy::ClusterResourceDiscovery.new(namespace: 'test', context: 'test', logger: nil, namespace_tags: [])
+    KubernetesDeploy::ClusterResourceDiscovery.new(task_config: task_config, namespace_tags: [])
   end
 
   # rubocop:disable Metrics/LineLength

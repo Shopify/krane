@@ -16,19 +16,16 @@ module KubernetesDeploy
     EJSON_SECRET_KEY = "kubernetes_secrets"
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
+    delegate :namespace, :context, :logger, to: :@task_config
 
-    def initialize(namespace:, context:, ejson_keys_secret:, ejson_file:, logger:, statsd_tags:, selector: nil)
-      @namespace = namespace
-      @context = context
+    def initialize(task_config:, ejson_keys_secret:, ejson_file:, statsd_tags:, selector: nil)
       @ejson_keys_secret = ejson_keys_secret
       @ejson_file = ejson_file
-      @logger = logger
       @statsd_tags = statsd_tags
       @selector = selector
+      @task_config = task_config
       @kubectl = Kubectl.new(
-        namespace: @namespace,
-        context: @context,
-        logger: @logger,
+        task_config: @task_config,
         log_failure_by_default: false,
         output_is_sensitive_default: true # output may contain ejson secrets
       )
@@ -48,7 +45,7 @@ module KubernetesDeploy
       with_decrypted_ejson do |decrypted|
         secrets = decrypted[EJSON_SECRET_KEY]
         unless secrets.present?
-          @logger.warn("#{EJSON_SECRETS_FILE} does not have key #{EJSON_SECRET_KEY}."\
+          logger.warn("#{EJSON_SECRETS_FILE} does not have key #{EJSON_SECRET_KEY}."\
             "No secrets will be created.")
           return []
         end
@@ -108,14 +105,14 @@ module KubernetesDeploy
         'metadata' => {
           "name" => secret_name,
           "labels" => labels,
-          "namespace" => @namespace,
+          "namespace" => namespace,
           "annotations" => { EJSON_SECRET_ANNOTATION => "true" },
         },
         "data" => encoded_data,
       }
 
       KubernetesDeploy::Secret.build(
-        namespace: @namespace, context: @context, logger: @logger, definition: secret, statsd_tags: @statsd_tags,
+        namespace: namespace, context: context, logger: logger, definition: secret, statsd_tags: @statsd_tags,
       )
     end
 

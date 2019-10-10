@@ -4,14 +4,14 @@ require 'concurrent/hash'
 
 module KubernetesDeploy
   class ResourceCache
-    def initialize(namespace, context, logger)
-      @namespace = namespace
-      @context = context
-      @logger = logger
+    delegate :namespace, :context, :logger, to: :@task_config
+
+    def initialize(task_config)
+      @task_config = task_config
 
       @kind_fetcher_locks = Concurrent::Hash.new { |hash, key| hash[key] = Mutex.new }
       @data = Concurrent::Hash.new
-      @kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
+      @kubectl = Kubectl.new(task_config: @task_config, log_failure_by_default: false)
     end
 
     def get_instance(kind, resource_name, raise_if_not_found: false)
@@ -39,7 +39,7 @@ module KubernetesDeploy
     private
 
     def statsd_tags
-      { namespace: @namespace, context: @context }
+      { namespace: namespace, context: context }
     end
 
     def use_or_populate_cache(kind)

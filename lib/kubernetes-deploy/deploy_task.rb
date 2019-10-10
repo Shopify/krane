@@ -234,9 +234,7 @@ module KubernetesDeploy
 
     def cluster_resource_discoverer
       @cluster_resource_discoverer ||= ClusterResourceDiscovery.new(
-        namespace: @namespace,
-        context: @context,
-        logger: @logger,
+        task_config: @task_config,
         namespace_tags: @namespace_tags
       )
     end
@@ -244,11 +242,9 @@ module KubernetesDeploy
     def ejson_provisioners
       @ejson_provisoners ||= @template_sets.ejson_secrets_files.map do |ejson_secret_file|
         EjsonSecretProvisioner.new(
-          namespace: @namespace,
-          context: @context,
+          task_config: @task_config,
           ejson_keys_secret: ejson_keys_secret,
           ejson_file: ejson_secret_file,
-          logger: @logger,
           statsd_tags: @namespace_tags,
           selector: @selector,
         )
@@ -325,7 +321,7 @@ module KubernetesDeploy
     end
 
     def check_initial_status(resources)
-      cache = ResourceCache.new(@namespace, @context, @logger)
+      cache = ResourceCache.new(@task_config)
       KubernetesDeploy::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
       resources.each { |r| @logger.info(r.pretty_status) }
     end
@@ -445,8 +441,8 @@ module KubernetesDeploy
       apply_all(applyables, prune)
 
       if verify
-        watcher = ResourceWatcher.new(resources: resources, logger: @logger, deploy_started_at: deploy_started_at,
-          timeout: @max_watch_seconds, namespace: @namespace, context: @context, sha: @current_sha)
+        watcher = ResourceWatcher.new(resources: resources, deploy_started_at: deploy_started_at,
+          timeout: @max_watch_seconds, task_config: @task_config, sha: @current_sha)
         watcher.run(record_summary: record_summary)
       end
     end
@@ -586,7 +582,7 @@ module KubernetesDeploy
     end
 
     def kubectl
-      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
     end
 
     def ejson_keys_secret

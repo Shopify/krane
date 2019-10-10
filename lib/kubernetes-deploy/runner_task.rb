@@ -113,15 +113,15 @@ module KubernetesDeploy
     end
 
     def watch_pod(pod)
-      rw = ResourceWatcher.new(resources: [pod], logger: @logger, timeout: @max_watch_seconds,
-        operation_name: "run", namespace: @namespace, context: @context)
+      rw = ResourceWatcher.new(resources: [pod], timeout: @max_watch_seconds,
+        operation_name: "run", task_config: @task_config)
       rw.run(delay_sync: 1, reminder_interval: 30.seconds)
       raise DeploymentTimeoutError if pod.deploy_timed_out?
       raise FatalDeploymentError if pod.deploy_failed?
     end
 
     def record_status_once(pod)
-      cache = ResourceCache.new(@namespace, @context, @logger)
+      cache = ResourceCache.new(@task_config)
       pod.sync(cache)
       warning = <<~STRING
         #{ColorizedString.new('Result verification is disabled for this task.').yellow}
@@ -194,7 +194,7 @@ module KubernetesDeploy
     end
 
     def kubectl
-      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
     end
 
     def kubeclient

@@ -197,8 +197,8 @@ module KubernetesDeploy
     end
 
     def build_runless_kubectl
-      obj = KubernetesDeploy::Kubectl.new(namespace: 'test', context: KubeclientHelper::TEST_CONTEXT,
-        logger: logger, log_failure_by_default: false)
+      obj = KubernetesDeploy::Kubectl.new(task_config: task_config(namespace: 'test'),
+        log_failure_by_default: false)
       def obj.run(*)
         ["", "", SystemExit.new(0)]
       end

@@ -99,8 +99,8 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_allows_success
     resource = build_mock_resource(hits_to_complete: 1)
-    watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource], logger: logger,
-      timeout: 2, namespace: 'test', context: KubeclientHelper::TEST_CONTEXT)
+    watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource],
+      timeout: 2, task_config: task_config(namespace: 'test'))
 
     watcher.run(delay_sync: 0.1)
     assert_logs_match(/Successfully deployed in \d.\ds: web-pod/)
@@ -108,8 +108,8 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_raises_after_timeout_seconds
     resource = build_mock_resource(hits_to_complete: 10**100)
-    watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource], logger: logger,
-      timeout: 0.02, namespace: 'test', context: KubeclientHelper::TEST_CONTEXT)
+    watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource],
+      timeout: 0.02, task_config: task_config(namespace: 'test'))
 
     assert_raises(KubernetesDeploy::DeploymentTimeoutError) { watcher.run(delay_sync: 0.01) }
   end
@@ -119,9 +119,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
   def build_watcher(resources)
     KubernetesDeploy::ResourceWatcher.new(
       resources: resources,
-      logger: logger,
-      namespace: 'test',
-      context: KubeclientHelper::TEST_CONTEXT
+      task_config: task_config(namespace: 'test')
     )
   end
 

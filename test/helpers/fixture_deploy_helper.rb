@@ -141,7 +141,7 @@ module FixtureDeployHelper
   end
 
   def build_kubectl(log_failure_by_default: true, timeout: '5s')
-    KubernetesDeploy::Kubectl.new(namespace: @namespace, context: KubeclientHelper::TEST_CONTEXT, logger: logger,
+    KubernetesDeploy::Kubectl.new(task_config: task_config,
       log_failure_by_default: log_failure_by_default, default_timeout: timeout)
   end
 end

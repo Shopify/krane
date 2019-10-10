@@ -2,16 +2,16 @@
 
 module KubernetesDeploy
   class ClusterResourceDiscovery
-    def initialize(namespace:, context:, logger:, namespace_tags:)
-      @namespace = namespace
-      @context = context
-      @logger = logger
+    delegate :namespace, :context, :logger, to: :@task_config
+
+    def initialize(task_config:, namespace_tags: [])
+      @task_config = task_config
       @namespace_tags = namespace_tags
     end
 
     def crds
       @crds ||= fetch_crds.map do |cr_def|
-        CustomResourceDefinition.new(namespace: @namespace, context: @context, logger: @logger,
+        CustomResourceDefinition.new(namespace: namespace, context: context, logger: logger,
           definition: cr_def, statsd_tags: @namespace_tags)
       end
     end
@@ -51,7 +51,7 @@ module KubernetesDeploy
     end
 
     def kubectl
-      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
     end
   end
 end

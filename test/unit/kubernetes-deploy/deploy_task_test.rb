@@ -8,30 +8,6 @@ class DeployTaskTest < KubernetesDeploy::TestCase
     refute_nil(::KubernetesDeploy::VERSION)
   end
 
-  def test_initializer_without_namespace
-    assert_raises_message(ArgumentError, "namespace is required") do
-      KubernetesDeploy::DeployTask.new(
-        namespace: "",
-        context: KubeclientHelper::TEST_CONTEXT,
-        logger: logger,
-        current_sha: "",
-        template_paths: ["unknown"],
-      ).run
-    end
-  end
-
-  def test_initializer_without_context
-    assert_raises_message(ArgumentError, "context is required") do
-      KubernetesDeploy::DeployTask.new(
-        namespace: "something",
-        context: "",
-        logger: logger,
-        current_sha: "",
-        template_paths: ["unknown"],
-      ).run
-    end
-  end
-
   def test_initializer_without_valid_file
     KubernetesDeploy::Kubectl.any_instance.expects(:run).at_least_once.returns(["", "", SystemExit.new(0)])
     KubernetesDeploy::Kubectl.any_instance.expects(:server_version).at_least_once.returns(

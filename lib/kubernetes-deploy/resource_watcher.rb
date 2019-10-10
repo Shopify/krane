@@ -6,18 +6,17 @@ require 'kubernetes-deploy/resource_cache'
 module KubernetesDeploy
   class ResourceWatcher
     extend KubernetesDeploy::StatsD::MeasureMethods
+    delegate :namespace, :context, :logger, to: :@task_config
 
-    def initialize(resources:, logger:, context:, namespace:,
-      deploy_started_at: Time.now.utc, operation_name: "deploy", timeout: nil, sha: nil)
+    def initialize(resources:, task_config:, deploy_started_at: Time.now.utc,
+      operation_name: "deploy", timeout: nil, sha: nil)
       unless resources.is_a?(Enumerable)
         raise ArgumentError, <<~MSG
           ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
         MSG
       end
       @resources = resources
-      @logger = logger
-      @namespace = namespace
-      @context = context
+      @task_config = task_config
       @deploy_started_at = deploy_started_at
       @operation_name = operation_name
       @timeout = timeout
@@ -53,7 +52,7 @@ module KubernetesDeploy
     private
 
     def sync_resources(resources)
-      cache = ResourceCache.new(@namespace, @context, @logger)
+      cache = ResourceCache.new(@task_config)
       KubernetesDeploy::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
       resources.each(&:after_sync)
     end
@@ -61,8 +60,8 @@ module KubernetesDeploy
 
     def statsd_tags
       {
-        namespace: @namespace,
-        context: @context,
+        namespace: namespace,
+        context: context,
         sha: @sha,
       }
     end
@@ -83,18 +82,18 @@ module KubernetesDeploy
       watch_time = (Time.now.utc - @deploy_started_at).round(1)
       new_failures.each do |resource|
         resource.report_status_to_statsd(watch_time)
-        @logger.error("#{resource.id} failed to #{@operation_name} after #{watch_time}s")
+        logger.error("#{resource.id} failed to #{@operation_name} after #{watch_time}s")
       end
 
       new_timeouts.each do |resource|
         resource.report_status_to_statsd(watch_time)
-        @logger.error("#{resource.id} rollout timed out after #{watch_time}s")
+        logger.error("#{resource.id} rollout timed out after #{watch_time}s")
       end
 
       if new_successes.present?
         new_successes.each { |r| r.report_status_to_statsd(watch_time) }
         success_string = ColorizedString.new("Successfully #{past_tense_operation} in #{watch_time}s:").green
-        @logger.info("#{success_string} #{new_successes.map(&:id).join(', ')}")
+        logger.info("#{success_string} #{new_successes.map(&:id).join(', ')}")
       end
     end
 
@@ -102,7 +101,7 @@ module KubernetesDeploy
       return unless resources.present?
       resource_list = resources.map(&:id).join(', ')
       msg = reminder ? "Still waiting for: #{resource_list}" : "Continuing to wait for: #{resource_list}"
-      @logger.info(msg)
+      logger.info(msg)
     end
 
     def report_and_give_up(remaining_resources)
@@ -130,34 +129,34 @@ module KubernetesDeploy
         timeouts, failures = failed_resources.partition(&:deploy_timed_out?)
         timeouts += global_timeouts
         if timeouts.present?
-          @logger.summary.add_action(
+          logger.summary.add_action(
             "timed out waiting for #{timeouts.length} #{'resource'.pluralize(timeouts.length)} to #{@operation_name}"
           )
         end
 
         if failures.present?
-          @logger.summary.add_action(
+          logger.summary.add_action(
             "failed to #{@operation_name} #{failures.length} #{'resource'.pluralize(failures.length)}"
           )
         end
 
-        kubectl = Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: false)
+        kubectl = Kubectl.new(task_config: @task_config, log_failure_by_default: false)
         KubernetesDeploy::Concurrency.split_across_threads(failed_resources + global_timeouts) do |r|
           r.sync_debug_info(kubectl)
         end
 
-        failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
-        global_timeouts.each { |r| @logger.summary.add_paragraph(r.debug_message(:gave_up, timeout: @timeout)) }
+        failed_resources.each { |r| logger.summary.add_paragraph(r.debug_message) }
+        global_timeouts.each { |r| logger.summary.add_paragraph(r.debug_message(:gave_up, timeout: @timeout)) }
       end
     end
 
     def record_success_statuses(successful_resources)
       success_count = successful_resources.length
       if success_count > 0
-        @logger.summary.add_action("successfully #{past_tense_operation} #{success_count} "\
+        logger.summary.add_action("successfully #{past_tense_operation} #{success_count} "\
           "#{'resource'.pluralize(success_count)}")
         final_statuses = successful_resources.map(&:pretty_status).join("\n")
-        @logger.summary.add_paragraph("#{ColorizedString.new('Successful resources').green}\n#{final_statuses}")
+        logger.summary.add_paragraph("#{ColorizedString.new('Successful resources').green}\n#{final_statuses}")
       end
     end
 

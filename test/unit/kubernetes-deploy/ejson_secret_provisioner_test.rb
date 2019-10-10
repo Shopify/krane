@@ -182,11 +182,9 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def build_provisioner(dir = nil, selector: nil, ejson_keys_secret: dummy_ejson_secret)
     dir ||= fixture_path('ejson-cloud')
     KubernetesDeploy::EjsonSecretProvisioner.new(
-      namespace: 'test',
-      context: KubeclientHelper::TEST_CONTEXT,
+      task_config: task_config(namespace: 'test'),
       ejson_keys_secret: ejson_keys_secret,
       ejson_file: File.expand_path(File.join(dir, KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE)),
-      logger: logger,
       statsd_tags: [],
       selector: selector,
     )

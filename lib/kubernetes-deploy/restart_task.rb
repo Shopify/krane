@@ -186,8 +186,8 @@ module KubernetesDeploy
     end
 
     def verify_restart(resources)
-      ResourceWatcher.new(resources: resources, logger: @logger, operation_name: "restart",
-        timeout: @max_watch_seconds, namespace: @namespace, context: @context).run
+      ResourceWatcher.new(resources: resources, operation_name: "restart",
+        timeout: @max_watch_seconds, task_config: @task_config).run
       failed_resources = resources.reject(&:deploy_succeeded?)
       success = failed_resources.empty?
       if !success && failed_resources.all?(&:deploy_timed_out?)
@@ -210,7 +210,7 @@ module KubernetesDeploy
     end
 
     def kubectl
-      @kubectl ||= Kubectl.new(namespace: @namespace, context: @context, logger: @logger, log_failure_by_default: true)
+      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
     end
 
     def v1beta1_kubeclient
