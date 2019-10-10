@@ -12,7 +12,7 @@ module KubernetesDeploy
   end
 
   class EjsonSecretProvisioner
-    EJSON_SECRET_ANNOTATION = "kubernetes-deploy.shopify.io/ejson-secret"
+    EJSON_SECRET_ANNOTATION = "krane.shopify.io/ejson-secret"
     EJSON_SECRET_KEY = "kubernetes_secrets"
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
