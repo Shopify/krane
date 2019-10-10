@@ -69,6 +69,7 @@ class GlobalDeployTest < KubernetesDeploy::TestCase
       }.merge(new_args),
       run_args: {
         verify_result: true,
+        prune: false,
       }.merge(run_args),
     }
   end

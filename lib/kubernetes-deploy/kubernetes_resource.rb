@@ -317,7 +317,7 @@ module KubernetesDeploy
     def fetch_events(kubectl)
       return {} unless exists?
       out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}",
-        log_failure: false)
+        log_failure: false, use_namespace: !global?)
       return {} unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
@@ -500,7 +500,7 @@ module KubernetesDeploy
     def validate_with_dry_run_option(kubectl, dry_run_option)
       command = ["apply", "-f", file_path, dry_run_option, "--output=name"]
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
-                               retry_whitelist: [:client_timeout], attempts: 3)
+                               retry_whitelist: [:client_timeout], attempts: 3, use_namespace: !global?)
     end
 
     def labels

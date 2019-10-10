@@ -4,10 +4,14 @@ require 'kubernetes-deploy/deploy_task'
 module Krane
   class GlobalDeployTask < KubernetesDeploy::DeployTask
     def initialize(**args)
-      super(args.merge(allow_globals: true, namespace: 'default', protected_namespaces: ''))
+      super(args.merge(allow_globals: true))
     end
 
     private
+
+    def namespace_definition
+      nil
+    end
 
     def validate_globals(resources)
       return unless (namespaced = resources.reject(&:global?).presence)

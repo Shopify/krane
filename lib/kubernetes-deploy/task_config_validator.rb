@@ -11,12 +11,12 @@ module KubernetesDeploy
 
     delegate :context, :namespace, :logger, to: :@task_config
 
-    def initialize(task_config, kubectl, kubeclient_builder, only: nil)
+    def initialize(task_config, kubectl, kubeclient_builder, only: nil, skip: [])
       @task_config = task_config
       @kubectl = kubectl
       @kubeclient_builder = kubeclient_builder
       @errors = nil
-      @validations = only || DEFAULT_VALIDATIONS
+      @validations = (only || DEFAULT_VALIDATIONS) - skip
     end
 
     def valid?

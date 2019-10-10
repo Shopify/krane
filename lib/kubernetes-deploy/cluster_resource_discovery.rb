@@ -23,7 +23,8 @@ module KubernetesDeploy
     private
 
     def fetch_globals
-      raw, _, st = kubectl.run("api-resources", "--namespaced=false", output: "wide", attempts: 5)
+      raw, _, st = kubectl.run("api-resources", "--namespaced=false", output: "wide",
+        attempts: 5, use_namespace: false)
       if st.success?
         rows = raw.split("\n")
         header = rows[0]
@@ -42,7 +43,8 @@ module KubernetesDeploy
     end
 
     def fetch_crds
-      raw_json, _, st = kubectl.run("get", "CustomResourceDefinition", output: "json", attempts: 5)
+      raw_json, _, st = kubectl.run("get", "CustomResourceDefinition", output: "json",
+        attempts: 5, use_namespace: false)
       if st.success?
         JSON.parse(raw_json)["items"]
       else

@@ -34,6 +34,7 @@ module Krane
 
           deploy.run!(
             verify_result: options["verify-result"],
+            prune: false,
           )
         end
       end

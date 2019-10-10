@@ -89,7 +89,7 @@ class KraneTest < KubernetesDeploy::IntegrationTest
 
   def test_global_deploy_black_box_success
     setup_template_dir("globals") do |target_dir|
-      flags = "-f #{target_dir}"
+      flags = "-f #{target_dir} --selector app=krane"
       out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
       assert_empty(out)
       assert_match("Success", err)
@@ -101,7 +101,7 @@ class KraneTest < KubernetesDeploy::IntegrationTest
 
   def test_global_deploy_black_box_failure
     setup_template_dir("resource-quota") do |target_dir|
-      flags = "-f #{target_dir}"
+      flags = "-f #{target_dir} --selector app=krane"
       out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
       assert_empty(out)
       assert_match("FAILURE", err)

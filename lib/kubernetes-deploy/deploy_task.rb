@@ -8,6 +8,7 @@ require 'kubernetes-deploy/common'
 require 'kubernetes-deploy/concurrency'
 require 'kubernetes-deploy/resource_cache'
 require 'kubernetes-deploy/kubernetes_resource'
+require 'kubernetes-deploy/deploy_task_config'
 %w(
   custom_resource
   cloudsql
@@ -122,7 +123,7 @@ module KubernetesDeploy
     # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults
     #   to KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
-    def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
+    def initialize(namespace: nil, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil, protected_namespaces: nil,
       render_erb: true, allow_globals: false)
       template_dir = File.expand_path(template_dir) if template_dir
@@ -130,7 +131,7 @@ module KubernetesDeploy
 
       @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths, logger: @logger)
-      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
+      @task_config = KubernetesDeploy::DeployTaskConfig.new(context, namespace, @logger, allow_globals)
       @bindings = bindings
       @namespace = namespace
       @namespace_tags = []
@@ -474,7 +475,8 @@ module KubernetesDeploy
         end
 
         output_is_sensitive = resources.any?(&:sensitive_template_content?)
-        out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive)
+        out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
+        use_namespace: !@task_config.allow_globals)
 
         if st.success?
           log_pruning(out) if prune
