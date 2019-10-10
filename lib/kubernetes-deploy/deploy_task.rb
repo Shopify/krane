@@ -130,7 +130,7 @@ module KubernetesDeploy
 
       @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths, logger: @logger)
-      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger, allow_globals && namespace.empty?)
+      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger, allow_globals && namespace.blank?)
       @bindings = bindings
       @namespace = namespace
       @namespace_tags = []
@@ -167,11 +167,11 @@ module KubernetesDeploy
       @logger.reset
 
       @logger.phase_heading("Initializing deploy")
-      validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune,
+      validator = validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune,
         task_config_validator: task_config_validator)
 
       resources = discover_resources
-      validate_resources(resources)
+      validate_resources(resources, validator)
 
       @logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)
@@ -283,7 +283,9 @@ module KubernetesDeploy
     end
     measure_method(:predeploy_priority_resources, 'priority_resources.duration')
 
-    def validate_resources(resources)
+    def validate_resources(resources, validator)
+      validator.validate_resources(resources, @allow_globals)
+
       KubernetesDeploy::Concurrency.split_across_threads(resources) do |r|
         r.validate_definition(kubectl, selector: @selector)
       end
@@ -301,27 +303,8 @@ module KubernetesDeploy
         end
         raise FatalDeploymentError, "Template validation failed"
       end
-      validate_globals(resources)
     end
     measure_method(:validate_resources)
-
-    def validate_globals(resources)
-      return unless (global = resources.select(&:global?).presence)
-      global_names = global.map do |resource|
-        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
-      end
-      global_names = FormattedLogger.indent_four(global_names.join("\n"))
-
-      if @allow_globals
-        msg = "The ability for this task to deploy global resources will be removed in the next version,"\
-              " which will affect the following resources:"
-        msg += "\n#{global_names}"
-        @logger.summary.add_paragraph(ColorizedString.new(msg).yellow)
-      else
-        @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
-        raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources."
-      end
-    end
 
     def check_initial_status(resources)
       cache = ResourceCache.new(@task_config)
@@ -394,6 +377,7 @@ module KubernetesDeploy
       @logger.info("Using resource selector #{@selector}") if @selector
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
+      task_config_validator
     end
     measure_method(:validate_configuration)
 

@@ -9,6 +9,24 @@ module KubernetesDeploy
       @validations += %i(validate_protected_namespaces)
     end
 
+    def validate_resources(resources, allow_globals)
+      return unless (global = resources.select(&:global?).presence)
+      global_names = global.map do |resource|
+        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
+      end
+      global_names = FormattedLogger.indent_four(global_names.join("\n"))
+
+      if allow_globals
+        msg = "The ability for this task to deploy global resources will be removed in the next version,"\
+              " which will affect the following resources:"
+        msg += "\n#{global_names}"
+        logger.summary.add_paragraph(ColorizedString.new(msg).yellow)
+      else
+        logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
+        raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources."
+      end
+    end
+
     private
 
     def validate_protected_namespaces

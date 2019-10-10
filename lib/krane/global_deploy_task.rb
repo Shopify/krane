@@ -9,20 +9,7 @@ module Krane
     end
 
     def run!(**args)
-      super(args.merge(task_config_validator: GlobalDeployTaskConfigValidator))
-    end
-
-    private
-
-    def validate_globals(resources)
-      return unless (namespaced = resources.reject(&:global?).presence)
-      namespaced_names = namespaced.map do |resource|
-        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
-      end
-      namespaced_names = KubernetesDeploy::FormattedLogger.indent_four(namespaced_names.join("\n"))
-
-      @logger.summary.add_paragraph(ColorizedString.new("Namespaced resources:\n#{namespaced_names}").yellow)
-      raise KubernetesDeploy::FatalDeploymentError, "Deploying namespaced resource is not allowed from this command."
+      super(args.merge(task_config_validator: KubernetesDeploy::GlobalDeployTaskConfigValidator))
     end
   end
 end
