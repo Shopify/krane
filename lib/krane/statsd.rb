@@ -23,7 +23,7 @@ module Krane
       end
     end
 
-    # It is not sufficient to set the prefix field on the KubernetesDeploy::StatsD singleton itself, since its value
+    # It is not sufficient to set the prefix field on the Krane::StatsD singleton itself, since its value
     # is overridden in the underlying calls to the ::StatsD library, hence the need to pass it in as a custom prefix
     # via the metric_options hash. This is done since KubernetesDeploy may be included as a library and should not
     # change the global StatsD configuration of the importing application.
@@ -66,7 +66,7 @@ module Krane
 
             StatsD.distribution(
               metric,
-              KubernetesDeploy::StatsD.duration(start_time),
+              Krane::StatsD.duration(start_time),
               tags: dynamic_tags
             )
           end

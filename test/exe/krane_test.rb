@@ -2,7 +2,7 @@
 require 'test_helper'
 require 'krane/cli/krane'
 
-class KraneTest < KubernetesDeploy::TestCase
+class KraneTest < Krane::TestCase
   def test_help_success_as_black_box
     _, err, status = krane_black_box("help")
     assert_predicate(status, :success?)

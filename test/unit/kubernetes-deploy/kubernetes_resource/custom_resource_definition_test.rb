@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
+class CustomResourceDefinitionTest < Krane::TestCase
   def test_rollout_conditions_nil_when_none_present
     crd = build_crd(crd_spec)
     refute(crd.rollout_conditions)
@@ -54,7 +54,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
 
     assert(crd.validation_failed?, "Missing path/value keys should fail validation")
     assert_equal(crd.validation_error_msg,
-      "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "Annotation #{Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
       "on #{crd.name} is invalid: Missing required key(s) for success_condition: [:value], " \
       "Missing required key(s) for failure_condition: [:path]")
   end
@@ -67,7 +67,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
 
     assert(crd.validation_failed?, "success_conditions requires at least one entry")
     assert_equal(crd.validation_error_msg,
-      "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "Annotation #{Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
       "on #{crd.name} is invalid: success_conditions must contain at least one entry")
   end
 
@@ -76,7 +76,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
     crd.validate_definition(kubectl)
     assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
     assert(crd.validation_error_msg.match(
-      "Annotation #{KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "Annotation #{Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
       "on #{crd.name} is invalid: Rollout conditions are not valid JSON:"
     ))
   end
@@ -92,7 +92,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
 
   def test_cr_instance_fails_validation_when_rollout_conditions_for_crd_invalid
     crd = build_crd(merge_rollout_annotation('bad string'))
-    cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: @statsd_tags, crd: crd,
       definition: {
         "kind" => "UnitTest",
@@ -125,7 +125,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
     }.to_json
 
     crd = build_crd(merge_rollout_annotation(rollout_conditions))
-    cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
@@ -141,20 +141,20 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
         "name" => "unittests.stable.example.io",
       },
     ))
-    cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
       definition: { "kind" => "UnitTest", "metadata" => { "name" => "test" } })
-    assert_equal(cr.timeout, KubernetesDeploy::CustomResource.timeout)
+    assert_equal(cr.timeout, Krane::CustomResource.timeout)
 
     crd = build_crd(crd_spec.merge(
       "metadata" => {
         "name" => "unittests.stable.example.io",
         "annotations" => {
-          KubernetesDeploy::CustomResourceDefinition::TIMEOUT_FOR_INSTANCE_ANNOTATION => "60S",
+          Krane::CustomResourceDefinition::TIMEOUT_FOR_INSTANCE_ANNOTATION => "60S",
         },
       }
     ))
-    cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
       definition: { "kind" => "UnitTest", "metadata" => { "name" => "test" } })
     assert_equal(cr.timeout, 60)
@@ -165,11 +165,11 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       "metadata" => {
         "name" => "unittests.stable.example.io",
         "annotations" => {
-          KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => "true",
+          Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => "true",
         },
       },
     ))
-    cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
@@ -180,11 +180,11 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
 
     cr.expects(:current_generation).returns(1)
     cr.expects(:observed_generation).returns(1)
-    assert_equal(cr.timeout_message, KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE)
+    assert_equal(cr.timeout_message, Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE)
 
     cr.expects(:current_generation).returns(1)
     cr.expects(:observed_generation).returns(2)
-    assert_equal(cr.timeout_message, KubernetesDeploy::CustomResource::TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS)
+    assert_equal(cr.timeout_message, Krane::CustomResource::TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS)
   end
 
   def test_instance_timeout_messages_without_rollout_conditions
@@ -193,7 +193,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
         "name" => "unittests.stable.example.io",
       },
     ))
-    cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
@@ -202,7 +202,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
         },
       })
 
-    assert_equal(cr.timeout_message, KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE)
+    assert_equal(cr.timeout_message, Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE)
   end
 
   private
@@ -220,14 +220,14 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
       "metadata" => {
         "name" => "unittests.stable.example.io",
         "annotations" => {
-          KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => rollout_conditions,
+          Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => rollout_conditions,
         },
       },
     )
   end
 
   def build_crd(spec)
-    KubernetesDeploy::CustomResourceDefinition.new(namespace: 'test', context: 'nope',
+    Krane::CustomResourceDefinition.new(namespace: 'test', context: 'nope',
       definition: spec, logger: @logger)
   end
 end

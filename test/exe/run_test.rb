@@ -2,7 +2,7 @@
 require 'test_helper'
 require 'krane/cli/krane'
 
-class RunTest < KubernetesDeploy::TestCase
+class RunTest < Krane::TestCase
   TASK_TEMPLATE = "task-runner-template"
 
   def test_run_with_default_options
@@ -71,7 +71,7 @@ class RunTest < KubernetesDeploy::TestCase
     options = default_options(new_args, run_args)
     response = mock('RestartTask')
     response.expects(:run!).with(options[:run_args]).returns(true)
-    KubernetesDeploy::RunnerTask.expects(:new).with(options[:new_args]).returns(response)
+    Krane::RunnerTask.expects(:new).with(options[:new_args]).returns(response)
   end
 
   def krane_run!(flags: '')

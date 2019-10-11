@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class RunnerTaskTest < KubernetesDeploy::IntegrationTest
+class RunnerTaskTest < Krane::IntegrationTest
   include TaskRunnerTestHelper
 
   def test_run_without_verify_result_succeeds_as_soon_as_pod_is_successfully_created
@@ -162,7 +162,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_task_template
 
     task_runner = build_task_runner
-    assert_raises(KubernetesDeploy::FatalDeploymentError) do
+    assert_raises(Krane::FatalDeploymentError) do
       task_runner.run!(run_params.merge(args: ["/not/a/command"]))
     end
 
@@ -223,7 +223,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
   def test_run_bang_fails_if_task_template_is_invalid
     task_runner = build_task_runner
-    assert_raises(KubernetesDeploy::TaskConfigurationError) do
+    assert_raises(Krane::TaskConfigurationError) do
       task_runner.run!(task_template: '',
         entrypoint: ['/bin/sh', '-c'],
         args: nil,
@@ -241,7 +241,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       message,
     ], in_order: true)
 
-    assert_raises_message(KubernetesDeploy::RunnerTask::TaskTemplateMissingError, message) do
+    assert_raises_message(Krane::RunnerTask::TaskTemplateMissingError, message) do
       task_runner.run!(run_params)
     end
   end
@@ -256,7 +256,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_task_run_failure(task_runner.run(run_params))
     message = "Pod spec does not contain a template container called 'task-runner'"
 
-    assert_raises_message(KubernetesDeploy::TaskConfigurationError, message) do
+    assert_raises_message(Krane::TaskConfigurationError, message) do
       task_runner.run!(run_params)
     end
 

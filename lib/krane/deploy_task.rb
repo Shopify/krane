@@ -45,7 +45,7 @@ require 'krane/deploy_task_config_validator'
 module Krane
   # Ship resources to a namespace
   class DeployTask
-    extend KubernetesDeploy::StatsD::MeasureMethods
+    extend Krane::StatsD::MeasureMethods
 
     PROTECTED_NAMESPACES = %w(
       default
@@ -112,15 +112,15 @@ module Krane
     # @param namespace [String] Kubernetes namespace
     # @param context [String] Kubernetes context
     # @param current_sha [String] The SHA of the commit
-    # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
+    # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param kubectl_instance [Kubectl] Kubectl instance
-    # @param bindings [Hash] Bindings parsed by KubernetesDeploy::BindingsParser
+    # @param bindings [Hash] Bindings parsed by Krane::BindingsParser
     # @param max_watch_seconds [Integer] Timeout in seconds
-    # @param selector [Hash] Selector(s) parsed by KubernetesDeploy::LabelSelector
+    # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
     # @param template_paths [Array<String>] An array of template paths
     # @param template_dir [String] Path to a directory with templates (deprecated)
     # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults
-    #   to KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES)
+    #   to Krane::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil, protected_namespaces: nil,
@@ -128,9 +128,9 @@ module Krane
       template_dir = File.expand_path(template_dir) if template_dir
       template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
 
-      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
+      @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths, logger: @logger)
-      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
+      @task_config = Krane::TaskConfig.new(context, namespace, @logger)
       @bindings = bindings
       @namespace = namespace
       @namespace_tags = []
@@ -269,7 +269,7 @@ module Krane
         failed_resources = matching_resources.reject(&:deploy_succeeded?)
         fail_count = failed_resources.length
         if fail_count > 0
-          KubernetesDeploy::Concurrency.split_across_threads(failed_resources) do |r|
+          Krane::Concurrency.split_across_threads(failed_resources) do |r|
             r.sync_debug_info(kubectl)
           end
           failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
@@ -281,7 +281,7 @@ module Krane
     measure_method(:predeploy_priority_resources, 'priority_resources.duration')
 
     def validate_resources(resources)
-      KubernetesDeploy::Concurrency.split_across_threads(resources) do |r|
+      Krane::Concurrency.split_across_threads(resources) do |r|
         r.validate_definition(kubectl, selector: @selector)
       end
 
@@ -322,7 +322,7 @@ module Krane
 
     def check_initial_status(resources)
       cache = ResourceCache.new(@task_config)
-      KubernetesDeploy::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
+      Krane::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
       resources.each { |r| @logger.info(r.pretty_status) }
     end
     measure_method(:check_initial_status, "initial_status.duration")
@@ -384,7 +384,7 @@ module Krane
       unless errors.empty?
         @logger.summary.add_action("Configuration invalid")
         @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
-        raise KubernetesDeploy::TaskConfigurationError
+        raise Krane::TaskConfigurationError
       end
 
       confirm_ejson_keys_not_prunable if prune

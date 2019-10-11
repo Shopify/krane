@@ -2,10 +2,10 @@
 
 require 'test_helper'
 
-class StatsDTest < KubernetesDeploy::TestCase
+class StatsDTest < Krane::TestCase
   include StatsDHelper
   class TestMeasureClass
-    extend(KubernetesDeploy::StatsD::MeasureMethods)
+    extend(Krane::StatsD::MeasureMethods)
 
     def thing_to_measure
       123
@@ -26,7 +26,7 @@ class StatsDTest < KubernetesDeploy::TestCase
   end
 
   class TestMeasureNoTags
-    extend(KubernetesDeploy::StatsD::MeasureMethods)
+    extend(Krane::StatsD::MeasureMethods)
     def thing_to_measure; end
     measure_method :thing_to_measure
   end
@@ -39,14 +39,14 @@ class StatsDTest < KubernetesDeploy::TestCase
     original_dev = ENV['STATSD_DEV']
     ENV['STATSD_DEV'] = nil
 
-    KubernetesDeploy::StatsD.build
+    Krane::StatsD.build
 
-    assert_equal(:datadog, KubernetesDeploy::StatsD.backend.implementation)
+    assert_equal(:datadog, Krane::StatsD.backend.implementation)
   ensure
     ENV['STATSD_ADDR'] = original_addr
     ENV['STATSD_IMPLEMENTATION'] = original_impl
     ENV['STATSD_DEV'] = original_dev
-    KubernetesDeploy::StatsD.build
+    Krane::StatsD.build
   end
 
   def test_kubernetes_statsd_does_not_override_global_config
@@ -55,10 +55,10 @@ class StatsDTest < KubernetesDeploy::TestCase
 
     ::StatsD.prefix = "test"
     ::StatsD.default_sample_rate = 2.0
-    KubernetesDeploy::StatsD.build
-    refute_equal(KubernetesDeploy::StatsD.prefix, ::StatsD.prefix)
-    refute_equal(KubernetesDeploy::StatsD.default_sample_rate, ::StatsD.default_sample_rate)
-    refute_equal(KubernetesDeploy::StatsD.backend, ::StatsD.backend)
+    Krane::StatsD.build
+    refute_equal(Krane::StatsD.prefix, ::StatsD.prefix)
+    refute_equal(Krane::StatsD.default_sample_rate, ::StatsD.default_sample_rate)
+    refute_equal(Krane::StatsD.backend, ::StatsD.backend)
   ensure
     ::StatsD.prefix = old_prefix
     ::StatsD.default_sample_rate = old_sample_rate

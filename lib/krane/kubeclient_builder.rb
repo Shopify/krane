@@ -137,8 +137,8 @@ module Krane
         ssl_options: kube_context.ssl_options,
         auth_options: kube_context.auth_options,
         timeouts: {
-          open: KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT,
-          read: KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT,
+          open: Krane::Kubectl::DEFAULT_TIMEOUT,
+          read: Krane::Kubectl::DEFAULT_TIMEOUT,
         }
       )
       client.discover

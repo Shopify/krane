@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class DeployTaskTest < KubernetesDeploy::TestCase
+class DeployTaskTest < Krane::TestCase
   include EnvTestHelper
 
   def test_that_it_has_a_version_number
-    refute_nil(::KubernetesDeploy::VERSION)
+    refute_nil(::Krane::VERSION)
   end
 
   def test_initializer_without_valid_file
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).at_least_once.returns(["", "", SystemExit.new(0)])
-    KubernetesDeploy::Kubectl.any_instance.expects(:server_version).at_least_once.returns(
-      Gem::Version.new(KubernetesDeploy::MIN_KUBE_VERSION)
+    Krane::Kubectl.any_instance.expects(:run).at_least_once.returns(["", "", SystemExit.new(0)])
+    Krane::Kubectl.any_instance.expects(:server_version).at_least_once.returns(
+      Gem::Version.new(Krane::MIN_KUBE_VERSION)
     )
-    KubernetesDeploy::DeployTask.new(
+    Krane::DeployTask.new(
       namespace: "something",
       context: KubeclientHelper::TEST_CONTEXT,
       logger: logger,

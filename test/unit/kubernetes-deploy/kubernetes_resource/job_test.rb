@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class JobTest < KubernetesDeploy::TestCase
+class JobTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   def test_job_fails_with_failed_status_condition
@@ -49,7 +49,7 @@ class JobTest < KubernetesDeploy::TestCase
   end
 
   def build_synced_job(template)
-    job = KubernetesDeploy::Job.new(namespace: 'test', context: 'nope', definition: template,
+    job = Krane::Job.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger)
     job.deploy_started_at = Time.now.utc
     stub_kind_get("Job", items: [template])

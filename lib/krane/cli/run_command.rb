@@ -34,10 +34,10 @@ module Krane
 
       def self.from_options(namespace, context, options)
         require "krane/runner_task"
-        runner = KubernetesDeploy::RunnerTask.new(
+        runner = Krane::RunnerTask.new(
           namespace: namespace,
           context: context,
-          max_watch_seconds: KubernetesDeploy::DurationParser.new(options["global-timeout"]).parse!.to_i,
+          max_watch_seconds: Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
         )
 
         runner.run!(

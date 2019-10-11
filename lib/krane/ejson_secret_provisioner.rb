@@ -111,7 +111,7 @@ module Krane
         "data" => encoded_data,
       }
 
-      KubernetesDeploy::Secret.build(
+      Krane::Secret.build(
         namespace: namespace, context: context, logger: logger, definition: secret, statsd_tags: @statsd_tags,
       )
     end

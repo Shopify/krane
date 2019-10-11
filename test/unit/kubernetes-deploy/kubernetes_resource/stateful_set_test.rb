@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class StatefulSetTest < KubernetesDeploy::TestCase
+class StatefulSetTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   def test_deploy_succeeded_is_true_when_revision_and_replica_counts_match
@@ -34,7 +34,7 @@ class StatefulSetTest < KubernetesDeploy::TestCase
   end
 
   def build_synced_ss(template:)
-    ss = KubernetesDeploy::StatefulSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
+    ss = Krane::StatefulSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
     stub_kind_get("StatefulSet", items: [template])
     stub_kind_get("Pod", items: [])
     ss.sync(build_resource_cache)

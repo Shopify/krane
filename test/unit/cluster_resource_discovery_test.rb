@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class ClusterResourceDiscoveryTest < KubernetesDeploy::TestCase
+class ClusterResourceDiscoveryTest < Krane::TestCase
   def test_global_resource_kinds_failure
     crd = mocked_cluster_resource_discovery(nil, success: false)
     kinds = crd.global_resource_kinds
@@ -20,8 +20,8 @@ class ClusterResourceDiscoveryTest < KubernetesDeploy::TestCase
   private
 
   def mocked_cluster_resource_discovery(response, success: true)
-    KubernetesDeploy::Kubectl.any_instance.stubs(:run).returns([response, "", stub(success?: success)])
-    KubernetesDeploy::ClusterResourceDiscovery.new(task_config: task_config, namespace_tags: [])
+    Krane::Kubectl.any_instance.stubs(:run).returns([response, "", stub(success?: success)])
+    Krane::ClusterResourceDiscovery.new(task_config: task_config, namespace_tags: [])
   end
 
   # rubocop:disable Metrics/LineLength

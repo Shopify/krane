@@ -2,7 +2,7 @@
 require 'test_helper'
 require 'krane/cli/krane'
 
-class RestartTest < KubernetesDeploy::TestCase
+class RestartTest < Krane::TestCase
   def test_restart_with_default_options
     set_krane_restart_expectations
     krane_restart!
@@ -26,8 +26,8 @@ class RestartTest < KubernetesDeploy::TestCase
     options = default_options
     response = mock('RestartTask')
     response.expects(:run!).returns(true).with(options[:deployments],
-      has_entries(selector: is_a(KubernetesDeploy::LabelSelector), verify_result: true))
-    KubernetesDeploy::RestartTask.expects(:new).with(options[:new_args]).returns(response)
+      has_entries(selector: is_a(Krane::LabelSelector), verify_result: true))
+    Krane::RestartTask.expects(:new).with(options[:new_args]).returns(response)
 
     krane_restart!(flags: '--selector name:web')
   end
@@ -52,7 +52,7 @@ class RestartTest < KubernetesDeploy::TestCase
     options = default_options(new_args, deployments, run_args)
     response = mock('RestartTask')
     response.expects(:run!).with(options[:deployments], options[:run_args]).returns(true)
-    KubernetesDeploy::RestartTask.expects(:new).with(options[:new_args]).returns(response)
+    Krane::RestartTask.expects(:new).with(options[:new_args]).returns(response)
   end
 
   def krane_restart!(flags: '')

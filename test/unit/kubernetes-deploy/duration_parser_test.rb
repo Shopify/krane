@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class DurationParserTest < KubernetesDeploy::TestCase
+class DurationParserTest < Krane::TestCase
   def test_parses_correct_iso_durations_with_prefixes
     assert_equal(300, new_parser("PT300S").parse!)
     assert_equal(300, new_parser("PT5M").parse!)
@@ -26,7 +26,7 @@ class DurationParserTest < KubernetesDeploy::TestCase
   def test_parse_raises_expected_error_for_blank_values
     ["", "   ", nil].each do |blank_value|
       expected_msg = 'Invalid ISO 8601 duration: "" is empty duration'
-      assert_raises_message(KubernetesDeploy::DurationParser::ParsingError, expected_msg) do
+      assert_raises_message(Krane::DurationParser::ParsingError, expected_msg) do
         new_parser(blank_value).parse!
       end
     end
@@ -37,7 +37,7 @@ class DurationParserTest < KubernetesDeploy::TestCase
   end
 
   def test_parse_raises_expected_error_when_value_is_invalid
-    assert_raises_message(KubernetesDeploy::DurationParser::ParsingError, 'Invalid ISO 8601 duration: "FOO"') do
+    assert_raises_message(Krane::DurationParser::ParsingError, 'Invalid ISO 8601 duration: "FOO"') do
       new_parser("foo").parse!
     end
   end
@@ -45,6 +45,6 @@ class DurationParserTest < KubernetesDeploy::TestCase
   private
 
   def new_parser(value)
-    KubernetesDeploy::DurationParser.new(value)
+    Krane::DurationParser.new(value)
   end
 end

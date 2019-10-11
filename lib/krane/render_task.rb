@@ -10,13 +10,13 @@ module Krane
   class RenderTask
     # Initializes the render task
     #
-    # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
+    # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param current_sha [String] The SHA of the commit
     # @param template_dir [String] Path to a directory with templates to render (deprecated)
     # @param template_paths [Array<String>] An array of template paths to render
-    # @param bindings [Hash] Bindings parsed by KubernetesDeploy::BindingsParser
+    # @param bindings [Hash] Bindings parsed by Krane::BindingsParser
     def initialize(logger: nil, current_sha:, template_dir: nil, template_paths: [], bindings:)
-      @logger = logger || KubernetesDeploy::FormattedLogger.build
+      @logger = logger || Krane::FormattedLogger.build
       @template_dir = template_dir
       @template_paths = template_paths.map { |path| File.expand_path(path) }
       @bindings = bindings
@@ -29,7 +29,7 @@ module Krane
     def run(*args)
       run!(*args)
       true
-    rescue KubernetesDeploy::FatalDeploymentError
+    rescue Krane::FatalDeploymentError
       false
     end
 
@@ -50,7 +50,7 @@ module Krane
 
       @logger.summary.add_action("Successfully rendered #{count} template(s)")
       @logger.print_summary(:success)
-    rescue KubernetesDeploy::FatalDeploymentError
+    rescue Krane::FatalDeploymentError
       @logger.print_summary(:failure)
       raise
     end
@@ -81,7 +81,7 @@ module Krane
       end
 
       count
-    rescue KubernetesDeploy::InvalidTemplateError => exception
+    rescue Krane::InvalidTemplateError => exception
       log_invalid_template(exception)
       raise
     end
@@ -131,7 +131,7 @@ module Krane
       unless errors.empty?
         @logger.summary.add_action("Configuration invalid")
         @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
-        raise KubernetesDeploy::TaskConfigurationError, "Configuration invalid: #{errors.join(', ')}"
+        raise Krane::TaskConfigurationError, "Configuration invalid: #{errors.join(', ')}"
       end
     end
 

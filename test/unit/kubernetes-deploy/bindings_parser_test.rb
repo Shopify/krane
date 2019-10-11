@@ -75,7 +75,7 @@ class BindingsParserTest < ::Minitest::Test
 
   def test_parse_nested_values
     expected = { "foo" => "a,b,c", "bar" => "d", "bla" => "e,f", "nes" => { "cats" => "awesome", "ted" => "bar" } }
-    bindings = KubernetesDeploy::BindingsParser.new
+    bindings = Krane::BindingsParser.new
     ["@test/fixtures/for_unit_tests/bindings.yaml", "@test/fixtures/for_unit_tests/bindings.yml"].each do |b|
       bindings.add(b)
     end
@@ -84,7 +84,7 @@ class BindingsParserTest < ::Minitest::Test
 
   def test_parses_yaml_file_with_aliases
     expected = { "foo" => "a,b,c", "bar" => { "baz" => "bang" }, "alias" => { "baz" => "bang" } }
-    bindings = KubernetesDeploy::BindingsParser.new
+    bindings = Krane::BindingsParser.new
     bindings.add('@test/fixtures/for_unit_tests/bindings-with-aliases.yaml')
     assert_equal(expected, bindings.parse)
   end
@@ -92,6 +92,6 @@ class BindingsParserTest < ::Minitest::Test
   private
 
   def parse(string)
-    KubernetesDeploy::BindingsParser.parse(string)
+    Krane::BindingsParser.parse(string)
   end
 end

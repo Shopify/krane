@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class DeploymentTest < KubernetesDeploy::TestCase
+class DeploymentTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   def test_deploy_succeeded_with_none_annotation
@@ -163,9 +163,9 @@ class DeploymentTest < KubernetesDeploy::TestCase
       template: build_deployment_template(rollout: 'bad', use_deprecated: true),
       replica_sets: [build_rs_template]
     )
-    msg = "'#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: bad' is "\
-      "invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
-    assert_raises_message(KubernetesDeploy::FatalDeploymentError, msg) do
+    msg = "'#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: bad' is "\
+      "invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
+    assert_raises_message(Krane::FatalDeploymentError, msg) do
       deploy.deploy_succeeded?
     end
   end
@@ -175,9 +175,9 @@ class DeploymentTest < KubernetesDeploy::TestCase
       template: build_deployment_template(rollout: 'bad'),
       replica_sets: [build_rs_template]
     )
-    msg = "'#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: bad' is "\
-      "invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
-    assert_raises_message(KubernetesDeploy::FatalDeploymentError, msg) do
+    msg = "'#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: bad' is "\
+      "invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
+    assert_raises_message(Krane::FatalDeploymentError, msg) do
       deploy.deploy_succeeded?
     end
   end
@@ -194,7 +194,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
     expected = <<~STRING.strip
       super failed
-      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: bad' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: bad' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -208,7 +208,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
     expected = <<~STRING.strip
       super failed
-      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: bad' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: bad' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -234,7 +234,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
     refute(deploy.validate_definition(kubectl))
     expected = <<~STRING.strip
       super failed
-      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: 10' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: 10' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -248,7 +248,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
     refute(deploy.validate_definition(kubectl))
     expected = <<~STRING.strip
       super failed
-      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: 10' is invalid. Acceptable values: #{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: 10' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -265,7 +265,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
     expected = <<~STRING.strip
       super failed
-      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: maxUnavailable' is incompatible with strategy 'Recreate'
+      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: maxUnavailable' is incompatible with strategy 'Recreate'
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -282,7 +282,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
 
     expected = <<~STRING.strip
       super failed
-      '#{KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: maxUnavailable' is incompatible with strategy 'Recreate'
+      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: maxUnavailable' is incompatible with strategy 'Recreate'
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -326,7 +326,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
       template: build_deployment_template(status: { "observedGeneration" => 1 }, rollout: 'full', max_unavailable: 1),
       replica_sets: [build_rs_template]
     )
-    KubernetesDeploy::ReplicaSet.any_instance.stubs(:pods).returns([stub(deploy_failed?: true)])
+    Krane::ReplicaSet.any_instance.stubs(:pods).returns([stub(deploy_failed?: true)])
     refute_predicate(deploy, :deploy_failed?)
   end
 
@@ -337,10 +337,10 @@ class DeploymentTest < KubernetesDeploy::TestCase
         replica_sets: [build_rs_template(status: { "replica" => 1 })]
       )
 
-      deploy.deploy_started_at = Time.now.utc - KubernetesDeploy::Deployment::TIMEOUT
+      deploy.deploy_started_at = Time.now.utc - Krane::Deployment::TIMEOUT
       refute deploy.deploy_timed_out?
 
-      deploy.deploy_started_at = Time.now.utc - KubernetesDeploy::Deployment::TIMEOUT - 1
+      deploy.deploy_started_at = Time.now.utc - Krane::Deployment::TIMEOUT - 1
       assert deploy.deploy_timed_out?
       assert_equal "Timeout reason: hard deadline for Deployment\nLatest ReplicaSet: web-1",
         deploy.timeout_message.strip
@@ -385,7 +385,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
           }],
         }
       )
-      template["metadata"]["annotations"][KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION] = "15S"
+      template["metadata"]["annotations"][Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION] = "15S"
       template["spec"]["progressDeadlineSeconds"] = "10"
       deploy = build_synced_deployment(
         template: template,
@@ -398,7 +398,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
       refute(deploy.deploy_timed_out?, "Deploy should not timeout based on progressDeadlineSeconds")
       deploy.deploy_started_at = Time.now.utc - 16.seconds
       assert(deploy.deploy_timed_out?, "Deploy should timeout according to timoeout override")
-      assert_equal(KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE + "\nLatest ReplicaSet: web-1",
+      assert_equal(Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE + "\nLatest ReplicaSet: web-1",
         deploy.timeout_message.strip)
       assert_equal(deploy.pretty_timeout_type, "timeout override: 15s")
     end
@@ -432,9 +432,9 @@ class DeploymentTest < KubernetesDeploy::TestCase
     strategy: 'rollingUpdate', max_unavailable: nil, use_deprecated: false)
 
     required_rollout_annotation = if use_deprecated
-      KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED
+      Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED
     else
-      KubernetesDeploy::Deployment::REQUIRED_ROLLOUT_ANNOTATION
+      Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION
     end
 
     base_deployment_manifest = fixtures.find { |fixture| fixture["kind"] == "Deployment" }
@@ -471,7 +471,7 @@ class DeploymentTest < KubernetesDeploy::TestCase
   end
 
   def build_synced_deployment(template:, replica_sets:, expect_pod_get: nil)
-    deploy = KubernetesDeploy::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
+    deploy = Krane::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
     stub_kind_get("Deployment", items: [template])
     stub_kind_get("ReplicaSet", items: replica_sets)
 

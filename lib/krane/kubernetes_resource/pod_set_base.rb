@@ -19,7 +19,7 @@ module Krane
     end
 
     def fetch_debug_logs
-      logs = KubernetesDeploy::RemoteLogs.new(
+      logs = Krane::RemoteLogs.new(
         logger: @logger,
         parent_id: id,
         container_names: container_names,

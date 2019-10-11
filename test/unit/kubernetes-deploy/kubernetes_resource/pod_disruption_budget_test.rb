@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class PodDisruptionBudgetTest < KubernetesDeploy::TestCase
+class PodDisruptionBudgetTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   def test_deploy_succeeded_is_true_as_soon_as_controller_observes_new_version
@@ -23,7 +23,7 @@ class PodDisruptionBudgetTest < KubernetesDeploy::TestCase
   end
 
   def build_synced_pdb(template:)
-    pdb = KubernetesDeploy::PodDisruptionBudget.new(namespace: "test", context: "nope",
+    pdb = Krane::PodDisruptionBudget.new(namespace: "test", context: "nope",
       logger: logger, definition: template)
     stub_kind_get("PodDisruptionBudget", items: [template])
     pdb.sync(build_resource_cache)

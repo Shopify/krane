@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class ServiceTest < KubernetesDeploy::TestCase
+class ServiceTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   def test_external_name_services_only_need_to_exist
@@ -187,7 +187,7 @@ class ServiceTest < KubernetesDeploy::TestCase
   private
 
   def build_service(definition)
-    KubernetesDeploy::Service.new(namespace: 'test', context: 'test', logger: logger, definition: definition)
+    Krane::Service.new(namespace: 'test', context: 'test', logger: logger, definition: definition)
   end
 
   def service_fixture(name)

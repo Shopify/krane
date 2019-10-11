@@ -2,7 +2,7 @@
 
 require 'test_helper'
 
-class TemplateSetsTest < KubernetesDeploy::TestCase
+class TemplateSetsTest < Krane::TestCase
   def test_valid_template_sets_is_valid
     template_paths = [
       fixture_path("hello-cloud"),
@@ -65,7 +65,7 @@ class TemplateSetsTest < KubernetesDeploy::TestCase
     assert_equal(paths.map { |f| File.basename(f) }.sort, file_names.sort)
 
     file_names = []
-    assert_raises(KubernetesDeploy::InvalidTemplateError) do
+    assert_raises(Krane::InvalidTemplateError) do
       template_sets.with_resource_definitions_and_filename(render_erb: true,
        bindings: {}) do |rendered_content, filename|
         file_names << filename
@@ -78,7 +78,7 @@ class TemplateSetsTest < KubernetesDeploy::TestCase
   private
 
   def template_sets_from_paths(*paths)
-    KubernetesDeploy::TemplateSets.from_dirs_and_files(
+    Krane::TemplateSets.from_dirs_and_files(
       paths: paths,
       logger: logger
     )

@@ -26,11 +26,11 @@ module Krane
     #
     # @param context [String] Kubernetes context / cluster
     # @param namespace [String] Kubernetes namespace
-    # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
+    # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param max_watch_seconds [Integer] Timeout in seconds
     def initialize(context:, namespace:, logger: nil, max_watch_seconds: nil)
-      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
-      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
+      @logger = logger || Krane::FormattedLogger.build(namespace, context)
+      @task_config = Krane::TaskConfig.new(context, namespace, @logger)
       @context = context
       @namespace = namespace
       @max_watch_seconds = max_watch_seconds
@@ -50,7 +50,7 @@ module Krane
     # Runs the task, raising exceptions in case of issues
     #
     # @param deployments_names [Array<String>] Array of workload names to restart
-    # @param selector [Hash] Selector(s) parsed by KubernetesDeploy::LabelSelector
+    # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
     # @param verify_result [Boolean] Wait for completion and verify success
     #
     # @return [nil]
@@ -201,7 +201,7 @@ module Krane
       unless task_config_validator.valid?
         @logger.summary.add_action("Configuration invalid")
         @logger.summary.add_paragraph(task_config_validator.errors.map { |err| "- #{err}" }.join("\n"))
-        raise KubernetesDeploy::TaskConfigurationError
+        raise Krane::TaskConfigurationError
       end
     end
 

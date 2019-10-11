@@ -53,6 +53,6 @@ module KubeclientHelper
   end
 
   def kubeclient_builder
-    @kubeclient_builder ||= KubernetesDeploy::KubeclientBuilder.new
+    @kubeclient_builder ||= Krane::KubeclientBuilder.new
   end
 end

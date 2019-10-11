@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class ContainerLogsTest < KubernetesDeploy::TestCase
+class ContainerLogsTest < Krane::TestCase
   def setup
     super
-    @logs = KubernetesDeploy::ContainerLogs.new(
+    @logs = Krane::ContainerLogs.new(
       parent_id: 'pod/pod-123-456',
       container_name: 'A',
       logger: logger,
@@ -14,7 +14,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_sync_deduplicates_logs_emitted_fractional_seconds_apart
-    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
+    Krane::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1, "", ""])
       .then.returns([logs_response_2, "", ""])
       .then.returns([logs_response_3, "", ""])
@@ -26,7 +26,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_sync_handles_cycles_where_no_new_logs_available
-    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
+    Krane::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1, "", ""])
       .then.returns(["", "", ""])
       .then.returns([logs_response_2, "", ""])
@@ -38,14 +38,14 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_empty_delegated_to_lines
-    KubernetesDeploy::Kubectl.any_instance.stubs(:run).returns([logs_response_1, "", ""])
+    Krane::Kubectl.any_instance.stubs(:run).returns([logs_response_1, "", ""])
     assert_predicate(@logs, :empty?)
     @logs.sync
     refute_predicate(@logs, :empty?)
   end
 
   def test_print_latest_and_print_all_output_the_correct_chunks
-    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
+    Krane::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1, "", ""])
       .then.returns([logs_response_2, "", ""])
 
@@ -69,7 +69,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_print_latest_supports_prefixing
-    KubernetesDeploy::Kubectl.any_instance.stubs(:run).returns([logs_response_1, "", ""])
+    Krane::Kubectl.any_instance.stubs(:run).returns([logs_response_1, "", ""])
     @logs.sync
     expected = [
       "[A]  Line 1",
@@ -83,7 +83,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   def test_logs_without_timestamps_are_not_deduped
     logs_response_1_with_anomaly = logs_response_1 + "No timestamp"
     logs_response_2_with_anomaly = "No timestamp 2\n" + logs_response_2
-    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
+    Krane::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1_with_anomaly, "", ""])
       .then.returns([logs_response_2_with_anomaly, "", ""])
 
@@ -101,7 +101,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
   end
 
   def test_deduplication_works_when_exact_same_batch_is_returned_more_than_once
-    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
+    Krane::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1, "", ""])
       .then.returns([logs_response_1, "", ""])
       .then.returns([logs_response_2, "", ""])
@@ -136,7 +136,7 @@ class ContainerLogsTest < KubernetesDeploy::TestCase
       2018-12-13T12:17:23.729851532Z Line 6
     STRING
 
-    KubernetesDeploy::Kubectl.any_instance.stubs(:run)
+    Krane::Kubectl.any_instance.stubs(:run)
       .returns([regression_data, "", ""]).times(12)
 
     12.times do

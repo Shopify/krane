@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class PodTest < KubernetesDeploy::TestCase
+class PodTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   def test_deploy_failed_is_true_for_missing_image_error
@@ -218,10 +218,10 @@ class PodTest < KubernetesDeploy::TestCase
 
   def test_deploy_failed_is_true_for_disappeared_unmanaged_pods
     template = build_pod_template
-    pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
+    pod = Krane::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc)
     cache = build_resource_cache
-    cache.expects(:get_instance).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
+    cache.expects(:get_instance).raises(Krane::Kubectl::ResourceNotFoundError)
     pod.sync(cache)
 
     assert_predicate(pod, :disappeared?)
@@ -231,10 +231,10 @@ class PodTest < KubernetesDeploy::TestCase
 
   def test_deploy_failed_is_false_for_disappeared_managed_pods
     template = build_pod_template
-    pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
+    pod = Krane::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc, parent: mock)
     cache = build_resource_cache
-    cache.expects(:get_instance).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError)
+    cache.expects(:get_instance).raises(Krane::Kubectl::ResourceNotFoundError)
     pod.sync(cache)
 
     assert_predicate(pod, :disappeared?)
@@ -249,10 +249,10 @@ class PodTest < KubernetesDeploy::TestCase
   end
 
   def build_synced_pod(template, parent: nil)
-    pod = KubernetesDeploy::Pod.new(namespace: 'test', context: 'nope', definition: template,
+    pod = Krane::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc, parent: parent)
     stub_kind_get("Pod", items: [template])
-    KubernetesDeploy::ContainerLogs.any_instance.stubs(:sync) unless parent.present?
+    Krane::ContainerLogs.any_instance.stubs(:sync) unless parent.present?
     pod.sync(build_resource_cache)
     pod
   end
