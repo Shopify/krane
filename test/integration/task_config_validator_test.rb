@@ -37,13 +37,13 @@ class TaskConfigValidatorTest < Krane::IntegrationTest
   def test_invalid_server_version
     old_min_version = Krane::MIN_KUBE_VERSION
     new_min_version = "99999"
-    KubernetesDeploy.const_set(:MIN_KUBE_VERSION, new_min_version)
+    Krane.const_set(:MIN_KUBE_VERSION, new_min_version)
     validator(context: KubeclientHelper::TEST_CONTEXT, namespace: 'default', logger: @logger).valid?
     assert_logs_match_all([
       "Minimum cluster version requirement of #{new_min_version} not met.",
     ])
   ensure
-    KubernetesDeploy.const_set(:MIN_KUBE_VERSION, old_min_version)
+    Krane.const_set(:MIN_KUBE_VERSION, old_min_version)
   end
 
   private
