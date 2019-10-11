@@ -73,7 +73,6 @@ module KubernetesDeploy
         Secret
         Pod
       )
-
       before_crs + cluster_resource_discoverer.crds.select(&:predeployed?).map(&:kind) + after_crs
     end
 
@@ -100,7 +99,8 @@ module KubernetesDeploy
         rbac.authorization.k8s.io/v1/Role
         rbac.authorization.k8s.io/v1/RoleBinding
       )
-      wl + cluster_resource_discoverer.crds.select(&:prunable?).map(&:group_version_kind)
+      prunable_crds = cluster_resource_discoverer.crds.select(&:prunable?).map(&:group_version_kind)
+      (@task_config.global_mode ? prunable_global_resources : wl) + prunable_crds
     end
 
     def server_version
@@ -227,8 +227,18 @@ module KubernetesDeploy
 
     private
 
-    def global_resource_names
-      cluster_resource_discoverer.global_resource_kinds
+    def global_resource_kinds
+      cluster_resource_discoverer.global_resources.map { |g| g["kind"] }
+    end
+
+    def prunable_global_resources
+      black_list = %w(namespace)
+      cluster_resource_discoverer.global_resources.map do |global|
+        next unless global['verbs'].include?("delete")
+        next if black_list.include?(global['kind'])
+        version = cluster_resource_discoverer.api_versions.fetch(global['apigroup'], ['v1']).last
+        [global['apigroup'], version, global['kind']].compact.join("/")
+      end.compact
     end
 
     def kubeclient_builder
@@ -325,7 +335,7 @@ module KubernetesDeploy
           current_sha: @current_sha, bindings: @bindings) do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, global_names: global_resource_names)
+          statsd_tags: @namespace_tags, crd: crd, global_names: global_resource_kinds)
         resources << r
         @logger.info("  - #{r.id}")
       end
@@ -373,7 +383,7 @@ module KubernetesDeploy
         raise KubernetesDeploy::TaskConfigurationError
       end
 
-      confirm_ejson_keys_not_prunable if prune
+      confirm_ejson_keys_not_prunable if prune && !@task_config.global_mode
       @logger.info("Using resource selector #{@selector}") if @selector
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")

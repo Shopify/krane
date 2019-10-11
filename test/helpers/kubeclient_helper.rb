@@ -52,6 +52,10 @@ module KubeclientHelper
     @storage_v1_kubeclient ||= kubeclient_builder.build_storage_v1_kubeclient(TEST_CONTEXT)
   end
 
+  def scheduling_v1beta1_kubeclient
+    @scheduling_v1beta1_kubeclient ||= kubeclient_builder.build_scheduling_v1beta1_kubeclient(TEST_CONTEXT)
+  end
+
   def kubeclient_builder
     @kubeclient_builder ||= KubernetesDeploy::KubeclientBuilder.new
   end

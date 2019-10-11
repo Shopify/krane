@@ -97,6 +97,29 @@ class KraneTest < KubernetesDeploy::IntegrationTest
     end
   ensure
     storage_v1_kubeclient.delete_storage_class("testing-storage-class")
+    scheduling_v1beta1_kubeclient.delete_priority_class("testing-priority-class")
+  end
+
+  def test_global_deploy_prune_black_box_success
+    pc_name = "testing-priority-class"
+    setup_template_dir("globals") do |target_dir|
+      flags = "-f #{target_dir} --selector app=krane"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("Success", err)
+      assert_predicate(status, :success?)
+
+      flags = "-f #{target_dir}/storage_classes.yml --selector app=krane"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("Pruned 1 resource and successfully deployed 1 resource", err)
+      assert_predicate(status, :success?)
+    end
+  ensure
+    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
+    if scheduling_v1beta1_kubeclient.get_priority_classes.map { |r| r.dig(:metadata, :name) }.include?(pc_name)
+      scheduling_v1beta1_kubeclient.delete_priority_class(pc_name)
+    end
   end
 
   def test_global_deploy_black_box_failure

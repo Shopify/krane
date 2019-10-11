@@ -16,11 +16,29 @@ module KubernetesDeploy
       end
     end
 
-    def global_resource_kinds
-      @globals ||= fetch_globals.map { |g| g["kind"] }
+    def global_resources
+      @globals ||= fetch_globals
+    end
+
+    def api_versions
+      @api_version ||= fetch_api_versions
     end
 
     private
+
+    def fetch_api_versions
+      raw, _, st = kubectl.run("api-versions", attempts: 5, use_namespace: false)
+      if st.success?
+        rows = raw.split("\n")
+        rows.each_with_object({}) do |group_version, hash|
+          group, version = group_version.split("/")
+          hash[group] ||= []
+          hash[group] << version
+        end
+      else
+        {}
+      end
+    end
 
     def fetch_globals
       raw, _, st = kubectl.run("api-resources", "--namespaced=false", output: "wide",
@@ -34,6 +52,7 @@ module KubernetesDeploy
         fields = full_width_field_names.each_with_object({}) do |name, hash|
           start = cursor
           cursor = start + name.length
+          cursor = 0 if full_width_field_names.last == name.strip
           hash[name.strip] = [start, cursor - 1]
         end
         resources.map { |r| fields.map { |k, (s, e)| [k.strip, r[s..e].strip] }.to_h }

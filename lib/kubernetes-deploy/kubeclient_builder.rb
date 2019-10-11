@@ -103,6 +103,14 @@ module KubernetesDeploy
       )
     end
 
+    def build_scheduling_v1beta1_kubeclient(context)
+      build_kubeclient(
+        api_version: "v1beta1",
+        context: context,
+        endpoint_path: "/apis/scheduling.k8s.io"
+      )
+    end
+
     def validate_config_files
       errors = []
       if @kubeconfig_files.empty?

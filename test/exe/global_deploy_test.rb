@@ -36,6 +36,11 @@ class GlobalDeployTest < KubernetesDeploy::TestCase
     krane_global_deploy!(flags: "--selector #{selector}")
   end
 
+  def test_deploy_parses_prune
+    set_krane_global_deploy_expectations!(run_args: { prune: false })
+    krane_global_deploy!(flags: '--prune false')
+  end
+
   private
 
   def set_krane_global_deploy_expectations!(new_args: {}, run_args: {})
@@ -69,7 +74,7 @@ class GlobalDeployTest < KubernetesDeploy::TestCase
       }.merge(new_args),
       run_args: {
         verify_result: true,
-        prune: false,
+        prune: true,
       }.merge(run_args),
     }
   end
