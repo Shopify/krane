@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 require 'tempfile'
 
-require 'kubernetes-deploy/common'
-require 'kubernetes-deploy/renderer'
-require 'kubernetes-deploy/template_sets'
+require 'krane/common'
+require 'krane/renderer'
+require 'krane/template_sets'
 
 module Krane
   # Render templates

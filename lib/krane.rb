@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/common'
+require 'krane/common'
 
 module Krane
 end

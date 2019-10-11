@@ -4,10 +4,10 @@ require 'shellwords'
 require 'tempfile'
 require 'fileutils'
 
-require 'kubernetes-deploy/common'
-require 'kubernetes-deploy/concurrency'
-require 'kubernetes-deploy/resource_cache'
-require 'kubernetes-deploy/kubernetes_resource'
+require 'krane/common'
+require 'krane/concurrency'
+require 'krane/resource_cache'
+require 'krane/kubernetes_resource'
 %w(
   custom_resource
   cloudsql
@@ -31,16 +31,16 @@ require 'kubernetes-deploy/kubernetes_resource'
   horizontal_pod_autoscaler
   secret
 ).each do |subresource|
-  require "kubernetes-deploy/kubernetes_resource/#{subresource}"
+  require "krane/kubernetes_resource/#{subresource}"
 end
-require 'kubernetes-deploy/resource_watcher'
-require 'kubernetes-deploy/kubectl'
-require 'kubernetes-deploy/kubeclient_builder'
-require 'kubernetes-deploy/ejson_secret_provisioner'
-require 'kubernetes-deploy/renderer'
-require 'kubernetes-deploy/cluster_resource_discovery'
-require 'kubernetes-deploy/template_sets'
-require 'kubernetes-deploy/deploy_task_config_validator'
+require 'krane/resource_watcher'
+require 'krane/kubectl'
+require 'krane/kubeclient_builder'
+require 'krane/ejson_secret_provisioner'
+require 'krane/renderer'
+require 'krane/cluster_resource_discovery'
+require 'krane/template_sets'
+require 'krane/deploy_task_config_validator'
 
 module Krane
   # Ship resources to a namespace

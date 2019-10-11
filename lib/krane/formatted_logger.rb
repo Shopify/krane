@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'logger'
 require 'colorized_string'
-require 'kubernetes-deploy/deferred_summary_logging'
+require 'krane/deferred_summary_logging'
 
 module Krane
   class FormattedLogger < Logger

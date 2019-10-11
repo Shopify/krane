@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/kubernetes_resource/replica_set'
+require 'krane/kubernetes_resource/replica_set'
 
 module Krane
   class Deployment < KubernetesResource

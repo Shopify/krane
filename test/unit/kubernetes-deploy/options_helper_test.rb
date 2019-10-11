@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 require 'tempfile'
-require 'kubernetes-deploy/options_helper'
+require 'krane/options_helper'
 
 class OptionsHelperTest < KubernetesDeploy::TestCase
   include EnvTestHelper

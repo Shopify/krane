@@ -9,9 +9,9 @@ module Krane
       }
 
       def self.from_options(options)
-        require 'kubernetes-deploy/render_task'
-        require 'kubernetes-deploy/bindings_parser'
-        require 'kubernetes-deploy/options_helper'
+        require 'krane/render_task'
+        require 'krane/bindings_parser'
+        require 'krane/options_helper'
 
         bindings_parser = KubernetesDeploy::BindingsParser.new
         options[:bindings]&.each { |b| bindings_parser.add(b) }

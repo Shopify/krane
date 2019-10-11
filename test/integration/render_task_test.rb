@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 require 'test_helper'
-require 'kubernetes-deploy/render_task'
+require 'krane/render_task'
 
 class RenderTaskTest < KubernetesDeploy::TestCase
   include FixtureDeployHelper

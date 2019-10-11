@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 require 'json'
-require 'kubernetes-deploy/bindings_parser'
+require 'krane/bindings_parser'
 
 class BindingsParserTest < ::Minitest::Test
   def test_parse_json

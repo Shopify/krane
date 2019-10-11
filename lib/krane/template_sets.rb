@@ -1,6 +1,6 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/delayed_exceptions'
-require 'kubernetes-deploy/ejson_secret_provisioner'
+require 'krane/delayed_exceptions'
+require 'krane/ejson_secret_provisioner'
 
 module Krane
   class TemplateSets

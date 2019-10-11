@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/container_logs'
+require 'krane/container_logs'
 
 module Krane
   class RemoteLogs
