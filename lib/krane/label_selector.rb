@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module KubernetesDeploy
+module Krane
   class LabelSelector
     def self.parse(string)
       selector = {}

@@ -5,7 +5,7 @@ require 'kubernetes-deploy/common'
 require 'kubernetes-deploy/renderer'
 require 'kubernetes-deploy/template_sets'
 
-module KubernetesDeploy
+module Krane
   # Render templates
   class RenderTask
     # Initializes the render task

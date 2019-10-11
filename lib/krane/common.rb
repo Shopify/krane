@@ -18,7 +18,7 @@ require 'kubernetes-deploy/statsd'
 require 'kubernetes-deploy/task_config'
 require 'kubernetes-deploy/task_config_validator'
 
-module KubernetesDeploy
+module Krane
   MIN_KUBE_VERSION = '1.11.0'
   StatsD.build
 end

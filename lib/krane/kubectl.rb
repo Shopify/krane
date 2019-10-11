@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'open3'
 
-module KubernetesDeploy
+module Krane
   class Kubectl
     ERROR_MATCHERS = {
       not_found: /NotFound/,

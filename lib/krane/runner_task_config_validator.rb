@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class RunnerTaskConfigValidator < TaskConfigValidator
     def initialize(template, args, *arguments)
       super(*arguments)

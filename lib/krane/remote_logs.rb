@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/container_logs'
 
-module KubernetesDeploy
+module Krane
   class RemoteLogs
     attr_reader :container_logs
 

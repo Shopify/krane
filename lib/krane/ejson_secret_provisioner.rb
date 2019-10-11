@@ -4,7 +4,7 @@ require 'base64'
 require 'open3'
 require 'kubernetes-deploy/kubectl'
 
-module KubernetesDeploy
+module Krane
   class EjsonSecretError < FatalDeploymentError
     def initialize(msg)
       super("Generation of Kubernetes secrets from ejson failed: #{msg}")

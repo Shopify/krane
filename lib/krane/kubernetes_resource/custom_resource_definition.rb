@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class CustomResourceDefinition < KubernetesResource
     TIMEOUT = 2.minutes
     ROLLOUT_CONDITIONS_ANNOTATION_SUFFIX = "instance-rollout-conditions"

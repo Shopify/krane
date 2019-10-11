@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class DeployTaskConfigValidator < TaskConfigValidator
     def initialize(protected_namespaces, allow_protected_ns, prune, *arguments)
       super(*arguments)

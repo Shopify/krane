@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class ServiceAccount < KubernetesResource
     TIMEOUT = 30.seconds
 

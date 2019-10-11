@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/kubernetes_resource/pod'
 
-module KubernetesDeploy
+module Krane
   class Service < KubernetesResource
     TIMEOUT = 7.minutes
 

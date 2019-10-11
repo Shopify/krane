@@ -2,7 +2,7 @@
 
 require 'test_helper'
 
-module KubernetesDeploy
+module Krane
   class IntegrationTest < KubernetesDeploy::TestCase
     include KubeclientHelper
     include FixtureDeployHelper

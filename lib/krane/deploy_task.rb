@@ -42,7 +42,7 @@ require 'kubernetes-deploy/cluster_resource_discovery'
 require 'kubernetes-deploy/template_sets'
 require 'kubernetes-deploy/deploy_task_config_validator'
 
-module KubernetesDeploy
+module Krane
   # Ship resources to a namespace
   class DeployTask
     extend KubernetesDeploy::StatsD::MeasureMethods

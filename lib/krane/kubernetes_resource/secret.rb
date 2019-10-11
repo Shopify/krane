@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class Secret < KubernetesResource
     TIMEOUT = 30.seconds
     SENSITIVE_TEMPLATE_CONTENT = true

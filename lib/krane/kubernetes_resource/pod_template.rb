@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class PodTemplate < KubernetesResource
     def status
       exists? ? "Available" : "Not Found"

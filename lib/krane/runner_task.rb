@@ -10,7 +10,7 @@ require 'kubernetes-deploy/kubernetes_resource'
 require 'kubernetes-deploy/kubernetes_resource/pod'
 require 'kubernetes-deploy/runner_task_config_validator'
 
-module KubernetesDeploy
+module Krane
   # Run a pod that exits upon completing a task
   class RunnerTask
     class TaskTemplateMissingError < TaskConfigurationError; end

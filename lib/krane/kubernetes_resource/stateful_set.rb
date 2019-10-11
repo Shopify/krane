@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/kubernetes_resource/pod_set_base'
-module KubernetesDeploy
+module Krane
   class StatefulSet < PodSetBase
     TIMEOUT = 10.minutes
     ONDELETE = 'OnDelete'

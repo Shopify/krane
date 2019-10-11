@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/kubernetes_resource/replica_set'
 
-module KubernetesDeploy
+module Krane
   class Deployment < KubernetesResource
     TIMEOUT = 7.minutes
     REQUIRED_ROLLOUT_ANNOTATION_SUFFIX = "required-rollout"

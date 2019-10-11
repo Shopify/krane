@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class HorizontalPodAutoscaler < KubernetesResource
     TIMEOUT = 3.minutes
     RECOVERABLE_CONDITION_PREFIX = "FailedGet"

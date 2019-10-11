@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/kubernetes_resource/pod_set_base'
 
-module KubernetesDeploy
+module Krane
   class ReplicaSet < PodSetBase
     TIMEOUT = 5.minutes
     attr_reader :pods

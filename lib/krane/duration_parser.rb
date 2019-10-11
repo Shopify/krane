@@ -2,7 +2,7 @@
 
 require 'active_support/duration'
 
-module KubernetesDeploy
+module Krane
   # This class is a less strict extension of ActiveSupport::Duration::ISO8601Parser.
   # In addition to full ISO8601 durations, it can parse unprefixed ISO8601 time components (e.g. '1H').
   # It is also case-insensitive.

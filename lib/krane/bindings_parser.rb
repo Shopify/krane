@@ -3,7 +3,7 @@ require 'json'
 require 'yaml'
 require 'csv'
 
-module KubernetesDeploy
+module Krane
   class BindingsParser
     def self.parse(string)
       new(string).parse

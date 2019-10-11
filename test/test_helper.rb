@@ -56,7 +56,7 @@ else
   ])
 end
 
-module KubernetesDeploy
+module Krane
   class TestCase < ::Minitest::Test
     attr_reader :logger
 
