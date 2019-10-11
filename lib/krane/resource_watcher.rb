@@ -3,7 +3,7 @@
 require 'kubernetes-deploy/concurrency'
 require 'kubernetes-deploy/resource_cache'
 
-module KubernetesDeploy
+module Krane
   class ResourceWatcher
     extend KubernetesDeploy::StatsD::MeasureMethods
     delegate :namespace, :context, :logger, to: :@task_config

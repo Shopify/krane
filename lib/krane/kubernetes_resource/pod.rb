@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class Pod < KubernetesResource
     TIMEOUT = 10.minutes
 

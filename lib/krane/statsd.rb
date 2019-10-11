@@ -2,7 +2,7 @@
 require 'statsd-instrument'
 require 'logger'
 
-module KubernetesDeploy
+module Krane
   class StatsD
     extend ::StatsD
 

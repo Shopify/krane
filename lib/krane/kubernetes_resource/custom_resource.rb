@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'jsonpath'
 
-module KubernetesDeploy
+module Krane
   class CustomResource < KubernetesResource
     TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS = <<~MSG
       This resource's status could not be used to determine rollout success because it is not up-to-date

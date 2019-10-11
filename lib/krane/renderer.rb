@@ -5,7 +5,7 @@ require 'securerandom'
 require 'yaml'
 require 'json'
 
-module KubernetesDeploy
+module Krane
   class Renderer
     class InvalidPartialError < InvalidTemplateError
       attr_accessor :parents, :content, :filename

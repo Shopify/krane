@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'kubernetes-deploy/kubernetes_resource/pod'
 
-module KubernetesDeploy
+module Krane
   class PodSetBase < KubernetesResource
     def failure_message
       pods.map(&:failure_message).compact.uniq.join("\n")

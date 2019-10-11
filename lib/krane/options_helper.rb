@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module KubernetesDeploy
+module Krane
   module OptionsHelper
     class OptionsError < StandardError; end
 

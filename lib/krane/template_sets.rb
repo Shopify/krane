@@ -2,7 +2,7 @@
 require 'kubernetes-deploy/delayed_exceptions'
 require 'kubernetes-deploy/ejson_secret_provisioner'
 
-module KubernetesDeploy
+module Krane
   class TemplateSets
     include DelayedExceptions
     VALID_TEMPLATES = %w(.yml.erb .yml .yaml .yaml.erb)

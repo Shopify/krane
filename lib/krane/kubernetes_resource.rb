@@ -7,7 +7,7 @@ require 'kubernetes-deploy/duration_parser'
 require 'kubernetes-deploy/label_selector'
 require 'kubernetes-deploy/rollout_conditions'
 
-module KubernetesDeploy
+module Krane
   class KubernetesResource
     attr_reader :name, :namespace, :context
     attr_writer :type, :deploy_started_at, :global

@@ -3,7 +3,7 @@ require 'logger'
 require 'colorized_string'
 require 'kubernetes-deploy/deferred_summary_logging'
 
-module KubernetesDeploy
+module Krane
   class FormattedLogger < Logger
     include DeferredSummaryLogging
 

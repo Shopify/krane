@@ -2,7 +2,7 @@
 
 require 'concurrent/hash'
 
-module KubernetesDeploy
+module Krane
   class ResourceCache
     delegate :namespace, :context, :logger, to: :@task_config
 

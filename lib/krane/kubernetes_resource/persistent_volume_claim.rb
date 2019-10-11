@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class PersistentVolumeClaim < KubernetesResource
     TIMEOUT = 5.minutes
 

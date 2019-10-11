@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class FatalDeploymentError < StandardError; end
   class FatalKubeAPIError < FatalDeploymentError; end
   class KubectlError < StandardError; end

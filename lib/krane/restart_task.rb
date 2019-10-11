@@ -6,7 +6,7 @@ require 'kubernetes-deploy/kubeclient_builder'
 require 'kubernetes-deploy/resource_watcher'
 require 'kubernetes-deploy/kubectl'
 
-module KubernetesDeploy
+module Krane
   # Restart the pods in one or more deployments
   class RestartTask
     class FatalRestartError < FatalDeploymentError; end

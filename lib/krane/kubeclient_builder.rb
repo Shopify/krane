@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'kubeclient'
 
-module KubernetesDeploy
+module Krane
   class KubeclientBuilder
     class ContextMissingError < FatalDeploymentError
       def initialize(context_name, kubeconfig)

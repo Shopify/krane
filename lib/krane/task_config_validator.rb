@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-module KubernetesDeploy
+module Krane
   class TaskConfigValidator
     DEFAULT_VALIDATIONS = %i(
       validate_kubeconfig
