@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class KubernetesResourceTest < KubernetesDeploy::TestCase
+class KubernetesResourceTest < Krane::TestCase
   include EnvTestHelper
 
-  class DummyResource < KubernetesDeploy::KubernetesResource
+  class DummyResource < Krane::KubernetesResource
     attr_writer :succeeded, :deploy_failed
 
     def initialize(definition_extras: {})
@@ -45,7 +45,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_unusual_timeout_output
     spec = { "kind" => "ConfigMap", "metadata" => { "name" => "foo" } }
-    cm = KubernetesDeploy::ConfigMap.new(namespace: 'foo', context: 'none', definition: spec, logger: logger)
+    cm = Krane::ConfigMap.new(namespace: 'foo', context: 'none', definition: spec, logger: logger)
     cm.deploy_started_at = Time.now.utc
 
     Timecop.freeze(Time.now.utc + 60) do
@@ -61,7 +61,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   def test_service_and_deployment_timeouts_are_equal
     message = "Service and Deployment timeouts have to match since services are waiting to get endpoints " \
       "from their backing deployments"
-    assert_equal(KubernetesDeploy::Service.timeout, KubernetesDeploy::Deployment.timeout, message)
+    assert_equal(Krane::Service.timeout, Krane::Deployment.timeout, message)
   end
 
   def test_fetch_events_parses_tricky_events_correctly
@@ -338,24 +338,24 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   end
 
   def test_debug_message_with_no_log_info
-    with_env(KubernetesDeploy::KubernetesResource::DISABLE_FETCHING_LOG_INFO, 'true') do
+    with_env(Krane::KubernetesResource::DISABLE_FETCHING_LOG_INFO, 'true') do
       dummy = DummyResource.new
       dummy.expects(:fetch_debug_logs).never
       dummy.deploy_failed = true
 
       assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
-      assert_includes dummy.debug_message, KubernetesDeploy::KubernetesResource::DISABLED_LOG_INFO_MESSAGE
+      assert_includes dummy.debug_message, Krane::KubernetesResource::DISABLED_LOG_INFO_MESSAGE
     end
   end
 
   def test_debug_message_with_no_event_info
-    with_env(KubernetesDeploy::KubernetesResource::DISABLE_FETCHING_EVENT_INFO, 'true') do
+    with_env(Krane::KubernetesResource::DISABLE_FETCHING_EVENT_INFO, 'true') do
       dummy = DummyResource.new
       dummy.expects(:fetch_events).never
       dummy.deploy_failed = true
 
       assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
-      assert_includes dummy.debug_message, KubernetesDeploy::KubernetesResource::DISABLED_EVENT_INFO_MESSAGE
+      assert_includes dummy.debug_message, Krane::KubernetesResource::DISABLED_EVENT_INFO_MESSAGE
     end
   end
 
@@ -398,8 +398,8 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_disappeared_is_true_if_resource_has_been_deployed_and_404s
     dummy = DummyResource.new
-    cache = KubernetesDeploy::ResourceCache.new(task_config: task_config(namespace: 'test', context: 'minikube'))
-    cache.expects(:get_instance).raises(KubernetesDeploy::Kubectl::ResourceNotFoundError).twice
+    cache = Krane::ResourceCache.new(task_config: task_config(namespace: 'test', context: 'minikube'))
+    cache.expects(:get_instance).raises(Krane::Kubectl::ResourceNotFoundError).twice
 
     dummy.sync(cache)
     refute_predicate(dummy, :disappeared?)
@@ -411,8 +411,8 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_disappeared_is_false_if_resource_has_been_deployed_and_we_get_a_server_error
     dummy = DummyResource.new
-    cache = KubernetesDeploy::ResourceCache.new(task_config: task_config(namespace: 'test', context: 'minikube'))
-    KubernetesDeploy::Kubectl.any_instance.expects(:run).returns(["", "NotFound", stub(success?: false)]).twice
+    cache = Krane::ResourceCache.new(task_config: task_config(namespace: 'test', context: 'minikube'))
+    Krane::Kubectl.any_instance.expects(:run).returns(["", "NotFound", stub(success?: false)]).twice
 
     dummy.sync(cache)
     refute_predicate(dummy, :disappeared?)
@@ -424,7 +424,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_lowercase_custom_resource_kind_does_not_raise
     definition = { "kind" => "foobar", "metadata" => { "name" => "test" } }
-    KubernetesDeploy::KubernetesResource.build(
+    Krane::KubernetesResource.build(
       namespace: 'test',
       context: 'test',
       definition: definition,
@@ -435,38 +435,38 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def test_build_handles_hardcoded_and_core_and_dynamic_objects
     # Hardcoded CRs
-    cloudsql_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    cloudsql_crd = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], definition: build_crd(name: "cloudsql"))
-    cloudsql_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    cloudsql_cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: cloudsql_crd,
       definition: { "kind" => "Cloudsql", "metadata" => { "name" => "test" } })
-    assert_equal(cloudsql_cr.class, KubernetesDeploy::Cloudsql)
+    assert_equal(cloudsql_cr.class, Krane::Cloudsql)
 
     # Dynamic with no rollout config
-    no_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    no_config_crd = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], definition: build_crd(name: "noconfig"))
-    no_config_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    no_config_cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: no_config_crd,
       definition: { "kind" => "Noconfig", "metadata" => { "name" => "test" } })
-    assert_equal(no_config_cr.class, KubernetesDeploy::CustomResource)
+    assert_equal(no_config_cr.class, Krane::CustomResource)
 
     # With rollout config
-    with_config_crd = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    with_config_crd = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], definition: build_crd(name: "withconfig", with_config: true))
-    with_config_cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
+    with_config_cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: with_config_crd,
       definition: { "kind" => "Withconfig", "metadata" => { "name" => "test" } })
-    assert_equal(with_config_cr.class, KubernetesDeploy::CustomResource)
+    assert_equal(with_config_cr.class, Krane::CustomResource)
 
     # Hardcoded resource
-    svc = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+    svc = Krane::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
       statsd_tags: [], definition: { "kind" => "Service", "metadata" => { "name" => "test" } })
-    assert_equal(svc.class, KubernetesDeploy::Service)
+    assert_equal(svc.class, Krane::Service)
 
     # Generic resource
-    resource = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+    resource = Krane::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
       statsd_tags: [], definition: { "kind" => "Unkonwn", "metadata" => { "name" => "test" } })
-    assert_equal(resource.class, KubernetesDeploy::KubernetesResource)
+    assert_equal(resource.class, Krane::KubernetesResource)
   end
 
   private
@@ -485,9 +485,9 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
 
   def build_timeout_metadata(value, use_deprecated: false)
     timeout_override_annotation = if use_deprecated
-      KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED
+      Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED
     else
-      KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION
+      Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION
     end
 
     {
@@ -548,8 +548,8 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
   end
 
   def build_event_jsonpath(dummy_events)
-    event_separator = KubernetesDeploy::KubernetesResource::Event::EVENT_SEPARATOR
-    field_separator = KubernetesDeploy::KubernetesResource::Event::FIELD_SEPARATOR
+    event_separator = Krane::KubernetesResource::Event::EVENT_SEPARATOR
+    field_separator = Krane::KubernetesResource::Event::FIELD_SEPARATOR
     dummy_events.each_with_object([]) do |e, jsonpaths|
       jsonpaths << [e[:kind], e[:name], e[:count], e[:last_seen].to_s, e[:reason], e[:message]].join(field_separator)
     end.join(event_separator)
@@ -569,7 +569,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       },
     }
     if with_config
-      crd["metadata"]["annotations"][KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION] = "true"
+      crd["metadata"]["annotations"][Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION] = "true"
     end
     crd
   end

@@ -12,6 +12,6 @@ module ResourceCacheTestHelper
   end
 
   def build_resource_cache
-    KubernetesDeploy::ResourceCache.new(task_config(namespace: 'test-ns'))
+    Krane::ResourceCache.new(task_config(namespace: 'test-ns'))
   end
 end

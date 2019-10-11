@@ -24,7 +24,7 @@ module Krane
             bindings: bindings,
           )
         end
-        with_delayed_exceptions(@files, KubernetesDeploy::InvalidTemplateError) do |filename|
+        with_delayed_exceptions(@files, Krane::InvalidTemplateError) do |filename|
           next if filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
           templates(filename: filename, raw: raw) { |r_def| yield r_def, filename }
         end
@@ -110,7 +110,7 @@ module Krane
     end
 
     def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
-      with_delayed_exceptions(@template_sets, KubernetesDeploy::InvalidTemplateError) do |template_set|
+      with_delayed_exceptions(@template_sets, Krane::InvalidTemplateError) do |template_set|
         template_set.with_resource_definitions_and_filename(
           render_erb: render_erb,
           current_sha: current_sha,

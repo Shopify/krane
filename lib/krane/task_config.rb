@@ -10,7 +10,7 @@ module Krane
     end
 
     def logger
-      @logger ||= KubernetesDeploy::FormattedLogger.build(@namespace, @context)
+      @logger ||= Krane::FormattedLogger.build(@namespace, @context)
     end
   end
 end

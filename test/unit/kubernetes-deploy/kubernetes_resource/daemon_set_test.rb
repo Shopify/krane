@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class DaemonSetTest < KubernetesDeploy::TestCase
+class DaemonSetTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   def test_deploy_not_successful_when_updated_available_does_not_match
@@ -126,7 +126,7 @@ class DaemonSetTest < KubernetesDeploy::TestCase
   end
 
   def build_synced_ds(ds_template:, pod_templates: [], node_templates: [])
-    ds = KubernetesDeploy::DaemonSet.new(namespace: "test", context: "nope", logger: logger, definition: ds_template)
+    ds = Krane::DaemonSet.new(namespace: "test", context: "nope", logger: logger, definition: ds_template)
     stub_kind_get("DaemonSet", items: [ds_template])
     stub_kind_get("Pod", items: pod_templates)
     stub_kind_get("Node", items: node_templates)

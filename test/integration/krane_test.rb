@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class KraneTest < KubernetesDeploy::IntegrationTest
+class KraneTest < Krane::IntegrationTest
   include EnvTestHelper
 
   def test_restart_black_box

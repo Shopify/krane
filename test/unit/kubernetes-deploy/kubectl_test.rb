@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class KubectlTest < KubernetesDeploy::TestCase
+class KubectlTest < Krane::TestCase
   include StatsDHelper
   include EnvTestHelper
 
   def setup
     super
-    KubernetesDeploy::Kubectl.any_instance.unstub(:run)
+    Krane::Kubectl.any_instance.unstub(:run)
     Open3.expects(:capture3).never
   end
 
@@ -121,8 +121,8 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def test_custom_timeout_is_used
-    task_config = KubernetesDeploy::TaskConfig.new('testc', 'testn', logger)
-    custom_kubectl = KubernetesDeploy::Kubectl.new(task_config: task_config,
+    task_config = Krane::TaskConfig.new('testc', 'testn', logger)
+    custom_kubectl = Krane::Kubectl.new(task_config: task_config,
     log_failure_by_default: true, default_timeout: '5s')
     stub_open3(
       %w(kubectl get pods --namespace=testn --context=testc --request-timeout=5s),
@@ -174,7 +174,7 @@ class KubectlTest < KubernetesDeploy::TestCase
       %W(kubectl version --context=testc --request-timeout=#{timeout}),
       resp: '', err: 'bad', success: false
     )
-    assert_raises_message(KubernetesDeploy::KubectlError, "Could not retrieve kubectl version info") do
+    assert_raises_message(Krane::KubectlError, "Could not retrieve kubectl version info") do
       build_kubectl.version_info
     end
   end
@@ -186,7 +186,7 @@ class KubectlTest < KubernetesDeploy::TestCase
       %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
       resp: "", err: err, success: false
     )
-    assert_raises_message(KubernetesDeploy::Kubectl::ResourceNotFoundError, err) do
+    assert_raises_message(Krane::Kubectl::ResourceNotFoundError, err) do
       build_kubectl.run("get", "pod", "foobar", raise_if_not_found: true)
     end
   end
@@ -336,7 +336,7 @@ class KubectlTest < KubernetesDeploy::TestCase
 
   def test_retry_delay_backoff
     ktl = build_kubectl
-    max_delay_range = ((KubernetesDeploy::Kubectl::MAX_RETRY_DELAY - 0.5)..KubernetesDeploy::Kubectl::MAX_RETRY_DELAY)
+    max_delay_range = ((Krane::Kubectl::MAX_RETRY_DELAY - 0.5)..Krane::Kubectl::MAX_RETRY_DELAY)
     1000.times do
       assert_includes 0.5..1, ktl.retry_delay(1)
       assert_includes 1.5..2, ktl.retry_delay(2)
@@ -351,7 +351,7 @@ class KubectlTest < KubernetesDeploy::TestCase
   private
 
   def timeout
-    KubernetesDeploy::Kubectl::DEFAULT_TIMEOUT
+    Krane::Kubectl::DEFAULT_TIMEOUT
   end
 
   def stub_version_request(client:, server:)
@@ -370,8 +370,8 @@ class KubectlTest < KubernetesDeploy::TestCase
   end
 
   def build_kubectl(log_failure_by_default: true)
-    task_config = KubernetesDeploy::TaskConfig.new('testc', 'testn', logger)
-    KubernetesDeploy::Kubectl.new(task_config: task_config, log_failure_by_default: log_failure_by_default)
+    task_config = Krane::TaskConfig.new('testc', 'testn', logger)
+    Krane::Kubectl.new(task_config: task_config, log_failure_by_default: log_failure_by_default)
   end
 
   def stub_open3(command, resp:, err: "", success: true)

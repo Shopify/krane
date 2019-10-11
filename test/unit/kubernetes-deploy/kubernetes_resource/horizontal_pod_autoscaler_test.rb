@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class HorizontalPodAutoscalerTest < KubernetesDeploy::TestCase
+class HorizontalPodAutoscalerTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   # We can't get integration coverage for HPA right now because the metrics server just isn't reliable enough on our CI
   def test_hpa_is_whitelisted_for_pruning
-    KubernetesDeploy::Kubectl.any_instance.expects("run")
+    Krane::Kubectl.any_instance.expects("run")
       .with("get", "CustomResourceDefinition", output: "json", attempts: 5)
       .returns(['{ "items": [] }', "", SystemExit.new(0)])
-    task = KubernetesDeploy::DeployTask.new(namespace: 'test', context: KubeclientHelper::TEST_CONTEXT,
+    task = Krane::DeployTask.new(namespace: 'test', context: KubeclientHelper::TEST_CONTEXT,
       current_sha: 'foo', template_paths: [''], logger: logger)
     assert(task.prune_whitelist.one? { |whitelisted_type| whitelisted_type.include?("HorizontalPodAutoscaler") })
   end
@@ -116,7 +116,7 @@ class HorizontalPodAutoscalerTest < KubernetesDeploy::TestCase
   end
 
   def build_synced_hpa(template)
-    hpa = KubernetesDeploy::HorizontalPodAutoscaler.new(
+    hpa = Krane::HorizontalPodAutoscaler.new(
       namespace: 'test-ns',
       context: KubeclientHelper::TEST_CONTEXT,
       logger: logger,

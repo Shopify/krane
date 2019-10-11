@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class TaskConfigTest < KubernetesDeploy::TestCase
+class TaskConfigTest < Krane::TestCase
   def test_responds_to_namespace
     namespace = "test-namespace"
     assert_equal(task_config(namespace: namespace).namespace, namespace)
@@ -13,11 +13,11 @@ class TaskConfigTest < KubernetesDeploy::TestCase
   end
 
   def test_builds_a_logger_if_none_provided
-    assert_equal(task_config(logger: nil).logger.class, KubernetesDeploy::FormattedLogger)
+    assert_equal(task_config(logger: nil).logger.class, Krane::FormattedLogger)
   end
 
   def test_uses_provided_logger
-    logger = KubernetesDeploy::FormattedLogger.build(nil, nil)
+    logger = Krane::FormattedLogger.build(nil, nil)
     assert_equal(task_config(logger: logger).logger, logger)
   end
 end

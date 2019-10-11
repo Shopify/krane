@@ -2,16 +2,16 @@
 require 'test_helper'
 require 'krane/cli/krane'
 
-class VersionTest < KubernetesDeploy::TestCase
+class VersionTest < Krane::TestCase
   def test_version_prints_current_version
-    assert_output(/krane #{KubernetesDeploy::VERSION}/) { krane.version }
+    assert_output(/krane #{Krane::VERSION}/) { krane.version }
   end
 
   def test_version_success_as_black_box
     out, err, status = krane_black_box("version")
     assert_predicate(status, :success?)
     assert_empty(err)
-    assert_match(KubernetesDeploy::VERSION, out)
+    assert_match(Krane::VERSION, out)
   end
 
   def test_version_failure_as_black_box

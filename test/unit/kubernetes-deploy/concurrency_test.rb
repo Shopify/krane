@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class ConcurrencyTest < KubernetesDeploy::TestCase
+class ConcurrencyTest < Krane::TestCase
   class TestWork
     attr_accessor :worked_by_threads
     def initialize
@@ -11,12 +11,12 @@ class ConcurrencyTest < KubernetesDeploy::TestCase
 
   def test_split_across_threads_raises_without_a_block
     assert_raises_message(ArgumentError, "Block of work is required") do
-      KubernetesDeploy::Concurrency.split_across_threads([TestWork.new])
+      Krane::Concurrency.split_across_threads([TestWork.new])
     end
   end
 
   def test_split_across_threads_works_with_zero_work
-    KubernetesDeploy::Concurrency.split_across_threads([]) do |individual|
+    Krane::Concurrency.split_across_threads([]) do |individual|
       individual.worked_by_threads << Thread.current.object_id
     end
     # nothing raised
@@ -24,7 +24,7 @@ class ConcurrencyTest < KubernetesDeploy::TestCase
 
   def test_split_across_threads_works_with_one_work
     all_work = [TestWork.new]
-    KubernetesDeploy::Concurrency.split_across_threads(all_work) do |individual|
+    Krane::Concurrency.split_across_threads(all_work) do |individual|
       individual.worked_by_threads << Thread.current.object_id
     end
     assert_work_distribution(all_work, [1])
@@ -32,15 +32,15 @@ class ConcurrencyTest < KubernetesDeploy::TestCase
 
   def test_split_across_threads_splits_evenly_with_small_work
     all_work = 2.times.with_object([]) { |_, all| all << TestWork.new }
-    KubernetesDeploy::Concurrency.split_across_threads(all_work) do |individual|
+    Krane::Concurrency.split_across_threads(all_work) do |individual|
       individual.worked_by_threads << Thread.current.object_id
     end
     assert_work_distribution(all_work, [1, 1])
   end
 
   def test_split_across_threads_splits_evenly_with_equal_work_and_threads
-    all_work = KubernetesDeploy::Concurrency::MAX_THREADS.times.with_object([]) { |_, all| all << TestWork.new }
-    KubernetesDeploy::Concurrency.split_across_threads(all_work) do |individual|
+    all_work = Krane::Concurrency::MAX_THREADS.times.with_object([]) { |_, all| all << TestWork.new }
+    Krane::Concurrency.split_across_threads(all_work) do |individual|
       individual.worked_by_threads << Thread.current.object_id
     end
     assert_work_distribution(all_work, [1, 1, 1, 1, 1, 1, 1, 1])
@@ -48,7 +48,7 @@ class ConcurrencyTest < KubernetesDeploy::TestCase
 
   def test_split_across_threads_splits_evenly_with_large_work
     all_work = 31.times.with_object([]) { |_, all| all << TestWork.new }
-    KubernetesDeploy::Concurrency.split_across_threads(all_work) do |individual|
+    Krane::Concurrency.split_across_threads(all_work) do |individual|
       individual.worked_by_threads << Thread.current.object_id
     end
     assert_work_distribution(all_work, [4, 4, 4, 4, 4, 4, 4, 3])

@@ -21,11 +21,11 @@ module Krane
     #
     # @param namespace [String] Kubernetes namespace
     # @param context [String] Kubernetes context / cluster
-    # @param logger [Object] Logger object (defaults to an instance of KubernetesDeploy::FormattedLogger)
+    # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param max_watch_seconds [Integer] Timeout in seconds
     def initialize(namespace:, context:, logger: nil, max_watch_seconds: nil)
-      @logger = logger || KubernetesDeploy::FormattedLogger.build(namespace, context)
-      @task_config = KubernetesDeploy::TaskConfig.new(context, namespace, @logger)
+      @logger = logger || Krane::FormattedLogger.build(namespace, context)
+      @task_config = Krane::TaskConfig.new(context, namespace, @logger)
       @namespace = namespace
       @context = context
       @max_watch_seconds = max_watch_seconds
@@ -137,7 +137,7 @@ module Krane
       unless task_config_validator.valid?
         @logger.summary.add_action("Configuration invalid")
         @logger.summary.add_paragraph([task_config_validator.errors].map { |err| "- #{err}" }.join("\n"))
-        raise KubernetesDeploy::TaskConfigurationError
+        raise Krane::TaskConfigurationError
       end
     end
 

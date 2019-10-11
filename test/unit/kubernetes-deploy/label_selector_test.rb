@@ -38,6 +38,6 @@ class LabelSelectorTest < ::Minitest::Test
   private
 
   def parse(string)
-    KubernetesDeploy::LabelSelector.parse(string).to_h
+    Krane::LabelSelector.parse(string).to_h
   end
 end

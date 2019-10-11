@@ -5,7 +5,7 @@ require 'krane/resource_cache'
 
 module Krane
   class ResourceWatcher
-    extend KubernetesDeploy::StatsD::MeasureMethods
+    extend Krane::StatsD::MeasureMethods
     delegate :namespace, :context, :logger, to: :@task_config
 
     def initialize(resources:, task_config:, deploy_started_at: Time.now.utc,
@@ -53,7 +53,7 @@ module Krane
 
     def sync_resources(resources)
       cache = ResourceCache.new(@task_config)
-      KubernetesDeploy::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
+      Krane::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
       resources.each(&:after_sync)
     end
     measure_method(:sync_resources, "sync.duration")
@@ -141,7 +141,7 @@ module Krane
         end
 
         kubectl = Kubectl.new(task_config: @task_config, log_failure_by_default: false)
-        KubernetesDeploy::Concurrency.split_across_threads(failed_resources + global_timeouts) do |r|
+        Krane::Concurrency.split_across_threads(failed_resources + global_timeouts) do |r|
           r.sync_debug_info(kubectl)
         end
 

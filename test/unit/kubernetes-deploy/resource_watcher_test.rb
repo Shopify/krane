@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class ResourceWatcherTest < KubernetesDeploy::TestCase
+class ResourceWatcherTest < Krane::TestCase
   def test_requires_enumerable
     expected_msg = "ResourceWatcher expects Enumerable collection, got `Object` instead"
     assert_raises_message(ArgumentError, expected_msg) do
@@ -99,7 +99,7 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_allows_success
     resource = build_mock_resource(hits_to_complete: 1)
-    watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource],
+    watcher = Krane::ResourceWatcher.new(resources: [resource],
       timeout: 2, task_config: task_config(namespace: 'test'))
 
     watcher.run(delay_sync: 0.1)
@@ -108,16 +108,16 @@ class ResourceWatcherTest < KubernetesDeploy::TestCase
 
   def test_timeout_raises_after_timeout_seconds
     resource = build_mock_resource(hits_to_complete: 10**100)
-    watcher = KubernetesDeploy::ResourceWatcher.new(resources: [resource],
+    watcher = Krane::ResourceWatcher.new(resources: [resource],
       timeout: 0.02, task_config: task_config(namespace: 'test'))
 
-    assert_raises(KubernetesDeploy::DeploymentTimeoutError) { watcher.run(delay_sync: 0.01) }
+    assert_raises(Krane::DeploymentTimeoutError) { watcher.run(delay_sync: 0.01) }
   end
 
   private
 
   def build_watcher(resources)
-    KubernetesDeploy::ResourceWatcher.new(
+    Krane::ResourceWatcher.new(
       resources: resources,
       task_config: task_config(namespace: 'test')
     )

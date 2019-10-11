@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class TaskConfigValidatorTest < KubernetesDeploy::IntegrationTest
+class TaskConfigValidatorTest < Krane::IntegrationTest
   def test_valid_configuration
     assert_predicate(validator(context: KubeclientHelper::TEST_CONTEXT, namespace: 'default'), :valid?)
   end
@@ -12,7 +12,7 @@ class TaskConfigValidatorTest < KubernetesDeploy::IntegrationTest
 
   def test_invalid_kubeconfig
     bad_file = "/IM_NOT_A_REAL_FILE.yml"
-    builder = KubernetesDeploy::KubeclientBuilder.new(kubeconfig: bad_file)
+    builder = Krane::KubeclientBuilder.new(kubeconfig: bad_file)
     assert_match("Kubeconfig not found at #{bad_file}",
       validator(kubeclient_builder: builder, only: [:validate_kubeconfig]).errors.join("\n"))
   end
@@ -35,7 +35,7 @@ class TaskConfigValidatorTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_invalid_server_version
-    old_min_version = KubernetesDeploy::MIN_KUBE_VERSION
+    old_min_version = Krane::MIN_KUBE_VERSION
     new_min_version = "99999"
     KubernetesDeploy.const_set(:MIN_KUBE_VERSION, new_min_version)
     validator(context: KubeclientHelper::TEST_CONTEXT, namespace: 'default', logger: @logger).valid?
@@ -52,8 +52,8 @@ class TaskConfigValidatorTest < KubernetesDeploy::IntegrationTest
     context ||= "test-context"
     namespace ||= "test-namespace"
     config = task_config(context: context, namespace: namespace, logger: logger)
-    kubectl = KubernetesDeploy::Kubectl.new(task_config: config, log_failure_by_default: true)
-    kubeclient_builder ||= KubernetesDeploy::KubeclientBuilder.new
-    KubernetesDeploy::TaskConfigValidator.new(config, kubectl, kubeclient_builder, only: only)
+    kubectl = Krane::Kubectl.new(task_config: config, log_failure_by_default: true)
+    kubeclient_builder ||= Krane::KubeclientBuilder.new
+    Krane::TaskConfigValidator.new(config, kubectl, kubeclient_builder, only: only)
   end
 end

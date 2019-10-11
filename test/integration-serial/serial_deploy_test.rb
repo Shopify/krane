@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class SerialDeployTest < KubernetesDeploy::IntegrationTest
+class SerialDeployTest < Krane::IntegrationTest
   include StatsDHelper
   # This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace
   def test_deploying_to_protected_namespace_with_override_does_not_prune
@@ -455,16 +455,16 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   def test_deploying_crs_with_invalid_crd_conditions_fails
     # Since CRDs are not always deployed along with their CRs and kubernetes-deploy is not the only way CRDs are
     # deployed, we need to model the case where poorly configured rollout_conditions are present before deploying a CR
-    KubernetesDeploy::DeployTask.any_instance.expects(:validate_resources).returns(:true)
+    Krane::DeployTask.any_instance.expects(:validate_resources).returns(:true)
     crd_result = deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]) do |resource|
       crd = resource["with_custom_conditions.yml"]["CustomResourceDefinition"].first
       crd["metadata"]["annotations"].merge!(
-        KubernetesDeploy::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => "blah"
+        Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => "blah"
       )
     end
 
     assert_deploy_success(crd_result)
-    KubernetesDeploy::DeployTask.any_instance.unstub(:validate_resources)
+    Krane::DeployTask.any_instance.unstub(:validate_resources)
 
     cr_result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml", "with_custom_conditions_cr2.yml"])
     assert_deploy_failure(cr_result)
@@ -484,7 +484,7 @@ class SerialDeployTest < KubernetesDeploy::IntegrationTest
   # to recreate such a condition
   def test_apply_failure_with_sensitive_resources_hides_template_content
     logger.level = 0
-    KubernetesDeploy::Deployment.any_instance.expects(:sensitive_template_content?).returns(true).at_least_once
+    Krane::Deployment.any_instance.expects(:sensitive_template_content?).returns(true).at_least_once
     result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
       bad_port_name = "http_test_is_really_long_and_invalid_chars"
       svc = fixtures["web.yml.erb"]["Service"].first

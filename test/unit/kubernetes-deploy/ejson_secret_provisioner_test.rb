@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
+class EjsonSecretProvisionerTest < Krane::TestCase
   def test_resources_based_on_ejson_file_existence
     stub_server_dry_run_version_request
     stub_server_dry_run_validation_request.times(3) # there are three secrets in the ejson
@@ -10,7 +10,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   end
 
   def test_run_with_secrets_file_invalid_json
-    assert_raises_message(KubernetesDeploy::EjsonSecretError, /Failed to parse encrypted ejson/) do
+    assert_raises_message(Krane::EjsonSecretError, /Failed to parse encrypted ejson/) do
       with_ejson_file("}") do |target_dir|
         build_provisioner(target_dir).resources
       end
@@ -25,7 +25,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
     secret = resources.find { |s| s.name == 'monitoring-token' }
     refute_nil(secret, "Expected secret not found")
-    assert_equal(secret.class, KubernetesDeploy::Secret)
+    assert_equal(secret.class, Krane::Secret)
     assert_equal(secret.id, "Secret/monitoring-token")
   end
 
@@ -36,20 +36,20 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     }
 
     msg = "Private key for #{fixture_public_key} not found"
-    assert_raises_message(KubernetesDeploy::EjsonSecretError, msg) do
+    assert_raises_message(Krane::EjsonSecretError, msg) do
       build_provisioner(ejson_keys_secret: dummy_ejson_secret(wrong_public)).resources
     end
   end
 
   def test_run_with_bad_private_key_in_cloud_keys
     wrong_private = { fixture_public_key => "139d5c2a30901dd8ae186be582ccc0a882c16f8e0bb5429884dbc7296e80669e" }
-    assert_raises_message(KubernetesDeploy::EjsonSecretError, /Decryption failed/) do
+    assert_raises_message(Krane::EjsonSecretError, /Decryption failed/) do
       build_provisioner(ejson_keys_secret: dummy_ejson_secret(wrong_private)).resources
     end
   end
 
   def test_no_ejson_keys_secret_provided
-    assert_raises_message(KubernetesDeploy::EjsonSecretError,
+    assert_raises_message(Krane::EjsonSecretError,
       /Generation of Kubernetes secrets from ejson failed: Secret ejson-keys not provided, cannot decrypt secrets/) do
       build_provisioner(ejson_keys_secret: nil).resources
     end
@@ -71,7 +71,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     }
 
     msg = "Ejson incomplete for secret foobar: secret type unspecified, no data provided"
-    assert_raises_message(KubernetesDeploy::EjsonSecretError, msg) do
+    assert_raises_message(Krane::EjsonSecretError, msg) do
       with_ejson_file(new_content.to_json) do |target_dir|
         build_provisioner(target_dir).resources
       end
@@ -81,9 +81,9 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
   def test_proactively_validates_resulting_resources_and_raises_without_logging
     stub_server_dry_run_version_request
     stub_server_dry_run_validation_request
-    KubernetesDeploy::Secret.any_instance.expects(:validation_failed?).returns(true)
+    Krane::Secret.any_instance.expects(:validation_failed?).returns(true)
     msg = "Generation of Kubernetes secrets from ejson failed: Resulting resource Secret/catphotoscom failed validation"
-    assert_raises_message(KubernetesDeploy::EjsonSecretError, msg) do
+    assert_raises_message(Krane::EjsonSecretError, msg) do
       build_provisioner(fixture_path('ejson-cloud')).resources
     end
     refute_logs_match("Secret")
@@ -94,7 +94,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
     stub_server_dry_run_validation_request.times(3) # there are three secrets in the ejson
     provisioner = build_provisioner(
       fixture_path('ejson-cloud'),
-      selector: KubernetesDeploy::LabelSelector.new("app" => "yay")
+      selector: Krane::LabelSelector.new("app" => "yay")
     )
     refute_empty(provisioner.resources)
   end
@@ -144,7 +144,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def with_ejson_file(content)
     Dir.mktmpdir do |target_dir|
-      File.write(File.join(target_dir, KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE), content)
+      File.write(File.join(target_dir, Krane::EjsonSecretProvisioner::EJSON_SECRETS_FILE), content)
       yield target_dir
     end
   end
@@ -170,7 +170,7 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
       "data" => encoded_data,
     }
     if ejson
-      secret['metadata']['annotations'] = { KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION => true }
+      secret['metadata']['annotations'] = { Krane::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION => true }
     end
     secret
   end
@@ -181,10 +181,10 @@ class EjsonSecretProvisionerTest < KubernetesDeploy::TestCase
 
   def build_provisioner(dir = nil, selector: nil, ejson_keys_secret: dummy_ejson_secret)
     dir ||= fixture_path('ejson-cloud')
-    KubernetesDeploy::EjsonSecretProvisioner.new(
+    Krane::EjsonSecretProvisioner.new(
       task_config: task_config(namespace: 'test'),
       ejson_keys_secret: ejson_keys_secret,
-      ejson_file: File.expand_path(File.join(dir, KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE)),
+      ejson_file: File.expand_path(File.join(dir, Krane::EjsonSecretProvisioner::EJSON_SECRETS_FILE)),
       statsd_tags: [],
       selector: selector,
     )

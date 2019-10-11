@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class SerialTaskRunTest < KubernetesDeploy::IntegrationTest
+class SerialTaskRunTest < Krane::IntegrationTest
   include TaskRunnerTestHelper
   include StatsDHelper
 

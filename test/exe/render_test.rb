@@ -2,7 +2,7 @@
 require 'test_helper'
 require 'krane/cli/krane'
 
-class RendertTest < KubernetesDeploy::TestCase
+class RendertTest < Krane::TestCase
   include EnvTestHelper
   def test_render_with_default_options
     install_krane_render_expectations
@@ -37,7 +37,7 @@ class RendertTest < KubernetesDeploy::TestCase
     options = default_options(new_args)
     response = mock('RenderTask')
     response.expects(:run!).with(STDOUT).returns(true)
-    KubernetesDeploy::RenderTask.expects(:new).with(options).returns(response)
+    Krane::RenderTask.expects(:new).with(options).returns(response)
   end
 
   def krane_render!(flags = '-f /dev/null')

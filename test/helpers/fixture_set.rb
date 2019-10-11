@@ -126,7 +126,7 @@ module FixtureSetAssertions
     def assert_secret_present(secret_name, expected_data = nil, type: 'Opaque', ejson: false)
       secret = kubeclient.get_secret(secret_name, namespace)
       refute_nil(secret, "Secret `#{secret_name}` not found")
-      assert_annotated(secret, KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION) if ejson
+      assert_annotated(secret, Krane::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION) if ejson
       assert_equal(type, secret["type"])
       return unless expected_data
 

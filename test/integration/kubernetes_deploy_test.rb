@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
+class KubernetesDeployTest < Krane::IntegrationTest
   def test_full_hello_cloud_set_deploy_succeeds
     assert_deploy_success(deploy_fixtures("hello-cloud", render_erb: true))
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
@@ -138,12 +138,12 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
     # Deploy the same thing twice with a different selector
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
-      selector: KubernetesDeploy::LabelSelector.parse("branch=master"),
+      selector: Krane::LabelSelector.parse("branch=master"),
       render_erb: true))
     assert_logs_match("Using resource selector branch=master")
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "staging" },
-      selector: KubernetesDeploy::LabelSelector.parse("branch=staging"),
+      selector: Krane::LabelSelector.parse("branch=staging"),
       render_erb: true))
     assert_logs_match("Using resource selector branch=staging")
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
@@ -164,7 +164,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_mismatched_selector
     assert_deploy_failure(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
-      selector: KubernetesDeploy::LabelSelector.parse("branch=staging"),
+      selector: Krane::LabelSelector.parse("branch=staging"),
       render_erb: true))
     assert_logs_match_all([
       /Using resource selector branch=staging/,
@@ -178,7 +178,7 @@ class KubernetesDeployTest < KubernetesDeploy::IntegrationTest
   def test_mismatched_selector_on_replace_resource_without_labels
     assert_deploy_failure(deploy_fixtures("hello-cloud",
       subset: %w(disruption-budgets.yml),
-      selector: KubernetesDeploy::LabelSelector.parse("branch=staging"),
+      selector: Krane::LabelSelector.parse("branch=staging"),
       render_erb: true))
     assert_logs_match_all([
       /Using resource selector branch=staging/,
@@ -498,13 +498,13 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
       deployment["metadata"]["annotations"] = {
-        KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED => "10S",
+        Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED => "10S",
       }
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
     assert_deploy_failure(result, :timed_out)
-    assert_logs_match_all(KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n") +
+    assert_logs_match_all(Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n") +
       ["timeout override: 10s"])
   end
 
@@ -514,13 +514,13 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
       deployment["metadata"]["annotations"] = {
-        KubernetesDeploy::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => "10S",
+        Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => "10S",
       }
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
     assert_deploy_failure(result, :timed_out)
-    assert_logs_match_all(KubernetesDeploy::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n") +
+    assert_logs_match_all(Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n") +
       ["timeout override: 10s"])
   end
 
@@ -650,7 +650,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_ejson_works_with_label_selectors
     value = "master"
-    selector = KubernetesDeploy::LabelSelector.parse("branch=#{value}")
+    selector = Krane::LabelSelector.parse("branch=#{value}")
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud", subset: ["secrets.ejson"], selector: selector))
@@ -1196,13 +1196,13 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "kubectl.kubernetes.io/last-applied-configuration" => "test",
     }
     secret = kubeclient.update_secret(secret)
-    assert(secret.metadata.annotations[KubernetesDeploy::KubernetesResource::LAST_APPLIED_ANNOTATION])
+    assert(secret.metadata.annotations[Krane::KubernetesResource::LAST_APPLIED_ANNOTATION])
 
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: %w(role.yml)))
     ejson_cloud.assert_secret_present('ejson-keys')
     assert_logs_match_all([
       "Deploy cannot proceed because protected resource ",
-      "Secret/#{KubernetesDeploy::EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.",
+      "Secret/#{Krane::EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.",
       "Result: FAILURE",
       "Found kubectl.kubernetes.io/last-applied-configuration annotation on ejson-keys secret.",
       "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned.",
@@ -1218,7 +1218,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "kubectl.kubernetes.io/last-applied-configuration" => "test",
     }
     secret = kubeclient.update_secret(secret)
-    assert(secret.metadata.annotations[KubernetesDeploy::KubernetesResource::LAST_APPLIED_ANNOTATION])
+    assert(secret.metadata.annotations[Krane::KubernetesResource::LAST_APPLIED_ANNOTATION])
 
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(role.yml), prune: false))
     ejson_cloud.assert_secret_present('ejson-keys')
@@ -1452,7 +1452,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_validation_failure_on_sensitive_resources_does_not_print_template
-    selector = KubernetesDeploy::LabelSelector.parse("branch=master")
+    selector = Krane::LabelSelector.parse("branch=master")
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: %w(secret.yml), selector: selector))
     assert_logs_match_all([
       "Template validation failed",
@@ -1690,7 +1690,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   private
 
   def build_deploy_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, max_watch_seconds: nil)
-    KubernetesDeploy::DeployTask.new(context: context, namespace: ns, logger: logger,
+    Krane::DeployTask.new(context: context, namespace: ns, logger: logger,
       max_watch_seconds: max_watch_seconds, template_paths: ['./test/fixtures/hello-cloud'], current_sha: '123')
   end
 

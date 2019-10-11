@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class ReplicaSetTest < KubernetesDeploy::TestCase
+class ReplicaSetTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   def test_deploy_succeeded_is_true_when_generation_and_replica_counts_match
@@ -27,7 +27,7 @@ class ReplicaSetTest < KubernetesDeploy::TestCase
     should_fetch = build_rs_template(status: { "readyReplicas": 1, "observedGeneration": 2 })
     should_not_fetch = build_rs_template(status: { "readyReplicas": 2, "observedGeneration": 2 })
 
-    rs = KubernetesDeploy::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: should_fetch)
+    rs = Krane::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: should_fetch)
     stub_kind_get("ReplicaSet", items: [should_fetch])
     stub_kind_get("Pod", items: [])
     rs.sync(build_resource_cache)
@@ -50,7 +50,7 @@ class ReplicaSetTest < KubernetesDeploy::TestCase
   end
 
   def build_synced_rs(template:)
-    rs = KubernetesDeploy::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
+    rs = Krane::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
     stub_kind_get("ReplicaSet", items: [template])
     rs.sync(build_resource_cache)
     rs

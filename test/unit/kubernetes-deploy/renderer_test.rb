@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class RendererTest < KubernetesDeploy::TestCase
+class RendererTest < Krane::TestCase
   def setup
     super
-    @renderer = KubernetesDeploy::Renderer.new(
+    @renderer = Krane::Renderer.new(
       current_sha: "12345678",
       template_dir: fixture_path('for_unit_tests'),
       logger: logger,
@@ -43,7 +43,7 @@ class RendererTest < KubernetesDeploy::TestCase
   end
 
   def test_invalid_partial_raises
-    err = assert_raises(KubernetesDeploy::InvalidTemplateError) do
+    err = assert_raises(Krane::InvalidTemplateError) do
       render('broken-partial-inclusion.yaml.erb')
     end
     included_from = "partial included from: broken-partial-inclusion.yaml.erb -> broken.yml.erb"
@@ -53,7 +53,7 @@ class RendererTest < KubernetesDeploy::TestCase
   end
 
   def test_non_existent_partial_raises
-    err = assert_raises(KubernetesDeploy::InvalidTemplateError) do
+    err = assert_raises(Krane::InvalidTemplateError) do
       render('including-non-existent-partial.yaml.erb')
     end
     base = "Could not find partial 'foobarbaz' in any of"
