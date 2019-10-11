@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/runner_task'
+require 'krane/runner_task'
 
 module TaskRunnerTestHelper
   def deploy_task_template(subset = ["template-runner.yml", "configmap-data.yml"])

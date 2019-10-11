@@ -35,9 +35,9 @@ module Krane
 
       def self.from_options(namespace, context, options)
         require 'krane/deploy_task'
-        require 'kubernetes-deploy/options_helper'
-        require 'kubernetes-deploy/bindings_parser'
-        require 'kubernetes-deploy/label_selector'
+        require 'krane/options_helper'
+        require 'krane/bindings_parser'
+        require 'krane/label_selector'
 
         bindings_parser = KubernetesDeploy::BindingsParser.new
         options[:bindings]&.each { |binding_pair| bindings_parser.add(binding_pair) }

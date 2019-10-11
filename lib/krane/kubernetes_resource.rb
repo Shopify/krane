@@ -2,10 +2,10 @@
 require 'json'
 require 'shellwords'
 
-require 'kubernetes-deploy/remote_logs'
-require 'kubernetes-deploy/duration_parser'
-require 'kubernetes-deploy/label_selector'
-require 'kubernetes-deploy/rollout_conditions'
+require 'krane/remote_logs'
+require 'krane/duration_parser'
+require 'krane/label_selector'
+require 'krane/rollout_conditions'
 
 module Krane
   class KubernetesResource

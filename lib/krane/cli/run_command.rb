@@ -33,7 +33,7 @@ module Krane
       }
 
       def self.from_options(namespace, context, options)
-        require "kubernetes-deploy/runner_task"
+        require "krane/runner_task"
         runner = KubernetesDeploy::RunnerTask.new(
           namespace: namespace,
           context: context,

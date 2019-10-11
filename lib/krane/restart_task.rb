@@ -1,10 +1,10 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/common'
-require 'kubernetes-deploy/kubernetes_resource'
-require 'kubernetes-deploy/kubernetes_resource/deployment'
-require 'kubernetes-deploy/kubeclient_builder'
-require 'kubernetes-deploy/resource_watcher'
-require 'kubernetes-deploy/kubectl'
+require 'krane/common'
+require 'krane/kubernetes_resource'
+require 'krane/kubernetes_resource/deployment'
+require 'krane/kubeclient_builder'
+require 'krane/resource_watcher'
+require 'krane/kubectl'
 
 module Krane
   # Restart the pods in one or more deployments

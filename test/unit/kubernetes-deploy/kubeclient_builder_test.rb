@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 require 'test_helper'
-require 'kubernetes-deploy/kubeclient_builder'
+require 'krane/kubeclient_builder'
 
 class KubeClientBuilderTest < KubernetesDeploy::TestCase
   def test_config_validation_default_config_file

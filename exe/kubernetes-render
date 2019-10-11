@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'kubernetes-deploy/render_task'
-require 'kubernetes-deploy/options_helper'
-require 'kubernetes-deploy/bindings_parser'
+require 'krane/render_task'
+require 'krane/options_helper'
+require 'krane/bindings_parser'
 
 require 'optparse'
 

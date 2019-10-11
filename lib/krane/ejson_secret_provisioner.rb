@@ -2,7 +2,7 @@
 require 'json'
 require 'base64'
 require 'open3'
-require 'kubernetes-deploy/kubectl'
+require 'krane/kubectl'
 
 module Krane
   class EjsonSecretError < FatalDeploymentError

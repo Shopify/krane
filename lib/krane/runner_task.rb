@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 require 'tempfile'
 
-require 'kubernetes-deploy/common'
-require 'kubernetes-deploy/kubeclient_builder'
-require 'kubernetes-deploy/kubectl'
-require 'kubernetes-deploy/resource_cache'
-require 'kubernetes-deploy/resource_watcher'
-require 'kubernetes-deploy/kubernetes_resource'
-require 'kubernetes-deploy/kubernetes_resource/pod'
-require 'kubernetes-deploy/runner_task_config_validator'
+require 'krane/common'
+require 'krane/kubeclient_builder'
+require 'krane/kubectl'
+require 'krane/resource_cache'
+require 'krane/resource_watcher'
+require 'krane/kubernetes_resource'
+require 'krane/kubernetes_resource/pod'
+require 'krane/runner_task_config_validator'
 
 module Krane
   # Run a pod that exits upon completing a task

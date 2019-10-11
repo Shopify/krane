@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'kubernetes-deploy/concurrency'
-require 'kubernetes-deploy/resource_cache'
+require 'krane/concurrency'
+require 'krane/resource_cache'
 
 module Krane
   class ResourceWatcher

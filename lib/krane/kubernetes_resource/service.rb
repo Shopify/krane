@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/kubernetes_resource/pod'
+require 'krane/kubernetes_resource/pod'
 
 module Krane
   class Service < KubernetesResource

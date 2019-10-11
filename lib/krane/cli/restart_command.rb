@@ -16,7 +16,7 @@ module Krane
       }
 
       def self.from_options(namespace, context, options)
-        require 'kubernetes-deploy/restart_task'
+        require 'krane/restart_task'
         selector = KubernetesDeploy::LabelSelector.parse(options[:selector]) if options[:selector]
         restart = KubernetesDeploy::RestartTask.new(
           namespace: namespace,

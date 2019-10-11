@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 require 'krane/cli/krane'
-require 'kubernetes-deploy/bindings_parser'
+require 'krane/bindings_parser'
 
 class DeployTest < KubernetesDeploy::TestCase
   def test_deploy_with_default_options
