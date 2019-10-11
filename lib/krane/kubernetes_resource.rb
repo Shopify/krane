@@ -59,8 +59,8 @@ module Krane
       end
 
       def class_for_kind(kind)
-        if KubernetesDeploy.const_defined?(kind)
-          KubernetesDeploy.const_get(kind)
+        if Krane.const_defined?(kind)
+          Krane.const_get(kind)
         end
       rescue NameError
         nil

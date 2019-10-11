@@ -114,7 +114,7 @@ class KubectlTest < Krane::TestCase
       refute_predicate st, :success?
     end
     assert_equal(5, metrics.length)
-    assert_equal(["KubernetesDeploy.kubectl.error"], metrics.map(&:name).uniq)
+    assert_equal(["Krane.kubectl.error"], metrics.map(&:name).uniq)
 
     expected_messages = (1..5).map { |n| "(attempt #{n}/5" }
     assert_logs_match_all(expected_messages, in_order: true)

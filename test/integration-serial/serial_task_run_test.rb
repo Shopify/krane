@@ -41,7 +41,7 @@ class SerialTaskRunTest < Krane::IntegrationTest
     end
 
     metric = metrics.find do |m|
-      m.name == "KubernetesDeploy.task_runner.duration" && m.tags.include?("namespace:#{bad_ns}")
+      m.name == "Krane.task_runner.duration" && m.tags.include?("namespace:#{bad_ns}")
     end
     assert(metric, "No result metric found for this test")
     assert_includes(metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}")
@@ -58,7 +58,7 @@ class SerialTaskRunTest < Krane::IntegrationTest
     end
 
     metric = metrics.find do |m|
-      m.name == "KubernetesDeploy.task_runner.duration" && m.tags.include?("namespace:#{@namespace}")
+      m.name == "Krane.task_runner.duration" && m.tags.include?("namespace:#{@namespace}")
     end
     assert(metric, "No result metric found for this test")
     assert_includes(metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}")
@@ -75,7 +75,7 @@ class SerialTaskRunTest < Krane::IntegrationTest
     end
 
     metric = metrics.find do |m|
-      m.name == "KubernetesDeploy.task_runner.duration" && m.tags.include?("namespace:#{@namespace}")
+      m.name == "Krane.task_runner.duration" && m.tags.include?("namespace:#{@namespace}")
     end
     assert(metric, "No result metric found for this test")
     assert_includes(metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}")
