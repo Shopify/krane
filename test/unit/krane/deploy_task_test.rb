@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 require 'test_helper'
+require 'krane/deploy_task'
 
 class DeployTaskTest < Krane::TestCase
   include EnvTestHelper

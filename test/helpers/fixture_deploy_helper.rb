@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 require 'securerandom'
+require 'krane/deploy_task'
+
 module FixtureDeployHelper
   EJSON_FILENAME = Krane::EjsonSecretProvisioner::EJSON_SECRETS_FILE
 

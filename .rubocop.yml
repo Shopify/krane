@@ -6,8 +6,6 @@ AllCops:
 
 Naming/FileName:
   Enabled: true
-  Exclude:
-    - lib/kubernetes-deploy.rb
 
 Sorbet/ConstantsFromStrings:
   Enabled: false

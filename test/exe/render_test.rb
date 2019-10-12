@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 require 'test_helper'
-require 'krane/cli/krane'
+require 'krane/render_task'
 
 class RendertTest < Krane::TestCase
   include EnvTestHelper

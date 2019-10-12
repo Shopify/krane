@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 require 'test_helper'
-require 'krane/cli/krane'
+require 'krane/restart_task'
 
 class RestartTest < Krane::TestCase
   def test_restart_with_default_options
