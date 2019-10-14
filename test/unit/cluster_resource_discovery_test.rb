@@ -2,15 +2,15 @@
 require 'test_helper'
 
 class ClusterResourceDiscoveryTest < KubernetesDeploy::TestCase
-  def test_global_resource_kinds_failure
+  def test_global_resources_failure
     crd = mocked_cluster_resource_discovery(nil, success: false)
-    kinds = crd.global_resource_kinds
+    kinds = crd.global_resources.map { |r| r['kind'] }
     assert_equal(kinds, [])
   end
 
-  def test_global_resource_kinds_success
+  def test_global_global_resources_success
     crd = mocked_cluster_resource_discovery(full_response)
-    kinds = crd.global_resource_kinds
+    kinds = crd.global_resources.map { |r| r['kind'] }
     assert_equal(kinds.length, full_response.split("\n").length - 1)
     %w(MutatingWebhookConfiguration ComponentStatus CustomResourceDefinition).each do |kind|
       assert_includes(kinds, kind)

@@ -73,6 +73,7 @@ module KubernetesDeploy
         Secret
         Pod
       )
+
       before_crs + cluster_resource_discoverer.crds.select(&:predeployed?).map(&:kind) + after_crs
     end
 
@@ -256,7 +257,7 @@ module KubernetesDeploy
       @ejson_provisoners ||= @template_sets.ejson_secrets_files.map do |ejson_secret_file|
         EjsonSecretProvisioner.new(
           task_config: @task_config,
-          ejson_keys_secret: ejson_keys_secret,
+          ejson_keys_secret: @task_config.ejson_keys_secret,
           ejson_file: ejson_secret_file,
           statsd_tags: @namespace_tags,
           selector: @selector,
@@ -335,7 +336,7 @@ module KubernetesDeploy
           current_sha: @current_sha, bindings: @bindings) do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, global_names: global_resource_kinds)
+          statsd_tags: @namespace_tags, crd: crd, global_kinds: global_resource_kinds)
         resources << r
         @logger.info("  - #{r.id}")
       end
@@ -383,7 +384,6 @@ module KubernetesDeploy
         raise KubernetesDeploy::TaskConfigurationError
       end
 
-      confirm_ejson_keys_not_prunable if prune && !@task_config.global_mode
       @logger.info("Using resource selector #{@selector}") if @selector
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
@@ -556,17 +556,6 @@ module KubernetesDeploy
       @task_config.namespace_definition
     end
 
-    # make sure to never prune the ejson-keys secret
-    def confirm_ejson_keys_not_prunable
-      return unless ejson_keys_secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
-
-      @logger.error("Deploy cannot proceed because protected resource " \
-        "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
-      raise EjsonPrunableError
-    rescue Kubectl::ResourceNotFoundError => e
-      @logger.debug("Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} does not exist: #{e}")
-    end
-
     def tags_from_namespace_labels
       return [] if namespace_definition.blank?
       namespace_labels = namespace_definition.fetch(:metadata, {}).fetch(:labels, {})
@@ -575,17 +564,6 @@ module KubernetesDeploy
 
     def kubectl
       @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
-    end
-
-    def ejson_keys_secret
-      @ejson_keys_secret ||= begin
-        out, err, st = kubectl.run("get", "secret", EjsonSecretProvisioner::EJSON_KEYS_SECRET, output: "json",
-          raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true)
-        unless st.success?
-          raise EjsonSecretError, "Error retrieving Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err}"
-        end
-        JSON.parse(out)
-      end
     end
 
     def statsd_tags

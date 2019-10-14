@@ -2,7 +2,7 @@
 module KubernetesDeploy
   class TaskConfig
     attr_reader :context, :namespace, :global_mode
-    attr_accessor :namespace_definition
+    attr_accessor :namespace_definition, :ejson_keys_secret
 
     def initialize(context, namespace, logger = nil, global_mode = false)
       @context = context

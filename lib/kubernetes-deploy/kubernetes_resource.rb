@@ -40,7 +40,7 @@ module KubernetesDeploy
     SERVER_DRY_RUNNABLE = false
 
     class << self
-      def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [])
+      def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil, global_kinds: [])
         validate_definition_essentials(definition)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
@@ -53,7 +53,7 @@ module KubernetesDeploy
           type = definition["kind"]
           inst = new(**opts)
           inst.type = type
-          inst.global = global_names.map(&:downcase).include?(type.downcase)
+          inst.global = global_kinds.map(&:downcase).include?(type.downcase)
           inst
         end
       end
