@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class KraneTest < Krane::IntegrationTest
+class KraneDeployTest < Krane::IntegrationTest
   def test_full_hello_cloud_set_deploy_succeeds
     assert_deploy_success(deploy_fixtures("hello-cloud", render_erb: true))
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)

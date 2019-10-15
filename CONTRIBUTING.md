@@ -143,7 +143,7 @@ Using another local cluster:
 
 To make StatsD log what it would have emitted, run a test with `STATSD_DEV=1`.
 
-To see the full-color output of a specific integration test, you can use `PRINT_LOGS=1`. For example: `PRINT_LOGS=1 bundle exec ruby -I test test/integration/kubernetes_deploy_test.rb -n/test_name/`.
+To see the full-color output of a specific integration test, you can use `PRINT_LOGS=1`. For example: `PRINT_LOGS=1 bundle exec ruby -I test test/integration/krane_deploy_test.rb -n/test_name/`.
 
 
 ![test-output](screenshots/test-output.png)

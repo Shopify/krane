@@ -22,7 +22,7 @@ if [[ -f $PROFILE_FILENAME ]]; then
 fi
 
 echo "Running test(s) with profiling"
-PROFILE=1 bundle exec ruby -I test test/integration/kubernetes_deploy_test.rb -n /$1/ > /dev/null
+PROFILE=1 bundle exec ruby -I test test/integration/krane_deploy_test.rb -n /$1/ > /dev/null
 
 echo "Processing profile"
 cat $PROFILE_FILENAME | perl -w $FLAMEGRAPH_PL --countname=ms --width=1500 --title=$1 > $SVG_FILENAME

@@ -125,7 +125,7 @@ class OptionsHelperTest < Krane::TestCase
 
   def wrapped_stdin
     old_stdin = $stdin
-    input = Tempfile.open("kubernetes_deploy_test")
+    input = Tempfile.open("krane_test")
     $stdin = input
     yield input
   ensure
