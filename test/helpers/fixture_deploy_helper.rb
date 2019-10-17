@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 require 'securerandom'
+require 'krane/deprecated_deploy_task'
+
 module FixtureDeployHelper
   EJSON_FILENAME = Krane::EjsonSecretProvisioner::EJSON_SECRETS_FILE
 
@@ -65,7 +67,7 @@ module FixtureDeployHelper
     protected_namespaces: nil, render_erb: false, allow_globals: true)
     kubectl_instance ||= build_kubectl
 
-    deploy = Krane::DeployTask.new(
+    deploy = Krane::DeprecatedDeployTask.new(
       namespace: @namespace,
       current_sha: sha,
       context: KubeclientHelper::TEST_CONTEXT,
