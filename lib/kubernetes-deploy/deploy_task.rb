@@ -88,18 +88,31 @@ module KubernetesDeploy
         core/v1/PodTemplate
         core/v1/PersistentVolumeClaim
         batch/v1/Job
-        extensions/v1beta1/ReplicaSet
-        extensions/v1beta1/DaemonSet
-        extensions/v1beta1/Deployment
         extensions/v1beta1/Ingress
         networking.k8s.io/v1/NetworkPolicy
-        apps/v1beta1/StatefulSet
         autoscaling/v1/HorizontalPodAutoscaler
         policy/v1beta1/PodDisruptionBudget
         batch/v1beta1/CronJob
         rbac.authorization.k8s.io/v1/Role
         rbac.authorization.k8s.io/v1/RoleBinding
       )
+      pre_1_16 = %w(
+        extensions/v1beta1/ReplicaSet
+        extensions/v1beta1/DaemonSet
+        extensions/v1beta1/Deployment
+        apps/v1beta1/StatefulSet
+      )
+      post_1_16 = %w(
+        apps/v1/ReplicaSet
+        apps/v1/DaemonSet
+        apps/v1/Deployment
+        apps/v1/StatefulSet
+      )
+      wl += if server_version < Gem::Version.new("1.16.0")
+        pre_1_16
+      else
+        post_1_16
+      end
       wl + cluster_resource_discoverer.crds.select(&:prunable?).map(&:group_version_kind)
     end
 
