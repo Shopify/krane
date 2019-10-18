@@ -8,6 +8,7 @@ module KubernetesDeploy
     def sync(cache)
       super
       @pods = exists? ? find_pods(cache) : []
+      @nodes = find_nodes(cache) if @nodes.blank?
     end
 
     def status
@@ -17,9 +18,9 @@ module KubernetesDeploy
 
     def deploy_succeeded?
       return false unless exists?
-      rollout_data["desiredNumberScheduled"].to_i == rollout_data["updatedNumberScheduled"].to_i &&
-      rollout_data["desiredNumberScheduled"].to_i == rollout_data["numberReady"].to_i &&
-      current_generation == observed_generation
+      current_generation == observed_generation &&
+        rollout_data["desiredNumberScheduled"].to_i == rollout_data["updatedNumberScheduled"].to_i &&
+        relevant_pods_ready?
     end
 
     def deploy_failed?
@@ -37,6 +38,34 @@ module KubernetesDeploy
     end
 
     private
+
+    class Node
+      attr_reader :name
+
+      class << self
+        def kind
+          name.demodulize
+        end
+      end
+
+      def initialize(definition:)
+        @name = definition.dig("metadata", "name").to_s
+        @definition = definition
+      end
+    end
+
+    def relevant_pods_ready?
+      return true if rollout_data["desiredNumberScheduled"].to_i == rollout_data["numberReady"].to_i # all pods ready
+      relevant_node_names = @nodes.map(&:name)
+      considered_pods = @pods.select { |p| relevant_node_names.include?(p.node_name) }
+      @logger.debug("Considered #{considered_pods.size} pods out of #{@pods.size} for #{@nodes.size} nodes")
+      considered_pods.present? && considered_pods.all?(&:deploy_succeeded?)
+    end
+
+    def find_nodes(cache)
+      all_nodes = cache.get_all(Node.kind)
+      all_nodes.map { |node_data| Node.new(definition: node_data) }
+    end
 
     def rollout_data
       return { "currentNumberScheduled" => 0 } unless exists?

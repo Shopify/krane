@@ -101,6 +101,10 @@ module KubernetesDeploy
       exists? && !@stream_logs # don't print them a second time
     end
 
+    def node_name
+      @instance_data.dig('spec', 'nodeName')
+    end
+
     private
 
     def failed_schedule_reason

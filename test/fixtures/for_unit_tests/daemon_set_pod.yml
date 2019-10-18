@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2019-10-07T16:05:37Z"
+  generateName: ds-app-
+  labels:
+    app: ds-app
+    controller-revision-hash: "2703261291"
+    name: ds-app
+    pod-template-generation: "2"
+  name: ds-app-hgjhh
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: DaemonSet
+    name: ds-app
+    uid: c31a9b4e-e6dd-11e9-8f47-e6322f98393a
+  resourceVersion: "31010"
+  selfLink: /api/v1/namespaces/default/pods/ds-app-hgjhh
+  uid: 4cf14557-e91c-11e9-8f47-e6322f98393a
+spec:
+  containers:
+  - command:
+    - tail
+    - -f
+    - /dev/null
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    name: app
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: default-token-bwg9f
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  nodeName: minikube
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+  - effect: NoSchedule
+    key: node.kubernetes.io/disk-pressure
+    operator: Exists
+  - effect: NoSchedule
+    key: node.kubernetes.io/memory-pressure
+    operator: Exists
+  - effect: NoSchedule
+    key: node.kubernetes.io/unschedulable
+    operator: Exists
+  volumes:
+  - name: default-token-bwg9f
+    secret:
+      defaultMode: 420
+      secretName: default-token-bwg9f
+status:
+  conditions:
+  - lastProbeTime: null
+    lastTransitionTime: "2019-10-07T16:05:37Z"
+    status: "True"
+    type: Initialized
+  - lastProbeTime: null
+    lastTransitionTime: "2019-10-07T16:05:38Z"
+    status: "True"
+    type: Ready
+  - lastProbeTime: null
+    lastTransitionTime: null
+    status: "True"
+    type: ContainersReady
+  - lastProbeTime: null
+    lastTransitionTime: "2019-10-07T16:05:37Z"
+    status: "True"
+    type: PodScheduled
+  containerStatuses:
+  - containerID: docker://949e6b37ad1e85dfeca958bb5a54c459305ef3d87e12d03e1ba90e121701b572
+    image: busybox:latest
+    imageID: docker-pullable://busybox@sha256:fe301db49df08c384001ed752dff6d52b4305a73a7f608f21528048e8a08b51e
+    lastState: {}
+    name: app
+    ready: true
+    restartCount: 0
+    state:
+      running:
+        startedAt: "2019-10-07T16:05:38Z"
+  hostIP: 192.168.64.3
+  phase: Running
+  podIP: 172.17.0.4
+  qosClass: BestEffort
+  startTime: "2019-10-07T16:05:37Z"
