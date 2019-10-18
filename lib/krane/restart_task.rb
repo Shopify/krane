@@ -73,14 +73,14 @@ module Krane
         warning = "Result verification is disabled for this task"
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
       end
-      StatsD.distribution('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
+      StatsD.client.distribution('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
-      StatsD.distribution('restart.duration', StatsD.duration(start), tags: tags('timeout', deployments))
+      StatsD.client.distribution('restart.duration', StatsD.duration(start), tags: tags('timeout', deployments))
       @logger.print_summary(:timed_out)
       raise
     rescue FatalDeploymentError => error
-      StatsD.distribution('restart.duration', StatsD.duration(start), tags: tags('failure', deployments))
+      StatsD.client.distribution('restart.duration', StatsD.duration(start), tags: tags('failure', deployments))
       @logger.summary.add_action(error.message) if error.message != error.class.to_s
       @logger.print_summary(:failure)
       raise

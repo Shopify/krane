@@ -141,7 +141,7 @@ Using another local cluster:
 2. Put the name of the context you want to use in a file named `.local-context` in the root of this project. For example: `echo "dind" > .local-context`.
 3. Run `bundle exec rake test` (or `dev test` if you work for Shopify).
 
-To make StatsD log what it would have emitted, run a test with `STATSD_DEV=1`.
+To make StatsD log what it would have emitted, run a test with `STATSD_ENV=development`.
 
 To see the full-color output of a specific integration test, you can use `PRINT_LOGS=1`. For example: `PRINT_LOGS=1 bundle exec ruby -I test test/integration/krane_deploy_test.rb -n/test_name/`.
 

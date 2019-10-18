@@ -2,7 +2,7 @@
 require 'integration_test_helper'
 
 class SerialDeployTest < Krane::IntegrationTest
-  include StatsDHelper
+  include StatsD::Instrument::Assertions
   # This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace
   def test_deploying_to_protected_namespace_with_override_does_not_prune
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml', 'disruption-budgets.yml'],
@@ -244,7 +244,7 @@ class SerialDeployTest < Krane::IntegrationTest
   def test_stage_related_metrics_include_custom_tags_from_namespace
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     kubeclient.patch_namespace(hello_cloud.namespace, metadata: { labels: { foo: 'bar' } })
-    metrics = capture_statsd_calls do
+    metrics = capture_statsd_calls(client: Krane::StatsD.client) do
       assert_deploy_success deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"], wait: false)
     end
 
@@ -265,7 +265,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_all_expected_statsd_metrics_emitted_with_essential_tags
-    metrics = capture_statsd_calls do
+    metrics = capture_statsd_calls(client: Krane::StatsD.client) do
       result = deploy_fixtures('hello-cloud', subset: ['configmap-data.yml'], wait: false, sha: 'test-sha')
       assert_deploy_success(result)
     end

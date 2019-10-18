@@ -2,7 +2,7 @@
 require 'test_helper'
 
 class KubectlTest < Krane::TestCase
-  include StatsDHelper
+  include StatsD::Instrument::Assertions
   include EnvTestHelper
 
   def setup
@@ -109,7 +109,7 @@ class KubectlTest < Krane::TestCase
     kubectl = build_kubectl
     kubectl.expects(:retry_delay).returns(0).times(4)
 
-    metrics = capture_statsd_calls do
+    metrics = capture_statsd_calls(client: Krane::StatsD.client) do
       _out, _err, st = kubectl.run("get", "pods", attempts: 5)
       refute_predicate st, :success?
     end

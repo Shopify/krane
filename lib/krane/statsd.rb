@@ -4,37 +4,23 @@ require 'logger'
 
 module Krane
   class StatsD
-    extend ::StatsD
-
     PREFIX = "KubernetesDeploy"
 
     def self.duration(start_time)
       (Time.now.utc - start_time).round(1)
     end
 
-    def self.build
-      if ENV['STATSD_DEV'].present?
-        self.backend = ::StatsD::Instrument::Backends::LoggerBackend.new(Logger.new($stderr))
-      elsif ENV['STATSD_ADDR'].present?
-        statsd_impl = ENV['STATSD_IMPLEMENTATION'].present? ? ENV['STATSD_IMPLEMENTATION'] : "datadog"
-        self.backend = ::StatsD::Instrument::Backends::UDPBackend.new(ENV['STATSD_ADDR'], statsd_impl)
-      else
-        self.backend = ::StatsD::Instrument::Backends::NullBackend.new
+    def self.client
+      @client ||= begin
+        sink = if ::StatsD::Instrument::Environment.current.env.fetch('STATSD_ENV', nil) == 'development'
+          ::StatsD::Instrument::LogSink.new(Logger.new($stderr))
+        elsif (addr = ::StatsD::Instrument::Environment.current.env.fetch('STATSD_ADDR', nil))
+          ::StatsD::Instrument::UDPSink.for_addr(addr)
+        else
+          ::StatsD::Instrument::NullSink.new
+        end
+        ::StatsD::Instrument::Client.new(prefix: PREFIX, sink: sink, default_sample_rate: 1.0)
       end
-    end
-
-    # It is not sufficient to set the prefix field on the Krane::StatsD singleton itself, since its value
-    # is overridden in the underlying calls to the ::StatsD library, hence the need to pass it in as a custom prefix
-    # via the metric_options hash. This is done since Krane may be included as a library and should not
-    # change the global StatsD configuration of the importing application.
-    def self.increment(key, value = 1, **metric_options)
-      metric_options[:prefix] = PREFIX
-      super
-    end
-
-    def self.distribution(key, value = nil, **metric_options, &block)
-      metric_options[:prefix] = PREFIX
-      super
     end
 
     module MeasureMethods
@@ -64,7 +50,7 @@ module Krane
               dynamic_tags << "error:#{error}" if dynamic_tags.is_a?(Array)
             end
 
-            StatsD.distribution(
+            Krane::StatsD.client.distribution(
               metric,
               Krane::StatsD.duration(start_time),
               tags: dynamic_tags
