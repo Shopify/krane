@@ -112,6 +112,7 @@ module KubernetesDeploy
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
       # subclasses must also set these if they define their own initializer
+      @deploy_started_at = nil
       @name = definition.dig("metadata", "name").to_s
       @optional_statsd_tags = statsd_tags
       @namespace = namespace
@@ -124,6 +125,9 @@ module KubernetesDeploy
       @validation_warnings = []
       @instance_data = {}
       @server_dry_run_validated = false
+      @type = nil
+      @debug_events = nil
+      @debug_logs = nil
     end
 
     def to_kubeclient_resource

@@ -5,6 +5,11 @@ module KubernetesDeploy
     TIMEOUT = 5.minutes
     attr_reader :pods
 
+    def initialize(_)
+      super
+      @nodes = nil
+    end
+
     def sync(cache)
       super
       @pods = exists? ? find_pods(cache) : []

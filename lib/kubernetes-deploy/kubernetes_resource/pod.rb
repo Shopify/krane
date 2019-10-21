@@ -13,6 +13,10 @@ module KubernetesDeploy
 
     def initialize(namespace:, context:, definition:, logger:,
       statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false)
+
+      super(namespace: namespace, context: context, definition: definition,
+            logger: logger, statsd_tags: statsd_tags)
+
       @parent = parent
       @deploy_started_at = deploy_started_at
 
@@ -23,8 +27,7 @@ module KubernetesDeploy
       end
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
       @stream_logs = stream_logs
-      super(namespace: namespace, context: context, definition: definition,
-            logger: logger, statsd_tags: statsd_tags)
+
     end
 
     def sync(_cache)

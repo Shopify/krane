@@ -7,6 +7,11 @@ module KubernetesDeploy
     TIMEOUT_FOR_INSTANCE_ANNOTATION = "krane.shopify.io/instance-timeout"
     GLOBAL = true
 
+    def initialize(*)
+      super
+      @rollout_conditions_validated = nil
+    end
+
     def deploy_succeeded?
       names_accepted_status == "True"
     end

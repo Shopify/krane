@@ -14,6 +14,7 @@ module KubernetesDeploy
       @lines = []
       @next_print_index = 0
       @printed_latest = false
+      @last_timestamp = nil
     end
 
     def sync

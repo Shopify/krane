@@ -13,6 +13,7 @@ module KubernetesDeploy
         @template_dir = template_dir
         @files = file_whitelist
         @logger = logger
+        @renderer = nil
       end
 
       def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)

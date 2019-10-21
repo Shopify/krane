@@ -11,6 +11,7 @@ class KubernetesResourceTest < KubernetesDeploy::TestCase
       definition = { "kind" => "DummyResource", "metadata" => { "name" => "test" } }.merge(definition_extras)
       super(namespace: 'test', context: 'test', definition: definition, logger: ::Logger.new($stderr))
       @succeeded = false
+      @deploy_failed = false
     end
 
     def exists?

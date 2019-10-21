@@ -93,7 +93,7 @@ class CustomResourceDefinitionTest < KubernetesDeploy::TestCase
   def test_cr_instance_fails_validation_when_rollout_conditions_for_crd_invalid
     crd = build_crd(merge_rollout_annotation('bad string'))
     cr = KubernetesDeploy::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: @statsd_tags, crd: crd,
+      logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
         "metadata" => { "name" => "test" },

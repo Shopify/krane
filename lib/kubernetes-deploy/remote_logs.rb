@@ -17,6 +17,7 @@ module KubernetesDeploy
           context: context
         )
       end
+      @already_displayed = nil
     end
 
     def empty?

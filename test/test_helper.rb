@@ -62,6 +62,7 @@ module KubernetesDeploy
 
     def run
       ban_net_connect? ? WebMock.disable_net_connect! : WebMock.allow_net_connect!
+      @namespace = nil
       yield if block_given?
       super
     end
