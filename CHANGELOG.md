@@ -9,7 +9,7 @@
 - **[Breaking change]** Added PersistentVolumeClaim to the prune whitelist. ([#573](https://github.com/Shopify/kubernetes-deploy/pull/573))
   * To see what resources may be affected, run `kubectl get pvc -o jsonpath='{ range .items[*] }{.metadata.namespace}{ "\t" }{.metadata.name}{ "\t" }{.metadata.annotations}{ "\n" }{ end }' --all-namespaces | grep "last-applied"`
   * To exclude a resource from kubernetes-deploy (and kubectl apply) management, remove the last-applied annotation `kubectl annotate pvc $PVC_NAME kubectl.kubernetes.io/last-applied-configuration-`.
-- Deploying global resources is now disabled by default [#567](https://github.com/Shopify/kubernetes-deploy/pull/567)
+- Deploying global resources directly from `KubernetesDeploy::DeployTask` is disabled by default. You can use `allow_globals: true` to enable the old behavior. This will be disabled in the Krane version of the task, and a separate purpose-built task will be provided. [#567](https://github.com/Shopify/kubernetes-deploy/pull/567)
 - Deployments to daemonsets now better tolerate autoscaling, nodes that appear mid-deploy aren't required for convergence [#580](https://github.com/Shopify/kubernetes-deploy/pull/580)
 
 ## 0.29.0
