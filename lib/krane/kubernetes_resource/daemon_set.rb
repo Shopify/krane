@@ -3,6 +3,7 @@ require "krane/kubernetes_resource/pod_set_base"
 module Krane
   class DaemonSet < PodSetBase
     TIMEOUT = 5.minutes
+    SYNC_DEPENDENCIES = %w(Pod)
     attr_reader :pods
 
     def sync(cache)

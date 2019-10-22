@@ -36,6 +36,12 @@ module Krane
       []
     end
 
+    def prewarm(resources)
+      sync_dependencies = resources.flat_map { |r| r.class.const_get(:SYNC_DEPENDENCIES) }
+      kinds = (resources.map(&:type) + sync_dependencies).uniq
+      Krane::Concurrency.split_across_threads(kinds, max_threads: kinds.count) { |kind| get_all(kind) }
+    end
+
     private
 
     def statsd_tags

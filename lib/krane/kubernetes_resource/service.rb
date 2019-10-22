@@ -4,16 +4,12 @@ require 'krane/kubernetes_resource/pod'
 module Krane
   class Service < KubernetesResource
     TIMEOUT = 7.minutes
+    SYNC_DEPENDENCIES = %w(Pod Deployment StatefulSet)
 
     def sync(cache)
       super
-      if exists? && selector.present?
-        @related_pods = cache.get_all(Pod.kind, selector)
-        @related_workloads = fetch_related_workloads(cache)
-      else
-        @related_pods = []
-        @related_workloads = []
-      end
+      @related_pods = cache.get_all(Pod.kind, selector)
+      @related_workloads = fetch_related_workloads(cache)
     end
 
     def status

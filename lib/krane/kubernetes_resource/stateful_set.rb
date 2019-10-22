@@ -4,6 +4,7 @@ module Krane
   class StatefulSet < PodSetBase
     TIMEOUT = 10.minutes
     ONDELETE = 'OnDelete'
+    SYNC_DEPENDENCIES = %w(Pod)
     attr_reader :pods
 
     def sync(cache)

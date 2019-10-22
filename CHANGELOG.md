@@ -3,6 +3,9 @@
 *Bug Fixes*
 - Fix a bug causing secret generation from ejson to fail when decryption succeeded but a warning was also emitted. [#647](https://github.com/Shopify/krane/pull/647)
 
+*Enhancements*
+- Warm the ResourceCache before running resource.sync to improve sync performance. ([#603](https://github.com/Shopify/kubernetes-deploy/pull/603))
+
 # 1.0.0
 
 We've renamed the gem and cli to Krane.
