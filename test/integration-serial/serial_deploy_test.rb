@@ -281,7 +281,6 @@ class SerialDeployTest < Krane::IntegrationTest
     %w(
       KubernetesDeploy.validate_configuration.duration
       KubernetesDeploy.discover_resources.duration
-      KubernetesDeploy.validate_resources.duration
       KubernetesDeploy.initial_status.duration
       KubernetesDeploy.priority_resources.duration
       KubernetesDeploy.apply_all.duration
@@ -305,7 +304,6 @@ class SerialDeployTest < Krane::IntegrationTest
     %w(
       KubernetesDeploy.validate_configuration.duration
       KubernetesDeploy.discover_resources.duration
-      KubernetesDeploy.validate_resources.duration
       KubernetesDeploy.initial_status.duration
       KubernetesDeploy.priority_resources.duration
       KubernetesDeploy.apply_all.duration
@@ -485,7 +483,7 @@ class SerialDeployTest < Krane::IntegrationTest
   def test_deploying_crs_with_invalid_crd_conditions_fails
     # Since CRDs are not always deployed along with their CRs and krane is not the only way CRDs are
     # deployed, we need to model the case where poorly configured rollout_conditions are present before deploying a CR
-    KubernetesDeploy::DeployTask.any_instance.expects(:validate_resources).returns(:true)
+    Krane::DeployTaskConfigValidator.any_instance.expects(:validate_resources).returns(:true)
     crd_result = deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]) do |resource|
       crd = resource["with_custom_conditions.yml"]["CustomResourceDefinition"].first
       crd["metadata"]["annotations"].merge!(
@@ -494,7 +492,7 @@ class SerialDeployTest < Krane::IntegrationTest
     end
 
     assert_deploy_success(crd_result)
-    KubernetesDeploy::DeployTask.any_instance.unstub(:validate_resources)
+    Krane::DeployTaskConfigValidator.any_instance.unstub(:validate_resources)
 
     cr_result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml", "with_custom_conditions_cr2.yml"])
     assert_deploy_failure(cr_result)
@@ -531,6 +529,25 @@ class SerialDeployTest < Krane::IntegrationTest
     ])
 
     refute_logs_match("kind: Deployment") # content of the sensitive template
+  end
+
+  def test_global_deploy_task
+    Krane::FormattedLogger.expects(:build).returns(@logger)
+    global_deploy = ::Krane::GlobalDeployTask.new(
+      context: task_config.context,
+      filenames: [fixture_path('globals')],
+      global_timeout: 300,
+      selector: Krane::LabelSelector.parse('app=krane')
+    )
+    global_deploy.run!(verify_result: true, prune: false)
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Successfully deployed 1 resource",
+      "Successful resources",
+      "StorageClass/testing-storage-class",
+    ])
+  ensure
+    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
   end
 
   private

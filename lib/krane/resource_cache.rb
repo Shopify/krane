@@ -51,9 +51,10 @@ module Krane
 
     def fetch_by_kind(kind)
       resource_class = KubernetesResource.class_for_kind(kind)
+      global_kind = @task_config.global_kinds.map(&:downcase).include?(kind.downcase)
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
       raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
-         output_is_sensitive: output_is_sensitive)
+         output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
       raise KubectlError unless st.success?
 
       instances = {}

@@ -109,6 +109,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
         output_is_sensitive: true,
         retry_whitelist: [:client_timeout],
         attempts: 3,
+        use_namespace: true,
       })
   end
 

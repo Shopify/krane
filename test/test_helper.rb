@@ -225,7 +225,7 @@ module Krane
     end
 
     def task_config(context: KubeclientHelper::TEST_CONTEXT, namespace: @namespace, logger: @logger)
-      Krane::TaskConfig.new(context, namespace, logger)
+      @task_config ||= Krane::TaskConfig.new(context, namespace, logger)
     end
 
     def krane_black_box(command, args = "")

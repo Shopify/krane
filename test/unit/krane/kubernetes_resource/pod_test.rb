@@ -220,7 +220,7 @@ class PodTest < Krane::TestCase
     template = build_pod_template
     pod = Krane::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc)
-    cache = build_resource_cache
+    cache = build_resource_cache(global_kinds: nil)
     cache.expects(:get_instance).raises(Krane::Kubectl::ResourceNotFoundError)
     pod.sync(cache)
 
@@ -233,7 +233,7 @@ class PodTest < Krane::TestCase
     template = build_pod_template
     pod = Krane::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc, parent: mock)
-    cache = build_resource_cache
+    cache = build_resource_cache(global_kinds: nil)
     cache.expects(:get_instance).raises(Krane::Kubectl::ResourceNotFoundError)
     pod.sync(cache)
 

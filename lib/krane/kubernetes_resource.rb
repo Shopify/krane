@@ -40,7 +40,7 @@ module Krane
     SERVER_DRY_RUNNABLE = false
 
     class << self
-      def build(namespace:, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [])
+      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [])
         validate_definition_essentials(definition)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
@@ -322,7 +322,7 @@ module Krane
     def fetch_events(kubectl)
       return {} unless exists?
       out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}",
-        log_failure: false)
+        log_failure: false, use_namespace: !global?)
       return {} unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
@@ -532,7 +532,7 @@ module Krane
       verb = deploy_method == :apply ? "apply" : "create"
       command = [verb, "-f", file_path, "--dry-run", "--output=name"]
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
-        retry_whitelist: [:client_timeout], attempts: 3)
+        retry_whitelist: [:client_timeout], attempts: 3, use_namespace: !global?)
     end
 
     def labels
