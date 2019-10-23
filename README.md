@@ -1,14 +1,10 @@
-# krane
+# krane [![Build status](https://badge.buildkite.com/61937e40a1fc69754d9d198be120543d6de310de2ba8d3cb0e.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy) [![codecov](https://codecov.io/gh/Shopify/kubernetes-deploy/branch/master/graph/badge.svg)](https://codecov.io/gh/Shopify/kubernetes-deploy)
 
-As this project approaches the v1.0 milestone, we're excited to announce that `kubernetes-deploy` will be [officially renamed as `krane`](https://github.com/Shopify/kubernetes-deploy/issues/30#issuecomment-468750341). Follow the [1.0 requirement label](https://github.com/Shopify/kubernetes-deploy/issues?q=is%3Aissue+is%3Aopen+label%3A%22%3Arocket%3A+1.0+requirement%22) to keep up with the progress.
+`krane` is a command line tool that helps you ship changes to a Kubernetes namespace and understand the result. At Shopify, we use it within our much-beloved, open-source [Shipit](https://github.com/Shopify/shipit-engine#kubernetes) deployment app.
 
-# kubernetes-deploy [![Build status](https://badge.buildkite.com/61937e40a1fc69754d9d198be120543d6de310de2ba8d3cb0e.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy) [![codecov](https://codecov.io/gh/Shopify/kubernetes-deploy/branch/master/graph/badge.svg)](https://codecov.io/gh/Shopify/kubernetes-deploy)
+Why not just use the standard `kubectl apply` mechanism to deploy? It is indeed a fantastic tool; `krane` uses it under the hood! However, it leaves its users with some burning questions: _What just happened?_ _Did it work?_
 
-`kubernetes-deploy` is a command line tool that helps you ship changes to a Kubernetes namespace and understand the result. At Shopify, we use it within our much-beloved, open-source [Shipit](https://github.com/Shopify/shipit-engine#kubernetes) deployment app.
-
-Why not just use the standard `kubectl apply` mechanism to deploy? It is indeed a fantastic tool; `kubernetes-deploy` uses it under the hood! However, it leaves its users with some burning questions: _What just happened?_ _Did it work?_
-
-Especially in a CI/CD environment, we need a clear, actionable pass/fail result for each deploy. Providing this was the foundational goal of `kubernetes-deploy`, which has grown to support the following core features:
+Especially in a CI/CD environment, we need a clear, actionable pass/fail result for each deploy. Providing this was the foundational goal of `krane`, which has grown to support the following core features:
 
 ​:eyes:  Watches the changes you requested to make sure they roll out successfully.
 
@@ -20,7 +16,7 @@ Especially in a CI/CD environment, we need a clear, actionable pass/fail result 
 
 ​:running: [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy) using bare pods (example use case: Rails migrations)
 
-This repo also includes related tools for [running tasks](#kubernetes-run) and [restarting deployments](#kubernetes-restart).
+This repo also includes related tools for [running tasks](#krane run) and [restarting deployments](#krane restart).
 
 
 
@@ -30,6 +26,10 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 
 ![missing-secret-fail](screenshots/missing-secret-fail.png)
 
+# kubernetes-deploy
+
+This was the previous name of this project! If you're curious about the rename to `Krane`, check [this issue](https://github.com/Shopify/kubernetes-deploy/issues/30#issuecomment-468750341) and [this issue](https://github.com/Shopify/kubernetes-deploy/issues?q=is%3Aissue+is%3Aopen+label%3A%22%3Arocket%3A+1.0+requirement%22) for context.
+
 
 
 --------
@@ -38,7 +38,7 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
 
 ## Table of contents
 
-**KUBERNETES-DEPLOY**
+**KRANE**
 * [Prerequisites](#prerequisites)
 * [Installation](#installation)
 * [Usage](#usage)
@@ -49,14 +49,14 @@ This repo also includes related tools for [running tasks](#kubernetes-run) and [
   * [Deploying custom resources](#deploying-custom-resources)
 * [Walk through the steps of a deployment](#deploy-walkthrough)
 
-**KUBERNETES-RESTART**
+**KRANE RESTART**
 * [Usage](#usage-1)
 
-**KUBERNETES-RUN**
+**KRANE RUN**
 * [Prerequisites](#prerequisites-1)
 * [Usage](#usage-2)
 
-**KUBERNETES-RENDER**
+**KRANE RENDER**
 * [Prerequisites](#prerequisites-2)
 * [Usage](#usage-3)
 
@@ -99,7 +99,7 @@ official compatibility chart below.
 
 ## Usage
 
-`kubernetes-deploy <app's namespace> <kube context>`
+`krane deploy <app's namespace> <kube context>`
 
 *Environment variables:*
 
@@ -112,25 +112,25 @@ official compatibility chart below.
 
 *Options:*
 
-Refer to `kubernetes-deploy --help` for the authoritative set of options.
+Refer to `krane help` for the authoritative set of options.
 
-- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`. Example: `cat templates_from_stdin/*.yml | kubernetes-deploy ns ctx --template-dir=-`.
-- (alpha feature) `-f [PATHS]`: Accepts a comma-separated list of directories and/or filenames to specify the set of directories/files that will be deployed (use `-` to read from STDIN). Can be invoked multiple times. Cannot be combined with `--template-dir`. Example: `cat templates_from_stdin/*.yml | kubernetes-deploy ns ctx -f -,path/to/dir,path/to/file.yml`
-- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large` will expose `color` and `size`.
+- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`. Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx --template-dir=-`.
+- (alpha feature) `-f [PATHS]`: Accepts a comma-separated list of directories and/or filenames to specify the set of directories/files that will be deployed (use `-` to read from STDIN). Can be invoked multiple times. Cannot be combined with `--template-dir`. Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f -,path/to/dir,path/to/file.yml`
+- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane deploy my-app cluster1 --render-erb --bindings=color=blue,size=large` will expose `color` and `size`.
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--max-watch-seconds=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
 resource to deploy.
-- `--selector`: Instructs kubernetes-deploy to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
+- `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
 
 > **NOTICE**: Deploy Secret resources at your own risk. Although we will fix any reported leak vectors with urgency, we cannot guarantee that sensitive information will never be logged.
 
 ### Sharing a namespace
 
-By default, kubernetes-deploy will prune any resources in the target namespace which have the `kubectl.kubernetes.io/last-applied-configuration` annotation and are not a result of the current deployment process, on the assumption that there is a one-to-one relationship between application deployment and namespace, and that a deployment provisions all relevant resources in the namespace.
+By default, krane will prune any resources in the target namespace which have the `kubectl.kubernetes.io/last-applied-configuration` annotation and are not a result of the current deployment process, on the assumption that there is a one-to-one relationship between application deployment and namespace, and that a deployment provisions all relevant resources in the namespace.
 
 If you need to, you may specify `--no-prune` to disable all pruning behaviour, but this is not recommended.
 
-If you need to share a namespace with resources which are managed by other tools or indeed other kubernetes-deploy deployments, you can supply the `--selector` option, such that only resources with labels matching the selector are considered for pruning.
+If you need to share a namespace with resources which are managed by other tools or indeed other krane deployments, you can supply the `--selector` option, such that only resources with labels matching the selector are considered for pruning.
 
 ### Using templates and variables
 
@@ -147,22 +147,22 @@ You can add additional variables using the `--bindings=BINDINGS` option which ca
 
 ```
 # Comma separated string. Exposes, 'color' and 'size'
-$ kubernetes-deploy my-app cluster1 --bindings=color=blue,size=large
+$ krane deploy my-app cluster1 --render-erb --bindings=color=blue,size=large
 
 # JSON string. Exposes, 'color' and 'size'
-$ kubernetes-deploy my-app cluster1 --bindings='{"color":"blue","size":"large"}'
+$ krane deploy my-app cluster1 --render-erb --bindings='{"color":"blue","size":"large"}'
 
 # Load JSON file from ./config
-$ kubernetes-deploy my-app cluster1 --bindings='@config/production.json'
+$ krane deploy my-app cluster1 --render-erb --bindings='@config/production.json'
 
 # Load YAML file from ./config (.yaml or .yml supported)
-$ kubernetes-deploy my-app cluster1 --bindings='@config/production.yaml'
+$ krane deploy my-app cluster1 --render-erb --bindings='@config/production.yaml'
 ```
 
 
 #### Using partials
 
-`kubernetes-deploy` supports composing templates from so called partials in order to reduce duplication in Kubernetes YAML files. Given a template directory `DIR`, partials are searched for in `DIR/partials`and in 'DIR/../partials', in that order. They can be embedded in other ERB templates using the helper method `partial`. For example, let's assume an application needs a number of different CronJob resources, one could place a template called `cron` in one of those directories and then use it in the main deployment.yaml.erb like so:
+`krane` supports composing templates from so called partials in order to reduce duplication in Kubernetes YAML files. Given a template directory `DIR`, partials are searched for in `DIR/partials`and in 'DIR/../partials', in that order. They can be embedded in other ERB templates using the helper method `partial`. For example, let's assume an application needs a number of different CronJob resources, one could place a template called `cron` in one of those directories and then use it in the main deployment.yaml.erb like so:
 
 ```yaml
 <%= partial "cron", name: "cleanup",   schedule: "0 0 * * *", args: %w(cleanup),    cpu: "100m", memory: "100Mi" %>
@@ -260,7 +260,7 @@ before the deployment is considered successful.
 
 ### Running tasks at the beginning of a deploy
 
-To run a task in your cluster at the beginning of every deploy, simply include a `Pod` template in your deploy directory. `kubernetes-deploy` will first deploy any `ConfigMap` and `PersistentVolumeClaim` resources in your template set, followed by any such pods. If the command run by one of these pods fails (i.e. exits with a non-zero status), the overall deploy will fail at this step (no other resources will be deployed).
+To run a task in your cluster at the beginning of every deploy, simply include a `Pod` template in your deploy directory. `krane` will first deploy any `ConfigMap` and `PersistentVolumeClaim` resources in your template set, followed by any such pods. If the command run by one of these pods fails (i.e. exits with a non-zero status), the overall deploy will fail at this step (no other resources will be deployed).
 
 *Requirements:*
 
@@ -280,12 +280,12 @@ The logs of all pods run in this way will be printed inline. If there is only on
 
 **Note: If you're a Shopify employee using our cloud platform, this setup has already been done for you. Please consult the CloudPlatform User Guide for usage instructions.**
 
-Since their data is only base64 encoded, Kubernetes secrets should not be committed to your repository. Instead, `kubernetes-deploy` supports generating secrets from an encrypted [ejson](https://github.com/Shopify/ejson) file in your template directory. Here's how to use this feature:
+Since their data is only base64 encoded, Kubernetes secrets should not be committed to your repository. Instead, `krane` supports generating secrets from an encrypted [ejson](https://github.com/Shopify/ejson) file in your template directory. Here's how to use this feature:
 
 1. Install the ejson gem: `gem install ejson`
 2. Generate a new keypair: `ejson keygen` (prints the keypair to stdout)
 3. Create a Kubernetes secret in your target namespace with the new keypair: `kubectl create secret generic ejson-keys --from-literal=YOUR_PUBLIC_KEY=YOUR_PRIVATE_KEY --namespace=TARGET_NAMESPACE`
->Warning: Do *not* use `apply` to create the `ejson-keys` secret. kubernetes-deploy will fail if `ejson-keys` is prunable. This safeguard is to protect against the accidental deletion of your private keys.
+>Warning: Do *not* use `apply` to create the `ejson-keys` secret. krane will fail if `ejson-keys` is prunable. This safeguard is to protect against the accidental deletion of your private keys.
 4. (optional but highly recommended) Back up the keypair somewhere secure, such as a password manager, for disaster recovery purposes.
 5. In your template directory (alongside your Kubernetes templates), create `secrets.ejson` with the format shown below. The `_type` key should have the value “kubernetes.io/tls” for TLS secrets and “Opaque” for all others. The `data` key must be a json object, but its keys and values can be whatever you need.
 
@@ -313,7 +313,7 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
 6. Encrypt the file: `ejson encrypt /PATH/TO/secrets.ejson`
 7. Commit the encrypted file and deploy as usual. The deploy will create secrets from the data in the `kubernetes_secrets` key.
 
-**Note**: Since leading underscores in ejson keys are used to skip encryption of the associated value, `kubernetes-deploy` will strip these leading underscores when it creates the keys for the Kubernetes secret data. For example, given the ejson data below, the `monitoring-token` secret will have keys `api-token` and `property` (_not_ `_property`):
+**Note**: Since leading underscores in ejson keys are used to skip encryption of the associated value, `krane` will strip these leading underscores when it creates the keys for the Kubernetes secret data. For example, given the ejson data below, the `monitoring-token` secret will have keys `api-token` and `property` (_not_ `_property`):
 
 ```json
 {
@@ -333,7 +333,7 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
 
 ### Deploying custom resources
 
-By default, kubernetes-deploy does not check the status of custom resources; it simply assumes that they deployed successfully. In order to meaningfully monitor the rollout of custom resources, kubernetes-deploy supports configuring pass/fail conditions using annotations on CustomResourceDefinitions (CRDs).
+By default, krane does not check the status of custom resources; it simply assumes that they deployed successfully. In order to meaningfully monitor the rollout of custom resources, krane supports configuring pass/fail conditions using annotations on CustomResourceDefinitions (CRDs).
 
 >Note:
 This feature is only available on clusters running Kubernetes 1.11+ since it relies on the `metadata.generation` field being updated when custom resource specs are changed.
@@ -346,7 +346,7 @@ This feature is only available on clusters running Kubernetes 1.11+ since it rel
 
 #### Specifying pass/fail conditions
 
-The presence of a valid `krane.shopify.io/instance-rollout-conditions` annotation on a CRD will cause kubernetes-deploy to monitor the rollout of all instances of that custom resource. Its value can either be `"true"` (giving you the defaults described in the next section) or a valid JSON string with the following format:
+The presence of a valid `krane.shopify.io/instance-rollout-conditions` annotation on a CRD will cause krane to monitor the rollout of all instances of that custom resource. Its value can either be `"true"` (giving you the defaults described in the next section) or a valid JSON string with the following format:
 ```
 '{
   "success_conditions": [
@@ -366,7 +366,7 @@ In addition to `path` and `value`, a failure condition can also contain `error_m
 
 **Warning:**
 
-You **must** ensure that your custom resource controller sets `.status.observedGeneration` to match the observed `.metadata.generation` of the monitored resource once its sync is complete. If this does not happen, kubernetes-deploy will not check success or failure conditions and the deploy will time out.
+You **must** ensure that your custom resource controller sets `.status.observedGeneration` to match the observed `.metadata.generation` of the monitored resource once its sync is complete. If this does not happen, krane will not check success or failure conditions and the deploy will time out.
 
 #### Example
 
@@ -416,10 +416,10 @@ status:
     message: "resource is failed"
 ```
 
-- `observedGeneration == metadata.generation`, so kubernetes-deploy will check this resource's success and failure conditions.
+- `observedGeneration == metadata.generation`, so krane will check this resource's success and failure conditions.
 - Since `$.status.conditions[?(@.type == "Ready")].status == "False"`, the resource is not considered successful yet.
 - `$.status.conditions[?(@.type == "Failed")].status == "True"` means that a failure condition has been fulfilled and the resource is considered failed.
-- Since `error_msg_path` is specified, kubernetes-deploy will log the contents of `$.status.conditions[?(@.type == "Failed")].message`, which in this case is: `resource is failed`.
+- Since `error_msg_path` is specified, krane will log the contents of `$.status.conditions[?(@.type == "Failed")].message`, which in this case is: `resource is failed`.
 
 ### Deploy walkthrough
 
@@ -504,9 +504,9 @@ At this point the command also returns a status code:
 
 **On timeouts**: It's important to notice that a single resource timeout or a global deploy timeout doesn't necessarily mean that the operation failed. Since Kubernetes updates are asynchronous, maybe something was just too slow to return in the configured time; in those cases, usually running the deploy again might work (that should be a no-op for most - if not all - resources).
 
-# kubernetes-restart
+# krane restart
 
-`kubernetes-restart` is a tool for restarting all of the pods in one or more deployments. It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec. The rollout strategy defined for each deployment will be respected by the restart.
+`krane restart` is a tool for restarting all of the pods in one or more deployments. It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec. The rollout strategy defined for each deployment will be respected by the restart.
 
 
 
@@ -516,7 +516,7 @@ At this point the command also returns a status code:
 
 The following command will restart all pods in the `web` and `jobs` deployments:
 
-`kubernetes-restart <kube namespace> <kube context> --deployments=web,jobs`
+`krane restart <kube namespace> <kube context> --deployments=web,jobs`
 
 
 **Option 2: Annotate the deployments you want to restart**
@@ -534,18 +534,18 @@ metadata:
 
 With this done, you can use the following command to restart all of them:
 
-`kubernetes-restart <kube namespace> <kube context>`
+`krane restart <kube namespace> <kube context>`
 
 *Options:*
 
-Refer to `kubernetes-restart --help` for the authoritative set of options.
+Refer to `krane restart --help` for the authoritative set of options.
 
 - `--selector`: Only restarts Deployments which match the specified Kubernetes resource selector.
 - `--deployments`: Restart specific Deployment resources by name.
 
-# kubernetes-run
+# krane run
 
-`kubernetes-run` is a tool for triggering a one-off job, such as a rake task, _outside_ of a deploy.
+`krane run` is a tool for triggering a one-off job, such as a rake task, _outside_ of a deploy.
 
 
 
@@ -554,13 +554,13 @@ Refer to `kubernetes-restart --help` for the authoritative set of options.
 * You've already deployed a [`PodTemplate`](https://v1-10.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.11/#podtemplate-v1-core) object with field `template` containing a `Pod` specification that does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
 * The `Pod` specification in that template has a container named `task-runner`.
 
-Based on this specification `kubernetes-run` will create a new pod with the entrypoint of the `task-runner ` container overridden with the supplied arguments.
+Based on this specification `krane run` will create a new pod with the entrypoint of the `task-runner ` container overridden with the supplied arguments.
 
 
 
 ## Usage
 
-`kubernetes-run <kube namespace> <kube context> <arguments> --entrypoint=<entrypoint> --template=<template name>`
+`krane run <kube namespace> <kube context> <arguments> --entrypoint=<entrypoint> --template=<template name>`
 
 *Options:*
 
@@ -572,40 +572,40 @@ Based on this specification `kubernetes-run` will create a new pod with the entr
 
 
 
-# kubernetes-render
+# krane render
 
-`kubernetes-render` is a tool for rendering ERB templates to raw Kubernetes YAML. It's useful for seeing what `kubernetes-deploy` does before actually invoking `kubectl` on the rendered YAML. It's also useful for outputting YAML that can be passed to other tools, for validation or introspection purposes.
+`krane render` is a tool for rendering ERB templates to raw Kubernetes YAML. It's useful for seeing what `krane deploy` does before actually invoking `kubectl` on the rendered YAML. It's also useful for outputting YAML that can be passed to other tools, for validation or introspection purposes.
 
 
 ## Prerequisites
 
- * `kubernetes-render` does __not__ require a running cluster or an active kubernetes context, which is nice if you want to run it in a CI environment, potentially alongside something like https://github.com/garethr/kubeval to make sure your configuration is sound.
- * Like the other `kubernetes-deploy` commands, `kubernetes-render` requires the `$REVISION` environment variable to be set, and will make it available as `current_sha` in your ERB templates.
+ * `krane render` does __not__ require a running cluster or an active kubernetes context, which is nice if you want to run it in a CI environment, potentially alongside something like https://github.com/garethr/kubeval to make sure your configuration is sound.
+ * Like the other `krane` commands, `krane render` requires the `$REVISION` environment variable to be set, and will make it available as `current_sha` in your ERB templates.
 
 ## Usage
 
 To render all templates in your template dir, run:
 
 ```
-kubernetes-render --template-dir=./path/to/template/dir
+krane render --template-dir=./path/to/template/dir
 ```
 
-To render some templates in a template dir, run kubernetes-render with the names of the templates to render:
+To render some templates in a template dir, run krane render with the names of the templates to render:
 
 ```
-kubernetes-render --template-dir=./path/to/template/dir this-template.yaml.erb that-template.yaml.erb
+krane render --template-dir=./path/to/template/dir this-template.yaml.erb that-template.yaml.erb
 ```
 
-To render a template in a template dir and output it to a file, run kubernetes-render with the name of the template and redirect the output to a file:
+To render a template in a template dir and output it to a file, run krane render with the name of the template and redirect the output to a file:
 
 ```
-kubernetes-render --template-dir=./path/to/template/dir template.yaml.erb > template.yaml
+krane render --template-dir=./path/to/template/dir template.yaml.erb > template.yaml
 ```
 
 *Options:*
 
-- `--template-dir=DIR`: Used to set the directory to interpret template names relative to. This is often the same directory passed as `--template-dir` when running `kubernetes-deploy` to actually deploy templates. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`.
-- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `kubernetes-render --bindings=color=blue,size=large some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
+- `--template-dir=DIR`: Used to set the directory to interpret template names relative to. This is often the same directory passed as `--template-dir` when running `krane` to actually deploy templates. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`.
+- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane render --bindings=color=blue,size=large some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
 
 
 # Contributing
