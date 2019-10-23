@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'krane/deprecated_deploy_task'
+require 'kubernetes-deploy/deploy_task'
 require 'krane/options_helper'
 require 'krane/bindings_parser'
 require 'krane/label_selector'
@@ -69,7 +69,7 @@ template_paths = [template_dir] if template_paths.empty? && template_dir
 
 begin
   Krane::OptionsHelper.with_processed_template_paths(template_paths) do |paths|
-    runner = Krane::DeprecatedDeployTask.new(
+    runner = KubernetesDeploy::DeployTask.new(
       namespace: namespace,
       context: context,
       current_sha: ENV["REVISION"],
@@ -87,11 +87,11 @@ begin
       prune: prune
     )
   end
-rescue Krane::DeploymentTimeoutError
+rescue KubernetesDeploy::DeploymentTimeoutError
   exit(70)
-rescue Krane::FatalDeploymentError
+rescue KubernetesDeploy::FatalDeploymentError
   exit(1)
-rescue Krane::OptionsHelper::OptionsError => e
+rescue KubernetesDeploy::OptionsHelper::OptionsError => e
   logger.error(e.message)
   exit(1)
 end

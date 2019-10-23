@@ -3,7 +3,7 @@
 
 require 'optparse'
 
-require 'krane/restart_task'
+require 'kubernetes-deploy/restart_task'
 require 'krane/options_helper'
 require 'krane/label_selector'
 
@@ -22,12 +22,12 @@ end
 namespace = ARGV[0]
 context = ARGV[1]
 
-restart = Krane::RestartTask.new(namespace: namespace, context: context,
+restart = KubernetesDeploy::RestartTask.new(namespace: namespace, context: context,
    max_watch_seconds: max_watch_seconds)
 begin
   restart.run!(raw_deployments, selector: selector)
-rescue Krane::DeploymentTimeoutError
+rescue KubernetesDeploy::DeploymentTimeoutError
   exit(70)
-rescue Krane::FatalDeploymentError
+rescue KubernetesDeploy::FatalDeploymentError
   exit(1)
 end

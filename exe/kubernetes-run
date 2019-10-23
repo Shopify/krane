@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'krane/runner_task'
+require 'kubernetes-deploy/runner_task'
 require 'krane/options_helper'
 require 'optparse'
 
@@ -26,7 +26,7 @@ end
 namespace = ARGV[0]
 context = ARGV[1]
 
-runner = Krane::RunnerTask.new(
+runner = KubernetesDeploy::RunnerTask.new(
   namespace: namespace,
   context: context,
   max_watch_seconds: max_watch_seconds

@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module Krane
   class FatalDeploymentError < StandardError; end
   class FatalKubeAPIError < FatalDeploymentError; end
