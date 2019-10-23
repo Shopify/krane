@@ -24,7 +24,7 @@ ARGV.options do |opts|
     "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") { |b| parser.add(b) }
 
   opts.on("--skip-wait", "Skip verification of non-priority-resource success (not recommended)") { skip_wait = true }
-  prot_ns = Krane::DeployTask::PROTECTED_NAMESPACES.join(', ')
+  prot_ns = KubernetesDeploy::DeployTask::PROTECTED_NAMESPACES.join(', ')
   opts.on("--allow-protected-ns", "Enable deploys to #{prot_ns}; requires --no-prune") { allow_protected_ns = true }
   opts.on("--no-prune", "Disable deletion of resources that do not appear in the template dir") { prune = false }
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT).") do |dir|
