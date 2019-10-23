@@ -2,7 +2,7 @@
 require 'colorized_string'
 
 module Krane
-  # Adds the methods kubernetes-deploy requires to your logger class.
+  # Adds the methods krane requires to your logger class.
   # These methods include helpers for logging consistent headings, as well as facilities for
   # displaying key information later, in a summary section, rather than when it occurred.
   module DeferredSummaryLogging

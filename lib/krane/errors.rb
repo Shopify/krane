@@ -27,7 +27,7 @@ module Krane
     def initialize
       super("Found #{KubernetesResource::LAST_APPLIED_ANNOTATION} annotation on " \
           "#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} secret. " \
-          "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned.")
+          "krane will not continue since it is extremely unlikely that this secret should be pruned.")
     end
   end
 end

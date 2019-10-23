@@ -453,7 +453,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_deploying_crs_with_invalid_crd_conditions_fails
-    # Since CRDs are not always deployed along with their CRs and kubernetes-deploy is not the only way CRDs are
+    # Since CRDs are not always deployed along with their CRs and krane is not the only way CRDs are
     # deployed, we need to model the case where poorly configured rollout_conditions are present before deploying a CR
     Krane::DeployTask.any_instance.expects(:validate_resources).returns(:true)
     crd_result = deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]) do |resource|
