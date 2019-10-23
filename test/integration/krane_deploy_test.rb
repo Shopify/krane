@@ -1205,7 +1205,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Secret/#{Krane::EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.",
       "Result: FAILURE",
       "Found kubectl.kubernetes.io/last-applied-configuration annotation on ejson-keys secret.",
-      "kubernetes-deploy will not continue since it is extremely unlikely that this secret should be pruned.",
+      "krane will not continue since it is extremely unlikely that this secret should be pruned.",
     ],
       in_order: true)
   end

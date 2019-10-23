@@ -19,7 +19,7 @@ module Krane
         end
 
         if template_paths.include?("-")
-          Dir.mktmpdir("kubernetes-deploy") do |dir|
+          Dir.mktmpdir("krane") do |dir|
             template_dir_from_stdin(temp_dir: dir)
             validated_paths << dir
             yield validated_paths
