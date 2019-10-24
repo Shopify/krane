@@ -580,6 +580,36 @@ class SerialDeployTest < Krane::IntegrationTest
       refute_predicate(status, :success?)
       assert_equal(status.exitstatus, 70)
     end
+
+  def test_global_deploy_task
+    KubernetesDeploy::FormattedLogger.expects(:build).returns(@logger)
+    global_deploy = ::Krane::GlobalDeployTask.new(
+      context: task_config.context,
+      template_paths: [fixture_path('globals')],
+      max_watch_seconds: 300,
+      selector: KubernetesDeploy::LabelSelector.parse('app=krane')
+    )
+    global_deploy.run!(verify_result: true, prune: true)
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Successfully deployed 2 resource",
+      "Successful resources",
+      "StorageClass/testing-storage-class",
+      "PriorityClass/testing-priority-class",
+    ])
+  ensure
+    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
+    scheduling_v1beta1_kubeclient.delete_priority_class("testing-priority-class")
+  end
+
+  def test_global_deploy_black_box_success
+    setup_template_dir("globals") do |target_dir|
+      flags = "-f #{target_dir} --selector app=krane"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("Success", err)
+      assert_predicate(status, :success?)
+    end
   ensure
     build_kubectl.run("delete", "-f", fixture_path("globals"), use_namespace: false, log_failure: false)
   end
@@ -601,6 +631,27 @@ class SerialDeployTest < Krane::IntegrationTest
     ])
   ensure
     wait_for_all_crd_deletion
+    build_kubectl.run("delete", "-f", fixture_path("globals"), use_namespace: false, log_failure: false)
+
+  end
+
+  def test_global_deploy_prune_black_box_success
+    pc_name = "testing-priority-class"
+    setup_template_dir("globals") do |target_dir|
+      flags = "-f #{target_dir} --selector app=krane"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("Success", err)
+      assert_predicate(status, :success?)
+
+      flags = "-f #{target_dir}/storage_classes.yml --selector app=krane"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("Pruned 1 resource and successfully deployed 1 resource", err)
+      assert_predicate(status, :success?)
+    end
+  ensure
+    build_kubectl.run("delete", "-f", fixture_path("globals"), use_namespace: false, log_failure: false)
   end
 
   private
