@@ -22,7 +22,7 @@ metadata:
 spec:
   type: ClusterIP
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: standard
@@ -72,7 +72,7 @@ spec:
   selector:
     type: zero-replica
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zero-replica
@@ -100,7 +100,7 @@ spec:
   selector:
     type: zero-replica-multiple
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zero-replica-multiple-1
@@ -120,7 +120,7 @@ spec:
       - name: app
         image: busybox
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zero-replica-multiple-2
@@ -148,14 +148,20 @@ spec:
   selector:
     type: zero-replica-statefulset
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   labels:
+    app: hello-cloud
+    name: stateful-busybox
     type: zero-replica-statefulset
   name: stateful-busybox
 spec:
   serviceName: "zero-replica-statefulset"
+  selector:
+    matchLabels:
+      app: hello-cloud
+      name: stateful-busybox
   replicas: 0
   template:
     metadata:
@@ -181,7 +187,7 @@ spec:
   selector:
     type: mis-matched-pod
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mis-matched-deployment

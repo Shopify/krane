@@ -1,7 +1,10 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: ds-app
+  labels:
+    app: ds-app
+    name: ds-app
   generation: 2
   uid: 'c31a9b4e-e6dd-11e9-8f47-e6322f98393a'
 spec:

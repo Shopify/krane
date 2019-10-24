@@ -11,12 +11,19 @@ spec:
     name: undying
     app: fixtures
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: undying
+  labels:
+    name: undying
+    app: fixtures
 spec:
   replicas: 2
+  selector:
+    matchLabels:
+      name: undying
+      app: fixtures
   progressDeadlineSeconds: 60
   revisionHistoryLimit: 1
   strategy:

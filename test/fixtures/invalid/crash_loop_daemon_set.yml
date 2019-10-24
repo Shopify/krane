@@ -1,8 +1,15 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: crash-loop
+  labels:
+    name: crash-loop
+    app: crash-app
 spec:
+  selector:
+    matchLabels:
+      name: crash-loop
+      app: crash-app
   template:
     metadata:
       labels:

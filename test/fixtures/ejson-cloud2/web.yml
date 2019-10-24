@@ -1,10 +1,17 @@
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web2
+  labels:
+    name: web2
+    app: ejson-cloud
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: web2
+      app: ejson-cloud
   progressDeadlineSeconds: 60
   template:
     metadata:

@@ -3,6 +3,9 @@ apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
   name: test
+  labels:
+    name: web
+    app: hello-cloud
   generation: 2
 spec:
   minAvailable: 2
