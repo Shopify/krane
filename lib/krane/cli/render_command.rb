@@ -4,8 +4,9 @@ module Krane
   module CLI
     class RenderCommand
       OPTIONS = {
-        bindings: { type: :array, desc: 'Bindings for erb' },
-        filenames: { type: :array, required: true, aliases: 'f', desc: 'Directories and files to render' },
+        bindings: { type: :array, banner: "foo=bar abc=def", desc: 'Bindings for erb' },
+        filenames: { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
+                     required: true, aliases: 'f', desc: 'Directories and files to render' },
       }
 
       def self.from_options(options)
