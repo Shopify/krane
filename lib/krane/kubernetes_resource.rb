@@ -87,8 +87,9 @@ module Krane
           raise InvalidTemplateError.new("Template is missing required field 'kind'", content: debug_content)
         end
 
-        if definition.dig('metadata', 'name').blank?
-          raise InvalidTemplateError.new("Template is missing required field 'metadata.name'", content: debug_content)
+        if definition.dig('metadata', 'name').blank? && definition.dig('metadata', 'generateName').blank?
+          raise InvalidTemplateError.new("Template must specify one of 'metadata.name' or 'metadata.generateName'",
+            content: debug_content)
         end
       end
     end
@@ -112,7 +113,7 @@ module Krane
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
       # subclasses must also set these if they define their own initializer
-      @name = definition.dig("metadata", "name").to_s
+      @name = (definition.dig("metadata", "name") || definition.dig("metadata", "generateName")).to_s
       @optional_statsd_tags = statsd_tags
       @namespace = namespace
       @context = context
@@ -235,9 +236,13 @@ module Krane
       !deploy_succeeded? && !deploy_failed? && (Time.now.utc - @deploy_started_at > timeout)
     end
 
-    # Expected values: :apply, :replace, :replace_force
+    # Expected values: :apply, :create, :replace, :replace_force
     def deploy_method
-      :apply
+      if @definition.dig("metadata", "name").blank? && uses_generate_name?
+        :create
+      else
+        :apply
+      end
     end
 
     def sync_debug_info(kubectl)
@@ -350,11 +355,27 @@ module Krane
     end
 
     def server_dry_runnable_resource?
-      self.class::SERVER_DRY_RUNNABLE
+      # generateName and server-side dry run are incompatible because the former only works with `create`
+      # and the latter only works with `apply`
+      self.class::SERVER_DRY_RUNNABLE && !uses_generate_name?
+    end
+
+    def uses_generate_name?
+      @definition.dig('metadata', 'generateName').present?
     end
 
     def server_dry_run_validated?
       @server_dry_run_validated
+    end
+
+    # If a resource uses generateName, we don't know the full name of the resource until it's deployed to the cluster.
+    # In this case, we need to update our local definition with the realized name in order to accurately track the
+    # resource during deploy
+    def use_generated_name(instance_data)
+      @name = instance_data.dig('metadata', 'name')
+      @definition['metadata']['name'] = @name
+      @definition['metadata'].delete('generateName')
+      @file = create_definition_tempfile
     end
 
     class Event
@@ -480,13 +501,13 @@ module Krane
     def validate_spec_with_kubectl(kubectl)
       err = ""
       if kubectl.server_dry_run_enabled? && server_dry_runnable_resource?
-        _, err, st = validate_with_dry_run_option(kubectl, "--server-dry-run")
+        _, err, st = validate_with_server_side_dry_run(kubectl)
         @server_dry_run_validated = st.success?
         return true if st.success?
       end
 
       if err.empty? || err.match(SERVER_DRY_RUN_DISABLED_ERROR)
-        _, err, st = validate_with_dry_run_option(kubectl, "--dry-run")
+        _, err, st = validate_with_local_dry_run(kubectl)
       end
 
       return true if st.success?
@@ -497,10 +518,21 @@ module Krane
       end
     end
 
-    def validate_with_dry_run_option(kubectl, dry_run_option)
-      command = ["apply", "-f", file_path, dry_run_option, "--output=name"]
+    # Server side dry run is only supported on apply
+    def validate_with_server_side_dry_run(kubectl)
+      command = ["apply", "-f", file_path, "--server-dry-run", "--output=name"]
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
-                               retry_whitelist: [:client_timeout], attempts: 3)
+        retry_whitelist: [:client_timeout], attempts: 3)
+    end
+
+    # Local dry run is supported on only create and apply
+    # If the deploy method is create, validating with apply will fail
+    # If the resource template uses generateName, validating with apply will fail
+    def validate_with_local_dry_run(kubectl)
+      verb = deploy_method == :apply ? "apply" : "create"
+      command = [verb, "-f", file_path, "--dry-run", "--output=name"]
+      kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
+        retry_whitelist: [:client_timeout], attempts: 3)
     end
 
     def labels

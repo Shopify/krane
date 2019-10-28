@@ -414,27 +414,26 @@ module Krane
       pruneable_types = prune_whitelist.map { |t| t.split("/").last }
       applyables += individuals.select { |r| pruneable_types.include?(r.type) }
 
-      individuals.each do |r|
-        r.deploy_started_at = Time.now.utc
-        case r.deploy_method
+      individuals.each do |individual_resource|
+        individual_resource.deploy_started_at = Time.now.utc
+
+        case individual_resource.deploy_method
+        when :create
+          err, status = create_resource(individual_resource)
         when :replace
-          _, _, replace_st = kubectl.run("replace", "-f", r.file_path, log_failure: false)
+          err, status = replace_or_create_resource(individual_resource)
         when :replace_force
-          _, _, replace_st = kubectl.run("replace", "--force", "--cascade", "-f", r.file_path,
-            log_failure: false)
+          err, status = replace_or_create_resource(individual_resource, force: true)
         else
           # Fail Fast! This is a programmer mistake.
-          raise ArgumentError, "Unexpected deploy method! (#{r.deploy_method.inspect})"
+          raise ArgumentError, "Unexpected deploy method! (#{individual_resource.deploy_method.inspect})"
         end
 
-        next if replace_st.success?
-        # it doesn't exist so we can't replace it
-        _, err, create_st = kubectl.run("create", "-f", r.file_path, log_failure: false)
+        next if status.success?
 
-        next if create_st.success?
         raise FatalDeploymentError, <<~MSG
-          Failed to replace or create resource: #{r.id}
-          #{err}
+          Failed to replace or create resource: #{individual_resource.id}
+          #{individual_resource.sensitive_template_content? ? '<suppressed sensitive output>' : err}
         MSG
       end
 
@@ -445,6 +444,35 @@ module Krane
           timeout: @max_watch_seconds, task_config: @task_config, sha: @current_sha)
         watcher.run(record_summary: record_summary)
       end
+    end
+
+    def replace_or_create_resource(resource, force: false)
+      args = if force
+        ["replace", "--force", "--cascade", "-f", resource.file_path]
+      else
+        ["replace", "-f", resource.file_path]
+      end
+
+      _, err, status = kubectl.run(*args, log_failure: false, output_is_sensitive: resource.sensitive_template_content?,
+        raise_if_not_found: true)
+
+      [err, status]
+    rescue Krane::Kubectl::ResourceNotFoundError
+      # it doesn't exist so we can't replace it, we try to create it
+      create_resource(resource)
+    end
+
+    def create_resource(resource)
+      out, err, status = kubectl.run("create", "-f", resource.file_path, log_failure: false, output: 'json',
+        output_is_sensitive: resource.sensitive_template_content?)
+
+      # For resources that rely on a generateName attribute, we get the `name` from the result of the call to `create`
+      # We must explicitly set this name value so that the `apply` step for pruning can run successfully
+      if status.success? && resource.uses_generate_name?
+        resource.use_generated_name(JSON.parse(out))
+      end
+
+      [err, status]
     end
 
     def deploy_all_resources(resources, prune: false, verify:, record_summary: true)

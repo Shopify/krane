@@ -46,10 +46,6 @@ module Krane
       @definition.dig("spec", "names", "kind")
     end
 
-    def name
-      @definition.dig("metadata", "name")
-    end
-
     def prunable?
       prunable = krane_annotation_value("prunable")
       prunable == "true"
