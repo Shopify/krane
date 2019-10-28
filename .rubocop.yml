@@ -14,4 +14,4 @@ Sorbet/ConstantsFromStrings:
 
 Layout/Tab:
   Exclude:
-    - test/integration/kubernetes_deploy_test.rb
+    - test/integration/krane_deploy_test.rb

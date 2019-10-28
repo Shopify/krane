@@ -2,9 +2,9 @@
 # frozen_string_literal: true
 
 require 'kubernetes-deploy/deploy_task'
-require 'kubernetes-deploy/options_helper'
-require 'kubernetes-deploy/bindings_parser'
-require 'kubernetes-deploy/label_selector'
+require 'krane/options_helper'
+require 'krane/bindings_parser'
+require 'krane/label_selector'
 
 require 'optparse'
 
@@ -19,7 +19,7 @@ max_watch_seconds = nil
 selector = nil
 
 ARGV.options do |opts|
-  parser = KubernetesDeploy::BindingsParser.new
+  parser = Krane::BindingsParser.new
   opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
     "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") { |b| parser.add(b) }
 
@@ -41,7 +41,7 @@ ARGV.options do |opts|
   end
   opts.on("--selector=SELECTOR", "Ensure that all resources in your template dir match the given selector, " \
     "and restrict pruning to deployed resources it selects.  (format: k1=v1,k2=v2)") do |s|
-    selector = KubernetesDeploy::LabelSelector.parse(s)
+    selector = Krane::LabelSelector.parse(s)
   end
 
   opts.on_tail("-h", "--help", "Print this help") do
@@ -49,7 +49,7 @@ ARGV.options do |opts|
     exit
   end
   opts.on_tail("-v", "--version", "Show version") do
-    puts "v#{KubernetesDeploy::VERSION}"
+    puts "v#{Krane::VERSION}"
     exit
   end
   opts.parse!
@@ -58,7 +58,7 @@ end
 
 namespace = ARGV[0]
 context = ARGV[1]
-logger = KubernetesDeploy::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
+logger = Krane::FormattedLogger.build(namespace, context, verbose_prefix: verbose_log_prefix)
 
 # Deprecation path: this can be removed when --template-dir is fully replaced by -f
 if template_dir && !template_paths.empty?
@@ -68,7 +68,7 @@ end
 template_paths = [template_dir] if template_paths.empty? && template_dir
 
 begin
-  KubernetesDeploy::OptionsHelper.with_processed_template_paths(template_paths) do |paths|
+  Krane::OptionsHelper.with_processed_template_paths(template_paths) do |paths|
     runner = KubernetesDeploy::DeployTask.new(
       namespace: namespace,
       context: context,

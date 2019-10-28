@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 require 'test_helper'
-require 'kubernetes-deploy/render_task'
+require 'krane/render_task'
 
-class RenderTaskTest < KubernetesDeploy::TestCase
+class RenderTaskTest < Krane::TestCase
   include FixtureDeployHelper
 
   def test_render_task
@@ -319,7 +319,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def test_render_task_template_paths_xor_template_dir
-    render = KubernetesDeploy::RenderTask.new(
+    render = Krane::RenderTask.new(
       logger: logger,
       current_sha: "k#{SecureRandom.hex(6)}",
       bindings: {},
@@ -332,7 +332,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
       "template_dir and template_paths can not be combined",
     ], in_order: true)
 
-    render = KubernetesDeploy::RenderTask.new(
+    render = Krane::RenderTask.new(
       logger: logger,
       current_sha: "k#{SecureRandom.hex(6)}",
       bindings: {},
@@ -380,7 +380,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   private
 
   def build_render_task(template_dir, bindings = {})
-    KubernetesDeploy::RenderTask.new(
+    Krane::RenderTask.new(
       logger: logger,
       current_sha: "k#{SecureRandom.hex(6)}",
       bindings: bindings,
@@ -389,7 +389,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def build_render_task_with_template_paths(template_paths, bindings = {})
-    KubernetesDeploy::RenderTask.new(
+    Krane::RenderTask.new(
       logger: logger,
       current_sha: "k#{SecureRandom.hex(6)}",
       bindings: bindings,

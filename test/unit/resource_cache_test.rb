@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class ResourceCacheTest < KubernetesDeploy::TestCase
+class ResourceCacheTest < Krane::TestCase
   include ResourceCacheTestHelper
 
   def setup
@@ -25,7 +25,7 @@ class ResourceCacheTest < KubernetesDeploy::TestCase
   def test_get_instance_raises_error_if_option_set_and_pod_not_found
     pods = build_fake_pods(2)
     stub_kind_get("FakePod", items: pods.map(&:kubectl_response), times: 1)
-    assert_raises(KubernetesDeploy::Kubectl::ResourceNotFoundError) do
+    assert_raises(Krane::Kubectl::ResourceNotFoundError) do
       @cache.get_instance("FakePod", "bad-name", raise_if_not_found: true)
     end
   end
@@ -74,7 +74,7 @@ class ResourceCacheTest < KubernetesDeploy::TestCase
     stub_kind_get("FakePod", items: pods.map(&:kubectl_response), times: 1)
     stub_kind_get("FakeConfigMap", items: pods.map(&:kubectl_response), times: 1)
 
-    KubernetesDeploy::Concurrency.split_across_threads(all_resources) { |r| r.sync(@cache) }
+    Krane::Concurrency.split_across_threads(all_resources) { |r| r.sync(@cache) }
     assert(all_resources.all?(&:synced?))
   end
 

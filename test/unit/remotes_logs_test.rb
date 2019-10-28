@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'test_helper'
 
-class RemoteLogsTest < KubernetesDeploy::TestCase
+class RemoteLogsTest < Krane::TestCase
   def test_print_latest_uses_prefix_if_multiple_containers
     logs = build_remote_logs(container_names: %w(Container1 ContainerA))
     logs.container_logs.first.expects(:lines).returns(mock_lines(1..4)).at_least_once
@@ -86,7 +86,7 @@ class RemoteLogsTest < KubernetesDeploy::TestCase
   private
 
   def build_remote_logs(container_names:)
-    KubernetesDeploy::RemoteLogs.new(parent_id: 'pod/pod-123-456', logger: logger,
+    Krane::RemoteLogs.new(parent_id: 'pod/pod-123-456', logger: logger,
       container_names: container_names, namespace: 'test', context: KubeclientHelper::TEST_CONTEXT)
   end
 

@@ -2,11 +2,11 @@
 # frozen_string_literal: true
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'kubernetes-deploy/version'
+require 'krane/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "kubernetes-deploy"
-  spec.version       = KubernetesDeploy::VERSION
+  spec.version       = Krane::VERSION
   spec.authors       = ["Katrina Verey", "Kir Shatrov"]
   spec.email         = ["ops-accounts+shipit@shopify.com"]
 

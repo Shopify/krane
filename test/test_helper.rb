@@ -56,7 +56,7 @@ else
   ])
 end
 
-module KubernetesDeploy
+module Krane
   class TestCase < ::Minitest::Test
     attr_reader :logger
 
@@ -92,7 +92,7 @@ module KubernetesDeploy
         device = @logger_stream
       end
 
-      @logger = KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::TEST_CONTEXT, device)
+      @logger = Krane::FormattedLogger.build(@namespace, KubeclientHelper::TEST_CONTEXT, device)
     end
 
     def ban_net_connect?
@@ -193,11 +193,11 @@ module KubernetesDeploy
         resp = resp.to_json
       end
       response = [resp, err, stub(success?: success)]
-      KubernetesDeploy::Kubectl.any_instance.expects(:run).with(*args, kwargs.presence).returns(response).times(times)
+      Krane::Kubectl.any_instance.expects(:run).with(*args, kwargs.presence).returns(response).times(times)
     end
 
     def build_runless_kubectl
-      obj = KubernetesDeploy::Kubectl.new(task_config: task_config(namespace: 'test'),
+      obj = Krane::Kubectl.new(task_config: task_config(namespace: 'test'),
         log_failure_by_default: false)
       def obj.run(*)
         ["", "", SystemExit.new(0)]
@@ -224,7 +224,7 @@ module KubernetesDeploy
     end
 
     def task_config(context: KubeclientHelper::TEST_CONTEXT, namespace: @namespace, logger: @logger)
-      KubernetesDeploy::TaskConfig.new(context, namespace, logger)
+      Krane::TaskConfig.new(context, namespace, logger)
     end
 
     def krane_black_box(command, args = "")

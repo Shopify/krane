@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'kubernetes-deploy/deploy_task'
+require 'krane/deprecated_deploy_task'
 
 module Krane
-  class DeployTask < KubernetesDeploy::DeployTask
+  class DeployTask < Krane::DeprecatedDeployTask
     def initialize(**args)
       raise "Use Krane::DeployGlobalTask to deploy global resources" if args[:allow_globals]
       super(args.merge(allow_globals: false))

@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
-require 'kubernetes-deploy/restart_task'
+require 'krane/restart_task'
 
-class RestartTaskTest < KubernetesDeploy::IntegrationTest
+class RestartTaskTest < Krane::IntegrationTest
   def test_restart_by_annotation
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"],
       render_erb: true))
@@ -31,18 +31,18 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   def test_restart_by_selector
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
-      selector: KubernetesDeploy::LabelSelector.parse("branch=master"),
+      selector: Krane::LabelSelector.parse("branch=master"),
       render_erb: true))
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "staging" },
-      selector: KubernetesDeploy::LabelSelector.parse("branch=staging"),
+      selector: Krane::LabelSelector.parse("branch=staging"),
       render_erb: true))
 
     refute(fetch_restarted_at("master-web"), "no RESTARTED_AT env on fresh deployment")
     refute(fetch_restarted_at("staging-web"), "no RESTARTED_AT env on fresh deployment")
 
     restart = build_restart_task
-    assert_restart_success(restart.perform(selector: KubernetesDeploy::LabelSelector.parse("name=web,branch=staging")))
+    assert_restart_success(restart.perform(selector: Krane::LabelSelector.parse("name=web,branch=staging")))
 
     assert_logs_match_all([
       "Configured to restart all deployments with the `shipit.shopify.io/restart` annotation " \
@@ -162,7 +162,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
 
   def test_restart_deployments_and_selector
     restart = build_restart_task
-    assert_restart_failure(restart.perform(%w(web), selector: KubernetesDeploy::LabelSelector.parse("app=web")))
+    assert_restart_failure(restart.perform(%w(web), selector: Krane::LabelSelector.parse("app=web")))
     assert_logs_match_all([
       "Result: FAILURE",
       "Can't specify deployment names and selector at the same time",
@@ -171,7 +171,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_not_existing_context
-    restart = KubernetesDeploy::RestartTask.new(
+    restart = Krane::RestartTask.new(
       context: "walrus",
       namespace: @namespace,
       logger: logger
@@ -185,7 +185,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_restart_not_existing_namespace
-    restart = KubernetesDeploy::RestartTask.new(
+    restart = Krane::RestartTask.new(
       context: KubeclientHelper::TEST_CONTEXT,
       namespace: "walrus",
       logger: logger
@@ -220,7 +220,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
     assert_deploy_success(success)
 
     restart = build_restart_task
-    assert_raises(KubernetesDeploy::DeploymentTimeoutError) { restart.perform!(%w(web)) }
+    assert_raises(Krane::DeploymentTimeoutError) { restart.perform!(%w(web)) }
 
     assert_logs_match_all([
       "Triggered `web` restart",
@@ -334,7 +334,7 @@ class RestartTaskTest < KubernetesDeploy::IntegrationTest
   private
 
   def build_restart_task
-    KubernetesDeploy::RestartTask.new(
+    Krane::RestartTask.new(
       context: KubeclientHelper::TEST_CONTEXT,
       namespace: @namespace,
       logger: logger

@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/runner_task'
+require 'krane/runner_task'
 
 module TaskRunnerTestHelper
   def deploy_task_template(subset = ["template-runner.yml", "configmap-data.yml"])
@@ -15,7 +15,7 @@ module TaskRunnerTestHelper
   end
 
   def build_task_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, max_watch_seconds: nil)
-    KubernetesDeploy::RunnerTask.new(context: context, namespace: ns, logger: logger,
+    Krane::RunnerTask.new(context: context, namespace: ns, logger: logger,
       max_watch_seconds: max_watch_seconds)
   end
 

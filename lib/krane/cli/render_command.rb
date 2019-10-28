@@ -10,15 +10,15 @@ module Krane
       }
 
       def self.from_options(options)
-        require 'kubernetes-deploy/render_task'
-        require 'kubernetes-deploy/bindings_parser'
-        require 'kubernetes-deploy/options_helper'
+        require 'krane/render_task'
+        require 'krane/bindings_parser'
+        require 'krane/options_helper'
 
-        bindings_parser = KubernetesDeploy::BindingsParser.new
+        bindings_parser = ::Krane::BindingsParser.new
         options[:bindings]&.each { |b| bindings_parser.add(b) }
 
-        KubernetesDeploy::OptionsHelper.with_processed_template_paths(options[:filenames]) do |paths|
-          runner = KubernetesDeploy::RenderTask.new(
+        ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames]) do |paths|
+          runner = ::Krane::RenderTask.new(
             current_sha: ENV["REVISION"],
             template_paths: paths,
             bindings: bindings_parser.parse,

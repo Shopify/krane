@@ -2,8 +2,8 @@
 
 require 'test_helper'
 
-module KubernetesDeploy
-  class IntegrationTest < KubernetesDeploy::TestCase
+module Krane
+  class IntegrationTest < Krane::TestCase
     include KubeclientHelper
     include FixtureDeployHelper
 
@@ -41,7 +41,7 @@ module KubernetesDeploy
     end
 
     def _kubectl
-      @_kubectl ||= KubernetesDeploy::Kubectl.new(task_config: task_config(namespace: "default"),
+      @_kubectl ||= Krane::Kubectl.new(task_config: task_config(namespace: "default"),
         log_failure_by_default: true, default_timeout: '5s')
     end
   end

@@ -2,8 +2,8 @@
 module StatsDHelper
   def capture_statsd_calls
     mock_backend = ::StatsD::Instrument::Backends::CaptureBackend.new
-    old_backend = KubernetesDeploy::StatsD.backend
-    KubernetesDeploy::StatsD.backend = mock_backend
+    old_backend = Krane::StatsD.backend
+    Krane::StatsD.backend = mock_backend
 
     yield if block_given?
 
@@ -12,6 +12,6 @@ module StatsDHelper
     if old_backend.is_a?(::StatsD::Instrument::Backends::CaptureBackend)
       old_backend.collected_metrics.concat(mock_backend.collected_metrics)
     end
-    KubernetesDeploy::StatsD.backend = old_backend
+    Krane::StatsD.backend = old_backend
   end
 end

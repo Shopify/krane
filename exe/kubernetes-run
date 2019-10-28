@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require 'kubernetes-deploy/runner_task'
-require 'kubernetes-deploy/options_helper'
+require 'krane/options_helper'
 require 'optparse'
 
 template = "task-runner-template"

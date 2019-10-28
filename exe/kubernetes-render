@@ -2,8 +2,8 @@
 # frozen_string_literal: true
 
 require 'kubernetes-deploy/render_task'
-require 'kubernetes-deploy/options_helper'
-require 'kubernetes-deploy/bindings_parser'
+require 'krane/options_helper'
+require 'krane/bindings_parser'
 
 require 'optparse'
 
@@ -11,7 +11,7 @@ template_dir = []
 bindings = {}
 
 ARGV.options do |opts|
-  parser = KubernetesDeploy::BindingsParser.new
+  parser = Krane::BindingsParser.new
   opts.on("--bindings=BINDINGS", "Expose additional variables to ERB templates " \
     "(format: k1=v1,k2=v2, JSON string or file (JSON or YAML) path prefixed by '@')") { |b| parser.add(b) }
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT).") do |d|
@@ -22,10 +22,10 @@ ARGV.options do |opts|
 end
 
 templates = ARGV
-logger = KubernetesDeploy::FormattedLogger.build(verbose_prefix: false)
+logger = Krane::FormattedLogger.build(verbose_prefix: false)
 
 begin
-  KubernetesDeploy::OptionsHelper.with_processed_template_paths(template_dir) do |dir|
+  Krane::OptionsHelper.with_processed_template_paths(template_dir) do |dir|
     runner = KubernetesDeploy::RenderTask.new(
       current_sha: ENV["REVISION"],
       template_dir: dir.first,
@@ -35,7 +35,7 @@ begin
     success = runner.run(STDOUT, templates)
     exit(1) unless success
   end
-rescue KubernetesDeploy::OptionsHelper::OptionsError => e
+rescue Krane::OptionsHelper::OptionsError => e
   logger.error(e.message)
   exit(1)
 end

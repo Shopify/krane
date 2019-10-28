@@ -66,11 +66,11 @@ module Krane
 
       def rescue_and_exit
         yield
-      rescue KubernetesDeploy::DeploymentTimeoutError
+      rescue ::Krane::DeploymentTimeoutError
         exit(TIMEOUT_EXIT_CODE)
-      rescue KubernetesDeploy::FatalDeploymentError
+      rescue ::Krane::FatalDeploymentError
         exit(FAILURE_EXIT_CODE)
-      rescue KubernetesDeploy::DurationParser::ParsingError => e
+      rescue ::Krane::DurationParser::ParsingError => e
         STDERR.puts(<<~ERROR_MESSAGE)
           Error parsing duration
           #{e.message}. Duration must be a full ISO8601 duration or time value (e.g. 300s, 10m, 1h)

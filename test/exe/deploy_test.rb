@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 require 'test_helper'
 require 'krane/cli/krane'
-require 'kubernetes-deploy/bindings_parser'
+require 'krane/bindings_parser'
 
-class DeployTest < KubernetesDeploy::TestCase
+class DeployTest < Krane::TestCase
   def test_deploy_with_default_options
     set_krane_deploy_expectations
     krane_deploy!
@@ -17,18 +17,18 @@ class DeployTest < KubernetesDeploy::TestCase
   end
 
   def test_deploy_parses_selector
-    selector = KubernetesDeploy::LabelSelector.new('name' => 'web')
-    KubernetesDeploy::LabelSelector.expects(:parse).returns(selector)
+    selector = Krane::LabelSelector.new('name' => 'web')
+    Krane::LabelSelector.expects(:parse).returns(selector)
     set_krane_deploy_expectations(new_args: { selector: selector })
     krane_deploy!(flags: '--selector name:web')
   end
 
   def test_deploy_parses_bindings
-    bindings_parser = KubernetesDeploy::BindingsParser.new
+    bindings_parser = Krane::BindingsParser.new
     bindings_parser.expects(:add).with('foo=bar')
     bindings_parser.expects(:add).with('abc=def')
     bindings_parser.expects(:parse).returns(true)
-    KubernetesDeploy::BindingsParser.expects(:new).returns(bindings_parser)
+    Krane::BindingsParser.expects(:new).returns(bindings_parser)
     set_krane_deploy_expectations(new_args: { bindings: true })
     krane_deploy!(flags: '--bindings foo=bar abc=def')
   end
@@ -83,10 +83,10 @@ class DeployTest < KubernetesDeploy::TestCase
 
   def set_krane_deploy_expectations(new_args: {}, run_args: {})
     options = default_options(new_args, run_args)
-    KubernetesDeploy::FormattedLogger.expects(:build).returns(logger)
+    Krane::FormattedLogger.expects(:build).returns(logger)
     response = mock('DeployTask')
     response.expects(:run!).with(options[:run_args]).returns(true)
-    KubernetesDeploy::DeployTask.expects(:new).with(options[:new_args]).returns(response)
+    Krane::DeployTask.expects(:new).with(options[:new_args]).returns(response)
   end
 
   def krane_deploy!(flags: '')

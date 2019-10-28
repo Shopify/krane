@@ -4,8 +4,8 @@
 require 'optparse'
 
 require 'kubernetes-deploy/restart_task'
-require 'kubernetes-deploy/options_helper'
-require 'kubernetes-deploy/label_selector'
+require 'krane/options_helper'
+require 'krane/label_selector'
 
 raw_deployments = nil
 max_watch_seconds = nil
@@ -14,7 +14,7 @@ ARGV.options do |opts|
   opts.on("--deployments=LIST") { |v| raw_deployments = v.split(",") }
   opts.on("--max-watch-seconds=seconds") { |t| max_watch_seconds = t.to_i }
   opts.on("--selector=SELECTOR", "Restarts deployments matching selector (format: k1=v1,k2=v2)") do |s|
-    selector = KubernetesDeploy::LabelSelector.parse(s)
+    selector = Krane::LabelSelector.parse(s)
   end
   opts.parse!
 end

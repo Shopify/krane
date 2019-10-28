@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 require 'securerandom'
+require 'kubernetes-deploy/deploy_task'
+
 module FixtureDeployHelper
-  EJSON_FILENAME = KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE
+  EJSON_FILENAME = Krane::EjsonSecretProvisioner::EJSON_SECRETS_FILE
 
   # Deploys the specified set of fixtures via KubernetesDeploy::DeployTask.
   #
@@ -141,7 +143,7 @@ module FixtureDeployHelper
   end
 
   def build_kubectl(log_failure_by_default: true, timeout: '5s')
-    KubernetesDeploy::Kubectl.new(task_config: task_config,
+    Krane::Kubectl.new(task_config: task_config,
       log_failure_by_default: log_failure_by_default, default_timeout: timeout)
   end
 end

@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/kubeclient_builder'
+require 'krane/kubeclient_builder'
 
 module KubeclientHelper
   LOCAL_CONTEXT_OVERRIDE_PATH = File.expand_path("../../.local-context", __dir__)
@@ -53,6 +53,6 @@ module KubeclientHelper
   end
 
   def kubeclient_builder
-    @kubeclient_builder ||= KubernetesDeploy::KubeclientBuilder.new
+    @kubeclient_builder ||= Krane::KubeclientBuilder.new
   end
 end
