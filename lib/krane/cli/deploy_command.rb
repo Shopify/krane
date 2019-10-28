@@ -13,8 +13,9 @@ module Krane
         "bindings" => { type: :array, banner: "foo=bar abc=def",
                         desc: "Expose additional variables to ERB templates (format: k1=v1 k2=v2, JSON string or file "\
                           "(JSON or YAML) path prefixed by '@')" },
-        "filenames" => { type: :array, banner: '/tmp/my-resource.yml', aliases: :f, required: true,
-                         desc: "Path to file or directory that contains the configuration to apply" },
+        "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
+                         aliases: :f, required: true,
+                         desc: "Directories and files that contains the configuration to apply" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_DEPLOY_TIMEOUT,
                               desc: "Max duration to monitor workloads correctly deployed" },
         "protected-namespaces" => { type: :array, banner: "namespace1 namespace2 namespaceN",
