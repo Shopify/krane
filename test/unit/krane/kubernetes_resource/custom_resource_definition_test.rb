@@ -100,7 +100,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
       })
     cr.validate_definition(kubectl)
     assert(cr.validation_error_msg.include?(
-      "The CRD that specifies this resource is using invalid rollout conditions. krane will not be " \
+      "The CRD that specifies this resource is using invalid rollout conditions. Krane will not be " \
       "able to continue until those rollout conditions are fixed.\nRollout conditions can be found on the CRD " \
       "that defines this resource (unittests.stable.example.io), under the annotation " \
       "krane.shopify.io/instance-rollout-conditions.\nValidation failed with: " \

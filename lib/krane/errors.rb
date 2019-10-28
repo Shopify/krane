@@ -16,12 +16,6 @@ module Krane
     end
   end
 
-  class NamespaceNotFoundError < FatalDeploymentError
-    def initialize(name, context)
-      super("Namespace `#{name}` not found in context `#{context}`")
-    end
-  end
-
   class DeploymentTimeoutError < FatalDeploymentError; end
 
   class EjsonPrunableError < FatalDeploymentError
