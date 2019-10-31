@@ -26,8 +26,8 @@ class GlobalDeployTest < Krane::TestCase
   def test_deploy_passes_filename
     set_krane_global_deploy_expectations!(new_args: { filenames: ['/my/file/path'] })
     krane_global_deploy!(flags: '-f /my/file/path')
-    set_krane_global_deploy_expectations!(new_args: { filenames: ['/my/other/file/path'] })
-    krane_global_deploy!(flags: '--filenames /my/other/file/path')
+    set_krane_global_deploy_expectations!(new_args: { filenames: %w(/my/other/file/path just/a/file.yml) })
+    krane_global_deploy!(flags: '--filenames /my/other/file/path just/a/file.yml')
   end
 
   def test_deploy_parses_selector

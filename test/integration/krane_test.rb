@@ -87,18 +87,6 @@ class KraneTest < Krane::IntegrationTest
     end
   end
 
-  def test_global_deploy_black_box_success
-    setup_template_dir("globals") do |target_dir|
-      flags = "-f #{target_dir} --selector app=krane"
-      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
-      assert_empty(out)
-      assert_match("Success", err)
-      assert_predicate(status, :success?)
-    end
-  ensure
-    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
-  end
-
   def test_global_deploy_black_box_failure
     setup_template_dir("resource-quota") do |target_dir|
       flags = "-f #{target_dir} --selector app=krane"

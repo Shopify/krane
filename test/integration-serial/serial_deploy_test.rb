@@ -281,6 +281,7 @@ class SerialDeployTest < Krane::IntegrationTest
     %w(
       KubernetesDeploy.validate_configuration.duration
       KubernetesDeploy.discover_resources.duration
+      KubernetesDeploy.validate_resources.duration
       KubernetesDeploy.initial_status.duration
       KubernetesDeploy.priority_resources.duration
       KubernetesDeploy.apply_all.duration
@@ -305,6 +306,7 @@ class SerialDeployTest < Krane::IntegrationTest
       KubernetesDeploy.validate_configuration.duration
       KubernetesDeploy.discover_resources.duration
       KubernetesDeploy.initial_status.duration
+      KubernetesDeploy.validate_resources.duration
       KubernetesDeploy.priority_resources.duration
       KubernetesDeploy.apply_all.duration
       KubernetesDeploy.normal_resources.duration
@@ -483,7 +485,7 @@ class SerialDeployTest < Krane::IntegrationTest
   def test_deploying_crs_with_invalid_crd_conditions_fails
     # Since CRDs are not always deployed along with their CRs and krane is not the only way CRDs are
     # deployed, we need to model the case where poorly configured rollout_conditions are present before deploying a CR
-    Krane::DeployTaskConfigValidator.any_instance.expects(:validate_resources).returns(:true)
+    KubernetesDeploy::DeployTask.any_instance.expects(:validate_resources).returns(:true)
     crd_result = deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]) do |resource|
       crd = resource["with_custom_conditions.yml"]["CustomResourceDefinition"].first
       crd["metadata"]["annotations"].merge!(
@@ -492,7 +494,7 @@ class SerialDeployTest < Krane::IntegrationTest
     end
 
     assert_deploy_success(crd_result)
-    Krane::DeployTaskConfigValidator.any_instance.unstub(:validate_resources)
+    KubernetesDeploy::DeployTask.any_instance.unstub(:validate_resources)
 
     cr_result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml", "with_custom_conditions_cr2.yml"])
     assert_deploy_failure(cr_result)
@@ -532,20 +534,52 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_global_deploy_task
-    Krane::FormattedLogger.expects(:build).returns(@logger)
-    global_deploy = ::Krane::GlobalDeployTask.new(
-      context: task_config.context,
-      filenames: [fixture_path('globals')],
-      global_timeout: 300,
-      selector: Krane::LabelSelector.parse('app=krane')
-    )
-    global_deploy.run!(verify_result: true, prune: false)
+    selector = 'app=krane'
+    deploy_global_fixtures('globals', selector: selector)
+
     assert_logs_match_all([
+      "Phase 1: Initializing deploy",
+      "Using resource selector #{selector}",
+      "All required parameters and files are present",
+      "Discovering resources:",
+      "  - StorageClass/testing-storage-class",
+      "Phase 2: Checking initial resource statuses",
+      "StorageClass/testing-storage-class                Not Found",
+      "Phase 3: Deploying all resources",
+      "	Deploying StorageClass/testing-storage-class (timeout: 300s)",
+      "Don't know how to monitor resources of type StorageClass. "\
+      "Assuming StorageClass/testing-storage-class deployed successfully.",
+      "Successfully deployed in 0.3s: StorageClass/testing-storage-class",
       "Result: SUCCESS",
       "Successfully deployed 1 resource",
       "Successful resources",
       "StorageClass/testing-storage-class",
     ])
+  ensure
+    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
+  end
+
+  def test_global_deploy_black_box_success
+    setup_template_dir("globals") do |target_dir|
+      flags = "-f #{target_dir} --selector app=krane"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("Success", err)
+      assert_predicate(status, :success?)
+    end
+  ensure
+    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
+  end
+
+  def test_global_deploy_black_box_timeout
+    setup_template_dir("globals") do |target_dir|
+      flags = "-f #{target_dir} --selector app=krane --global-timeout=0.1s"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("TIMED OUT", err)
+      refute_predicate(status, :success?)
+      assert_equal(status.exitstatus, 70)
+    end
   ensure
     storage_v1_kubeclient.delete_storage_class("testing-storage-class")
   end

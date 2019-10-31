@@ -42,6 +42,20 @@ module FixtureDeployHelper
     success
   end
 
+  def deploy_global_fixtures(set, subset: nil, **args)
+    fixtures = load_fixtures(set, subset)
+    raise "Cannot deploy empty template set" if fixtures.empty?
+
+    yield fixtures if block_given?
+
+    success = false
+    Dir.mktmpdir("fixture_dir") do |target_dir|
+      write_fixtures_to_dir(fixtures, target_dir)
+      success = global_deploy_dirs_without_profiling(target_dir, args)
+    end
+    success
+  end
+
   def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil, render_erb: false)
     success = false
     if subset
@@ -84,6 +98,21 @@ module FixtureDeployHelper
     deploy.run(
       verify_result: wait,
       allow_protected_ns: allow_protected_ns,
+      prune: prune
+    )
+  end
+
+  def global_deploy_dirs_without_profiling(dirs, verify_result: true, prune: false,
+    global_timeout: 300, selector:)
+    Krane::FormattedLogger.expects(:build).returns(@logger)
+    deploy = Krane::GlobalDeployTask.new(
+      context: KubeclientHelper::TEST_CONTEXT,
+      filenames: Array(dirs),
+      global_timeout: global_timeout,
+      selector: Krane::LabelSelector.parse(selector),
+    )
+    deploy.run(
+      verify_result: verify_result,
       prune: prune
     )
   end

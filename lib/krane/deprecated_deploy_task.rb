@@ -169,9 +169,9 @@ module Krane
       @logger.reset
 
       @logger.phase_heading("Initializing deploy")
-      validator = validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
+      validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
       resources = discover_resources
-      validator.validate_resources(resources, @selector, @allow_globals)
+      validate_resources(resources)
 
       @logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)
@@ -300,9 +300,50 @@ module Krane
       @logger.info("Using resource selector #{@selector}") if @selector
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
-      task_config_validator
     end
     measure_method(:validate_configuration)
+
+    def validate_resources(resources)
+      Krane::Concurrency.split_across_threads(resources) do |r|
+        r.validate_definition(kubectl, selector: @selector)
+      end
+
+      resources.select(&:has_warnings?).each do |resource|
+        record_warnings(logger: @logger, warning: resource.validation_warning_msg,
+          filename: File.basename(resource.file_path))
+      end
+
+      failed_resources = resources.select(&:validation_failed?)
+      if failed_resources.present?
+
+        failed_resources.each do |r|
+          content = File.read(r.file_path) if File.file?(r.file_path) && !r.sensitive_template_content?
+          record_invalid_template(logger: @logger, err: r.validation_error_msg,
+            filename: File.basename(r.file_path), content: content)
+        end
+        raise FatalDeploymentError, "Template validation failed"
+      end
+      validate_globals(resources)
+    end
+    measure_method(:validate_resources)
+
+    def validate_globals(resources)
+      return unless (global = resources.select(&:global?).presence)
+      global_names = global.map do |resource|
+        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
+      end
+      global_names = FormattedLogger.indent_four(global_names.join("\n"))
+
+      if @allow_globals
+        msg = "The ability for this task to deploy global resources will be removed in the next version,"\
+              " which will affect the following resources:"
+        msg += "\n#{global_names}"
+        @logger.summary.add_paragraph(ColorizedString.new(msg).yellow)
+      else
+        @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
+        raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources."
+      end
+    end
 
     def namespace_definition
       @namespace_definition ||= begin

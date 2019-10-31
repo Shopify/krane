@@ -10,21 +10,14 @@ module Krane
     end
 
     def global_kinds
-      @global_kinds ||= cluster_resource_discoverer.global_resource_kinds
+      @global_kinds ||= begin
+        cluster_resource_discoverer = ClusterResourceDiscovery.new(task_config: self)
+        cluster_resource_discoverer.global_resource_kinds
+      end
     end
 
     def logger
-      @logger ||= Krane::FormattedLogger.build(@namespace, @context)
-    end
-
-    private
-
-    def cluster_resource_discoverer
-      @cluster_resource_discoverer ||= Krane::ClusterResourceDiscovery.new(task_config: self)
-    end
-
-    def kubectl
-      @kubectl ||= Krane::Kubectl.new(task_config: self, log_failure_by_default: true)
+      @logger ||= FormattedLogger.build(@namespace, @context)
     end
   end
 end

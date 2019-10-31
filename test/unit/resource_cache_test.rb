@@ -16,7 +16,7 @@ class ResourceCacheTest < Krane::TestCase
     assert_equal(pods[1].kubectl_response, @cache.get_instance("FakePod", pods[1].name))
   end
 
-  def test_get_instance_populates_the_cache_and_returns_instance_hash_global_kind
+  def test_get_instance_populates_the_cache_for_global_resources
     nodes = build_fake_nodes(2)
     stub_kind_get("FakeNode", items: nodes.map(&:kubectl_response), times: 1, use_namespace: false)
     assert_equal(nodes[0].kubectl_response, @cache.get_instance("FakeNode", nodes[0].name))

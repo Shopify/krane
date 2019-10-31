@@ -24,7 +24,7 @@ module Krane
   # Ship global resources to a context
   class GlobalDeployTask
     extend Krane::StatsD::MeasureMethods
-    include Krane::TemplateReporting
+    include TemplateReporting
     delegate :context, :logger, :global_kinds, to: :@task_config
 
     # Initializes the deploy task
@@ -36,8 +36,8 @@ module Krane
     def initialize(context:, global_timeout: nil, selector: nil, filenames: [])
       template_paths = filenames.map { |path| File.expand_path(path) }
 
-      @task_config = ::Krane::TaskConfig.new(context, nil)
-      @template_sets = ::Krane::TemplateSets.from_dirs_and_files(paths: template_paths,
+      @task_config = TaskConfig.new(context, nil)
+      @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths,
         logger: @task_config.logger)
       @global_timeout = global_timeout
       @selector = selector
@@ -49,7 +49,7 @@ module Krane
     def run(*args)
       run!(*args)
       true
-    rescue Krane::FatalDeploymentError
+    rescue FatalDeploymentError
       false
     end
 
@@ -65,9 +65,9 @@ module Krane
       logger.reset
 
       logger.phase_heading("Initializing deploy")
-      validator = validate_configuration
+      validate_configuration
       resources = discover_resources
-      validator.validate_resources(resources, @selector)
+      validate_resources(resources)
 
       logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)
@@ -104,14 +104,14 @@ module Krane
 
     def deploy!(resources, verify_result, prune)
       prune_whitelist = []
-      resource_deployer = Krane::ResourceDeployer.new(task_config: @task_config,
+      resource_deployer = ResourceDeployer.new(task_config: @task_config,
         prune_whitelist: prune_whitelist, max_watch_seconds: @global_timeout,
         selector: @selector, statsd_tags: statsd_tags)
       resource_deployer.deploy!(resources, verify_result, prune)
     end
 
     def validate_configuration
-      task_config_validator = Krane::GlobalDeployTaskConfigValidator.new(@task_config,
+      task_config_validator = GlobalDeployTaskConfigValidator.new(@task_config,
         kubectl, kubeclient_builder)
       errors = []
       errors += task_config_validator.errors
@@ -119,14 +119,48 @@ module Krane
       errors << "Selector is required" unless @selector.present?
       unless errors.empty?
         add_para_from_list(logger: logger, action: "Configuration invalid", enum: errors)
-        raise Krane::TaskConfigurationError
+        raise TaskConfigurationError
       end
 
       logger.info("Using resource selector #{@selector}")
       logger.info("All required parameters and files are present")
-      task_config_validator
     end
     measure_method(:validate_configuration)
+
+    def validate_resources(resources)
+      validate_globals(resources)
+
+      Concurrency.split_across_threads(resources) do |r|
+        r.validate_definition(@kubectl, selector: @selector)
+      end
+
+      resources.select(&:has_warnings?).each do |resource|
+        record_warnings(logger: logger, warning: resource.validation_warning_msg,
+          filename: File.basename(resource.file_path))
+      end
+
+      failed_resources = resources.select(&:validation_failed?)
+      if failed_resources.present?
+        failed_resources.each do |r|
+          content = File.read(r.file_path) if File.file?(r.file_path) && !r.sensitive_template_content?
+          record_invalid_template(logger: logger, err: r.validation_error_msg,
+            filename: File.basename(r.file_path), content: content)
+        end
+        raise FatalDeploymentError, "Template validation failed"
+      end
+    end
+    measure_method(:validate_resources)
+
+    def validate_globals(resources)
+      return unless (namespaced = resources.reject(&:global?).presence)
+      namespaced_names = namespaced.map do |resource|
+        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
+      end
+      namespaced_names = FormattedLogger.indent_four(namespaced_names.join("\n"))
+
+      logger.summary.add_paragraph(ColorizedString.new("Namespaced resources:\n#{namespaced_names}").yellow)
+      raise FatalDeploymentError, "Deploying namespaced resource is not allowed from this command."
+    end
 
     def discover_resources
       logger.info("Discovering resources:")
@@ -134,21 +168,21 @@ module Krane
       crds_by_kind = cluster_resource_discoverer.crds.map { |crd| [crd.name, crd] }.to_h
       @template_sets.with_resource_definitions do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
-        r = Krane::KubernetesResource.build(context: context, logger: logger, definition: r_def,
+        r = KubernetesResource.build(context: context, logger: logger, definition: r_def,
           crd: crd, global_names: global_kinds, statsd_tags: statsd_tags)
         resources << r
         logger.info("  - #{r.id}")
       end
 
       resources.sort
-    rescue Krane::InvalidTemplateError => e
+    rescue InvalidTemplateError => e
       record_invalid_template(logger: logger, err: e.message, filename: e.filename, content: e.content)
-      raise Krane::FatalDeploymentError, "Failed to parse template"
+      raise FatalDeploymentError, "Failed to parse template"
     end
     measure_method(:discover_resources)
 
     def cluster_resource_discoverer
-      @cluster_resource_discoverer ||= Krane::ClusterResourceDiscovery.new(task_config: @task_config)
+      @cluster_resource_discoverer ||= ClusterResourceDiscovery.new(task_config: @task_config)
     end
 
     def statsd_tags
@@ -156,16 +190,16 @@ module Krane
     end
 
     def kubectl
-      @kubectl ||= Krane::Kubectl.new(task_config: @task_config, log_failure_by_default: true)
+      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
     end
 
     def kubeclient_builder
-      @kubeclient_builder ||= Krane::KubeclientBuilder.new
+      @kubeclient_builder ||= KubeclientBuilder.new
     end
 
     def check_initial_status(resources)
-      cache = Krane::ResourceCache.new(@task_config)
-      Krane::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
+      cache = ResourceCache.new(@task_config)
+      Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
       resources.each { |r| logger.info(r.pretty_status) }
     end
     measure_method(:check_initial_status, "initial_status.duration")
