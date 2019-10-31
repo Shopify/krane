@@ -146,14 +146,14 @@ class KraneDeployTest < Krane::IntegrationTest
       selector: Krane::LabelSelector.parse("branch=staging"),
       render_erb: true))
     assert_logs_match("Using resource selector branch=staging")
-    deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
 
     assert_equal(2, deployments.size)
     assert_equal(%w(master staging), deployments.map { |d| d.metadata.labels.branch }.sort)
 
     # Run again without selector to verify pruning works
     assert_deploy_success(deploy_fixtures("branched", bindings: { "branch" => "master" }, render_erb: true))
-    deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
     # Filter out pruned resources pending deletion
     deployments.select! { |deployment| deployment.metadata.deletionTimestamp.nil? }
 
@@ -332,7 +332,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       bindings: { binding_test_a: 'foo', binding_test_b: 'bar' },
       render_erb: true))
 
-    deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
     assert_equal(3, deployments.size)
     assert_equal(["web-one", "web-three", "web-two"], deployments.map { |d| d.metadata.name }.sort)
   end
@@ -1122,7 +1122,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_on_delete_stateful_sets_are_not_monitored
-    result = deploy_fixtures("hello-cloud", subset: ["stateful_set.yml"])
+    result = deploy_fixtures("hello-cloud", subset: ["stateful_set.yml"]) do |fixtures|
+      # updateStrategy changed in StatefulSet API v1 to RollingUpdate, in v1beta1 it was OnDelete
+      stateful_set = fixtures['stateful_set.yml']['StatefulSet'].first
+      stateful_set['spec']['updateStrategy'] = { 'type' => Krane::StatefulSet::ONDELETE }
+    end
 
     assert_deploy_success(result)
     assert_logs_match_all([
@@ -1252,7 +1256,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       container["command"] = %w(sleep 8000)
     end
     assert_deploy_success(result)
-    original_rs = v1beta1_kubeclient.get_replica_sets(namespace: @namespace).first
+    original_rs = apps_v1_kubeclient.get_replica_sets(namespace: @namespace).first
     original_rs_uid = original_rs["metadata"]["uid"]
     assert(original_rs_uid.present?)
     assert_equal(2, original_rs["status"]["availableReplicas"])
@@ -1267,7 +1271,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
     assert_deploy_success(result)
 
-    all_rs = v1beta1_kubeclient.get_replica_sets(namespace: @namespace)
+    all_rs = apps_v1_kubeclient.get_replica_sets(namespace: @namespace)
     assert_equal(2, all_rs.length, "Test premise failure: Rollback created a new RS")
     original_rs = all_rs.find { |rs| rs["metadata"]["uid"] == original_rs_uid }
     assert_equal(2, original_rs["status"]["availableReplicas"])

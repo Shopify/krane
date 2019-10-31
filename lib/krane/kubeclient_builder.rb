@@ -55,6 +55,14 @@ module Krane
       )
     end
 
+    def build_apps_v1_kubeclient(context)
+      build_kubeclient(
+        api_version: "v1",
+        context: context,
+        endpoint_path: "/apis/apps"
+      )
+    end
+
     def build_apps_v1beta1_kubeclient(context)
       build_kubeclient(
         api_version: "v1beta1",
