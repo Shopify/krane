@@ -8,6 +8,7 @@ require 'krane/cli/run_command'
 require 'krane/cli/render_command'
 require 'krane/cli/deploy_command'
 require 'krane/cli/global_deploy_command'
+require 'krane/cli/watch_command'
 
 module Krane
   module CLI
@@ -64,6 +65,14 @@ module Krane
       def global_deploy(context)
         rescue_and_exit do
           GlobalDeployCommand.from_options(context, options)
+        end
+      end
+
+      desc("watch NAMESPACE CONTEXT", "Watch the namespace and sync all the resources")
+      expand_options(WatchCommand::OPTIONS)
+      def watch(namespace, context)
+        rescue_and_exit do
+          WatchCommand.from_options(namespace, context, options)
         end
       end
 
