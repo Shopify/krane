@@ -31,7 +31,7 @@ class GlobalDeployTest < Krane::TestCase
   end
 
   def test_deploy_parses_selector
-    selector = 'name:web'
+    selector = 'name=web'
     set_krane_global_deploy_expectations!(new_args: { selector: selector })
     krane_global_deploy!(flags: "--selector #{selector}")
   end
@@ -40,17 +40,17 @@ class GlobalDeployTest < Krane::TestCase
 
   def set_krane_global_deploy_expectations!(new_args: {}, run_args: {})
     options = default_options(new_args, run_args)
-    selector_args = options[:new_args][:selector]
-    selector = mock('LabelSelector')
-    Krane::LabelSelector.expects(:parse).with(selector_args).returns(selector)
     response = mock('GlobalDeployTask')
     response.expects(:run!).with(options[:run_args]).returns(true)
-    Krane::GlobalDeployTask.expects(:new).with(options[:new_args].merge(selector: selector)).returns(response)
+    Krane::GlobalDeployTask.expects(:new).with do |args|
+      args.except(:selector) == options[:new_args].except(:selector) &&
+      args[:selector].to_s == options[:new_args][:selector]
+    end.returns(response)
   end
 
   def krane_global_deploy!(flags: '')
     flags += ' -f /tmp' unless flags.include?('-f')
-    flags += ' --selector name:web' unless flags.include?('--selector')
+    flags += ' --selector name=web' unless flags.include?('--selector')
     krane = Krane::CLI::Krane.new(
       [task_config.context],
       flags.split
@@ -64,7 +64,7 @@ class GlobalDeployTest < Krane::TestCase
         context: task_config.context,
         filenames: ['/tmp'],
         global_timeout: 300,
-        selector: 'name:web',
+        selector: 'name=web',
       }.merge(new_args),
       run_args: {
         verify_result: true,

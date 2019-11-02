@@ -45,15 +45,19 @@ module FixtureDeployHelper
   def deploy_global_fixtures(set, subset: nil, **args)
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
+    args.merge!(selector: "test=#{@namespace}")
+    destroyable = namespace_gloabls(fixtures)
 
     yield fixtures if block_given?
 
     success = false
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
-      success = global_deploy_dirs_without_profiling(target_dir, args)
+      success = global_deploy_dirs_without_profiling(target_dir, **args)
     end
     success
+  ensure
+    delete_globals(destroyable)
   end
 
   def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil, render_erb: false)
@@ -174,5 +178,31 @@ module FixtureDeployHelper
   def build_kubectl(log_failure_by_default: true, timeout: '5s')
     Krane::Kubectl.new(task_config: task_config,
       log_failure_by_default: log_failure_by_default, default_timeout: timeout)
+  end
+
+  def namespace_gloabls(fixtures)
+    fixtures.each_with_object({}) do |(_, kinds_map), hash|
+      kinds_map.each do |kind, resources|
+        hash[kind] ||= []
+        resources.each do |resource|
+          resource["metadata"]["name"] += @namespace
+          resource["metadata"]["labels"] ||= {}
+          resource["metadata"]["labels"]["test"] = @namespace
+          hash[kind] << resource["metadata"]["name"]
+        end
+      end
+    end
+  end
+
+  def delete_globals(kinds_map)
+    kind_to_client = { "StorageClass" => storage_v1_kubeclient }
+    kinds_map&.each do |kind, names|
+      client = kind_to_client[kind]
+      raise "No known client for #{kind}" unless client
+      existing = client.send("get_#{kind.underscore.pluralize}").map { |r| r.dig(:metadata, :name) }
+      (names & existing).each do |name|
+        client.send("delete_#{kind.underscore}", name)
+      end
+    end
   end
 end

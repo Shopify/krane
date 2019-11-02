@@ -533,32 +533,6 @@ class SerialDeployTest < Krane::IntegrationTest
     refute_logs_match("kind: Deployment") # content of the sensitive template
   end
 
-  def test_global_deploy_task
-    selector = 'app=krane'
-    deploy_global_fixtures('globals', selector: selector)
-
-    assert_logs_match_all([
-      "Phase 1: Initializing deploy",
-      "Using resource selector #{selector}",
-      "All required parameters and files are present",
-      "Discovering resources:",
-      "  - StorageClass/testing-storage-class",
-      "Phase 2: Checking initial resource statuses",
-      "StorageClass/testing-storage-class                Not Found",
-      "Phase 3: Deploying all resources",
-      "	Deploying StorageClass/testing-storage-class (timeout: 300s)",
-      "Don't know how to monitor resources of type StorageClass. "\
-      "Assuming StorageClass/testing-storage-class deployed successfully.",
-      "Successfully deployed in 0.3s: StorageClass/testing-storage-class",
-      "Result: SUCCESS",
-      "Successfully deployed 1 resource",
-      "Successful resources",
-      "StorageClass/testing-storage-class",
-    ])
-  ensure
-    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
-  end
-
   def test_global_deploy_black_box_success
     setup_template_dir("globals") do |target_dir|
       flags = "-f #{target_dir} --selector app=krane"
