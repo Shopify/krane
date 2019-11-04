@@ -104,7 +104,7 @@ module Krane
 
     def deploy!(resources, verify_result, prune)
       resource_deployer = ResourceDeployer.new(task_config: @task_config,
-        prune_whitelist: prune_whitelist, max_watch_seconds: @max_watch_seconds,
+        prune_whitelist: prune_whitelist, max_watch_seconds: @global_timeout,
         selector: @selector, statsd_tags: statsd_tags)
       resource_deployer.deploy!(resources, verify_result, prune)
     end
@@ -199,7 +199,7 @@ module Krane
     def prune_whitelist
       black_list = %w(Namespace Node)
       cluster_resource_discoverer.prunable_resources.select do |gvk|
-        global_resource_kinds.any? { |g| gvk.include?(g) } && black_list.none? { |b| gvk.include?(b) }
+        global_kinds.any? { |g| gvk.include?(g) } && black_list.none? { |b| gvk.include?(b) }
       end
     end
 

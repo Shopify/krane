@@ -17,6 +17,15 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
     end
   end
 
+  def test_prunable_resources
+    crd = mocked_cluster_resource_discovery(full_response)
+    kinds = crd.prunable_resources
+    assert_equal(kinds.length, 15)
+    %w(scheduling.k8s.io/v1/PriorityClass storage.k8s.io/v1/StorageClass).each do |kind|
+      assert_includes(kinds, kind)
+    end
+  end
+
   private
 
   def mocked_cluster_resource_discovery(response, success: true)
