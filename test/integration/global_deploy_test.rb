@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class SerialDeployTest < Krane::IntegrationTest
+class GlobalDeployTest < Krane::IntegrationTest
   include StatsDHelper
   def test_global_deploy_task_success
     assert_deploy_success(deploy_global_fixtures('globals'))

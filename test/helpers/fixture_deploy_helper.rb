@@ -108,13 +108,13 @@ module FixtureDeployHelper
 
   def global_deploy_dirs_without_profiling(dirs, verify_result: true, prune: false,
     global_timeout: 300, selector:)
-    Krane::FormattedLogger.expects(:build).returns(@logger)
     deploy = Krane::GlobalDeployTask.new(
       context: KubeclientHelper::TEST_CONTEXT,
       filenames: Array(dirs),
       global_timeout: global_timeout,
       selector: Krane::LabelSelector.parse(selector),
     )
+    deploy.instance_eval("@task_config").instance_variable_set("@logger", logger)
     deploy.run(
       verify_result: verify_result,
       prune: prune
