@@ -45,7 +45,7 @@ module FixtureDeployHelper
   def deploy_global_fixtures(set, subset: nil, **args)
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
-    args.merge!(selector: "test=#{@namespace}")
+    args[:selector] = ["test=#{@namespace}", args[:selector]].compact.join(",")
     destroyable = namespace_gloabls(fixtures)
 
     yield fixtures if block_given?
