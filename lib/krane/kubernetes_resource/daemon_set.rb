@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'krane/kubernetes_resource/pod_set_base'
+require "krane/kubernetes_resource/pod_set_base"
 module Krane
   class DaemonSet < PodSetBase
     TIMEOUT = 5.minutes
@@ -78,9 +78,13 @@ module Krane
 
     def parent_of_pod?(pod_data)
       return false unless pod_data.dig("metadata", "ownerReferences")
+
+      template_generation = @instance_data.dig("spec", "templateGeneration") ||
+        @instance_data.dig("metadata", "annotations", "deprecated.daemonset.template.generation")
+      return false unless template_generation.present?
+
       pod_data["metadata"]["ownerReferences"].any? { |ref| ref["uid"] == @instance_data["metadata"]["uid"] } &&
-      pod_data["metadata"]["labels"]["pod-template-generation"].to_i ==
-        @instance_data["spec"]["templateGeneration"].to_i
+      pod_data["metadata"]["labels"]["pod-template-generation"].to_i == template_generation.to_i
     end
   end
 end
