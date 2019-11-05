@@ -4,6 +4,8 @@ require 'krane/cli/krane'
 require 'krane/bindings_parser'
 
 class DeployTest < Krane::TestCase
+  include EnvTestHelper
+
   def test_deploy_with_default_options
     set_krane_deploy_expectations
     krane_deploy!
@@ -76,6 +78,29 @@ class DeployTest < Krane::TestCase
     )
     assert_raises_message(Thor::RequiredArgumentMissingError, "No value provided for required options '--filenames'") do
       krane.invoke("deploy")
+    end
+  end
+
+  def test_deploy_uses_revision_env_var
+    test_sha = "TEST"
+    with_env("REVISION", test_sha) do
+      set_krane_deploy_expectations(new_args: { current_sha: test_sha })
+      krane_deploy!
+    end
+  end
+
+  def test_deploy_uses_revision
+    test_sha = "TEST"
+    set_krane_deploy_expectations(new_args: { current_sha: test_sha })
+    krane_deploy!(flags: "--revision #{test_sha}")
+  end
+
+  def test_render_uses_revision_flag_over_env_var
+    env_test_sha = "NOT_TEST_VALUE_TEST"
+    test_sha = "TEST"
+    with_env("REVISION", env_test_sha) do
+      set_krane_deploy_expectations(new_args: { current_sha: test_sha })
+      krane_deploy!(flags: "--revision #{test_sha}")
     end
   end
 

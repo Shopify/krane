@@ -31,6 +31,21 @@ class RendertTest < Krane::TestCase
     end
   end
 
+  def test_render_uses_revision
+    test_sha = "TEST"
+    install_krane_render_expectations(current_sha: test_sha)
+    krane_render!("--revision #{test_sha}")
+  end
+
+  def test_render_uses_revision_flag_over_env_current_sha
+    env_test_sha = "NOT_TEST_VALUE_TEST"
+    test_sha = "TEST"
+    with_env("REVISION", env_test_sha) do
+      install_krane_render_expectations(current_sha: test_sha)
+      krane_render!("--revision #{test_sha}")
+    end
+  end
+
   private
 
   def install_krane_render_expectations(new_args = {})
@@ -40,7 +55,8 @@ class RendertTest < Krane::TestCase
     Krane::RenderTask.expects(:new).with(options).returns(response)
   end
 
-  def krane_render!(flags = '-f /dev/null')
+  def krane_render!(flags = "")
+    flags += ' -f /dev/null' unless flags.include?("-f")
     krane = Krane::CLI::Krane.new(
       [],
       flags.split
