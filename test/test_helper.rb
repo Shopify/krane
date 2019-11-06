@@ -17,6 +17,7 @@ if ENV["PROFILE"]
   require 'ruby-prof'
   require 'ruby-prof-flamegraph'
 end
+ENV["STATSD_USE_NEW_CLIENT"] ||= "1" # support forwards compatibility with v3.0
 
 $LOAD_PATH.unshift(File.expand_path('../../lib', __FILE__))
 require 'krane'
