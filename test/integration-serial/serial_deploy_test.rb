@@ -558,6 +558,24 @@ class SerialDeployTest < Krane::IntegrationTest
     storage_v1_kubeclient.delete_storage_class("testing-storage-class")
   end
 
+  def test_global_deploy_validation_catches_namespaced_cr
+    assert_deploy_success(global_deploy_dirs_without_profiling('test/fixtures/crd/mail.yml', selector: "app=krane"))
+    assert_deploy_failure(global_deploy_dirs_without_profiling('test/fixtures/crd/mail_cr.yml', selector: "app=krane"))
+    assert_logs_match_all([
+      "Phase 1: Initializing deploy",
+      "Using resource selector app=krane",
+      "All required parameters and files are present",
+      "Discovering resources:",
+      "- Mail/my-first-mail",
+      "Result: FAILURE",
+      "Deploying namespaced resource is not allowed from this command.",
+      "Namespaced resources:",
+      "my-first-mail (Mail)",
+    ])
+  ensure
+    wait_for_all_crd_deletion
+  end
+
   private
 
   def wait_for_all_crd_deletion

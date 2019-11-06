@@ -62,7 +62,7 @@ class ResourceDeployerTest < Krane::TestCase
     assert_logs_match_all(["Deploy result verification is disabled for this deploy."])
   end
 
-  def test_predeploy_priority_resources_respectes_pre_deploy_list
+  def test_predeploy_priority_resources_respects_pre_deploy_list
     kind = "MockResource"
     resource = build_mock_resource
     watcher = mock("ResourceWatcher")
@@ -72,7 +72,7 @@ class ResourceDeployerTest < Krane::TestCase
     resource_deployer.predeploy_priority_resources([resource], priority_list)
   end
 
-  def test_predeploy_priority_resources_respectes_empty_pre_deploy_list
+  def test_predeploy_priority_resources_respects_empty_pre_deploy_list
     resource = build_mock_resource
     priority_list = []
     Krane::ResourceWatcher.expects(:new).times(0)

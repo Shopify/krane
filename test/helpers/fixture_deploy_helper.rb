@@ -46,7 +46,7 @@ module FixtureDeployHelper
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
     args[:selector] = ["test=#{@namespace}", args[:selector]].compact.join(",")
-    destroyable = namespace_gloabls(fixtures)
+    destroyable = namespace_globals(fixtures)
 
     yield fixtures if block_given?
 
@@ -180,7 +180,7 @@ module FixtureDeployHelper
       log_failure_by_default: log_failure_by_default, default_timeout: timeout)
   end
 
-  def namespace_gloabls(fixtures)
+  def namespace_globals(fixtures)
     fixtures.each_with_object({}) do |(_, kinds_map), hash|
       kinds_map.each do |kind, resources|
         hash[kind] ||= []
