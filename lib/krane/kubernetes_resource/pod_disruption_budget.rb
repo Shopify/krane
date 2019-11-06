@@ -13,7 +13,7 @@ module Krane
 
     def deploy_method
       # Required until https://github.com/kubernetes/kubernetes/issues/45398 changes
-      :replace_force
+      uses_generate_name? ? :create : :replace_force
     end
 
     def timeout_message

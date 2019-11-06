@@ -42,6 +42,36 @@ class SerialDeployTest < Krane::IntegrationTest
     refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
   end
 
+  def test_sensitive_output_suppressed_when_creating_secret_with_generate_name
+    logger.level = ::Logger::DEBUG # for assertions that we don't log secret data
+
+    # Create secrets
+    result = deploy_fixtures("generateName", subset: "secret.yml")
+    secret_name = /generate-name-secret-[a-z0-9]{5}/
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      'Deploying Secret/generate-name-secret-',
+      'Successfully deployed 1 resource',
+      %r{Secret/#{secret_name}\s+Available},
+    ], in_order: true)
+
+    refute_logs_match("cGFzc3dvcmQ=")
+  end
+
+  def test_sensitive_output_suppressed_when_creating_secret_with_generate_name_fails
+    logger.level = ::Logger::DEBUG # for assertions that we don't log secret data
+
+    # Create secrets
+    result = deploy_fixtures("generateName", subset: "bad_secret.yml")
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Failed to replace or create resource: secret/generate-name-secret-',
+      "<suppressed sensitive output>",
+    ], in_order: true)
+
+    refute_logs_match("cGFzc3dvcmQ=")
+  end
+
   # This can be run in parallel if we allow passing the config file path to DeployTask.new
   # See https://github.com/Shopify/kubernetes-deploy/pull/428#pullrequestreview-209720675
   def test_unreachable_context

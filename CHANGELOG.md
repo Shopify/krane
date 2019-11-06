@@ -3,6 +3,9 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
+*Enhancements*
+- Add support for deploying resources that use `generateName` ([#608](https://github.com/Shopify/kubernetes-deploy/pull/608))
+
 *Other*
 - Refactor StatsD usage so we can depend on the latest version again. ([#594](https://github.com/Shopify/kubernetes-deploy/pull/594))
 
