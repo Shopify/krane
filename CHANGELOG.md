@@ -4,7 +4,7 @@
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
 *Other*
-- Refactor StatsD usage so we can depend on the latest version again.
+- Refactor StatsD usage so we can depend on the latest version again. ([#594](https://github.com/Shopify/kubernetes-deploy/pull/594))
 
 ## 0.30.0
 
