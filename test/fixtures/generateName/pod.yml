@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: pod-using-generate-name-
+  annotations:
+    krane.shopify.io/timeout-override: 60s
+  labels:
+    type: pod-using-generate-name
+    name: pod-using-generate-name
+spec:
+  activeDeadlineSeconds: 60
+  restartPolicy: Never
+  containers:
+  - name: busybox-container
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "echo 'Hello from the command runner!' && test 1 -eq 1"]

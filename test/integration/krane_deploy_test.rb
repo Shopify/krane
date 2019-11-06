@@ -1015,7 +1015,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Result: FAILURE",
-      "Template is missing required field 'metadata.name'",
+      "Template must specify one of 'metadata.name' or 'metadata.generateName'",
       "Template content:",
       "kind: ConfigMap",
       'metadata: {"labels"=>{"name"=>"hello-cloud-configmap-data", "app"=>"hello-cloud"}}',
@@ -1485,7 +1485,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Invalid template: secret.yml",
-      "Template is missing required field 'metadata.name'",
+      "Template must specify one of 'metadata.name' or 'metadata.generateName'",
       "Template content: Suppressed because it may contain a Secret",
     ], in_order: true)
 
@@ -1505,7 +1505,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Invalid template: secret.yml",
-      "Template is missing required field 'metadata.name'",
+      "Template must specify one of 'metadata.name' or 'metadata.generateName'",
       "apiVersion: v1",
       "kind: SpecialSecret",
       'metadata: {"labels"=>{"should_appear"=>true}}',
@@ -1685,6 +1685,27 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       'Global resources:',
       '    testing-storage-class (StorageClass) in ',
     ], in_order: true)
+  end
+
+  def test_deploy_resource_using_generate_name_succeeds
+    assert_deploy_success(deploy_fixtures("generateName", subset: %w(pdb.yml pod.yml secret.yml)))
+    pod_name_matcher = /pod-using-generate-name-[a-z0-9]{5}/
+    secret_name_matcher = /generate-name-secret-[a-z0-9]{5}/
+    pdb_name_matcher = /test-[a-z0-9]{5}/
+    pods = kubeclient.get_pods(namespace: @namespace)
+    assert_equal(1, pods.count)
+    assert_match(pod_name_matcher, pods.first.dig('metadata', 'name')) # the name contains a generated ID
+    assert_logs_match_all([
+      "Deploying Pod/pod-using-generate-name- (timeout: 60s)",
+      "Deploying Secret/generate-name-secret- (timeout: 30s)",
+      %r{Streaming logs from Pod/#{pod_name_matcher} container 'busybox-container':},
+      "Hello from the command runner!",
+      "Successfully deployed 3 resources",
+      "PodDisruptionBudget/test- (timeout: 10s)",
+      %r{Pod/#{pod_name_matcher}\s+Succeeded},
+      %r{PodDisruptionBudget/#{pdb_name_matcher}\s+Available},
+      %r{Secret/#{secret_name_matcher}\s+Available},
+    ])
   end
 
   private

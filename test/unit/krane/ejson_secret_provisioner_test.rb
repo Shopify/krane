@@ -101,17 +101,6 @@ class EjsonSecretProvisionerTest < Krane::TestCase
 
   private
 
-  def stub_dry_run_validation_request
-    stub_kubectl_response("apply", "-f", anything, "--dry-run", "--output=name",
-      resp: dummy_secret_hash, json: false,
-      kwargs: {
-        log_failure: false,
-        output_is_sensitive: true,
-        retry_whitelist: [:client_timeout],
-        attempts: 3,
-      })
-  end
-
   def stub_server_dry_run_validation_request
     stub_kubectl_response("apply", "-f", anything, "--server-dry-run", "--output=name",
       resp: dummy_secret_hash, json: false,

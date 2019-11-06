@@ -187,9 +187,7 @@ class DeploymentTest < Krane::TestCase
       template: build_deployment_template(rollout: 'bad', use_deprecated: true),
       replica_sets: []
     )
-    kubectl.expects(:run).with('apply', '-f', anything, '--dry-run', '--output=name', anything).returns(
-      ["", "super failed", SystemExit.new(1)]
-    )
+    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
     refute(deploy.validate_definition(kubectl))
 
     expected = <<~STRING.strip
@@ -201,9 +199,7 @@ class DeploymentTest < Krane::TestCase
 
   def test_validation_fails_with_invalid_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: 'bad'), replica_sets: [])
-    kubectl.expects(:run).with('apply', '-f', anything, '--dry-run', '--output=name', anything).returns(
-      ["", "super failed", SystemExit.new(1)]
-    )
+    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
     refute(deploy.validate_definition(kubectl))
 
     expected = <<~STRING.strip
@@ -215,9 +211,7 @@ class DeploymentTest < Krane::TestCase
 
   def test_validation_with_percent_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10%'), replica_sets: [])
-    kubectl.expects(:run).with('apply', '-f', anything, '--dry-run', '--output=name', anything).returns(
-      ["", "", SystemExit.new(0)]
-    )
+    stub_validation_dry_run
     assert(deploy.validate_definition(kubectl))
     assert_empty(deploy.validation_error_msg)
   end
@@ -227,9 +221,7 @@ class DeploymentTest < Krane::TestCase
       template: build_deployment_template(rollout: '10', use_deprecated: true),
       replica_sets: []
     )
-    kubectl.expects(:run).with('apply', '-f', anything, '--dry-run', '--output=name', anything).returns(
-      ["", "super failed", SystemExit.new(1)]
-    )
+    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
 
     refute(deploy.validate_definition(kubectl))
     expected = <<~STRING.strip
@@ -241,9 +233,7 @@ class DeploymentTest < Krane::TestCase
 
   def test_validation_with_number_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10'), replica_sets: [])
-    kubectl.expects(:run).with('apply', '-f', anything, '--dry-run', '--output=name', anything).returns(
-      ["", "super failed", SystemExit.new(1)]
-    )
+    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
 
     refute(deploy.validate_definition(kubectl))
     expected = <<~STRING.strip
@@ -258,9 +248,7 @@ class DeploymentTest < Krane::TestCase
       template: build_deployment_template(rollout: 'maxUnavailable', strategy: 'Recreate', use_deprecated: true),
       replica_sets: [build_rs_template]
     )
-    kubectl.expects(:run).with('apply', '-f', anything, '--dry-run', '--output=name', anything).returns(
-      ["", "super failed", SystemExit.new(1)]
-    )
+    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
     refute(deploy.validate_definition(kubectl))
 
     expected = <<~STRING.strip
@@ -275,9 +263,7 @@ class DeploymentTest < Krane::TestCase
       template: build_deployment_template(rollout: 'maxUnavailable', strategy: 'Recreate'),
       replica_sets: [build_rs_template]
     )
-    kubectl.expects(:run).with('apply', '-f', anything, '--dry-run', '--output=name', anything).returns(
-      ["", "super failed", SystemExit.new(1)]
-    )
+    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
     refute(deploy.validate_definition(kubectl))
 
     expected = <<~STRING.strip
@@ -292,9 +278,7 @@ class DeploymentTest < Krane::TestCase
       template: build_deployment_template(rollout: 'maxUnavailable', strategy: nil),
       replica_sets: [build_rs_template]
     )
-    kubectl.expects(:run).with('apply', '-f', anything, '--dry-run', '--output=name', anything).returns(
-      ["", "", SystemExit.new(0)]
-    )
+    stub_validation_dry_run
     assert(deploy.validate_definition(kubectl))
   end
 
@@ -427,6 +411,12 @@ class DeploymentTest < Krane::TestCase
   end
 
   private
+
+  def stub_validation_dry_run(out: "", err: "", status: SystemExit.new(0))
+    kubectl.expects(:run)
+      .with('apply', '-f', anything, '--dry-run', '--output=name', anything)
+      .returns([out, err, status])
+  end
 
   def build_deployment_template(status: { 'replicas' => 3 }, rollout: nil,
     strategy: 'rollingUpdate', max_unavailable: nil, use_deprecated: false)
