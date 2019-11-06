@@ -9,6 +9,7 @@ require 'optparse'
 
 template_dir = []
 bindings = {}
+revision = ENV["REVISION"]
 
 ARGV.options do |opts|
   parser = Krane::BindingsParser.new
@@ -17,6 +18,7 @@ ARGV.options do |opts|
   opts.on("--template-dir=DIR", "Set the template dir (default: config/deploy/$ENVIRONMENT).") do |d|
     template_dir = [d]
   end
+  opts.on("--revision=REVISION", "Expose SHA `current_sha` in ERB bindings") { |r| revision = r }
   opts.parse!
   bindings = parser.parse
 end
@@ -27,7 +29,7 @@ logger = Krane::FormattedLogger.build(verbose_prefix: false)
 begin
   Krane::OptionsHelper.with_processed_template_paths(template_dir) do |dir|
     runner = KubernetesDeploy::RenderTask.new(
-      current_sha: ENV["REVISION"],
+      current_sha: revision,
       template_dir: dir.first,
       bindings: bindings,
     )
