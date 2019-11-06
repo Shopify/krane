@@ -48,7 +48,7 @@ class ResourceDeployerTest < Krane::TestCase
   def test_deploy_failure_error
     resource = build_mock_resource(final_status: "failure")
     watcher = mock("ResourceWatcher")
-    watcher.expects(:run).returns(true)
+    watcher.expects(:run)
     Krane::ResourceWatcher.expects(:new).returns(watcher)
     assert_raises(Krane::FatalDeploymentError) do
       resource_deployer.deploy!([resource], true, false)
@@ -67,6 +67,9 @@ class ResourceDeployerTest < Krane::TestCase
     resource = build_mock_resource
     watcher = mock("ResourceWatcher")
     watcher.expects(:run).returns(true)
+    # ResourceDeployer only creates a ResourceWatcher if one or more resources
+    # are deployed. See test_predeploy_priority_resources_respects_empty_pre_deploy_list
+    # for counter example
     Krane::ResourceWatcher.expects(:new).returns(watcher)
     priority_list = [kind]
     resource_deployer.predeploy_priority_resources([resource], priority_list)
@@ -87,7 +90,7 @@ class ResourceDeployerTest < Krane::TestCase
     end
     @deployer = Krane::ResourceDeployer.new(current_sha: 'test-sha',
       statsd_tags: [], task_config: task_config, prune_whitelist: prune_whitelist,
-      max_watch_seconds: 60, selector: nil)
+      max_watch_seconds: 1, selector: nil)
   end
 
   def build_mock_resource(final_status: "success", hits_to_complete: 0, name: "web-pod")

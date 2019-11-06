@@ -321,6 +321,29 @@ class SerialDeployTest < Krane::IntegrationTest
     end
   end
 
+  def test_global_deploy_emits_expected_statsd_metrics
+    metrics = capture_statsd_calls do
+      assert_deploy_success(deploy_global_fixtures('globals'))
+    end
+
+    assert_equal(1, metrics.count { |m| m.type == :_e }, "Expected to find one event metric")
+
+    %w(
+      KubernetesDeploy.validate_configuration.duration
+      KubernetesDeploy.discover_resources.duration
+      KubernetesDeploy.initial_status.duration
+      KubernetesDeploy.validate_resources.duration
+      KubernetesDeploy.apply_all.duration
+      KubernetesDeploy.normal_resources.duration
+      KubernetesDeploy.sync.duration
+      KubernetesDeploy.all_resources.duration
+    ).each do |expected_metric|
+      metric = metrics.find { |m| m.name == expected_metric }
+      refute_nil metric, "Metric #{expected_metric} not emitted"
+      assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}", "#{metric.name} is missing context tag"
+    end
+  end
+
   def test_cr_deploys_without_rollout_conditions_when_none_present_deprecated
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_deprecated.yml)))
     assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
@@ -533,6 +556,9 @@ class SerialDeployTest < Krane::IntegrationTest
     refute_logs_match("kind: Deployment") # content of the sensitive template
   end
 
+  # test_global_deploy_black_box_failure is in test/integration/krane_test.rb
+  # because it does not modify global state. The following two tests modify
+  # global state and must be run in serially
   def test_global_deploy_black_box_success
     setup_template_dir("globals") do |target_dir|
       flags = "-f #{target_dir} --selector app=krane"
@@ -542,7 +568,7 @@ class SerialDeployTest < Krane::IntegrationTest
       assert_predicate(status, :success?)
     end
   ensure
-    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
+    build_kubectl.run("delete", "-f", fixture_path("globals"), use_namespace: false, log_failure: false)
   end
 
   def test_global_deploy_black_box_timeout
@@ -555,11 +581,12 @@ class SerialDeployTest < Krane::IntegrationTest
       assert_equal(status.exitstatus, 70)
     end
   ensure
-    storage_v1_kubeclient.delete_storage_class("testing-storage-class")
+    build_kubectl.run("delete", "-f", fixture_path("globals"), use_namespace: false, log_failure: false)
   end
 
   def test_global_deploy_validation_catches_namespaced_cr
     assert_deploy_success(global_deploy_dirs_without_profiling('test/fixtures/crd/mail.yml', selector: "app=krane"))
+    reset_logger
     assert_deploy_failure(global_deploy_dirs_without_profiling('test/fixtures/crd/mail_cr.yml', selector: "app=krane"))
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
@@ -568,7 +595,7 @@ class SerialDeployTest < Krane::IntegrationTest
       "Discovering resources:",
       "- Mail/my-first-mail",
       "Result: FAILURE",
-      "Deploying namespaced resource is not allowed from this command.",
+      "This command cannot deploy namespaced resources",
       "Namespaced resources:",
       "my-first-mail (Mail)",
     ])

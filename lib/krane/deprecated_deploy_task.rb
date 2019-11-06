@@ -304,6 +304,7 @@ module Krane
     measure_method(:validate_configuration)
 
     def validate_resources(resources)
+      validate_globals(resources)
       Krane::Concurrency.split_across_threads(resources) do |r|
         r.validate_definition(kubectl, selector: @selector)
       end
@@ -323,7 +324,6 @@ module Krane
         end
         raise FatalDeploymentError, "Template validation failed"
       end
-      validate_globals(resources)
     end
     measure_method(:validate_resources)
 

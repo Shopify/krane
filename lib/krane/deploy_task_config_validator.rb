@@ -1,10 +1,6 @@
 # frozen_string_literal: true
-require 'krane/concerns/template_reporting'
-
 module Krane
   class DeployTaskConfigValidator < TaskConfigValidator
-    include Krane::TemplateReporting
-
     def initialize(protected_namespaces, allow_protected_ns, prune, *arguments)
       super(*arguments)
       @protected_namespaces = protected_namespaces

@@ -33,10 +33,10 @@ module Krane
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
     # @param template_paths [Array<String>] An array of template paths
-    def initialize(context:, global_timeout: nil, selector: nil, filenames: [])
+    def initialize(context:, global_timeout: nil, selector: nil, filenames: [], logger: nil)
       template_paths = filenames.map { |path| File.expand_path(path) }
 
-      @task_config = TaskConfig.new(context, nil)
+      @task_config = TaskConfig.new(context, nil, logger)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths,
         logger: @task_config.logger)
       @global_timeout = global_timeout
@@ -116,7 +116,7 @@ module Krane
       errors = []
       errors += task_config_validator.errors
       errors += @template_sets.validate
-      errors << "Selector is required" unless @selector.present?
+      errors << "Selector is required" unless @selector.to_h.present?
       unless errors.empty?
         add_para_from_list(logger: logger, action: "Configuration invalid", enum: errors)
         raise TaskConfigurationError
@@ -159,7 +159,7 @@ module Krane
       namespaced_names = FormattedLogger.indent_four(namespaced_names.join("\n"))
 
       logger.summary.add_paragraph(ColorizedString.new("Namespaced resources:\n#{namespaced_names}").yellow)
-      raise FatalDeploymentError, "Deploying namespaced resource is not allowed from this command."
+      raise FatalDeploymentError, "This command cannot deploy namespaced resources"
     end
 
     def discover_resources
@@ -186,7 +186,7 @@ module Krane
     end
 
     def statsd_tags
-      %W(context:#{@context})
+      %W(context:#{context})
     end
 
     def kubectl

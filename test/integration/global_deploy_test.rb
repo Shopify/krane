@@ -2,7 +2,6 @@
 require 'integration_test_helper'
 
 class GlobalDeployTest < Krane::IntegrationTest
-  include StatsDHelper
   def test_global_deploy_task_success
     assert_deploy_success(deploy_global_fixtures('globals'))
 
@@ -67,12 +66,23 @@ class GlobalDeployTest < Krane::IntegrationTest
     ])
   end
 
+  def test_global_deploy_task_empty_selector_validation_failure
+    assert_deploy_failure(deploy_global_fixtures('globals', selector: ""))
+    assert_logs_match_all([
+      "Phase 1: Initializing deploy",
+      "Result: FAILURE",
+      "Configuration invalid",
+      "- Selector is required",
+    ])
+  end
+
   def test_global_deploy_task_success_selector
-    assert_deploy_success(deploy_global_fixtures('globals', selector: "app=krane"))
+    selector = "app=krane"
+    assert_deploy_success(deploy_global_fixtures('globals', selector: selector))
 
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
-      "Using resource selector test=",
+      "Using resource selector #{selector}",
       "All required parameters and files are present",
       "Discovering resources:",
       "  - StorageClass/testing-storage-class",

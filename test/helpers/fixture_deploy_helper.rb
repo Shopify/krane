@@ -45,8 +45,8 @@ module FixtureDeployHelper
   def deploy_global_fixtures(set, subset: nil, **args)
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
-    args[:selector] = ["test=#{@namespace}", args[:selector]].compact.join(",")
-    destroyable = namespace_globals(fixtures)
+    args[:selector] ||= "test=#{@namespace}"
+    namespace_globals(fixtures)
 
     yield fixtures if block_given?
 
@@ -56,8 +56,6 @@ module FixtureDeployHelper
       success = global_deploy_dirs_without_profiling(target_dir, **args)
     end
     success
-  ensure
-    delete_globals(destroyable)
   end
 
   def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil, render_erb: false)
@@ -113,12 +111,14 @@ module FixtureDeployHelper
       filenames: Array(dirs),
       global_timeout: global_timeout,
       selector: Krane::LabelSelector.parse(selector),
+      logger: logger,
     )
-    deploy.instance_eval("@task_config").instance_variable_set("@logger", logger)
     deploy.run(
       verify_result: verify_result,
       prune: prune
     )
+  ensure
+    delete_globals(Array(dirs))
   end
 
   # Deploys all fixtures in the given directories via KubernetesDeploy::DeployTask
@@ -181,28 +181,20 @@ module FixtureDeployHelper
   end
 
   def namespace_globals(fixtures)
-    fixtures.each_with_object({}) do |(_, kinds_map), hash|
-      kinds_map.each do |kind, resources|
-        hash[kind] ||= []
+    fixtures.each do |_, kinds_map|
+      kinds_map.each do |_, resources|
         resources.each do |resource|
-          resource["metadata"]["name"] += @namespace
+          resource["metadata"]["name"] = (resource["metadata"]["name"] + @namespace)[0..63]
           resource["metadata"]["labels"] ||= {}
           resource["metadata"]["labels"]["test"] = @namespace
-          hash[kind] << resource["metadata"]["name"]
         end
       end
     end
   end
 
-  def delete_globals(kinds_map)
-    kind_to_client = { "StorageClass" => storage_v1_kubeclient }
-    kinds_map&.each do |kind, names|
-      client = kind_to_client[kind]
-      raise "No known client for #{kind}" unless client
-      existing = client.send("get_#{kind.underscore.pluralize}").map { |r| r.dig(:metadata, :name) }
-      (names & existing).each do |name|
-        client.send("delete_#{kind.underscore}", name)
-      end
-    end
+  def delete_globals(dirs)
+    kubectl = build_kubectl
+    paths = dirs.flat_map { |d| ["-f", d] }
+    kubectl.run("delete", *paths, log_failure: false, use_namespace: false)
   end
 end
