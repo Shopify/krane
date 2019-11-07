@@ -89,7 +89,7 @@ module Krane
       # Apply can be done in one large batch, the rest have to be done individually
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
       # Prunable resources should also applied so that they can  be pruned
-      pruneable_types = prune_whitelist.map { |t| t.split("/").last }
+      pruneable_types = @prune_whitelist.map { |t| t.split("/").last }
       applyables += individuals.select { |r| pruneable_types.include?(r.type) }
 
       individuals.each do |individual_resource|

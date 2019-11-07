@@ -322,7 +322,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_global_deploy_emits_expected_statsd_metrics
-    metrics = capture_statsd_calls do
+    metrics = capture_statsd_calls(client: Krane::StatsD.client) do
       assert_deploy_success(deploy_global_fixtures('globals'))
     end
 
