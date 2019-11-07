@@ -59,7 +59,9 @@ module Krane
       relevant_node_names = @nodes.map(&:name)
       considered_pods = @pods.select { |p| relevant_node_names.include?(p.node_name) }
       @logger.debug("Considered #{considered_pods.size} pods out of #{@pods.size} for #{@nodes.size} nodes")
-      considered_pods.present? && considered_pods.all?(&:deploy_succeeded?)
+      considered_pods.present? &&
+        considered_pods.all?(&:deploy_succeeded?) &&
+        rollout_data["numberReady"].to_i == considered_pods.length
     end
 
     def find_nodes(cache)
