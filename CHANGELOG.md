@@ -1,9 +1,12 @@
 ## next
 
+## 0.31
+
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
 *Enhancements*
+- Add a new global deploy task for deploying global resources. ([#602](https://github.com/Shopify/kubernetes-deploy/pull/602))
 - Add support for deploying resources that use `generateName` ([#608](https://github.com/Shopify/kubernetes-deploy/pull/608))
 
 *Other*
