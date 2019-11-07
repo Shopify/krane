@@ -113,11 +113,16 @@ class DaemonSetTest < Krane::TestCase
       "updatedNumberScheduled": 1,
       "numberReady": 0,
     }
-    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status)
+    not_ready_ds_template = build_ds_template(filename: 'daemon_set.yml', status: status)
     ready_pod_template = load_fixtures(filenames: ['daemon_set_pods.yml']).first # should be a pod in `Ready` state
     node_templates = load_fixtures(filenames: ['nodes.yml'])
-    ds = build_synced_ds(ds_template: ds_template, pod_templates: [ready_pod_template], node_templates: node_templates)
+    ds = build_synced_ds(ds_template: not_ready_ds_template, pod_templates: [ready_pod_template], node_templates: node_templates)
     refute_predicate(ds, :deploy_succeeded?)
+
+    status[:numberReady] = 1
+    ready_ds_template = build_ds_template(filename: 'daemon_set.yml', status: status)
+    ds = build_synced_ds(ds_template: ready_ds_template, pod_templates: [ready_pod_template], node_templates: node_templates)
+    assert_predicate(ds, :deploy_succeeded?)
   end
 
   private
