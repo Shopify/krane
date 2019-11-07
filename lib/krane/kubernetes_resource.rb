@@ -345,7 +345,7 @@ module Krane
 
     def report_status_to_statsd(watch_time)
       unless @statsd_report_done
-        StatsD.distribution('resource.duration', watch_time, tags: statsd_tags)
+        StatsD.client.distribution('resource.duration', watch_time, tags: statsd_tags)
         @statsd_report_done = true
       end
     end

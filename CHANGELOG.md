@@ -6,6 +6,9 @@
 *Enhancements*
 - Add support for deploying resources that use `generateName` ([#608](https://github.com/Shopify/kubernetes-deploy/pull/608))
 
+*Other*
+- Refactor StatsD usage so we can depend on the latest version again. ([#594](https://github.com/Shopify/kubernetes-deploy/pull/594))
+
 ## 0.30.0
 
 *Enhancements*

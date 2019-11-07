@@ -20,5 +20,4 @@ require 'krane/task_config_validator'
 
 module Krane
   MIN_KUBE_VERSION = '1.11.0'
-  StatsD.build
 end

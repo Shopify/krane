@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency("googleauth", "~> 0.8.0")
   spec.add_dependency("ejson", "~> 1.0")
   spec.add_dependency("colorize", "~> 0.8")
-  spec.add_dependency("statsd-instrument", '~> 2.3.2')
+  spec.add_dependency("statsd-instrument", ['>= 2.8', "< 3.1"])
   spec.add_dependency("oj", "~> 3.0")
   spec.add_dependency("concurrent-ruby", "~> 1.1")
   spec.add_dependency("jsonpath", "~> 0.9.6")
