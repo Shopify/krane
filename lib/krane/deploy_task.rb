@@ -10,10 +10,7 @@ module Krane
     end
 
     def prune_whitelist
-      black_list = %w(batch/v1beta1/Job)
-      cluster_resource_discoverer.prunable_resources.select do |gvk|
-        @task_config.namespaced_kinds.any? { |g| gvk.include?(g) } && black_list.none? { |b| gvk.include?(b) }
-      end
+      cluster_resource_discoverer.prunable_resources(namespaced: true)
     end
   end
 end

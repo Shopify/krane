@@ -16,10 +16,6 @@ module Krane
       end
     end
 
-    def global_resource_kinds
-      @globals ||= fetch_resources(namespaced: false).map { |g| g["kind"] }
-    end
-
     def prunable_resources(namespaced:)
       black_list = %w(Namespace Node)
       api_versions = fetch_api_versions
@@ -27,28 +23,9 @@ module Krane
       fetch_resources(namespaced: namespaced).map do |resource|
         next unless resource['verbs'].one? { |v| v == "delete" }
         next if black_list.include?(resource['kind'])
-        version = api_versions[resource['apigroup'].to_s].last
+        version = latest_version(api_versions[resource['apigroup'].to_s], resource['kind'])
         [resource['apigroup'], version, resource['kind']].compact.join("/")
       end.compact
-    end
-
-    private
-
-    # kubectl api-versions returns a list of group/version strings e.g. autoscaling/v2beta2
-    # A kind may not exist in all versions of the group.
-    def fetch_api_versions
-      raw, _, st = kubectl.run("api-versions", attempts: 5, use_namespace: false)
-      # The "core" group is represented by an empty string
-      versions = { "" => %w(v1) }
-      if st.success?
-        rows = raw.split("\n")
-        rows.each do |group_version|
-          group, version = group_version.split("/")
-          versions[group] ||= []
-          versions[group] << version
-        end
-      end
-      versions
     end
 
     # kubectl api-resources -o wide returns 5 columns
@@ -83,6 +60,37 @@ module Krane
       else
         []
       end
+    end
+
+    private
+
+    # kubectl api-versions returns a list of group/version strings e.g. autoscaling/v2beta2
+    # A kind may not exist in all versions of the group.
+    def fetch_api_versions
+      raw, _, st = kubectl.run("api-versions", attempts: 5, use_namespace: false)
+      # The "core" group is represented by an empty string
+      versions = { "" => %w(v1) }
+      if st.success?
+        rows = raw.split("\n")
+        rows.each do |group_version|
+          group, version = group_version.split("/")
+          versions[group] ||= []
+          versions[group] << version
+        end
+      end
+      versions
+    end
+
+    def latest_version(versions, kind)
+      version_override = { "CronJob" => "v1beta1", "VolumeAttachment" => "v1beta1",
+                           "CSIDriver" => "v1beta1", "Ingress" => "v1beta1", "CSINode" => "v1beta1" }
+
+      pattern = /v(?<major>\d+)(beta)?(?<minor>\d+)?/
+      latest = versions.sort_by do |version|
+        match = version.match(pattern)
+        [match[:major].to_i, (match[:minor] || 999).to_i]
+      end.last
+      version_override.fetch(kind, latest)
     end
 
     def fetch_crds
