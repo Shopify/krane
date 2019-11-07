@@ -2,10 +2,10 @@
 require 'test_helper'
 
 class ClusterResourceDiscoveryTest < Krane::TestCase
-  def test_global_resource_kinds_failure
+  def test_fetch_resources_failure
     crd = mocked_cluster_resource_discovery(nil, success: false)
-    kinds = crd.global_resource_kinds
-    assert_equal(kinds, [])
+    resources = crd.fetch_resources
+    assert_equal(resources, [])
   end
 
   def test_global_resource_kinds_success
