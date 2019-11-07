@@ -123,58 +123,6 @@ class ResourceWatcherTest < Krane::TestCase
     )
   end
 
-  MockResource = Struct.new(:id, :hits_to_complete, :status) do
-    def debug_message(*)
-      @debug_message
-    end
-
-    def sync(_cache)
-      @hits ||= 0
-      @hits += 1
-    end
-
-    def after_sync
-    end
-
-    def type
-      "MockResource"
-    end
-    alias_method :kubectl_resource_type, :type
-
-    def deploy_succeeded?
-      status == "success" && hits_complete?
-    end
-
-    def deploy_failed?
-      status == "failed" && hits_complete?
-    end
-
-    def deploy_timed_out?
-      status == "timeout" && hits_complete?
-    end
-
-    def timeout
-      hits_to_complete
-    end
-
-    def sync_debug_info(_)
-      @debug_message = "Something went wrong"
-    end
-
-    def pretty_status
-      "#{id}  #{status} (#{@hits} hits)"
-    end
-
-    def report_status_to_statsd(watch_time)
-    end
-
-    private
-
-    def hits_complete?
-      @hits >= hits_to_complete
-    end
-  end
-
   def build_mock_resource(final_status: "success", hits_to_complete: 1, name: "web-pod")
     MockResource.new(name, hits_to_complete, final_status)
   end

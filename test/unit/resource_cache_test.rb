@@ -16,6 +16,13 @@ class ResourceCacheTest < Krane::TestCase
     assert_equal(pods[1].kubectl_response, @cache.get_instance("FakePod", pods[1].name))
   end
 
+  def test_get_instance_populates_the_cache_for_global_resources
+    nodes = build_fake_nodes(2)
+    stub_kind_get("FakeNode", items: nodes.map(&:kubectl_response), times: 1, use_namespace: false)
+    assert_equal(nodes[0].kubectl_response, @cache.get_instance("FakeNode", nodes[0].name))
+    assert_equal(nodes[1].kubectl_response, @cache.get_instance("FakeNode", nodes[1].name))
+  end
+
   def test_get_instance_returns_empty_hash_if_pod_not_found
     pods = build_fake_pods(2)
     stub_kind_get("FakePod", items: pods.map(&:kubectl_response), times: 1)
@@ -37,7 +44,8 @@ class ResourceCacheTest < Krane::TestCase
   end
 
   def test_if_kubectl_error_then_empty_result_returned_but_not_cached
-    stub_kubectl_response('get', 'FakeConfigMap', '--chunk-size=0', kwargs: { attempts: 5, output_is_sensitive: false },
+    stub_kubectl_response('get', 'FakeConfigMap', '--chunk-size=0',
+      kwargs: { attempts: 5, output_is_sensitive: false, use_namespace: true },
       success: false, resp: { "items" => [] }, err: 'no', times: 4)
 
     # All of these calls should attempt the request again (see the 'times' arg above)
@@ -79,6 +87,10 @@ class ResourceCacheTest < Krane::TestCase
   end
 
   private
+
+  def build_fake_nodes(num)
+    num.times.map { |n| FakeNode.new("node#{n}") }
+  end
 
   def build_fake_pods(num)
     num.times.map { |n| FakePod.new("pod#{n}") }
@@ -140,4 +152,9 @@ class ResourceCacheTest < Krane::TestCase
   end
   class FakePod < MockResource; end
   class FakeConfigMap < MockResource; end
+  class FakeNode < MockResource
+    def global?
+      true
+    end
+  end
 end

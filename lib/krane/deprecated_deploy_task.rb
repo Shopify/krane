@@ -41,11 +41,14 @@ require 'krane/renderer'
 require 'krane/cluster_resource_discovery'
 require 'krane/template_sets'
 require 'krane/deploy_task_config_validator'
+require 'krane/resource_deployer'
+require 'krane/concerns/template_reporting'
 
 module Krane
   # Ship resources to a namespace
   class DeprecatedDeployTask
     extend Krane::StatsD::MeasureMethods
+    include Krane::TemplateReporting
 
     PROTECTED_NAMESPACES = %w(
       default
@@ -175,7 +178,7 @@ module Krane
 
       if deploy_has_priority_resources?(resources)
         @logger.phase_heading("Predeploying priority resources")
-        predeploy_priority_resources(resources)
+        resource_deployer.predeploy_priority_resources(resources, predeploy_sequence)
       end
 
       @logger.phase_heading("Deploying all resources")
@@ -183,23 +186,8 @@ module Krane
         raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
       end
 
-      if verify_result
-        deploy_all_resources(resources, prune: prune, verify: true)
-        failed_resources = resources.reject(&:deploy_succeeded?)
-        success = failed_resources.empty?
-        if !success && failed_resources.all?(&:deploy_timed_out?)
-          raise DeploymentTimeoutError
-        end
-        raise FatalDeploymentError unless success
-      else
-        deploy_all_resources(resources, prune: prune, verify: false)
-        @logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
-        warning = <<~MSG
-          Deploy result verification is disabled for this deploy.
-          This means the desired changes were communicated to Kubernetes, but the deploy did not make sure they actually succeeded.
-        MSG
-        @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
-      end
+      resource_deployer.deploy!(resources, verify_result, prune)
+
       StatsD.client.event("Deployment of #{@namespace} succeeded",
         "Successfully deployed all #{@namespace} resources to #{@context}",
         alert_type: "success", tags: statsd_tags + %w(status:success))
@@ -227,8 +215,10 @@ module Krane
 
     private
 
-    def global_resource_names
-      cluster_resource_discoverer.global_resource_kinds
+    def resource_deployer
+      @resource_deployer ||= Krane::ResourceDeployer.new(task_config: @task_config,
+        prune_whitelist: prune_whitelist, max_watch_seconds: @max_watch_seconds,
+        selector: @selector, statsd_tags: statsd_tags, current_sha: @current_sha)
     end
 
     def kubeclient_builder
@@ -258,71 +248,6 @@ module Krane
       resources.any? { |r| predeploy_sequence.include?(r.type) }
     end
 
-    def predeploy_priority_resources(resource_list)
-      bare_pods = resource_list.select { |resource| resource.is_a?(Pod) }
-      if bare_pods.count == 1
-        bare_pods.first.stream_logs = true
-      end
-
-      predeploy_sequence.each do |resource_type|
-        matching_resources = resource_list.select { |r| r.type == resource_type }
-        next if matching_resources.empty?
-        deploy_resources(matching_resources, verify: true, record_summary: false)
-
-        failed_resources = matching_resources.reject(&:deploy_succeeded?)
-        fail_count = failed_resources.length
-        if fail_count > 0
-          Krane::Concurrency.split_across_threads(failed_resources) do |r|
-            r.sync_debug_info(kubectl)
-          end
-          failed_resources.each { |r| @logger.summary.add_paragraph(r.debug_message) }
-          raise FatalDeploymentError, "Failed to deploy #{fail_count} priority #{'resource'.pluralize(fail_count)}"
-        end
-        @logger.blank_line
-      end
-    end
-    measure_method(:predeploy_priority_resources, 'priority_resources.duration')
-
-    def validate_resources(resources)
-      Krane::Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(kubectl, selector: @selector)
-      end
-
-      resources.select(&:has_warnings?).each do |resource|
-        record_warnings(warning: resource.validation_warning_msg, filename: File.basename(resource.file_path))
-      end
-
-      failed_resources = resources.select(&:validation_failed?)
-      if failed_resources.present?
-
-        failed_resources.each do |r|
-          content = File.read(r.file_path) if File.file?(r.file_path) && !r.sensitive_template_content?
-          record_invalid_template(err: r.validation_error_msg, filename: File.basename(r.file_path), content: content)
-        end
-        raise FatalDeploymentError, "Template validation failed"
-      end
-      validate_globals(resources)
-    end
-    measure_method(:validate_resources)
-
-    def validate_globals(resources)
-      return unless (global = resources.select(&:global?).presence)
-      global_names = global.map do |resource|
-        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
-      end
-      global_names = FormattedLogger.indent_four(global_names.join("\n"))
-
-      if @allow_globals
-        msg = "The ability for this task to deploy global resources will be removed in the next version,"\
-              " which will affect the following resources:"
-        msg += "\n#{global_names}"
-        @logger.summary.add_paragraph(ColorizedString.new(msg).yellow)
-      else
-        @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
-        raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources."
-      end
-    end
-
     def check_initial_status(resources)
       cache = ResourceCache.new(@task_config)
       Krane::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
@@ -342,7 +267,7 @@ module Krane
           current_sha: @current_sha, bindings: @bindings) do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, global_names: global_resource_names)
+          statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
         resources << r
         @logger.info("  - #{r.id}")
       end
@@ -354,29 +279,11 @@ module Krane
 
       resources.sort
     rescue InvalidTemplateError => e
-      record_invalid_template(err: e.message, filename: e.filename, content: e.content)
+      record_invalid_template(logger: @logger, err: e.message, filename: e.filename,
+         content: e.content)
       raise FatalDeploymentError, "Failed to render and parse template"
     end
     measure_method(:discover_resources)
-
-    def record_invalid_template(err:, filename:, content: nil)
-      debug_msg = ColorizedString.new("Invalid template: #{filename}\n").red
-      debug_msg += "> Error message:\n#{FormattedLogger.indent_four(err)}"
-      if content
-        debug_msg += if content =~ /kind:\s*Secret/
-          "\n> Template content: Suppressed because it may contain a Secret"
-        else
-          "\n> Template content:\n#{FormattedLogger.indent_four(content)}"
-        end
-      end
-      @logger.summary.add_paragraph(debug_msg)
-    end
-
-    def record_warnings(warning:, filename:)
-      warn_msg = "Template warning: #{filename}\n"
-      warn_msg += "> Warning message:\n#{FormattedLogger.indent_four(warning)}"
-      @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-    end
 
     def validate_configuration(allow_protected_ns:, prune:)
       task_config_validator = DeployTaskConfigValidator.new(@protected_namespaces, allow_protected_ns, prune,
@@ -385,8 +292,7 @@ module Krane
       errors += task_config_validator.errors
       errors += @template_sets.validate
       unless errors.empty?
-        @logger.summary.add_action("Configuration invalid")
-        @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
+        add_para_from_list(logger: @logger, action: "Configuration invalid", enum: errors)
         raise Krane::TaskConfigurationError
       end
 
@@ -397,191 +303,45 @@ module Krane
     end
     measure_method(:validate_configuration)
 
-    def deploy_resources(resources, prune: false, verify:, record_summary: true)
-      return if resources.empty?
-      deploy_started_at = Time.now.utc
+    def validate_resources(resources)
+      validate_globals(resources)
+      Krane::Concurrency.split_across_threads(resources) do |r|
+        r.validate_definition(kubectl, selector: @selector)
+      end
 
-      if resources.length > 1
-        @logger.info("Deploying resources:")
-        resources.each do |r|
-          @logger.info("- #{r.id} (#{r.pretty_timeout_type})")
+      resources.select(&:has_warnings?).each do |resource|
+        record_warnings(logger: @logger, warning: resource.validation_warning_msg,
+          filename: File.basename(resource.file_path))
+      end
+
+      failed_resources = resources.select(&:validation_failed?)
+      if failed_resources.present?
+
+        failed_resources.each do |r|
+          content = File.read(r.file_path) if File.file?(r.file_path) && !r.sensitive_template_content?
+          record_invalid_template(logger: @logger, err: r.validation_error_msg,
+            filename: File.basename(r.file_path), content: content)
         end
+        raise FatalDeploymentError, "Template validation failed"
+      end
+    end
+    measure_method(:validate_resources)
+
+    def validate_globals(resources)
+      return unless (global = resources.select(&:global?).presence)
+      global_names = global.map do |resource|
+        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
+      end
+      global_names = FormattedLogger.indent_four(global_names.join("\n"))
+
+      if @allow_globals
+        msg = "The ability for this task to deploy global resources will be removed in the next version,"\
+              " which will affect the following resources:"
+        msg += "\n#{global_names}"
+        @logger.summary.add_paragraph(ColorizedString.new(msg).yellow)
       else
-        resource = resources.first
-        @logger.info("Deploying #{resource.id} (#{resource.pretty_timeout_type})")
-      end
-
-      # Apply can be done in one large batch, the rest have to be done individually
-      applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
-      # Prunable resources should also applied so that they can  be pruned
-      pruneable_types = prune_whitelist.map { |t| t.split("/").last }
-      applyables += individuals.select { |r| pruneable_types.include?(r.type) }
-
-      individuals.each do |individual_resource|
-        individual_resource.deploy_started_at = Time.now.utc
-
-        case individual_resource.deploy_method
-        when :create
-          err, status = create_resource(individual_resource)
-        when :replace
-          err, status = replace_or_create_resource(individual_resource)
-        when :replace_force
-          err, status = replace_or_create_resource(individual_resource, force: true)
-        else
-          # Fail Fast! This is a programmer mistake.
-          raise ArgumentError, "Unexpected deploy method! (#{individual_resource.deploy_method.inspect})"
-        end
-
-        next if status.success?
-
-        raise FatalDeploymentError, <<~MSG
-          Failed to replace or create resource: #{individual_resource.id}
-          #{individual_resource.sensitive_template_content? ? '<suppressed sensitive output>' : err}
-        MSG
-      end
-
-      apply_all(applyables, prune)
-
-      if verify
-        watcher = ResourceWatcher.new(resources: resources, deploy_started_at: deploy_started_at,
-          timeout: @max_watch_seconds, task_config: @task_config, sha: @current_sha)
-        watcher.run(record_summary: record_summary)
-      end
-    end
-
-    def replace_or_create_resource(resource, force: false)
-      args = if force
-        ["replace", "--force", "--cascade", "-f", resource.file_path]
-      else
-        ["replace", "-f", resource.file_path]
-      end
-
-      _, err, status = kubectl.run(*args, log_failure: false, output_is_sensitive: resource.sensitive_template_content?,
-        raise_if_not_found: true)
-
-      [err, status]
-    rescue Krane::Kubectl::ResourceNotFoundError
-      # it doesn't exist so we can't replace it, we try to create it
-      create_resource(resource)
-    end
-
-    def create_resource(resource)
-      out, err, status = kubectl.run("create", "-f", resource.file_path, log_failure: false, output: 'json',
-        output_is_sensitive: resource.sensitive_template_content?)
-
-      # For resources that rely on a generateName attribute, we get the `name` from the result of the call to `create`
-      # We must explicitly set this name value so that the `apply` step for pruning can run successfully
-      if status.success? && resource.uses_generate_name?
-        resource.use_generated_name(JSON.parse(out))
-      end
-
-      [err, status]
-    end
-
-    def deploy_all_resources(resources, prune: false, verify:, record_summary: true)
-      deploy_resources(resources, prune: prune, verify: verify, record_summary: record_summary)
-    end
-    measure_method(:deploy_all_resources, 'normal_resources.duration')
-
-    def apply_all(resources, prune)
-      return unless resources.present?
-      command = %w(apply)
-
-      Dir.mktmpdir do |tmp_dir|
-        resources.each do |r|
-          FileUtils.symlink(r.file_path, tmp_dir)
-          r.deploy_started_at = Time.now.utc
-        end
-        command.push("-f", tmp_dir)
-
-        if prune
-          command.push("--prune")
-          if @selector
-            command.push("--selector", @selector.to_s)
-          else
-            command.push("--all")
-          end
-          prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
-        end
-
-        output_is_sensitive = resources.any?(&:sensitive_template_content?)
-        out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive)
-
-        if st.success?
-          log_pruning(out) if prune
-        else
-          record_apply_failure(err, resources: resources)
-          raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
-        end
-      end
-    end
-    measure_method(:apply_all)
-
-    def log_pruning(kubectl_output)
-      pruned = kubectl_output.scan(/^(.*) pruned$/)
-      return unless pruned.present?
-
-      @logger.info("The following resources were pruned: #{pruned.join(', ')}")
-      @logger.summary.add_action("pruned #{pruned.length} #{'resource'.pluralize(pruned.length)}")
-    end
-
-    def record_apply_failure(err, resources: [])
-      warn_msg = "WARNING: Any resources not mentioned in the error(s) below were likely created/updated. " \
-        "You may wish to roll back this deploy."
-      @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-
-      unidentified_errors = []
-      filenames_with_sensitive_content = resources
-        .select(&:sensitive_template_content?)
-        .map { |r| File.basename(r.file_path) }
-
-      server_dry_run_validated_resource = resources
-        .select(&:server_dry_run_validated?)
-        .map { |r| File.basename(r.file_path) }
-
-      err.each_line do |line|
-        bad_files = find_bad_files_from_kubectl_output(line)
-        unless bad_files.present?
-          unidentified_errors << line
-          next
-        end
-
-        bad_files.each do |f|
-          err_msg = f[:err]
-          if filenames_with_sensitive_content.include?(f[:filename])
-            # Hide the error and template contents in case it has sensitive information
-            # we display full error messages as we assume there's no sensitive info leak after server-dry-run
-            err_msg = "SUPPRESSED FOR SECURITY" unless server_dry_run_validated_resource.include?(f[:filename])
-            record_invalid_template(err: err_msg, filename: f[:filename], content: nil)
-          else
-            record_invalid_template(err: err_msg, filename: f[:filename], content: f[:content])
-          end
-        end
-      end
-      return unless unidentified_errors.any?
-
-      if (filenames_with_sensitive_content - server_dry_run_validated_resource).present?
-        warn_msg = "WARNING: There was an error applying some or all resources. The raw output may be sensitive and " \
-          "so cannot be displayed."
-        @logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-      else
-        heading = ColorizedString.new('Unidentified error(s):').red
-        msg = FormattedLogger.indent_four(unidentified_errors.join)
-        @logger.summary.add_paragraph("#{heading}\n#{msg}")
-      end
-    end
-
-    # Inspect the file referenced in the kubectl stderr
-    # to make it easier for developer to understand what's going on
-    def find_bad_files_from_kubectl_output(line)
-      # stderr often contains one or more lines like the following, from which we can extract the file path(s):
-      # Error from server (TypeOfError): error when creating "/path/to/service-gqq5oh.yml": Service "web" is invalid:
-
-      line.scan(%r{"(/\S+\.ya?ml\S*)"}).each_with_object([]) do |matches, bad_files|
-        matches.each do |path|
-          content = File.read(path) if File.file?(path)
-          bad_files << { filename: File.basename(path), err: line, content: content }
-        end
+        @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
+        raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources."
       end
     end
 

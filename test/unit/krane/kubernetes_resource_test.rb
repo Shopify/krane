@@ -398,7 +398,7 @@ class KubernetesResourceTest < Krane::TestCase
 
   def test_disappeared_is_true_if_resource_has_been_deployed_and_404s
     dummy = DummyResource.new
-    cache = Krane::ResourceCache.new(task_config: task_config(namespace: 'test', context: 'minikube'))
+    cache = Krane::ResourceCache.new(task_config(namespace: 'test', context: 'minikube'))
     cache.expects(:get_instance).raises(Krane::Kubectl::ResourceNotFoundError).twice
 
     dummy.sync(cache)
@@ -411,7 +411,9 @@ class KubernetesResourceTest < Krane::TestCase
 
   def test_disappeared_is_false_if_resource_has_been_deployed_and_we_get_a_server_error
     dummy = DummyResource.new
-    cache = Krane::ResourceCache.new(task_config: task_config(namespace: 'test', context: 'minikube'))
+    config = task_config(namespace: 'test', context: 'minikube')
+    config.stubs(:global_kinds).returns([])
+    cache = Krane::ResourceCache.new(config)
     Krane::Kubectl.any_instance.expects(:run).returns(["", "NotFound", stub(success?: false)]).twice
 
     dummy.sync(cache)

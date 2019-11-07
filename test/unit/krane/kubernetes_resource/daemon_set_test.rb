@@ -129,7 +129,7 @@ class DaemonSetTest < Krane::TestCase
     ds = Krane::DaemonSet.new(namespace: "test", context: "nope", logger: logger, definition: ds_template)
     stub_kind_get("DaemonSet", items: [ds_template])
     stub_kind_get("Pod", items: pod_templates)
-    stub_kind_get("Node", items: node_templates)
+    stub_kind_get("Node", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     ds
   end

@@ -87,6 +87,21 @@ class KraneTest < Krane::IntegrationTest
     end
   end
 
+  # test_global_deploy_black_box_success and test_global_deploy_black_box_timeout
+  # are in test/integration-serial/serial_deploy_test.rb because they modify
+  # global state
+
+  def test_global_deploy_black_box_failure
+    setup_template_dir("resource-quota") do |target_dir|
+      flags = "-f #{target_dir} --selector app=krane"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("FAILURE", err)
+      refute_predicate(status, :success?)
+      assert_equal(status.exitstatus, 1)
+    end
+  end
+
   private
 
   def task_runner_pods
