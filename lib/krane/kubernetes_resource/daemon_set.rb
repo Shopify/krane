@@ -61,7 +61,7 @@ module Krane
       @logger.debug("Considered #{considered_pods.size} pods out of #{@pods.size} for #{@nodes.size} nodes")
       considered_pods.present? &&
         considered_pods.all?(&:deploy_succeeded?) &&
-        rollout_data["numberReady"].to_i == considered_pods.length
+        rollout_data["numberReady"].to_i >= considered_pods.length
     end
 
     def find_nodes(cache)
