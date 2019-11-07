@@ -9,7 +9,11 @@
 - (alpha) Add a new `krane global-deploy` task for deploying global resources. ([#602](https://github.com/Shopify/kubernetes-deploy/pull/602))
 - Add support for deploying resources that use `generateName` ([#608](https://github.com/Shopify/kubernetes-deploy/pull/608))
 
+*Bug Fixes*
+- `krane deploy` can accept multiple filenames with `-f` flag ([#606](https://github.com/Shopify/kubernetes-deploy/pull/606))
+
 *Other*
+- Update references from using `kubernetes-deploy` to `krane` in preparation for 1.0 release ([#585](https://github.com/Shopify/kubernetes-deploy/pull/585))
 - Refactor StatsD usage so we can depend on the latest version again. ([#594](https://github.com/Shopify/kubernetes-deploy/pull/594))
 
 ## 0.30.0
