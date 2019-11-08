@@ -31,7 +31,7 @@ module Krane
                                   default: true },
         "verify-result" => { type: :boolean, default: true,
                              desc: "Verify workloads correctly deployed" },
-        "revision" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings" },
+        "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings" },
 
       }
 
@@ -59,7 +59,7 @@ module Krane
           deploy = ::Krane::DeployTask.new(
             namespace: namespace,
             context: context,
-            current_sha: options.fetch(:revision, ENV["REVISION"]),
+            current_sha: options['current-sha'],
             template_paths: paths,
             bindings: bindings_parser.parse,
             logger: logger,

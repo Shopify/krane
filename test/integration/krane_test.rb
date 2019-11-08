@@ -2,8 +2,6 @@
 require 'integration_test_helper'
 
 class KraneTest < Krane::IntegrationTest
-  include EnvTestHelper
-
   def test_restart_black_box
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]))
     refute(fetch_restarted_at("web"), "RESTARTED_AT env on fresh deployment")
@@ -38,19 +36,15 @@ class KraneTest < Krane::IntegrationTest
     bindings = "data=#{data_value}"
     test_sha = rand(10_000).to_s
 
-    out, err, status = nil
-    with_env("REVISION", test_sha) do
-      out, err, status = krane_black_box("render", "-f #{paths.join(' ')} --bindings #{bindings}")
-    end
+    out, err, status = krane_black_box("render",
+      "-f #{paths.join(' ')} --bindings #{bindings} --current-sha #{test_sha}")
 
     assert_predicate(status, :success?)
     assert_match("Success", err)
     assert_match(test_sha, out)
     assert_match(data_value, out)
 
-    with_env("REVISION", test_sha) do
-      out, err, status = krane_black_box("render", "-f #{paths.join(' ')}")
-    end
+    out, err, status = krane_black_box("render", "-f #{paths.join(' ')} --current-sha #{test_sha}")
 
     refute_predicate(status, :success?)
     assert_match("FAILURE", err)
