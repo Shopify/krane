@@ -107,6 +107,26 @@ class DaemonSetTest < Krane::TestCase
     refute_predicate(ds, :deploy_succeeded?)
   end
 
+  def test_deploy_waits_for_daemonset_status_to_converge_to_pod_states
+    status = {
+      "desiredNumberScheduled": 1,
+      "updatedNumberScheduled": 1,
+      "numberReady": 0,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status)
+    ready_pod_template = load_fixtures(filenames: ['daemon_set_pods.yml']).first # should be a pod in `Ready` state
+    node_templates = load_fixtures(filenames: ['nodes.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: [ready_pod_template], node_templates: node_templates)
+    refute_predicate(ds, :deploy_succeeded?)
+
+    status[:numberReady] = 1
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status)
+    stub_kind_get("DaemonSet", items: [ds_template])
+    stub_kind_get("Pod", items: [ready_pod_template])
+    ds.sync(build_resource_cache)
+    assert_predicate(ds, :deploy_succeeded?)
+  end
+
   private
 
   def build_ds_template(filename:, status: {})
