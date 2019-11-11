@@ -27,13 +27,13 @@ module Krane
     # @param context [String] Kubernetes context / cluster
     # @param namespace [String] Kubernetes namespace
     # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
-    # @param max_watch_seconds [Integer] Timeout in seconds
-    def initialize(context:, namespace:, logger: nil, max_watch_seconds: nil)
+    # @param global_timeout [Integer] Timeout in seconds
+    def initialize(context:, namespace:, logger: nil, global_timeout: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @task_config = Krane::TaskConfig.new(context, namespace, @logger)
       @context = context
       @namespace = namespace
-      @max_watch_seconds = max_watch_seconds
+      @global_timeout = global_timeout
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -49,18 +49,18 @@ module Krane
 
     # Runs the task, raising exceptions in case of issues
     #
-    # @param deployments_names [Array<String>] Array of workload names to restart
+    # @param deployments [Array<String>] Array of workload names to restart
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
     # @param verify_result [Boolean] Wait for completion and verify success
     #
     # @return [nil]
-    def run!(deployments_names = nil, selector: nil, verify_result: true)
+    def run!(deployments = nil, selector: nil, verify_result: true)
       start = Time.now.utc
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
       verify_config!
-      deployments = identify_target_deployments(deployments_names, selector: selector)
+      deployments = identify_target_deployments(deployments, selector: selector)
 
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
@@ -187,7 +187,7 @@ module Krane
 
     def verify_restart(resources)
       ResourceWatcher.new(resources: resources, operation_name: "restart",
-        timeout: @max_watch_seconds, task_config: @task_config).run
+        timeout: @global_timeout, task_config: @task_config).run
       failed_resources = resources.reject(&:deploy_succeeded?)
       success = failed_resources.empty?
       if !success && failed_resources.all?(&:deploy_timed_out?)

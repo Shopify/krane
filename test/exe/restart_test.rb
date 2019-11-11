@@ -9,9 +9,9 @@ class RestartTest < Krane::TestCase
   end
 
   def test_restart_parses_global_timeout
-    set_krane_restart_expectations(new_args: { max_watch_seconds: 10 })
+    set_krane_restart_expectations(new_args: { global_timeout: 10 })
     krane_restart!(flags: '--global-timeout 10s')
-    set_krane_restart_expectations(new_args: { max_watch_seconds: 60**2 })
+    set_krane_restart_expectations(new_args: { global_timeout: 60**2 })
     krane_restart!(flags: '--global-timeout 1h')
   end
 
@@ -72,7 +72,7 @@ class RestartTest < Krane::TestCase
       new_args: {
         namespace: restart_task_config.namespace,
         context: restart_task_config.context,
-        max_watch_seconds: 300,
+        global_timeout: 300,
       }.merge(new_args),
       deployments: deployments,
       run_args: {

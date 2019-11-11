@@ -21,7 +21,7 @@ module Krane
         restart = ::Krane::RestartTask.new(
           namespace: namespace,
           context: context,
-          max_watch_seconds: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
+          global_timeout: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
         )
         restart.run!(
           options[:deployments],
