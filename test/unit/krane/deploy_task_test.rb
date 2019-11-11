@@ -18,7 +18,7 @@ class DeployTaskTest < Krane::TestCase
       context: KubeclientHelper::TEST_CONTEXT,
       logger: logger,
       current_sha: "",
-      template_paths: ["unknown"],
+      filenames: ["unknown"],
     ).run
     assert_logs_match("Configuration invalid")
     assert_logs_match(/File (\S+) does not exist/)

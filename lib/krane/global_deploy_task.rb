@@ -32,7 +32,7 @@ module Krane
     # @param context [String] Kubernetes context
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
-    # @param template_paths [Array<String>] An array of template paths
+    # @param filenames [Array<String>] An array of template paths
     def initialize(context:, global_timeout: nil, selector: nil, filenames: [], logger: nil)
       template_paths = filenames.map { |path| File.expand_path(path) }
 
@@ -104,7 +104,7 @@ module Krane
 
     def deploy!(resources, verify_result, prune)
       resource_deployer = ResourceDeployer.new(task_config: @task_config,
-        prune_whitelist: prune_whitelist, max_watch_seconds: @global_timeout,
+        prune_whitelist: prune_whitelist, global_timeout: @global_timeout,
         selector: @selector, statsd_tags: statsd_tags)
       resource_deployer.deploy!(resources, verify_result, prune)
     end

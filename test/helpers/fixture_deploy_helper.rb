@@ -84,7 +84,7 @@ module FixtureDeployHelper
   end
 
   def deploy_dirs_without_profiling(dirs, wait: true, prune: true, bindings: {},
-    sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil, selector: nil,
+    sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, global_timeout: nil, selector: nil,
     protected_namespaces: nil, render_erb: false)
     kubectl_instance ||= build_kubectl
 
@@ -92,11 +92,11 @@ module FixtureDeployHelper
       namespace: @namespace,
       current_sha: sha,
       context: KubeclientHelper::TEST_CONTEXT,
-      template_paths: dirs,
+      filenames: dirs,
       logger: logger,
       kubectl_instance: kubectl_instance,
       bindings: bindings,
-      max_watch_seconds: max_watch_seconds,
+      global_timeout: global_timeout,
       selector: selector,
       protected_namespaces: protected_namespaces,
       render_erb: render_erb

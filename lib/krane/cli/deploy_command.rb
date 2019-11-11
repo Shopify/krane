@@ -68,10 +68,10 @@ module Krane
             namespace: namespace,
             context: context,
             current_sha: options['current-sha'],
-            template_paths: paths,
+            filenames: paths,
             bindings: bindings_parser.parse,
             logger: logger,
-            max_watch_seconds: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
+            global_timeout: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
             selector: selector,
             protected_namespaces: protected_namespaces,
           )

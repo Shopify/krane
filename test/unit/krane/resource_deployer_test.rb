@@ -90,7 +90,7 @@ class ResourceDeployerTest < Krane::TestCase
     end
     @deployer = Krane::ResourceDeployer.new(current_sha: 'test-sha',
       statsd_tags: [], task_config: task_config, prune_whitelist: prune_whitelist,
-      max_watch_seconds: 1, selector: nil)
+      global_timeout: 1, selector: nil)
   end
 
   def build_mock_resource(final_status: "success", hits_to_complete: 0, name: "web-pod")
