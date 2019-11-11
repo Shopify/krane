@@ -38,6 +38,7 @@ module Krane
     # A kind may not exist in all versions of the group.
     def fetch_api_versions
       raw, _, st = kubectl.run("api-versions", attempts: 5, use_namespace: false)
+      # The "core" group is represented by an empty string
       versions = { "" => %w(v1) }
       if st.success?
         rows = raw.split("\n")
@@ -74,9 +75,10 @@ module Krane
           hash[name.strip] = [start, cursor - 1]
         end
         resources.map do |resource|
-          thing = fields.map { |k, (s, e)| [k.strip, resource[s..e].strip] }.to_h
-          thing["verbs"] = thing["verbs"][1..-2].split # turn "[1 2 3]" into %w(1 2 3)
-          thing
+          resource = fields.map { |k, (s, e)| [k.strip, resource[s..e].strip] }.to_h
+          # Manually parse verbs: "[get list]" into %w(get list)
+          resource["verbs"] = resource["verbs"][1..-2].split
+          resource
         end
       else
         []
