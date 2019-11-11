@@ -2,7 +2,7 @@
 require 'test_helper'
 require 'krane/cli/krane'
 
-class RendertTest < Krane::TestCase
+class RenderTest < Krane::TestCase
   def test_render_with_default_options
     install_krane_render_expectations
     krane_render!
@@ -10,10 +10,10 @@ class RendertTest < Krane::TestCase
 
   def test_render_parses_paths
     paths = "/dev/null /dev/yes /dev/no"
-    install_krane_render_expectations(template_paths: paths.split)
+    install_krane_render_expectations(filenames: paths.split)
     krane_render!("-f #{paths}")
 
-    install_krane_render_expectations(template_paths: paths.split)
+    install_krane_render_expectations(filenames: paths.split)
     krane_render!("--filenames #{paths}")
   end
 
@@ -76,7 +76,7 @@ class RendertTest < Krane::TestCase
   def default_options(new_args = {})
     {
       current_sha: ENV["REVISION"],
-      template_paths: ["/dev/null"],
+      filenames: ["/dev/null"],
       bindings: {},
     }.merge(new_args)
   end

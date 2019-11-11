@@ -327,12 +327,12 @@ class RenderTaskTest < Krane::TestCase
 
   private
 
-  def build_render_task(template_paths, bindings = {})
+  def build_render_task(filenames, bindings = {})
     Krane::RenderTask.new(
       logger: logger,
       current_sha: "k#{SecureRandom.hex(6)}",
       bindings: bindings,
-      template_paths: Array(template_paths)
+      filenames: Array(filenames)
     )
   end
 
