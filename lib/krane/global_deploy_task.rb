@@ -197,10 +197,7 @@ module Krane
     end
 
     def prune_whitelist
-      black_list = %w(Namespace Node)
-      cluster_resource_discoverer.prunable_resources.select do |gvk|
-        global_kinds.any? { |g| gvk.include?(g) } && black_list.none? { |b| gvk.include?(b) }
-      end
+      cluster_resource_discoverer.prunable_resources(namespaced: false)
     end
 
     def check_initial_status(resources)

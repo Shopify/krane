@@ -9,32 +9,75 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
   end
 
   def test_global_resource_kinds_success
-    crd = mocked_cluster_resource_discovery(full_response)
+    crd = mocked_cluster_resource_discovery(api_resources_full_response)
     kinds = crd.global_resource_kinds
-    assert_equal(kinds.length, full_response.split("\n").length - 1)
+    assert_equal(kinds.length, api_resources_full_response.split("\n").length - 1)
     %w(MutatingWebhookConfiguration ComponentStatus CustomResourceDefinition).each do |kind|
       assert_includes(kinds, kind)
     end
   end
 
   def test_prunable_resources
-    crd = mocked_cluster_resource_discovery(full_response)
-    kinds = crd.prunable_resources
-    assert_equal(kinds.length, 15)
-    %w(scheduling.k8s.io/v1/PriorityClass storage.k8s.io/v1/StorageClass).each do |kind|
+    Krane::Kubectl.any_instance.stubs(:run).with("api-versions", attempts: 5, use_namespace: false)
+      .returns([api_versions_full_response, "", stub(success?: true)])
+    crd = mocked_cluster_resource_discovery(api_resources_full_response)
+    kinds = crd.prunable_resources(namespaced: false)
+
+    assert_equal(kinds.length, 13)
+    %w(scheduling.k8s.io/v1beta1/PriorityClass storage.k8s.io/v1beta1/StorageClass).each do |kind|
       assert_includes(kinds, kind)
+    end
+    %w(node namespace).each do |black_lised_kind|
+      assert_empty kinds.select { |k| k.downcase.include?(black_lised_kind) }
     end
   end
 
   private
 
   def mocked_cluster_resource_discovery(response, success: true)
-    Krane::Kubectl.any_instance.stubs(:run).returns([response, "", stub(success?: success)])
+    Krane::Kubectl.any_instance.stubs(:run)
+      .with("api-resources", "--namespaced=false", attempts: 5, use_namespace: false, output: "wide")
+      .returns([response, "", stub(success?: success)])
     Krane::ClusterResourceDiscovery.new(task_config: task_config, namespace_tags: [])
   end
 
+  def api_versions_full_response
+    %(admissionregistration.k8s.io/v1
+admissionregistration.k8s.io/v1beta1
+apiextensions.k8s.io/v1
+apiextensions.k8s.io/v1beta1
+apiregistration.k8s.io/v1
+apiregistration.k8s.io/v1beta1
+apps/v1
+authentication.k8s.io/v1
+authentication.k8s.io/v1beta1
+authorization.k8s.io/v1
+authorization.k8s.io/v1beta1
+autoscaling/v1
+autoscaling/v2beta1
+autoscaling/v2beta2
+batch/v1
+batch/v1beta1
+certificates.k8s.io/v1beta1
+coordination.k8s.io/v1
+coordination.k8s.io/v1beta1
+events.k8s.io/v1beta1
+extensions/v1beta1
+networking.k8s.io/v1
+networking.k8s.io/v1beta1
+node.k8s.io/v1beta1
+policy/v1beta1
+rbac.authorization.k8s.io/v1
+rbac.authorization.k8s.io/v1beta1
+scheduling.k8s.io/v1
+scheduling.k8s.io/v1beta1
+storage.k8s.io/v1
+storage.k8s.io/v1beta1
+v1)
+  end
+
   # rubocop:disable Metrics/LineLength
-  def full_response
+  def api_resources_full_response
     %(NAME                              SHORTNAMES   APIGROUP                       NAMESPACED   KIND                             VERBS
 componentstatuses                 cs                                          false        ComponentStatus                  [get list]
 namespaces                        ns                                          false        Namespace                        [create delete get list patch update watch]

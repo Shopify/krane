@@ -14,7 +14,8 @@ module Krane
                              desc: "Verify workloads correctly deployed" },
         "selector" => { type: :string, banner: "'label=value'", required: true,
                         desc: "Select workloads owned by selector(s)" },
-        "prune" => { type: :boolean, desc: "Enable deletion of resources that do not appear in the template dir",
+        "prune" => { type: :boolean, desc: "Enable deletion of resources that match"\
+                     " the provided selector and do not appear in the template dir",
                      default: true },
       }
 

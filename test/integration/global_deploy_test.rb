@@ -21,7 +21,7 @@ class GlobalDeployTest < Krane::IntegrationTest
       %r{Assuming StorageClass\/testing-storage-class[\w-]+ deployed successfully.},
       %r{Successfully deployed in [\d.]+s: PriorityClass/testing-priority-class[\w-]+, StorageClass\/testing-storage-},
       "Result: SUCCESS",
-      "Successfully deployed 2 resource",
+      "Successfully deployed 2 resources",
       "Successful resources",
       "StorageClass/testing-storage-class",
       "PriorityClass/testing-priority-class",
@@ -66,7 +66,7 @@ class GlobalDeployTest < Krane::IntegrationTest
       %r{StorageClass\/testing-storage-class[\w-]+ \(timeout: 300s\)},
       %r{PriorityClass/testing-priority-class[\w-]+ \(timeout: 300s\)},
       "Result: SUCCESS",
-      "Deployed 2 resource",
+      "Deployed 2 resources",
       "Deploy result verification is disabled for this deploy.",
       "This means the desired changes were communicated to Kubernetes, but the"\
       " deploy did not make sure they actually succeeded.",
@@ -103,7 +103,7 @@ class GlobalDeployTest < Krane::IntegrationTest
       %r{Assuming StorageClass\/testing-storage-class[\w-]+ deployed successfully.},
       /Successfully deployed in [\d.]+s/,
       "Result: SUCCESS",
-      "Successfully deployed 2 resource",
+      "Successfully deployed 2 resources",
       "Successful resources",
       "StorageClass/testing-storage-class",
       "PriorityClass/testing-priority-class",
@@ -127,7 +127,7 @@ class GlobalDeployTest < Krane::IntegrationTest
     ])
   end
 
-  def test_global_deploy_prune_black_box_success
+  def test_global_deploy_prune_success
     assert_deploy_success(deploy_global_fixtures('globals', clean_up: false, selector: 'test=prune1'))
     reset_logger
     assert_deploy_success(deploy_global_fixtures('globals', subset: 'storage_classes.yml', selector: 'test=prune1'))
@@ -141,8 +141,7 @@ class GlobalDeployTest < Krane::IntegrationTest
       %r{StorageClass\/testing-storage-class[\w-]+\s+Exists},
       "Phase 3: Deploying all resources",
       %r{Deploying StorageClass\/testing-storage-class[\w-]+ \(timeout: 300s\)},
-      "Don't know how to monitor resources of type StorageClass.",
-      %r{Assuming StorageClass\/testing-storage-class[\w-]+ deployed successfully.},
+      "The following resources were pruned: priorityclass.scheduling.k8s.io/testing-priority-class",
       %r{Successfully deployed in [\d.]+s: StorageClass\/testing-storage-class},
       "Result: SUCCESS",
       "Pruned 1 resource and successfully deployed 1 resource",
@@ -151,7 +150,7 @@ class GlobalDeployTest < Krane::IntegrationTest
     ])
   end
 
-  def test_no_prune_global_deploy_black_box_success
+  def test_no_prune_global_deploy_success
     assert_deploy_success(deploy_global_fixtures('globals', clean_up: false, selector: 'test=prune2'))
     reset_logger
     assert_deploy_success(deploy_global_fixtures('globals', subset: 'storage_classes.yml',
@@ -166,14 +165,13 @@ class GlobalDeployTest < Krane::IntegrationTest
       %r{StorageClass\/testing-storage-class[\w-]+\s+Exists},
       "Phase 3: Deploying all resources",
       %r{Deploying StorageClass\/testing-storage-class[\w-]+ \(timeout: 300s\)},
-      "Don't know how to monitor resources of type StorageClass.",
-      %r{Assuming StorageClass\/testing-storage-class[\w-]+ deployed successfully.},
       %r{Successfully deployed in [\d.]+s: StorageClass\/testing-storage-class},
       "Result: SUCCESS",
       "Successfully deployed 1 resource",
       "Successful resources",
       "StorageClass/testing-storage-class",
     ])
+    refute_logs_match(/[pP]runed/)
     assert_deploy_success(deploy_global_fixtures('globals', selector: 'test=prune2'))
   end
 end
