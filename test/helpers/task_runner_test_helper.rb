@@ -14,16 +14,16 @@ module TaskRunnerTestHelper
     reset_logger
   end
 
-  def build_task_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, max_watch_seconds: nil)
+  def build_task_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, global_timeout: nil)
     Krane::RunnerTask.new(context: context, namespace: ns, logger: logger,
-      max_watch_seconds: max_watch_seconds)
+      global_timeout: global_timeout)
   end
 
   def run_params(log_lines: 5, log_interval: 0.1, verify_result: true)
     {
-      task_template: 'hello-cloud-template-runner',
-      entrypoint: ['/bin/sh', '-c'],
-      args: [
+      template: 'hello-cloud-template-runner',
+      command: ['/bin/sh', '-c'],
+      arguments: [
         "i=1; " \
         "while [ $i -le #{log_lines} ]; do " \
           "echo \"Line $i\"; " \

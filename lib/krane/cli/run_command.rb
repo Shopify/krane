@@ -37,14 +37,14 @@ module Krane
         runner = ::Krane::RunnerTask.new(
           namespace: namespace,
           context: context,
-          max_watch_seconds: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
+          global_timeout: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
         )
 
         runner.run!(
           verify_result: options['verify-result'],
-          task_template: options['template'],
-          entrypoint: options['command'],
-          args: options['arguments']&.split(" "),
+          template: options['template'],
+          command: options['command'],
+          arguments: options['arguments']&.split(" "),
           env_vars: options['env-vars'].split(','),
         )
       end
