@@ -58,8 +58,8 @@ module Krane
       return true if rollout_data["desiredNumberScheduled"].to_i == rollout_data["numberReady"].to_i # all pods ready
       relevant_node_names = @nodes.map(&:name)
       considered_pods = @pods.select { |p| relevant_node_names.include?(p.node_name) }
-      @logger.debug("DaemonSet is reporting #{rollout_data['numberReady']} pods ready")
-      @logger.debug("Considered #{considered_pods.size} pods out of #{@pods.size} for #{@nodes.size} nodes.")
+      @logger.debug("DaemonSet is reporting #{rollout_data['numberReady']} pods ready." \
+        " Considered #{considered_pods.size} pods out of #{@pods.size} for #{@nodes.size} nodes.")
       considered_pods.present? &&
         considered_pods.all?(&:deploy_succeeded?) &&
         rollout_data["numberReady"].to_i >= considered_pods.length
