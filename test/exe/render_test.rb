@@ -3,7 +3,6 @@ require 'test_helper'
 require 'krane/cli/krane'
 
 class RendertTest < Krane::TestCase
-  include EnvTestHelper
   def test_render_with_default_options
     install_krane_render_expectations
     krane_render!
@@ -25,10 +24,8 @@ class RendertTest < Krane::TestCase
 
   def test_render_uses_current_sha
     test_sha = "TEST"
-    with_env("REVISION", test_sha) do
-      install_krane_render_expectations
-      krane_render!
-    end
+    install_krane_render_expectations(current_sha: test_sha)
+    krane_render!("--current-sha #{test_sha}")
   end
 
   private
@@ -40,7 +37,8 @@ class RendertTest < Krane::TestCase
     Krane::RenderTask.expects(:new).with(options).returns(response)
   end
 
-  def krane_render!(flags = '-f /dev/null')
+  def krane_render!(flags = "")
+    flags += ' -f /dev/null' unless flags.include?("-f")
     krane = Krane::CLI::Krane.new(
       [],
       flags.split

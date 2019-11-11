@@ -388,7 +388,8 @@ module Krane
     end
 
     def statsd_tags
-      %W(namespace:#{@namespace} sha:#{@current_sha} context:#{@context}) | @namespace_tags
+      tags = %W(namespace:#{@namespace} context:#{@context}) | @namespace_tags
+      @current_sha.nil? ? tags : %W(sha:#{@current_sha}) | tags
     end
 
     def with_retries(limit)

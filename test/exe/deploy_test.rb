@@ -79,6 +79,12 @@ class DeployTest < Krane::TestCase
     end
   end
 
+  def test_deploy_uses_current_sha
+    test_sha = "TEST"
+    set_krane_deploy_expectations(new_args: { current_sha: test_sha })
+    krane_deploy!(flags: "--current-sha #{test_sha}")
+  end
+
   private
 
   def set_krane_deploy_expectations(new_args: {}, run_args: {})

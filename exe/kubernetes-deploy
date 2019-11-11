@@ -17,6 +17,7 @@ bindings = {}
 verbose_log_prefix = false
 max_watch_seconds = nil
 selector = nil
+current_sha = ENV["REVISION"]
 
 ARGV.options do |opts|
   parser = Krane::BindingsParser.new
@@ -52,6 +53,7 @@ ARGV.options do |opts|
     puts "v#{Krane::VERSION}"
     exit
   end
+  opts.on("--current-sha=CURRENT_SHA", "Expose SHA `current_sha` in ERB bindings") { |r| current_sha = r }
   opts.parse!
   bindings = parser.parse
 end
@@ -72,7 +74,7 @@ begin
     runner = KubernetesDeploy::DeployTask.new(
       namespace: namespace,
       context: context,
-      current_sha: ENV["REVISION"],
+      current_sha: current_sha,
       template_paths: paths,
       bindings: bindings,
       logger: logger,

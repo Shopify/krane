@@ -7,6 +7,7 @@ module Krane
         bindings: { type: :array, banner: "foo=bar abc=def", desc: 'Bindings for erb' },
         filenames: { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                      required: true, aliases: 'f', desc: 'Directories and files to render' },
+        'current-sha': { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings" },
       }
 
       def self.from_options(options)
@@ -19,7 +20,7 @@ module Krane
 
         ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames]) do |paths|
           runner = ::Krane::RenderTask.new(
-            current_sha: ENV["REVISION"],
+            current_sha: options['current-sha'],
             template_paths: paths,
             bindings: bindings_parser.parse,
           )
