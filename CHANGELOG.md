@@ -6,7 +6,7 @@
 ## 0.31
 
 *Enhancements*
-- (alpha) Add a new krane global-deploy task for deploying global resources. Expect changes in pruning behavior before 1.0 release. ([#602](https://github.com/Shopify/kubernetes-deploy/pull/602))
+- (alpha) Add a new krane global-deploy task for deploying global resources. Note that global pruning is turned on by default ([#602](https://github.com/Shopify/kubernetes-deploy/pull/602) and [#612](https://github.com/Shopify/kubernetes-deploy/pull/612))
 - Add support for deploying resources that use `generateName` ([#608](https://github.com/Shopify/kubernetes-deploy/pull/608))
 - ENV["REVISION"] is not transparently passed into krane. Instead, you must now use the `--current-sha` flag to set the `current_sha` ERB binding in your templates. Note that kubernetes-deploy, _but not krane_, can still use ENV["REVISION"] as a fallback if `--current-sha` is not provided. ([#613](https://github.com/Shopify/kubernetes-deploy/pull/613))
 
