@@ -3,10 +3,19 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
+## 0.31
+
 *Enhancements*
+- (alpha) Add a new krane global-deploy task for deploying global resources. Note that global pruning is turned on by default ([#602](https://github.com/Shopify/kubernetes-deploy/pull/602) and [#612](https://github.com/Shopify/kubernetes-deploy/pull/612))
 - Add support for deploying resources that use `generateName` ([#608](https://github.com/Shopify/kubernetes-deploy/pull/608))
+- ENV["REVISION"] is not transparently passed into krane. Instead, you must now use the `--current-sha` flag to set the `current_sha` ERB binding in your templates. Note that kubernetes-deploy, _but not krane_, can still use ENV["REVISION"] as a fallback if `--current-sha` is not provided. ([#613](https://github.com/Shopify/kubernetes-deploy/pull/613))
+
+*Bug Fixes*
+- `krane deploy` can accept multiple filenames with `-f` flag ([#606](https://github.com/Shopify/kubernetes-deploy/pull/606))
+- Ensure DaemonSet status has converged with pod statuses before reporting rollout success ([#617](https://github.com/Shopify/kubernetes-deploy/pull/617))
 
 *Other*
+- Update references from using `kubernetes-deploy` to `krane` in preparation for 1.0 release ([#585](https://github.com/Shopify/kubernetes-deploy/pull/585))
 - Refactor StatsD usage so we can depend on the latest version again. ([#594](https://github.com/Shopify/kubernetes-deploy/pull/594))
 
 ## 0.30.0
