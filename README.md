@@ -268,7 +268,7 @@ To run a task in your cluster at the beginning of every deploy, simply include a
 * The pod's `spec.restartPolicy` must be set to `Never` so that it will be run exactly once. We'll fail the deploy if that run exits with a non-zero status.
 * The pod's `spec.activeDeadlineSeconds` should be set to a reasonable value for the performed task (not required, but highly recommended)
 
-A simple example can be found in the test fixtures: test/fixtures/hello-cloud/unmanaged-pod.yml.erb.
+A simple example can be found in the test fixtures: [test/fixtures/hello-cloud/unmanaged-pod-1.yml.erb](test/fixtures/hello-cloud/unmanaged-pod-1.yml.erb).
 
 The logs of all pods run in this way will be printed inline. If there is only one pod, the logs will be streamed in real-time. If there are multiple, they will be fetched when the pod terminates.
 
