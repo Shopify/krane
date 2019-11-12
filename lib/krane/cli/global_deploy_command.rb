@@ -14,6 +14,9 @@ module Krane
                              desc: "Verify workloads correctly deployed" },
         "selector" => { type: :string, banner: "'label=value'", required: true,
                         desc: "Select workloads owned by selector(s)" },
+        "prune" => { type: :boolean, desc: "Enable deletion of resources that match"\
+                     " the provided selector and do not appear in the provided templates",
+                     default: true },
       }
 
       def self.from_options(context, options)
@@ -35,7 +38,7 @@ module Krane
 
           deploy.run!(
             verify_result: options["verify-result"],
-            prune: false,
+            prune: options[:prune],
           )
         end
       end

@@ -46,7 +46,7 @@ module FixtureDeployHelper
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
     args[:selector] ||= "test=#{@namespace}"
-    namespace_globals(fixtures)
+    namespace_globals(fixtures, args[:selector])
 
     yield fixtures if block_given?
 
@@ -104,7 +104,7 @@ module FixtureDeployHelper
     )
   end
 
-  def global_deploy_dirs_without_profiling(dirs, verify_result: true, prune: false,
+  def global_deploy_dirs_without_profiling(dirs, clean_up: true, verify_result: true, prune: true,
     global_timeout: 300, selector:)
     deploy = Krane::GlobalDeployTask.new(
       context: KubeclientHelper::TEST_CONTEXT,
@@ -118,7 +118,7 @@ module FixtureDeployHelper
       prune: prune
     )
   ensure
-    delete_globals(Array(dirs))
+    delete_globals(Array(dirs)) if clean_up
   end
 
   # Deploys all fixtures in the given directories via KubernetesDeploy::DeployTask
@@ -180,13 +180,15 @@ module FixtureDeployHelper
       log_failure_by_default: log_failure_by_default, default_timeout: timeout)
   end
 
-  def namespace_globals(fixtures)
+  def namespace_globals(fixtures, selector)
+    selector_key, selector_value = selector.split("=")
     fixtures.each do |_, kinds_map|
       kinds_map.each do |_, resources|
         resources.each do |resource|
           resource["metadata"]["name"] = (resource["metadata"]["name"] + @namespace)[0..63]
+          resource["metadata"]["name"] += "0" if resource["metadata"]["name"].end_with?("-")
           resource["metadata"]["labels"] ||= {}
-          resource["metadata"]["labels"]["test"] = @namespace
+          resource["metadata"]["labels"][selector_key] = selector_value
         end
       end
     end

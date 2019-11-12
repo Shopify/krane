@@ -603,6 +603,32 @@ class SerialDeployTest < Krane::IntegrationTest
     wait_for_all_crd_deletion
   end
 
+  def test_global_deploy_prune_black_box_success
+    namespace_name = "test-app"
+    setup_template_dir("globals") do |target_dir|
+      flags = "-f #{target_dir} --selector app=krane"
+      namespace_str = "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: #{namespace_name}"\
+      "\n  labels:\n    app: krane"
+      File.write(File.join(target_dir, "namespace.yml"), namespace_str)
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      assert_match("Successfully deployed 3 resource", err)
+      assert_match(/#{namespace_name}\W+Exists/, err)
+      assert_match("Success", err)
+      assert_predicate(status, :success?)
+
+      flags = "-f #{target_dir}/storage_classes.yml --selector app=krane"
+      out, err, status = krane_black_box("global-deploy", "#{KubeclientHelper::TEST_CONTEXT} #{flags}")
+      assert_empty(out)
+      refute_match(namespace_name, err) # Asserting that the namespace is not pruned
+      assert_match("Pruned 1 resource and successfully deployed 1 resource", err)
+      assert_predicate(status, :success?)
+    end
+  ensure
+    build_kubectl.run("delete", "-f", fixture_path("globals"), use_namespace: false, log_failure: false)
+    build_kubectl.run("delete", "namespace", namespace_name, use_namespace: false, log_failure: false)
+  end
+
   private
 
   def wait_for_all_crd_deletion

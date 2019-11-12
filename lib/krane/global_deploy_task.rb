@@ -103,7 +103,6 @@ module Krane
     private
 
     def deploy!(resources, verify_result, prune)
-      prune_whitelist = []
       resource_deployer = ResourceDeployer.new(task_config: @task_config,
         prune_whitelist: prune_whitelist, max_watch_seconds: @global_timeout,
         selector: @selector, statsd_tags: statsd_tags)
@@ -195,6 +194,10 @@ module Krane
 
     def kubeclient_builder
       @kubeclient_builder ||= KubeclientBuilder.new
+    end
+
+    def prune_whitelist
+      cluster_resource_discoverer.prunable_resources(namespaced: false)
     end
 
     def check_initial_status(resources)
