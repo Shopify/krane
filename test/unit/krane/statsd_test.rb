@@ -47,7 +47,7 @@ class StatsDTest < Krane::TestCase
       TestMeasureClass.new.thing_to_measure
     end
     assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
-    assert_equal("KubernetesDeploy.thing_to_measure.duration", metrics.first.name)
+    assert_equal("Krane.thing_to_measure.duration", metrics.first.name)
     assert_equal(["test:true"], metrics.first.tags)
   end
 
@@ -56,7 +56,7 @@ class StatsDTest < Krane::TestCase
       TestMeasureClass.new.measure_with_custom_metric
     end
     assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
-    assert_equal("KubernetesDeploy.customized", metrics.first.name)
+    assert_equal("Krane.customized", metrics.first.name)
     assert_equal(["test:true"], metrics.first.tags)
   end
 
@@ -65,7 +65,7 @@ class StatsDTest < Krane::TestCase
       TestMeasureNoTags.new.thing_to_measure
     end
     assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
-    assert_equal("KubernetesDeploy.thing_to_measure.duration", metrics.first.name)
+    assert_equal("Krane.thing_to_measure.duration", metrics.first.name)
     assert_nil(metrics.first.tags)
   end
 
@@ -78,7 +78,7 @@ class StatsDTest < Krane::TestCase
       end
     end
     assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
-    assert_equal("KubernetesDeploy.measured_method_raises.duration", metrics.first.name)
+    assert_equal("Krane.measured_method_raises.duration", metrics.first.name)
     assert_equal(["test:true", "error:true"], metrics.first.tags)
   end
 
@@ -91,7 +91,7 @@ class StatsDTest < Krane::TestCase
       end
     end
     assert_predicate(metrics, :one?, "Expected 1 metric, got #{metrics.length}")
-    assert_equal("KubernetesDeploy.measured_method_raises.duration", metrics.first.name)
+    assert_equal("Krane.measured_method_raises.duration", metrics.first.name)
     assert_equal(["test:true", "error:true"], metrics.first.tags)
   end
 end
