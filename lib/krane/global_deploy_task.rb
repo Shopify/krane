@@ -29,10 +29,10 @@ module Krane
 
     # Initializes the deploy task
     #
-    # @param context [String] Kubernetes context
+    # @param context [String] Kubernetes context (*required*)
     # @param global_timeout [Integer] Timeout in seconds
-    # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
-    # @param filenames [Array<String>] An array of template paths
+    # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector (*required*)
+    # @param filenames [Array<String>] An array of template paths (*required*)
     def initialize(context:, global_timeout: nil, selector: nil, filenames: [], logger: nil)
       template_paths = filenames.map { |path| File.expand_path(path) }
 

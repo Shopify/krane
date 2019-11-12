@@ -24,8 +24,8 @@ module Krane
 
     # Initializes the restart task
     #
-    # @param context [String] Kubernetes context / cluster
-    # @param namespace [String] Kubernetes namespace
+    # @param context [String] Kubernetes context / cluster (*required*)
+    # @param namespace [String] Kubernetes namespace (*required*)
     # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param global_timeout [Integer] Timeout in seconds
     def initialize(context:, namespace:, logger: nil, global_timeout: nil)

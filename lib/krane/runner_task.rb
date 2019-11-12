@@ -19,8 +19,8 @@ module Krane
 
     # Initializes the runner task
     #
-    # @param namespace [String] Kubernetes namespace
-    # @param context [String] Kubernetes context / cluster
+    # @param namespace [String] Kubernetes namespace (*required*)
+    # @param context [String] Kubernetes context / cluster (*required*)
     # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param global_timeout [Integer] Timeout in seconds
     def initialize(namespace:, context:, logger: nil, global_timeout: nil)
@@ -43,7 +43,7 @@ module Krane
 
     # Runs the task, raising exceptions in case of issues
     #
-    # @param template [String] The template file you'll be rendering
+    # @param template [String] The template file you'll be rendering (*required*)
     # @param command [Array<String>] Override the default command in the container image
     # @param arguments [Array<String>] Override the default arguments for the command
     # @param env_vars [Array<String>] List of env vars
