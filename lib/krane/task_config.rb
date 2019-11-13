@@ -6,12 +6,12 @@ module Krane
     def initialize(context, namespace, logger = nil)
       @context = context
       @namespace = namespace
-      @logger = logger || FormattedLogger.build(@namespace, @context)
+      @logger = logger || ::Krane::FormattedLogger.build(@namespace, @context)
     end
 
     def global_kinds
       @global_kinds ||= begin
-        cluster_resource_discoverer = ClusterResourceDiscovery.new(task_config: self)
+        cluster_resource_discoverer = ::Krane::ClusterResourceDiscovery.new(task_config: self)
         cluster_resource_discoverer.global_resource_kinds
       end
     end
