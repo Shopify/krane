@@ -126,7 +126,7 @@ module Krane
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
       max_watch_seconds: nil, selector: nil, template_paths: [], protected_namespaces: nil,
-      render_erb: true, allow_globals: false)
+      render_erb: true)
       template_paths = (template_paths.map { |path| File.expand_path(path) }).compact
 
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
@@ -142,7 +142,6 @@ module Krane
       @selector = selector
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
       @render_erb = render_erb
-      @allow_globals = allow_globals
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -332,15 +331,8 @@ module Krane
       end
       global_names = FormattedLogger.indent_four(global_names.join("\n"))
 
-      if @allow_globals
-        msg = "The ability for this task to deploy global resources will be removed in the next version,"\
-              " which will affect the following resources:"
-        msg += "\n#{global_names}"
-        @logger.summary.add_paragraph(ColorizedString.new(msg).yellow)
-      else
-        @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
-        raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources."
-      end
+      @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
+      raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources."
     end
 
     def namespace_definition
