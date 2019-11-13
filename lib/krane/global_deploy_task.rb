@@ -202,6 +202,7 @@ module Krane
 
     def check_initial_status(resources)
       cache = ResourceCache.new(@task_config)
+      cache.prewarm(resources)
       Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
       resources.each { |r| logger.info(r.pretty_status) }
     end
