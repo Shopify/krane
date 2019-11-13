@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 require 'securerandom'
-require 'kubernetes-deploy/deploy_task'
+require 'krane/deploy_task'
 
 module FixtureDeployHelper
   EJSON_FILENAME = Krane::EjsonSecretProvisioner::EJSON_SECRETS_FILE
 
-  # Deploys the specified set of fixtures via KubernetesDeploy::DeployTask.
+  # Deploys the specified set of fixtures via Krane::DeployTask.
   #
   # Optionally takes an array of filenames belonging to the fixture, and deploys that subset only.
   # Example:
@@ -83,7 +83,7 @@ module FixtureDeployHelper
     protected_namespaces: nil, render_erb: false, allow_globals: true)
     kubectl_instance ||= build_kubectl
 
-    deploy = KubernetesDeploy::DeployTask.new(
+    deploy = Krane::DeployTask.new(
       namespace: @namespace,
       current_sha: sha,
       context: KubeclientHelper::TEST_CONTEXT,
@@ -121,7 +121,7 @@ module FixtureDeployHelper
     delete_globals(Array(dirs)) if clean_up
   end
 
-  # Deploys all fixtures in the given directories via KubernetesDeploy::DeployTask
+  # Deploys all fixtures in the given directories via Krane::DeployTask
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
   def deploy_dirs(*dirs, **args)
