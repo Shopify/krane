@@ -5,7 +5,7 @@
 
 ## 0.31.1
 
-*Buf Fixes*
+*Bug Fixes*
 - Fix a scoping issue of ClusterResourceDiscovery where it was not visible to kubernetes-run, causing a crash. ([#624](https://github.com/Shopify/kubernetes-deploy/pull/624))
 
 ## 0.31.0
