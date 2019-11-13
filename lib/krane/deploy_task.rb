@@ -121,15 +121,13 @@ module Krane
     # @param max_watch_seconds [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
     # @param template_paths [Array<String>] An array of template paths
-    # @param template_dir [String] Path to a directory with templates (deprecated)
     # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults
     #   to Krane::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
-      max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil, protected_namespaces: nil,
+      max_watch_seconds: nil, selector: nil, template_paths: [], protected_namespaces: nil,
       render_erb: true, allow_globals: false)
-      template_dir = File.expand_path(template_dir) if template_dir
-      template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
+      template_paths = (template_paths.map { |path| File.expand_path(path) }).compact
 
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths, logger: @logger)
