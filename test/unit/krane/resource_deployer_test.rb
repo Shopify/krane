@@ -88,9 +88,8 @@ class ResourceDeployerTest < Krane::TestCase
     unless kubectl_times == 0
       Krane::Kubectl.expects(:new).returns(build_runless_kubectl).times(kubectl_times)
     end
-    @deployer = Krane::ResourceDeployer.new(current_sha: 'test-sha',
-      statsd_tags: [], task_config: task_config, prune_whitelist: prune_whitelist,
-      max_watch_seconds: 1, selector: nil)
+    @deployer = Krane::ResourceDeployer.new(statsd_tags: [], task_config: task_config,
+      prune_whitelist: prune_whitelist, max_watch_seconds: 1, selector: nil)
   end
 
   def build_mock_resource(final_status: "success", hits_to_complete: 0, name: "web-pod")

@@ -58,7 +58,7 @@ module FixtureDeployHelper
     success
   end
 
-  def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil, render_erb: false)
+  def deploy_raw_fixtures(set, wait: true, subset: nil)
     success = false
     if subset
       Dir.mktmpdir("fixture_dir") do |target_dir|
@@ -70,31 +70,28 @@ module FixtureDeployHelper
         subset.each do |file|
           FileUtils.copy_entry(File.join(fixture_path(set), file), File.join(target_dir, file))
         end
-        success = deploy_dirs(target_dir, wait: wait, bindings: bindings, render_erb: render_erb)
+        success = deploy_dirs(target_dir, wait: wait)
       end
     else
-      success = deploy_dirs(fixture_path(set), wait: wait, bindings: bindings, render_erb: render_erb)
+      success = deploy_dirs(fixture_path(set), wait: wait)
     end
     success
   end
 
-  def deploy_dirs_without_profiling(dirs, wait: true, allow_protected_ns: false, prune: true, bindings: {},
-    sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil, selector: nil,
-    protected_namespaces: nil, render_erb: false, allow_globals: true)
+  def deploy_dirs_without_profiling(dirs, wait: true, allow_protected_ns: false, prune: true,
+    kubectl_instance: nil, max_watch_seconds: nil, selector: nil,
+    protected_namespaces: nil, allow_globals: true)
     kubectl_instance ||= build_kubectl
 
     deploy = KubernetesDeploy::DeployTask.new(
       namespace: @namespace,
-      current_sha: sha,
       context: KubeclientHelper::TEST_CONTEXT,
       template_paths: dirs,
       logger: logger,
       kubectl_instance: kubectl_instance,
-      bindings: bindings,
       max_watch_seconds: max_watch_seconds,
       selector: selector,
       protected_namespaces: protected_namespaces,
-      render_erb: render_erb,
       allow_globals: allow_globals
     )
     deploy.run(

@@ -228,9 +228,9 @@ module Krane
       @task_config ||= Krane::TaskConfig.new(context, namespace, logger)
     end
 
-    def krane_black_box(command, args = "")
+    def krane_black_box(command, args = "", stdin_data: '')
       path = File.expand_path("../../exe/krane", __FILE__)
-      Open3.capture3("#{path} #{command} #{args}")
+      Open3.capture3("#{path} #{command} #{args}", stdin_data: stdin_data)
     end
 
     private

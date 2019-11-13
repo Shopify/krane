@@ -10,7 +10,7 @@ class HorizontalPodAutoscalerTest < Krane::TestCase
       .with("get", "CustomResourceDefinition", output: "json", attempts: 5, use_namespace: false)
       .returns(['{ "items": [] }', "", SystemExit.new(0)])
     task = Krane::DeployTask.new(namespace: 'test', context: KubeclientHelper::TEST_CONTEXT,
-      current_sha: 'foo', template_paths: [''], logger: logger)
+      template_paths: [''], logger: logger)
     assert(task.prune_whitelist.one? { |whitelisted_type| whitelisted_type.include?("HorizontalPodAutoscaler") })
   end
 

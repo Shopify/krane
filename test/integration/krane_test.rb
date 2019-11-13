@@ -53,13 +53,15 @@ class KraneTest < Krane::IntegrationTest
   end
 
   def test_deploy_black_box_success
-    setup_template_dir("hello-cloud") do |target_dir|
-      flags = "-f #{target_dir} --render-erb --bindings deployment_id=1 current_sha=123"
-      out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} #{flags}")
-      assert_empty(out)
-      assert_match("Success", err)
-      assert_predicate(status, :success?)
-    end
+    render_out, _, render_status = krane_black_box("render",
+      "-f #{fixture_path('hello-cloud')} --bindings deployment_id=1 current_sha=123")
+    assert_predicate(render_status, :success?)
+
+    out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} --filenames=-",
+      stdin_data: render_out)
+    assert_empty(out)
+    assert_match("Success", err)
+    assert_predicate(status, :success?)
   end
 
   def test_deploy_black_box_failure
@@ -71,8 +73,8 @@ class KraneTest < Krane::IntegrationTest
   end
 
   def test_deploy_black_box_timeout
-    setup_template_dir("hello-cloud") do |target_dir|
-      flags = "-f #{target_dir} --render-erb --bindings deployment_id=1 current_sha=123 --global-timeout=1s"
+    setup_template_dir("hello-cloud", subset: %w(bare_replica_set.yml)) do |target_dir|
+      flags = "-f #{target_dir} --global-timeout=0.1s"
       out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} #{flags}")
       assert_empty(out)
       assert_match("TIMED OUT", err)

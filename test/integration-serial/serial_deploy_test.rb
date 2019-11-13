@@ -296,7 +296,7 @@ class SerialDeployTest < Krane::IntegrationTest
 
   def test_all_expected_statsd_metrics_emitted_with_essential_tags
     metrics = capture_statsd_calls(client: Krane::StatsD.client) do
-      result = deploy_fixtures('hello-cloud', subset: ['configmap-data.yml'], wait: false, sha: 'test-sha')
+      result = deploy_fixtures('hello-cloud', subset: ['configmap-data.yml'], wait: false)
       assert_deploy_success(result)
     end
 
@@ -317,7 +317,6 @@ class SerialDeployTest < Krane::IntegrationTest
       refute_nil metric, "Metric #{expected_metric} not emitted"
       assert_includes metric.tags, "namespace:#{@namespace}", "#{metric.name} is missing namespace tag"
       assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}", "#{metric.name} is missing context tag"
-      assert_includes metric.tags, "sha:test-sha", "#{metric.name} is missing sha tag"
     end
   end
 

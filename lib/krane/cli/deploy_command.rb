@@ -10,7 +10,7 @@ module Krane
         kube-public
       )
       OPTIONS = {
-        "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
+        "filenames" => { type: :string, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                          aliases: :f, required: true,
                          desc: "Directories and files that contains the configuration to apply" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_DEPLOY_TIMEOUT,
@@ -27,8 +27,6 @@ module Krane
                                   default: true },
         "verify-result" => { type: :boolean, default: true,
                              desc: "Verify workloads correctly deployed" },
-        "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings" },
-
       }
 
       def self.from_options(namespace, context, options)
@@ -46,12 +44,11 @@ module Krane
           protected_namespaces = []
         end
 
-        ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames],
+        ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames].split,
           require_explicit_path: true) do |paths|
           deploy = ::Krane::DeployTask.new(
             namespace: namespace,
             context: context,
-            current_sha: options['current-sha'],
             template_paths: paths,
             logger: logger,
             max_watch_seconds: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,

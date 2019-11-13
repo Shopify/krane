@@ -17,7 +17,6 @@ class DeployTaskTest < Krane::TestCase
       namespace: "something",
       context: KubeclientHelper::TEST_CONTEXT,
       logger: logger,
-      current_sha: "",
       template_paths: ["unknown"],
     ).run
     assert_logs_match("Configuration invalid")
