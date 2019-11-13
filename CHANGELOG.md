@@ -3,7 +3,12 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
-## 0.31
+## 0.31.1
+
+*Buf Fixes*
+- Fix a scoping issue of ClusterResourceDiscovery where it was not visible to kubernetes-run, causing a crash. ([#624](https://github.com/Shopify/kubernetes-deploy/pull/624))
+
+## 0.31.0
 
 *Enhancements*
 - (alpha) Add a new krane global-deploy task for deploying global resources. Note that global pruning is turned on by default ([#602](https://github.com/Shopify/kubernetes-deploy/pull/602) and [#612](https://github.com/Shopify/kubernetes-deploy/pull/612))
