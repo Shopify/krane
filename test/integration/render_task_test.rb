@@ -34,7 +34,7 @@ class RenderTaskTest < Krane::TestCase
     SecureRandom.expects(:hex).with(6).returns('bbbbbb')
     render = build_render_task([
       File.join(fixture_path('hello-cloud'), 'configmap-data.yml'),
-      File.join(fixture_path('hello-cloud'), 'unmanaged-pod-1.yml.erb')
+      File.join(fixture_path('hello-cloud'), 'unmanaged-pod-1.yml.erb'),
     ])
     assert_render_success(render.run(mock_output_stream))
 
@@ -84,7 +84,7 @@ class RenderTaskTest < Krane::TestCase
   def test_render_task_with_partials_and_bindings
     render = build_render_task(
       File.join(fixture_path('test-partials'), 'deployment.yaml.erb'),
-      { 'supports_partials': 'yep' }
+      'supports_partials': 'yep'
     )
 
     assert_render_success(render.run(mock_output_stream))
@@ -190,7 +190,7 @@ class RenderTaskTest < Krane::TestCase
     render = build_render_task([
       File.join(fixture_path('some-invalid'), 'configmap-data.yml'),
       File.join(fixture_path('some-invalid'), 'yaml-error.yml'),
-      File.join(fixture_path('some-invalid'), 'stateful_set.yml')
+      File.join(fixture_path('some-invalid'), 'stateful_set.yml'),
     ])
     assert_render_failure(render.run(mock_output_stream))
 
@@ -271,7 +271,7 @@ class RenderTaskTest < Krane::TestCase
   def test_render_only_adds_initial_doc_separator_when_missing
     render = build_render_task([
       File.join(fixture_path('partials'), 'no-doc-separator.yml.erb'),
-      File.join(fixture_path('partials'), 'no-doc-separator.yml.erb')
+      File.join(fixture_path('partials'), 'no-doc-separator.yml.erb'),
     ])
     expected = "---\n# The first doc has no yaml separator\nkey1: foo\n---\nkey2: bar\n"
 
