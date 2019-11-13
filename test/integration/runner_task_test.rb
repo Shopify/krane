@@ -206,7 +206,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
   def test_run_fails_if_template_is_blank
     task_runner = build_task_runner
-    result = task_runner.run(template: '',
+    result = task_runner.run(filename: '',
       command: ['/bin/sh', '-c'],
       arguments: nil,
       env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
@@ -224,7 +224,7 @@ class RunnerTaskTest < Krane::IntegrationTest
   def test_run_bang_fails_if_template_is_invalid
     task_runner = build_task_runner
     assert_raises(Krane::TaskConfigurationError) do
-      task_runner.run!(template: '',
+      task_runner.run!(filename: '',
         command: ['/bin/sh', '-c'],
         arguments: nil,
         env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
@@ -271,7 +271,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
     task_runner = build_task_runner
     result = task_runner.run(
-      template: 'hello-cloud-template-runner',
+      filename: 'hello-cloud-template-runner',
       command: ['/bin/sh', '-c'],
       arguments: ['echo "The value is: $MY_CUSTOM_VARIABLE"'],
       env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"]

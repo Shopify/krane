@@ -54,7 +54,7 @@ module Krane
     # @param verify_result [Boolean] Wait for completion and verify success
     #
     # @return [nil]
-    def run!(deployments = nil, selector: nil, verify_result: true)
+    def run!(deployments: nil, selector: nil, verify_result: true)
       start = Time.now.utc
       @logger.reset
 

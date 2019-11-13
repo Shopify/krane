@@ -68,7 +68,7 @@ module Krane
             namespace: namespace,
             context: context,
             current_sha: options['current-sha'],
-            filenames: paths,
+            filenames: filenames,
             bindings: bindings_parser.parse,
             logger: logger,
             global_timeout: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
