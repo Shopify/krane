@@ -114,36 +114,30 @@ module Krane
     #
     # @param namespace [String] Kubernetes namespace
     # @param context [String] Kubernetes context
-    # @param current_sha [String] The SHA of the commit
     # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param kubectl_instance [Kubectl] Kubectl instance
-    # @param bindings [Hash] Bindings parsed by Krane::BindingsParser
     # @param max_watch_seconds [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
     # @param template_paths [Array<String>] An array of template paths
     # @param template_dir [String] Path to a directory with templates (deprecated)
     # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults
     #   to Krane::DeployTask::PROTECTED_NAMESPACES)
-    # @param render_erb [Boolean] Enable ERB rendering
-    def initialize(namespace:, context:, current_sha:, logger: nil, kubectl_instance: nil, bindings: {},
+    def initialize(namespace:, context:, logger: nil, kubectl_instance: nil,
       max_watch_seconds: nil, selector: nil, template_paths: [], template_dir: nil, protected_namespaces: nil,
-      render_erb: true, allow_globals: false)
+      allow_globals: false)
       template_dir = File.expand_path(template_dir) if template_dir
       template_paths = (template_paths.map { |path| File.expand_path(path) } << template_dir).compact
 
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths, logger: @logger)
       @task_config = Krane::TaskConfig.new(context, namespace, @logger)
-      @bindings = bindings
       @namespace = namespace
       @namespace_tags = []
       @context = context
-      @current_sha = current_sha
       @kubectl = kubectl_instance
       @max_watch_seconds = max_watch_seconds
       @selector = selector
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
-      @render_erb = render_erb
       @allow_globals = allow_globals
     end
 
@@ -218,7 +212,7 @@ module Krane
     def resource_deployer
       @resource_deployer ||= Krane::ResourceDeployer.new(task_config: @task_config,
         prune_whitelist: prune_whitelist, max_watch_seconds: @max_watch_seconds,
-        selector: @selector, statsd_tags: statsd_tags, current_sha: @current_sha)
+        selector: @selector, statsd_tags: statsd_tags)
     end
 
     def kubeclient_builder
@@ -263,8 +257,7 @@ module Krane
       @logger.info("Discovering resources:")
       resources = []
       crds_by_kind = cluster_resource_discoverer.crds.group_by(&:kind)
-      @template_sets.with_resource_definitions(render_erb: @render_erb,
-          current_sha: @current_sha, bindings: @bindings) do |r_def|
+      @template_sets.with_resource_definitions do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
           statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
@@ -388,8 +381,7 @@ module Krane
     end
 
     def statsd_tags
-      tags = %W(namespace:#{@namespace} context:#{@context}) | @namespace_tags
-      @current_sha.nil? ? tags : %W(sha:#{@current_sha}) | tags
+      %W(namespace:#{@namespace} context:#{@context}) | @namespace_tags
     end
 
     def with_retries(limit)

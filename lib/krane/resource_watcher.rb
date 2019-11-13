@@ -9,7 +9,7 @@ module Krane
     delegate :namespace, :context, :logger, to: :@task_config
 
     def initialize(resources:, task_config:, deploy_started_at: Time.now.utc,
-      operation_name: "deploy", timeout: nil, sha: nil)
+      operation_name: "deploy", timeout: nil)
       unless resources.is_a?(Enumerable)
         raise ArgumentError, <<~MSG
           ResourceWatcher expects Enumerable collection, got `#{resources.class}` instead
@@ -20,7 +20,6 @@ module Krane
       @deploy_started_at = deploy_started_at
       @operation_name = operation_name
       @timeout = timeout
-      @sha = sha
     end
 
     def run(delay_sync: 3.seconds, reminder_interval: 30.seconds, record_summary: true)
@@ -62,7 +61,6 @@ module Krane
       {
         namespace: namespace,
         context: context,
-        sha: @sha,
       }
     end
 

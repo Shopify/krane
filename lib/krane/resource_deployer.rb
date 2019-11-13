@@ -11,11 +11,10 @@ module Krane
     delegate :logger, to: :@task_config
     attr_reader :statsd_tags
 
-    def initialize(task_config:, prune_whitelist:, max_watch_seconds:, current_sha: nil, selector:, statsd_tags:)
+    def initialize(task_config:, prune_whitelist:, max_watch_seconds:, selector:, statsd_tags:)
       @task_config = task_config
       @prune_whitelist = prune_whitelist
       @max_watch_seconds = max_watch_seconds
-      @current_sha = current_sha
       @selector = selector
       @statsd_tags = statsd_tags
     end
@@ -119,7 +118,7 @@ module Krane
 
       if verify
         watcher = Krane::ResourceWatcher.new(resources: resources, deploy_started_at: deploy_started_at,
-          timeout: @max_watch_seconds, task_config: @task_config, sha: @current_sha)
+          timeout: @max_watch_seconds, task_config: @task_config)
         watcher.run(record_summary: record_summary)
       end
     end
