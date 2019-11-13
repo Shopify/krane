@@ -81,29 +81,7 @@ module Krane
     end
 
     def prune_whitelist
-      wl = %w(
-        core/v1/ConfigMap
-        core/v1/Pod
-        core/v1/Service
-        core/v1/ResourceQuota
-        core/v1/Secret
-        core/v1/ServiceAccount
-        core/v1/PodTemplate
-        core/v1/PersistentVolumeClaim
-        batch/v1/Job
-        apps/v1/ReplicaSet
-        apps/v1/DaemonSet
-        apps/v1/Deployment
-        extensions/v1beta1/Ingress
-        networking.k8s.io/v1/NetworkPolicy
-        apps/v1/StatefulSet
-        autoscaling/v1/HorizontalPodAutoscaler
-        policy/v1beta1/PodDisruptionBudget
-        batch/v1beta1/CronJob
-        rbac.authorization.k8s.io/v1/Role
-        rbac.authorization.k8s.io/v1/RoleBinding
-      )
-      wl + cluster_resource_discoverer.crds.select(&:prunable?).map(&:group_version_kind)
+      cluster_resource_discoverer.prunable_resources(namespaced: true)
     end
 
     def server_version
@@ -157,16 +135,15 @@ module Krane
     # Runs the task, raising exceptions in case of issues
     #
     # @param verify_result [Boolean] Wait for completion and verify success
-    # @param allow_protected_ns [Boolean] Enable deploying to protected namespaces
     # @param prune [Boolean] Enable deletion of resources that do not appear in the template dir
     #
     # @return [nil]
-    def run!(verify_result: true, allow_protected_ns: false, prune: true)
+    def run!(verify_result: true, prune: true)
       start = Time.now.utc
       @logger.reset
 
       @logger.phase_heading("Initializing deploy")
-      validate_configuration(allow_protected_ns: allow_protected_ns, prune: prune)
+      validate_configuration(prune: prune)
       resources = discover_resources
       validate_resources(resources)
 
@@ -282,8 +259,8 @@ module Krane
     end
     measure_method(:discover_resources)
 
-    def validate_configuration(allow_protected_ns:, prune:)
-      task_config_validator = DeployTaskConfigValidator.new(@protected_namespaces, allow_protected_ns, prune,
+    def validate_configuration(prune:)
+      task_config_validator = DeployTaskConfigValidator.new(@protected_namespaces, prune,
         @task_config, kubectl, kubeclient_builder)
       errors = []
       errors += task_config_validator.errors
@@ -332,7 +309,8 @@ module Krane
       global_names = FormattedLogger.indent_four(global_names.join("\n"))
 
       @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
-      raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources."
+      raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources. "\
+        "Use GlobalDeployTask instead."
     end
 
     def namespace_definition

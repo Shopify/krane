@@ -49,16 +49,13 @@ class DeployTest < Krane::TestCase
 
   def test_deploy_passes_protected_namespaces
     default_namespaces = %w(default kube-system kube-public)
-    set_krane_deploy_expectations(new_args: { protected_namespaces: default_namespaces },
-      run_args: { allow_protected_ns: true })
+    set_krane_deploy_expectations(new_args: { protected_namespaces: default_namespaces })
     krane_deploy!
 
-    set_krane_deploy_expectations(new_args: { protected_namespaces: ['foo', 'bar'] },
-      run_args: { allow_protected_ns: true })
+    set_krane_deploy_expectations(new_args: { protected_namespaces: ['foo', 'bar'] })
     krane_deploy!(flags: '--protected-namespaces foo bar')
 
-    set_krane_deploy_expectations(new_args: { protected_namespaces: [] },
-      run_args: { allow_protected_ns: false })
+    set_krane_deploy_expectations(new_args: { protected_namespaces: [] })
     krane_deploy!(flags: "--protected-namespaces=''")
   end
 
@@ -141,7 +138,6 @@ class DeployTest < Krane::TestCase
       }.merge(new_args),
       run_args: {
         verify_result: true,
-        allow_protected_ns: true,
         prune: true,
       }.merge(run_args),
     }

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 module Krane
   class DeployTaskConfigValidator < TaskConfigValidator
-    def initialize(protected_namespaces, allow_protected_ns, prune, *arguments)
+    def initialize(protected_namespaces, prune, *arguments)
       super(*arguments)
       @protected_namespaces = protected_namespaces
-      @allow_protected_ns = allow_protected_ns
+      @allow_protected_ns = !protected_namespaces.empty?
       @prune = prune
       @validations += %i(validate_protected_namespaces)
     end
