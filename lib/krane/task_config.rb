@@ -1,4 +1,7 @@
 # frozen_string_literal: true
+
+require 'krane/cluster_resource_discovery'
+
 module Krane
   class TaskConfig
     attr_reader :context, :namespace, :logger
