@@ -28,8 +28,9 @@ module FixtureDeployHelper
   #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end
-  def deploy_fixtures(set, subset: nil, **args) # extra args are passed through to deploy_dirs_without_profiling
-    fixtures = load_fixtures(set, subset)
+  # extra args are passed through to deploy_dirs_without_profiling
+  def deploy_fixtures(set, subset: nil, sha: nil, bindings: nil, **args)
+    fixtures = load_fixtures(set, subset, sha: sha, bindings: bindings)
     raise "Cannot deploy empty template set" if fixtures.empty?
 
     yield fixtures if block_given?
@@ -144,18 +145,23 @@ module FixtureDeployHelper
 
   private
 
-  def load_fixtures(set, subset)
+  def load_fixtures(set, subset, bindings: nil, sha: nil)
     fixtures = {}
     if !subset || subset.include?("secrets.ejson")
       ejson_file = File.join(fixture_path(set), EJSON_FILENAME)
       fixtures[EJSON_FILENAME] = JSON.parse(File.read(ejson_file)) if File.exist?(ejson_file)
     end
 
+    renderer = Krane::Renderer.new(current_sha: sha || "test-sha",
+      template_dir: fixture_path(set), logger: logger, bindings: bindings || {})
+
     Dir.glob("#{fixture_path(set)}/*.{yml,yaml}*").each do |filename|
       basename = File.basename(filename)
       next unless !subset || subset.include?(basename)
 
       content = File.read(filename)
+      content = renderer.render_template(filename, content) if filename.end_with?("erb")
+
       fixtures[basename] = {}
       YAML.load_stream(content) do |doc|
         fixtures[basename][doc["kind"]] ||= []

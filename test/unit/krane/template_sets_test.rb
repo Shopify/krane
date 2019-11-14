@@ -57,8 +57,7 @@ class TemplateSetsTest < Krane::TestCase
     template_sets = template_sets_from_paths(*paths)
 
     file_names = []
-    template_sets.with_resource_definitions_and_filename(render_erb: true,
-     bindings: { data: "1" }) do |rendered_content, filename|
+    template_sets.with_resource_definitions_and_filename(bindings: { data: "1" }) do |rendered_content, filename|
       file_names << filename
       refute_empty rendered_content
     end
@@ -66,8 +65,7 @@ class TemplateSetsTest < Krane::TestCase
 
     file_names = []
     assert_raises(Krane::InvalidTemplateError) do
-      template_sets.with_resource_definitions_and_filename(render_erb: true,
-       bindings: {}) do |rendered_content, filename|
+      template_sets.with_resource_definitions_and_filename(bindings: {}) do |rendered_content, filename|
         file_names << filename
         refute_empty rendered_content
       end

@@ -3,7 +3,7 @@ require 'integration_test_helper'
 
 class KraneDeployTest < Krane::IntegrationTest
   def test_full_hello_cloud_set_deploy_succeeds
-    assert_deploy_success(deploy_fixtures("hello-cloud", render_erb: true))
+    assert_deploy_success(deploy_fixtures("hello-cloud"))
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_all_up
 
@@ -40,8 +40,7 @@ class KraneDeployTest < Krane::IntegrationTest
     # Add a valid service account in unmanaged pod
     service_account_name = "build-robot"
     result = deploy_fixtures("hello-cloud",
-      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "service-account.yml"],
-      render_erb: true) do |fixtures|
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "service-account.yml"]) do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["spec"]["serviceAccountName"] = service_account_name
       pod["spec"]["automountServiceAccountToken"] = false
@@ -67,8 +66,7 @@ class KraneDeployTest < Krane::IntegrationTest
         "role-binding.yml",
         "role.yml",
         "service-account.yml",
-      ],
-      render_erb: true
+      ]
     )
 
     # Expect that role binding account is deployed before the unmanaged pod
@@ -87,7 +85,7 @@ class KraneDeployTest < Krane::IntegrationTest
   end
 
   def test_pruning_works
-    assert_deploy_success(deploy_fixtures("hello-cloud", render_erb: true))
+    assert_deploy_success(deploy_fixtures("hello-cloud"))
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_all_up
 
@@ -138,13 +136,11 @@ class KraneDeployTest < Krane::IntegrationTest
     # Deploy the same thing twice with a different selector
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
-      selector: Krane::LabelSelector.parse("branch=master"),
-      render_erb: true))
+      selector: Krane::LabelSelector.parse("branch=master")))
     assert_logs_match("Using resource selector branch=master")
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "staging" },
-      selector: Krane::LabelSelector.parse("branch=staging"),
-      render_erb: true))
+      selector: Krane::LabelSelector.parse("branch=staging")))
     assert_logs_match("Using resource selector branch=staging")
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
 
@@ -152,7 +148,7 @@ class KraneDeployTest < Krane::IntegrationTest
     assert_equal(%w(master staging), deployments.map { |d| d.metadata.labels.branch }.sort)
 
     # Run again without selector to verify pruning works
-    assert_deploy_success(deploy_fixtures("branched", bindings: { "branch" => "master" }, render_erb: true))
+    assert_deploy_success(deploy_fixtures("branched", bindings: { "branch" => "master" }))
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
     # Filter out pruned resources pending deletion
     deployments.select! { |deployment| deployment.metadata.deletionTimestamp.nil? }
@@ -164,8 +160,7 @@ class KraneDeployTest < Krane::IntegrationTest
   def test_mismatched_selector
     assert_deploy_failure(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
-      selector: Krane::LabelSelector.parse("branch=staging"),
-      render_erb: true))
+      selector: Krane::LabelSelector.parse("branch=staging")))
     assert_logs_match_all([
       /Using resource selector branch=staging/,
       /Template validation failed/,
@@ -178,8 +173,7 @@ class KraneDeployTest < Krane::IntegrationTest
   def test_mismatched_selector_on_replace_resource_without_labels
     assert_deploy_failure(deploy_fixtures("hello-cloud",
       subset: %w(disruption-budgets.yml),
-      selector: Krane::LabelSelector.parse("branch=staging"),
-      render_erb: true))
+      selector: Krane::LabelSelector.parse("branch=staging")))
     assert_logs_match_all([
       /Using resource selector branch=staging/,
       /Template validation failed/,
@@ -207,8 +201,7 @@ class KraneDeployTest < Krane::IntegrationTest
     protected_namespaces = %w(kube-system kube-public)
     assert_deploy_success(deploy_fixtures("hello-cloud",
       prune: true,
-      protected_namespaces: protected_namespaces,
-      render_erb: true))
+      protected_namespaces: protected_namespaces))
   ensure
     @namespace = generated_ns
   end
@@ -259,7 +252,7 @@ class KraneDeployTest < Krane::IntegrationTest
   end
 
   def test_invalid_yaml_in_partial_prints_helpful_error
-    assert_deploy_failure(deploy_raw_fixtures("invalid-partials", render_erb: true))
+    assert_deploy_failure(deploy_raw_fixtures("invalid-partials"))
     included_from = "partial included from: include-invalid-partial.yml.erb"
     assert_logs_match_all([
       "Result: FAILURE",
@@ -281,7 +274,7 @@ class KraneDeployTest < Krane::IntegrationTest
 
   def test_missing_partial_correctly_identifies_invalid_template
     assert_deploy_failure(deploy_raw_fixtures("missing-partials",
-      subset: ["parent-with-missing-child.yml.erb"], render_erb: true))
+      subset: ["parent-with-missing-child.yml.erb"]))
 
     assert_logs_match_all([
       "Result: FAILURE",
@@ -296,7 +289,7 @@ class KraneDeployTest < Krane::IntegrationTest
 
   def test_missing_nested_partial_correctly_identifies_invalid_template_and_its_parents
     assert_deploy_failure(deploy_raw_fixtures("missing-partials",
-      subset: ["parent-with-missing-grandchild.yml.erb"], render_erb: true))
+      subset: ["parent-with-missing-grandchild.yml.erb"]))
 
     assert_logs_match_all([
       "Result: FAILURE",
@@ -329,8 +322,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_dynamic_erb_collection_works
     assert_deploy_success(deploy_raw_fixtures("collection-with-erb",
-      bindings: { binding_test_a: 'foo', binding_test_b: 'bar' },
-      render_erb: true))
+      bindings: { binding_test_a: 'foo', binding_test_b: 'bar' }))
 
     deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
     assert_equal(3, deployments.size)
@@ -342,7 +334,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   # https://github.com/kubernetes/kubernetes/issues/42057 shows how this manifested for a particular field,
   # and although that particular case has been fixed, other invalid specs still aren't caught until apply.
   def test_multiple_invalid_k8s_specs_fails_on_apply_and_prints_template
-    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
       bad_port_name = "http_test_is_really_long_and_invalid_chars"
       svc = fixtures["web.yml.erb"]["Service"].first
       svc["spec"]["ports"].first["targetPort"] = bad_port_name
@@ -369,7 +361,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_invalid_k8s_spec_that_is_valid_yaml_but_has_no_template_path_in_error_prints_helpful_message
-    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
       svc = fixtures["web.yml.erb"]["Service"].first
       svc["spec"]["ports"].first["targetPort"] = "http_test_is_really_long_and_invalid_chars"
     end
@@ -385,7 +377,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_output_of_failed_unmanaged_pod
     result = deploy_fixtures("hello-cloud",
-      subset: ["unmanaged-pod-1.yml.erb", "configmap-data.yml"], render_erb: true) do |fixtures|
+      subset: ["unmanaged-pod-1.yml.erb", "configmap-data.yml"]) do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["spec"]["containers"].first["command"] = ["/not/a/command"]
     end
@@ -460,7 +452,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_wait_false_still_waits_for_priority_resources
-    result = deploy_fixtures("hello-cloud", render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud") do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
     end
@@ -476,8 +468,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_deployment_with_progress_times_out_for_short_duration
     # The deployment adds a short progressDeadlineSeconds and attepts to deploy a container
     # which sleeps and cannot fulfill the readiness probe causing it to timeout
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'],
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 10
       container = deployment['spec']['template']['spec']['containers'].first
@@ -493,8 +484,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deployment_with_timeout_override_deprecated
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'],
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
       deployment["metadata"]["annotations"] = {
@@ -509,8 +499,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deployment_with_timeout_override
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'],
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb']) do |fixtures|
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
       deployment["metadata"]["annotations"] = {
@@ -526,7 +515,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_wait_false_ignores_non_priority_resource_failures
     # web depends on configmap so will not succeed deployed alone
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true, wait: false))
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], wait: false))
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_deployment_up("web", replicas: 0) # it exists, but no pods available yet
 
@@ -539,8 +528,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_extra_bindings_should_be_rendered
     result = deploy_fixtures('collection-with-erb', subset: ["conf_map.yaml.erb"],
-      bindings: { binding_test_a: 'binding_test_a', binding_test_b: 'binding_test_b' },
-      render_erb: true)
+      bindings: { binding_test_a: 'binding_test_a', binding_test_b: 'binding_test_b' })
     assert_deploy_success(result)
 
     map = kubeclient.get_config_map('extra-binding', @namespace).data
@@ -549,7 +537,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deploy_fails_if_required_binding_not_present
-    assert_deploy_failure(deploy_fixtures('collection-with-erb', subset: ["conf_map.yaml.erb"], render_erb: true))
+    assert_deploy_failure(deploy_fixtures('collection-with-erb', subset: ["conf_map.yaml.erb"]))
     assert_logs_match_all([
       "Result: FAILURE",
       "Failed to render and parse template",
@@ -734,8 +722,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_unmanaged_pod_failure_halts_deploy_and_displays_logs_correctly
     result = deploy_fixtures(
       "hello-cloud",
-      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb", "web.yml.erb"],
-      render_erb: true
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb", "web.yml.erb"]
     ) do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       container = pod["spec"]["containers"].first
@@ -763,10 +750,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   # ref https://github.com/kubernetes/kubernetes/issues/26202
   def test_output_when_switching_labels_incorrectly
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
-      render_erb: true))
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
-      render_erb: true) do |fixtures|
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]))
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
       web = fixtures["web.yml.erb"]["Deployment"].first
       web["spec"]["template"]["metadata"]["labels"] = { "name" => "foobar" }
     end
@@ -785,8 +770,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     pod_status = "Running"
     # Create a deployement with 1 pod
     source = 1
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
       web = fixtures["web.yml.erb"]["Deployment"].first
       web["spec"]["replicas"] = source
       # Disable grace period in deleting pods to speed up test
@@ -798,8 +782,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     hello_cloud.assert_pod_status(pod_name, pod_status, source)
     # Scale down to 0 pod
     target = 0
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
       web = fixtures["web.yml.erb"]["Deployment"].first
       web["spec"]["replicas"] = target
       web["spec"]["template"]["spec"]["terminationGracePeriodSeconds"] = 0
@@ -816,8 +799,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_can_deploy_deployment_with_zero_replicas
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
       web = fixtures["web.yml.erb"]["Deployment"].first
       web["spec"]["replicas"] = 0
     end
@@ -849,10 +831,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deploy_successful_with_partial_availability
-    result = deploy_fixtures("slow-cloud", sha: "deploy1", render_erb: true)
+    result = deploy_fixtures("slow-cloud", sha: "deploy1")
     assert_deploy_success(result)
 
-    result = deploy_fixtures("slow-cloud", sha: "deploy2", render_erb: true) do |fixtures|
+    result = deploy_fixtures("slow-cloud", sha: "deploy2") do |fixtures|
       dep = fixtures["web.yml.erb"]["Deployment"].first
       container = dep["spec"]["template"]["spec"]["containers"].first
       container["readinessProbe"] = {
@@ -874,8 +856,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_deploy_successful_with_multiple_template_paths
     result = deploy_dirs(fixture_path("test-partials"), fixture_path("cronjobs"),
-      bindings: { 'supports_partials' => 'yep' },
-      render_erb: true)
+      bindings: { 'supports_partials' => 'yep' })
     assert_deploy_success(result)
 
     assert_logs_match_all([
@@ -891,8 +872,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_deploy_successful_with_multiple_template_paths_multiple_partials
     result = deploy_dirs(fixture_path("test-partials"), fixture_path("test-partials2"),
-      bindings: { 'supports_partials' => 'yep' },
-      render_erb: true)
+      bindings: { 'supports_partials' => 'yep' })
     assert_deploy_success(result)
 
     assert_logs_match_all([
@@ -909,7 +889,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_deploy_successful_partials_with_filename_args
     partial_file_1 = File.join(fixture_path("test-partials"), "deployment.yaml.erb")
     partial_file_2 = File.join(fixture_path("test-partials2"), "deployment.yml.erb")
-    result = deploy_dirs(partial_file_1, partial_file_2, bindings: { 'supports_partials' => 'yep' }, render_erb: true)
+    result = deploy_dirs(partial_file_1, partial_file_2, bindings: { 'supports_partials' => 'yep' })
     assert_deploy_success(result)
 
     assert_logs_match_all([
@@ -962,7 +942,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_deploy_successful_multiple_filenames_different_directories
     hello_cloud_file = File.join(fixture_path("hello-cloud"), "service-account.yml")
     cronjob_file = File.join(fixture_path("cronjobs"), "cronjob.yaml.erb")
-    result = deploy_dirs(hello_cloud_file, cronjob_file, render_erb: true)
+    result = deploy_dirs(hello_cloud_file, cronjob_file)
     assert_deploy_success(result)
     assert_logs_match_all([
       "Successfully deployed 2 resources",
@@ -1023,7 +1003,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deploy_aborts_immediately_if_unmanged_pod_spec_missing
-    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb"], render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb"]) do |fixtures|
       definition = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       definition.delete("spec")
     end
@@ -1038,8 +1018,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_success_detection_tolerates_out_of_band_deployment_scaling
-    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "configmap-data.yml"],
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "configmap-data.yml"]) do |fixtures|
       definition = fixtures["web.yml.erb"]["Deployment"].first
       definition["spec"].delete("replicas")
     end
@@ -1047,16 +1026,14 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_output_when_unmanaged_pod_preexists
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb"],
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb"]) do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["metadata"]["name"] = "oops-it-is-static"
     end
     assert_deploy_success(result)
 
     # Second deploy should fail because unmanaged pod already exists
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb"],
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb"]) do |fixtures|
       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
       pod["metadata"]["name"] = "oops-it-is-static"
     end
@@ -1065,8 +1042,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_streams_unmanaged_pod_logs_when_only_one
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb"],
-      render_erb: true)
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb"])
     assert_deploy_success(result)
     assert_logs_match(%r{Streaming logs from Pod/unmanaged-pod-1})
 
@@ -1074,8 +1050,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     result = deploy_fixtures(
       "hello-cloud",
-      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb"],
-      render_erb: true
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "unmanaged-pod-2.yml.erb"]
     )
     assert_deploy_success(result)
     assert_logs_match_all([
@@ -1231,8 +1206,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_partials
-    assert_deploy_success(deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' },
-      render_erb: true))
+    assert_deploy_success(deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' }))
     assert_logs_match_all([
       "log from pod1",
       "log from pod2",
@@ -1275,8 +1249,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_deployment_with_recreate_strategy
     2.times do
-      result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
-        render_erb: true) do |fixtures|
+      result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"]) do |fixtures|
         deployment = fixtures["web.yml.erb"]["Deployment"].first
         deployment["spec"]["strategy"] = { "type" => "Recreate" }
         # if this is > 0, the test goes from taking 10s to taking 1m+. Original pod sticks in Terminating.
@@ -1336,8 +1309,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_resource_watcher_raises_after_timeout_seconds
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'], max_watch_seconds: 5,
-      render_erb: true) do |fixtures|
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'], max_watch_seconds: 5) do |fixtures|
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 100
       container = deployment['spec']['template']['spec']['containers'].first
@@ -1355,7 +1327,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_friendly_error_on_misidentified_erb_file
-    assert_deploy_failure(deploy_raw_fixtures('invalid', subset: ['wrong-extension-erb.yml'], render_erb: true))
+    assert_deploy_failure(deploy_raw_fixtures('invalid', subset: ['wrong-extension-erb.yml']))
     assert_logs_match_all([
       "Result: FAILURE",
       "Invalid template: wrong-extension-erb.yml",
@@ -1464,8 +1436,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_render_failure_on_sensitive_resource_does_not_print_template
-    assert_deploy_failure(deploy_fixtures("invalid-resources", subset: %w(bad_binding_secret.yml.erb),
-      render_erb: true))
+    assert_deploy_failure(deploy_fixtures("invalid-resources", subset: %w(bad_binding_secret.yml.erb)))
     assert_logs_match_all([
       "Failed to render and parse template",
       "Invalid template: bad_binding_secret.yml.erb",
@@ -1641,7 +1612,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_fail_erb_templates_if_rendering_is_disabled
-    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb"], render_erb: false)
+    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb"])
     # Expect that deploy will fail due to the ERB tags in this template
     assert_deploy_failure(result)
     assert_logs_match_all([
