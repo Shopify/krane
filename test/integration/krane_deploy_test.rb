@@ -251,27 +251,6 @@ class KraneDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
-  def test_invalid_yaml_in_partial_prints_helpful_error
-    assert_deploy_failure(deploy_raw_fixtures("invalid-partials"))
-    included_from = "partial included from: include-invalid-partial.yml.erb"
-    assert_logs_match_all([
-      "Result: FAILURE",
-      "Failed to render and parse template",
-      %r{Invalid template: .*/partials/invalid.yml.erb \(#{included_from}\)},
-      "> Error message:",
-      %r{fixtures/partials/invalid.yml.erb\)\: mapping values are not allowed in this context},
-      "> Template content:",
-      "containers:",
-      "- name: invalid-container",
-      "notField: notval:",
-    ], in_order: true)
-
-    # make sure we're not displaying duplicate errors
-    refute_logs_match("Template 'include-invalid-partial.yml.erb' cannot be rendered")
-    assert_logs_match("Template content:", 1)
-    assert_logs_match("Error message:", 1)
-  end
-
   def test_missing_partial_correctly_identifies_invalid_template
     assert_deploy_failure(deploy_raw_fixtures("missing-partials",
       subset: ["parent-with-missing-child.yml.erb"]))
@@ -534,19 +513,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     map = kubeclient.get_config_map('extra-binding', @namespace).data
     assert_equal('binding_test_a', map['BINDING_TEST_A'])
     assert_equal('binding_test_b', map['BINDING_TEST_B'])
-  end
-
-  def test_deploy_fails_if_required_binding_not_present
-    assert_deploy_failure(deploy_fixtures('collection-with-erb', subset: ["conf_map.yaml.erb"]))
-    assert_logs_match_all([
-      "Result: FAILURE",
-      "Failed to render and parse template",
-      "Invalid template: conf_map.yaml.erb",
-      "> Error message:",
-      "undefined local variable or method `binding_test_a'",
-      "> Template content:",
-      'BINDING_TEST_A: "<%= binding_test_a %>"',
-    ], in_order: true)
   end
 
   def test_long_running_deployment
@@ -1683,7 +1649,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def build_deploy_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, max_watch_seconds: nil)
     Krane::DeployTask.new(context: context, namespace: ns, logger: logger,
-      max_watch_seconds: max_watch_seconds, template_paths: ['./test/fixtures/hello-cloud'], current_sha: '123')
+      max_watch_seconds: max_watch_seconds, template_paths: ['./test/fixtures/hello-cloud'])
   end
 
   def run_params

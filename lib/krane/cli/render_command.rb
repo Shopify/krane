@@ -7,7 +7,8 @@ module Krane
         bindings: { type: :array, banner: "foo=bar abc=def", desc: 'Bindings for erb' },
         filenames: { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                      required: true, aliases: 'f', desc: 'Directories and files to render' },
-        'current-sha': { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings" },
+        'current-sha': { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings",
+                         lazy_default: '' },
       }
 
       def self.from_options(options)

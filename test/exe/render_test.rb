@@ -48,7 +48,7 @@ class RendertTest < Krane::TestCase
 
   def default_options(new_args = {})
     {
-      current_sha: ENV["REVISION"],
+      current_sha: nil,
       template_paths: ["/dev/null"],
       bindings: {},
     }.merge(new_args)

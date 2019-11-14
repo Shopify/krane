@@ -10,7 +10,7 @@ module Krane
         kube-public
       )
       OPTIONS = {
-        "filenames" => { type: :string, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
+        "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                          aliases: :f, required: true,
                          desc: "Directories and files that contains the configuration to apply" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_DEPLOY_TIMEOUT,
@@ -44,7 +44,7 @@ module Krane
           protected_namespaces = []
         end
 
-        ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames].split,
+        ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames],
           require_explicit_path: true) do |paths|
           deploy = ::Krane::DeployTask.new(
             namespace: namespace,
