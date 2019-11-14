@@ -128,6 +128,10 @@ module Krane
 
       errors += template_sets.validate
 
+      if !@current_sha.nil? && @current_sha.empty?
+        errors << "current-sha is optional but can not be blank"
+      end
+
       unless errors.empty?
         @logger.summary.add_action("Configuration invalid")
         @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))

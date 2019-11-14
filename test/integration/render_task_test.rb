@@ -377,6 +377,19 @@ class RenderTaskTest < Krane::TestCase
     end
   end
 
+  def test_render_errors_empty_sha
+    render = Krane::RenderTask.new(logger: logger, current_sha: "", bindings: {},
+      template_dir: fixture_path('test-partials'))
+    fixture = 'deployment.yaml.erb'
+
+    assert_render_failure(render.run(mock_output_stream, [fixture]))
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Configuration invalid",
+      "- current-sha is optional but can not be blank",
+    ], in_order: true)
+  end
+
   private
 
   def build_render_task(template_dir, bindings = {})

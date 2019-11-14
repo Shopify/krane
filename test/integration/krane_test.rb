@@ -52,6 +52,14 @@ class KraneTest < Krane::IntegrationTest
     assert_match(test_sha, out)
   end
 
+  def test_render_current_sha_cant_be_blank
+    paths = ["test/fixtures/test-partials/partials/independent-configmap.yml.erb"]
+    _, err, status = krane_black_box("render", "-f #{paths.join(' ')} --current-sha")
+    refute_predicate(status, :success?)
+    assert_match("FAILURE", err)
+    assert_match("current-sha is optional but can not be blank", err)
+  end
+
   def test_deploy_black_box_success
     setup_template_dir("hello-cloud") do |target_dir|
       flags = "-f #{target_dir} --render-erb --bindings deployment_id=1 current_sha=123"

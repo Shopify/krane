@@ -185,8 +185,7 @@ module FixtureDeployHelper
     fixtures.each do |_, kinds_map|
       kinds_map.each do |_, resources|
         resources.each do |resource|
-          resource["metadata"]["name"] = (resource["metadata"]["name"] + @namespace)[0..63]
-          resource["metadata"]["name"] += "0" if resource["metadata"]["name"].end_with?("-")
+          resource["metadata"]["name"] = (resource["metadata"]["name"] + Digest::MD5.hexdigest(@namespace))[0..63]
           resource["metadata"]["labels"] ||= {}
           resource["metadata"]["labels"][selector_key] = selector_value
         end
