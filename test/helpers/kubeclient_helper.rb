@@ -20,8 +20,8 @@ module KubeclientHelper
     @policy_v1beta1_kubeclient ||= kubeclient_builder.build_policy_v1beta1_kubeclient(TEST_CONTEXT)
   end
 
-  def apps_v1beta1_kubeclient
-    @apps_v1beta1_kubeclient ||= kubeclient_builder.build_apps_v1beta1_kubeclient(TEST_CONTEXT)
+  def apps_v1_kubeclient
+    @apps_v1_kubeclient ||= kubeclient_builder.build_apps_v1_kubeclient(TEST_CONTEXT)
   end
 
   def batch_v1beta1_kubeclient

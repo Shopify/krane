@@ -342,7 +342,7 @@ class RestartTaskTest < Krane::IntegrationTest
   end
 
   def fetch_restarted_at(deployment_name)
-    deployment = v1beta1_kubeclient.get_deployment(deployment_name, @namespace)
+    deployment = apps_v1_kubeclient.get_deployment(deployment_name, @namespace)
     containers = deployment.spec.template.spec.containers
     app_container = containers.find { |c| c["name"] == "app" }
     app_container&.env&.find { |n| n.name == "RESTARTED_AT" }

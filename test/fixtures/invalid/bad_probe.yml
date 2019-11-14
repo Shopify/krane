@@ -1,9 +1,16 @@
-apiVersion: extensions/v1beta1 # keep as long as this group is valid
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bad-probe
+  labels:
+    name: bad-probe
+    app: crash-app
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: bad-probe
+      app: crash-app
   # progressDeadlineSeconds: 10 -- do not add: this is used to test the hard deadline
   template:
     metadata:

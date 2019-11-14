@@ -1,5 +1,5 @@
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
@@ -40,7 +40,7 @@ status:
     lastUpdateTime: "2018-01-09 22:56:45 UTC"
 
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
   name: web-1

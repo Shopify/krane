@@ -97,13 +97,13 @@ module Krane
       if deployment_names.nil?
         deployments = if selector.nil?
           @logger.info("Configured to restart all deployments with the `#{ANNOTATION}` annotation")
-          v1beta1_kubeclient.get_deployments(namespace: @namespace)
+          apps_v1_kubeclient.get_deployments(namespace: @namespace)
         else
           selector_string = selector.to_s
           @logger.info(
             "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
           )
-          v1beta1_kubeclient.get_deployments(namespace: @namespace, label_selector: selector_string)
+          apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: selector_string)
         end
         deployments.select! { |d| d.metadata.annotations[ANNOTATION] }
 
@@ -137,7 +137,7 @@ module Krane
     end
 
     def patch_deployment_with_restart(record)
-      v1beta1_kubeclient.patch_deployment(
+      apps_v1_kubeclient.patch_deployment(
         record.metadata.name,
         build_patch_payload(record),
         @namespace
@@ -159,7 +159,7 @@ module Krane
       list.map do |name|
         record = nil
         begin
-          record = v1beta1_kubeclient.get_deployment(name, @namespace)
+          record = apps_v1_kubeclient.get_deployment(name, @namespace)
         rescue Kubeclient::ResourceNotFoundError
           raise FatalRestartError, "Deployment `#{name}` not found in namespace `#{@namespace}`"
         end
@@ -203,6 +203,10 @@ module Krane
         @logger.summary.add_paragraph(task_config_validator.errors.map { |err| "- #{err}" }.join("\n"))
         raise Krane::TaskConfigurationError
       end
+    end
+
+    def apps_v1_kubeclient
+      @apps_v1_kubeclient ||= kubeclient_builder.build_apps_v1_kubeclient(@context)
     end
 
     def kubeclient

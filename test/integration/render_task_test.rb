@@ -85,12 +85,19 @@ class RenderTaskTest < Krane::TestCase
     stdout_assertion do |output|
       expected = <<~RENDERED
         ---
-        apiVersion: extensions/v1beta1
+        apiVersion: apps/v1
         kind: Deployment
         metadata:
           name: web
+          labels:
+            name: web
+            app: test-partials
         spec:
           replicas: 1
+          selector:
+            matchLabels:
+              name: web
+              app: test-partials
           template:
             metadata:
               labels:

@@ -50,7 +50,7 @@ module FixtureSetAssertions
     end
 
     def refute_web_resources_exist
-      refute_resource_exists("deployment", "web", beta: true)
+      refute_resource_exists("deployment", "web")
       refute_resource_exists("ingress", "web", beta: true)
       refute_resource_exists("service", "web")
     end
@@ -63,7 +63,7 @@ module FixtureSetAssertions
     end
 
     def refute_redis_resources_exist(expect_pvc: false)
-      refute_resource_exists("deployment", "redis", beta: true)
+      refute_resource_exists("deployment", "redis")
       refute_resource_exists("service", "redis")
       if expect_pvc
         assert_pvc_status("redis", "Bound")

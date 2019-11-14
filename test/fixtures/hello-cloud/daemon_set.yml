@@ -1,8 +1,15 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: ds-app
+  labels:
+    app: hello-cloud
+    name: ds-app
 spec:
+  selector:
+    matchLabels:
+      app: hello-cloud
+      name: ds-app
   template:
     metadata:
       labels:

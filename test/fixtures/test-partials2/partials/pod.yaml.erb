@@ -1,7 +1,14 @@
 metadata:
   name: web-from-partial
+  labels:
+    name: web-from-partial
+    app: test-partials
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: web-from-partial
+      app: test-partials
   template:
     metadata:
       labels:

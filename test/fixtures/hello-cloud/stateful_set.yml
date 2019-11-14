@@ -15,13 +15,20 @@ spec:
     name: stateful-busybox
     app: hello-cloud
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: stateful-busybox
+  labels:
+    name: stateful-busybox
+    app: hello-cloud
 spec:
   serviceName: "stateful-busybox"
   replicas: 2
+  selector:
+    matchLabels:
+      app: hello-cloud
+      name: stateful-busybox
   template:
     metadata:
       labels:

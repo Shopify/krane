@@ -524,7 +524,7 @@ The following command will restart all pods in the `web` and `jobs` deployments:
 Add the annotation `shipit.shopify.io/restart` to all the deployments you want to target, like this:
 
 ```yaml
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web

@@ -30,14 +30,21 @@ spec:
     name: web
     app: hello-cloud
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
   annotations:
     shipit.shopify.io/restart: "true"
+  labels:
+    name: web
+    app: hello-cloud
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: web
+      app: hello-cloud
   progressDeadlineSeconds: 60
   template:
     metadata:

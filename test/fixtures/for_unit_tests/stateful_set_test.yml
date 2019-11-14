@@ -1,8 +1,11 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: test-ss
   generation: 2
+  labels:
+    app: hello-cloud
+    name: test-ss
 spec:
   selector:
     matchLabels:

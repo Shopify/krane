@@ -1,9 +1,16 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: stateful-busybox
+  labels:
+    app: hello-cloud
+    name: stateful-busybox
 spec:
   serviceName: "stateful-busybox"
+  selector:
+    matchLabels:
+      app: hello-cloud
+      name: stateful-busybox
   replicas: 2
   template:
     metadata:

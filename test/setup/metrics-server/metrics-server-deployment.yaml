@@ -5,7 +5,7 @@ metadata:
   name: metrics-server
   namespace: kube-system
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: metrics-server
@@ -29,7 +29,7 @@ spec:
         emptyDir: {}
       containers:
       - name: metrics-server
-        image: k8s.gcr.io/metrics-server-amd64:v0.3.1
+        image: gcr.io/google_containers/metrics-server-amd64:v0.3.6
         imagePullPolicy: Always
         args: ["--kubelet-insecure-tls"]
         volumeMounts:

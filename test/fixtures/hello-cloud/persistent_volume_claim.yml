@@ -5,6 +5,7 @@ metadata:
   name: hello-pv-claim
   labels:
     app: hello-cloud
+    name: hello-pv-claim
 spec:
   accessModes:
   - ReadWriteOnce
