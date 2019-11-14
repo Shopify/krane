@@ -16,6 +16,16 @@ class DeployTest < Krane::TestCase
     krane_deploy!(flags: '--global-timeout 1h')
   end
 
+  def test_deploy_parses_std_in
+    set_krane_deploy_expectations(new_args: { template_paths: ['/my/file/path', '-'] })
+    krane_deploy!(flags: '-f /my/file/path --std-in')
+  end
+
+  def test_deploy_parses_std_in_without_filenames
+    set_krane_deploy_expectations(new_args: { template_paths: ['-'] })
+    krane_deploy!(flags: '--std-in')
+  end
+
   def test_deploy_parses_selector
     selector = Krane::LabelSelector.new('name' => 'web')
     Krane::LabelSelector.expects(:parse).returns(selector)

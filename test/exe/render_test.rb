@@ -17,6 +17,17 @@ class RendertTest < Krane::TestCase
     krane_render!("--filenames #{paths}")
   end
 
+  def test_render_parses_std_in
+    file_path = "/dev/null"
+    install_krane_render_expectations(template_paths: [file_path, "-"])
+    krane_render!("--filenames #{file_path} --std-in")
+  end
+
+  def test_render_parses_std_in_without_filenames
+    install_krane_render_expectations(template_paths: ["-"])
+    krane_render!("--std-in")
+  end
+
   def test_render_parses_bindings
     install_krane_render_expectations(bindings: { "foo" => "1", "bar" => "2" })
     krane_render!("-f /dev/null --bindings foo=1,bar=2")
