@@ -23,7 +23,8 @@ module Krane
       fetch_resources(namespaced: namespaced).map do |resource|
         next unless resource['verbs'].one? { |v| v == "delete" }
         next if black_list.include?(resource['kind'])
-        version = latest_version(api_versions[resource['apigroup'].to_s], resource['kind'])
+        group_versions = api_versions[resource['apigroup'].to_s]
+        version = version_for_kind(group_versions, resource['kind'])
         [resource['apigroup'], version, resource['kind']].compact.join("/")
       end.compact
     end
@@ -81,14 +82,16 @@ module Krane
       versions
     end
 
-    def latest_version(versions, kind)
+    def version_for_kind(versions, kind)
+      # Override list for kinds that don't appear in the lastest version of a group
       version_override = { "CronJob" => "v1beta1", "VolumeAttachment" => "v1beta1",
                            "CSIDriver" => "v1beta1", "Ingress" => "v1beta1", "CSINode" => "v1beta1" }
 
-      pattern = /v(?<major>\d+)(beta)?(?<minor>\d+)?/
+      pattern = /v(?<major>\d+)(?<pre>alpha|beta)?(?<minor>\d+)?/
       latest = versions.sort_by do |version|
         match = version.match(pattern)
-        [match[:major].to_i, (match[:minor] || 999).to_i]
+        pre = { "alpha" => 0, "beta" => 1, nil => 2 }.fetch(match[:pre])
+        [match[:major].to_i, pre, match[:minor].to_i]
       end.last
       version_override.fetch(kind, latest)
     end
