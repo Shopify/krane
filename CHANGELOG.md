@@ -12,10 +12,12 @@ under the name `Krane`. We've added a migration guide to help make it easier to 
 ([#607](https://github.com/Shopify/kubernetes-deploy/pull/607))
 
 *Enhancements*
-- (beta) `krane deploy` will now consider all namespaced resources eligible for pruning,
-it does not respect the `krane.shopify.io/prunable` annotation ([#616](https://github.com/Shopify/kubernetes-deploy/pull/616)
+- (beta) `krane deploy` will now consider all namespaced resources eligible for pruning
+and does not respect the `krane.shopify.io/prunable` annotation. This adds 6 additional
+types: Endpoints, Event, LimitRange, ReplicationController, ControllerRevision, and Lease.
+ ([#616](https://github.com/Shopify/kubernetes-deploy/pull/616)
 
-- (beta) Added the `--std-in` flag to `krane deploy|global-deploy|render` to read resources from stdin. ([#630](https://github.com/Shopify/kubernetes-deploy/pull/630))
+- (beta) Added the `--stdin` flag to `krane deploy|global-deploy|render` to read resources from stdin. ([#630](https://github.com/Shopify/kubernetes-deploy/pull/630))
 
 ## 0.31.1
 
