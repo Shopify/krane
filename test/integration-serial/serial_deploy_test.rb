@@ -587,6 +587,112 @@ class SerialDeployTest < Krane::IntegrationTest
     build_kubectl.run("delete", "namespace", namespace_name, use_namespace: false, log_failure: false)
   end
 
+  # Note: These tests assume a default storage class with a dynamic provisioner and 'Immediate' bind
+  def test_pvc
+    pvname = "local0001"
+    storage_class_name = "k8s-deploy-test"
+
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("pvc",
+      subset: ["wait_for_first_consumer_storage_class.yml"]))
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    assert_deploy_success(deploy_fixtures("pvc", subset: %w(pod.yml pvc.yml)))
+
+    assert_logs_match_all([
+      "Successfully deployed 3 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Bound},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+      %r{Pod/pvc\s+Succeeded},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname)
+  end
+
+  def test_pvc_no_bind
+    pvname = "local0002"
+    storage_class_name = "k8s-deploy-test-no-bind"
+
+    result = deploy_global_fixtures_non_namespaced("pvc",
+    subset: ["wait_for_first_consumer_storage_class.yml"], clean_up: false) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 2 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Pending},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname)
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
+  end
+
+  def test_pvc_immediate_bind
+    pvname = "local0003"
+    storage_class_name = "k8s-deploy-test-immediate-bind"
+
+    result = deploy_global_fixtures_non_namespaced("pvc",
+    subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
+      sc["volumeBindingMode"] = "Immediate"
+    end
+    assert_deploy_success(result)
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 2 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Bound},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname)
+  end
+
+  def test_pvc_no_pv
+    storage_class_name = "k8s-deploy-test-no-pv"
+
+    result = deploy_global_fixtures_non_namespaced("pvc",
+    subset: ["wait_for_first_consumer_storage_class.yml"], clean_up: false) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    result = deploy_fixtures("pvc", subset: ["pvc.yml", "pod.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_failure(result)
+
+    assert_logs_match_all([
+      "Failed to deploy 1 priority resource",
+      "Pod/pvc: TIMED OUT (timeout: 10s)",
+      %r{Pod could not be scheduled because 0/\d+ nodes are available:},
+      /\d+ node[(]s[)] didn't find available persistent volumes to bind./,
+    ], in_order: true)
+  end
+
   private
 
   def wait_for_all_crd_deletion
