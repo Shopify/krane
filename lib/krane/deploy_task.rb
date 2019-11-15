@@ -55,12 +55,6 @@ module Krane
       kube-system
       kube-public
     )
-    # Things removed from default prune whitelist at https://github.com/kubernetes/kubernetes/blob/0dff56b4d88ec7551084bf89028dbeebf569620e/pkg/kubectl/cmd/apply.go#L411:
-    # core/v1/Namespace -- not namespaced
-    # core/v1/PersistentVolume -- not namespaced
-    # core/v1/Endpoints -- managed by services
-    # core/v1/PersistentVolumeClaim -- would delete data
-    # core/v1/ReplicationController -- superseded by deployments/replicasets
 
     def predeploy_sequence
       before_crs = %w(

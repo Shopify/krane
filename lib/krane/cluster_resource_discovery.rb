@@ -20,13 +20,13 @@ module Krane
       black_list = %w(Namespace Node ControllerRevision)
       api_versions = fetch_api_versions
 
-      fetch_resources(namespaced: namespaced).map do |resource|
+      fetch_resources(namespaced: namespaced).uniq { |r| r['kind'] }.map do |resource|
         next unless resource['verbs'].one? { |v| v == "delete" }
         next if black_list.include?(resource['kind'])
         group_versions = api_versions[resource['apigroup'].to_s]
         version = version_for_kind(group_versions, resource['kind'])
         [resource['apigroup'], version, resource['kind']].compact.join("/")
-      end.compact.uniq { |gvk| gvk.split("/").last }
+      end.compact
     end
 
     # kubectl api-resources -o wide returns 5 columns
