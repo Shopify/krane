@@ -108,7 +108,7 @@ class KraneDeployTest < Krane::IntegrationTest
       prune_matcher("statefulset", "apps", "stateful-busybox"),
       prune_matcher("job", "batch", "hello-job"),
       prune_matcher("poddisruptionbudget", "policy", "test"),
-      prune_matcher("networkpolicy", "networking.k8s.io", "allow-all-network-policy"),
+      prune_matcher("networkpolicy", "*", "allow-all-network-policy"),
       prune_matcher("secret", "", "hello-secret"),
       prune_matcher("replicaset", "apps", "bare-replica-set"),
       prune_matcher("serviceaccount", "", "build-robot"),

@@ -26,7 +26,7 @@ module Krane
         group_versions = api_versions[resource['apigroup'].to_s]
         version = version_for_kind(group_versions, resource['kind'])
         [resource['apigroup'], version, resource['kind']].compact.join("/")
-      end.compact
+      end.compact.uniq { |gvk| gvk.split("/").last }
     end
 
     # kubectl api-resources -o wide returns 5 columns
