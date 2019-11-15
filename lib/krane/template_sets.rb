@@ -9,14 +9,15 @@ module Krane
     # private inner class
     class TemplateSet
       include DelayedExceptions
-      def initialize(template_dir:, file_whitelist: [], logger:)
+      def initialize(template_dir:, file_whitelist: [], logger:, render_erb: true)
         @template_dir = template_dir
         @files = file_whitelist
         @logger = logger
+        @render_erb = render_erb
       end
 
-      def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
-        if render_erb
+      def with_resource_definitions_and_filename(current_sha: nil, bindings: nil, raw: false)
+        if @render_erb
           @renderer = Renderer.new(
             template_dir: @template_dir,
             logger: @logger,
@@ -39,27 +40,43 @@ module Krane
 
       def validate
         errors = []
+        supported_extensions = if @render_erb
+          TemplateSets::VALID_TEMPLATES
+        else
+          TemplateSets::VALID_TEMPLATES.reject { |extension| extension.include?('erb') }
+        end
+
         if Dir.entries(@template_dir).none? do |filename|
-             filename.end_with?(*TemplateSets::VALID_TEMPLATES) ||
+             filename.end_with?(*supported_extensions) ||
              filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
            end
-          return errors << "Template directory #{@template_dir} does not contain any valid templates"
+          return errors << "Template directory #{@template_dir} does not contain any valid templates (supported " \
+              "suffixes: #{supported_extensions.join(', ')}, or #{EjsonSecretProvisioner::EJSON_SECRETS_FILE})"
+        end
+
+        if !@render_erb && deploying_with_erb_files?
+          errors << "ERB template discovered with rendering disabled. If you were trying to render ERB and " \
+            "deploy the result, try piping the output of `krane render` to `krane-deploy` with the --stdin flag"
         end
 
         @files.each do |filename|
           filename = File.join(@template_dir, filename)
           if !File.exist?(filename)
             errors << "File #{filename} does not exist"
-          elsif !filename.end_with?(*TemplateSets::VALID_TEMPLATES) &&
+          elsif !filename.end_with?(*supported_extensions) &&
                 !filename.end_with?(EjsonSecretProvisioner::EJSON_SECRETS_FILE)
             errors << "File #{filename} does not have valid suffix (supported suffixes: " \
-              "#{TemplateSets::VALID_TEMPLATES.join(', ')}, or #{EjsonSecretProvisioner::EJSON_SECRETS_FILE})"
+              "#{supported_extensions.join(', ')}, or #{EjsonSecretProvisioner::EJSON_SECRETS_FILE})"
           end
         end
         errors
       end
 
       private
+
+      def deploying_with_erb_files?
+        @files.any? { |file| file.end_with?("erb") }
+      end
 
       def templates(filename:, raw:)
         file_content = File.read(File.join(@template_dir, filename))
@@ -83,7 +100,7 @@ module Krane
     private_constant :TemplateSet
 
     class << self
-      def from_dirs_and_files(paths:, logger:)
+      def from_dirs_and_files(paths:, logger:, render_erb: true)
         resource_templates = {}
         dir_paths, file_paths = paths.partition { |path| File.directory?(path) }
 
@@ -103,16 +120,16 @@ module Krane
 
         template_sets = []
         resource_templates.each do |template_dir, files|
-          template_sets << TemplateSet.new(template_dir: template_dir, file_whitelist: files, logger: logger)
+          template_sets << TemplateSet.new(template_dir: template_dir, file_whitelist: files, logger: logger,
+            render_erb: render_erb)
         end
         TemplateSets.new(template_sets: template_sets)
       end
     end
 
-    def with_resource_definitions_and_filename(render_erb: false, current_sha: nil, bindings: nil, raw: false)
+    def with_resource_definitions_and_filename(current_sha: nil, bindings: nil, raw: false)
       with_delayed_exceptions(@template_sets, Krane::InvalidTemplateError) do |template_set|
         template_set.with_resource_definitions_and_filename(
-          render_erb: render_erb,
           current_sha: current_sha,
           bindings: bindings,
           raw: raw
@@ -122,9 +139,8 @@ module Krane
       end
     end
 
-    def with_resource_definitions(render_erb: false, current_sha: nil, bindings: nil, raw: false)
-      with_resource_definitions_and_filename(render_erb: render_erb,
-        current_sha: current_sha, bindings: bindings, raw: raw) do |r_def, _|
+    def with_resource_definitions(current_sha: nil, bindings: nil, raw: false)
+      with_resource_definitions_and_filename(current_sha: current_sha, bindings: bindings, raw: raw) do |r_def, _|
         yield r_def
       end
     end

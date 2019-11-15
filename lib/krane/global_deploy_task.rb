@@ -38,7 +38,7 @@ module Krane
 
       @task_config = TaskConfig.new(context, nil, logger)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths,
-        logger: @task_config.logger)
+        logger: @task_config.logger, render_erb: false)
       @global_timeout = global_timeout
       @selector = selector
     end

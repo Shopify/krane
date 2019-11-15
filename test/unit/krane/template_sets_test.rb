@@ -16,7 +16,8 @@ class TemplateSetsTest < Krane::TestCase
     Dir.mktmpdir("empty_dir") do |dir|
       template_sets = template_sets_from_paths(dir)
       expected = [
-        "Template directory #{dir} does not contain any valid templates",
+        "Template directory #{dir} does not contain any valid templates " \
+          "(supported suffixes: .yml.erb, .yml, .yaml, .yaml.erb, or secrets.ejson)",
       ]
       assert_equal(template_sets.validate, expected)
     end
@@ -28,6 +29,17 @@ class TemplateSetsTest < Krane::TestCase
     expected = [
       "File #{bad_filepath} does not have valid suffix (supported suffixes: " \
         ".yml.erb, .yml, .yaml, .yaml.erb, or secrets.ejson)",
+    ]
+    assert_equal(template_sets.validate, expected)
+  end
+
+  def test_template_sets_with_erb_files_are_considered_invalid_when_render_erb_is_false
+    bad_filepath = File.join(fixture_path("for_unit_tests"), "partials_test.yaml.erb")
+    template_sets = template_sets_from_paths(bad_filepath, render_erb: false)
+    expected = [
+      "ERB template discovered with rendering disabled. If you were trying to render ERB and " \
+        "deploy the result, try piping the output of `krane render` to `krane-deploy` with the --stdin flag",
+      "File #{bad_filepath} does not have valid suffix (supported suffixes: .yml, .yaml, or secrets.ejson)",
     ]
     assert_equal(template_sets.validate, expected)
   end
@@ -57,8 +69,7 @@ class TemplateSetsTest < Krane::TestCase
     template_sets = template_sets_from_paths(*paths)
 
     file_names = []
-    template_sets.with_resource_definitions_and_filename(render_erb: true,
-     bindings: { data: "1" }) do |rendered_content, filename|
+    template_sets.with_resource_definitions_and_filename(bindings: { data: "1" }) do |rendered_content, filename|
       file_names << filename
       refute_empty rendered_content
     end
@@ -66,8 +77,7 @@ class TemplateSetsTest < Krane::TestCase
 
     file_names = []
     assert_raises(Krane::InvalidTemplateError) do
-      template_sets.with_resource_definitions_and_filename(render_erb: true,
-       bindings: {}) do |rendered_content, filename|
+      template_sets.with_resource_definitions_and_filename(bindings: {}) do |rendered_content, filename|
         file_names << filename
         refute_empty rendered_content
       end
@@ -77,10 +87,11 @@ class TemplateSetsTest < Krane::TestCase
 
   private
 
-  def template_sets_from_paths(*paths)
+  def template_sets_from_paths(*paths, render_erb: true)
     Krane::TemplateSets.from_dirs_and_files(
       paths: paths,
-      logger: logger
+      logger: logger,
+      render_erb: render_erb
     )
   end
 end

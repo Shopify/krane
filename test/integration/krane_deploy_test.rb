@@ -239,7 +239,7 @@ class KraneDeployTest < Krane::IntegrationTest
     resource_kind = "ReplicationController"
     resource_name = "test-rc"
 
-    result = deploy_fixtures("unrecognized-type")
+    result = deploy_fixtures("unrecognized-type", render_erb: true)
     assert_deploy_success(result)
 
     # This will raise an exception if the resource is missing
@@ -563,7 +563,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_long_running_deployment
     2.times do |n|
-      assert_deploy_success(deploy_fixtures('long-running', sha: "deploy#{n}"))
+      assert_deploy_success(deploy_fixtures('long-running', sha: "deploy#{n}", render_erb: true))
       assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
     end
 
@@ -950,7 +950,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_deploy_successful_with_both_filename_and_template_dir
     filepath = File.join(fixture_path("hello-cloud"), "service-account.yml")
-    result = deploy_dirs(filepath, fixture_path("cronjobs"))
+    result = deploy_dirs(filepath, fixture_path("cronjobs"), render_erb: true)
     assert_deploy_success(result)
     assert_logs_match_all([
       "Successfully deployed 2 resources",
@@ -1291,7 +1291,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_cronjobs_can_be_deployed
-    assert_deploy_success(deploy_fixtures("cronjobs"))
+    assert_deploy_success(deploy_fixtures("cronjobs", render_erb: true))
     cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
     cronjobs.assert_cronjob_present("my-cronjob")
   end
@@ -1434,7 +1434,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_apply_failure_with_sensitive_resources_not_leak_sensitive_content
-    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "secret.yml"]) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb", "secret.yml"], render_erb: true) do |fixtures|
       svc = fixtures["web.yml.erb"]["Service"].first
       svc["spec"]["ports"].first["targetPort"] = "http_test_is_really_long_and_invalid_chars"
     end
@@ -1538,10 +1538,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_fail_erb_templates_if_rendering_is_disabled
     result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb"], render_erb: false)
-    # Expect that deploy will fail due to the ERB tags in this template
     assert_deploy_failure(result)
     assert_logs_match_all([
-      'Name: "unmanaged-pod-1-<%= deployment_id %>"',
+      'Configuration invalid',
+      'does not contain any valid templates (supported suffixes: .yml, .yaml, or secrets.ejson)',
     ], in_order: true)
   end
 
