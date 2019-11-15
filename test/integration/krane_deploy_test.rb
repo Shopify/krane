@@ -251,36 +251,6 @@ class KraneDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
-  def test_missing_partial_correctly_identifies_invalid_template
-    assert_deploy_failure(deploy_raw_fixtures("missing-partials",
-      subset: ["parent-with-missing-child.yml.erb"]))
-
-    assert_logs_match_all([
-      "Result: FAILURE",
-      "Failed to render and parse template",
-      "Invalid template: parent-with-missing-child.yml.erb", # the thing with the invalid `partial` call in it
-      "> Error message:",
-      %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
-      "> Template content:",
-      "<%= partial 'does-not-exist' %>",
-    ], in_order: true)
-  end
-
-  def test_missing_nested_partial_correctly_identifies_invalid_template_and_its_parents
-    assert_deploy_failure(deploy_raw_fixtures("missing-partials",
-      subset: ["parent-with-missing-grandchild.yml.erb"]))
-
-    assert_logs_match_all([
-      "Result: FAILURE",
-      "Failed to render and parse template",
-      "Invalid template: parent-with-missing-child (partial included from: parent-with-missing-grandchild.yml.erb)",
-      "> Error message:",
-      %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
-      "> Template content:",
-      "<%= partial 'does-not-exist' %>",
-    ], in_order: true)
-  end
-
   def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast_and_prints_template
     result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
       configmap = fixtures["configmap-data.yml"]["ConfigMap"].first
@@ -297,15 +267,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "> Template content:",
       "      myKey: uhOh",
     ], in_order: true)
-  end
-
-  def test_dynamic_erb_collection_works
-    assert_deploy_success(deploy_raw_fixtures("collection-with-erb",
-      bindings: { binding_test_a: 'foo', binding_test_b: 'bar' }))
-
-    deployments = v1beta1_kubeclient.get_deployments(namespace: @namespace)
-    assert_equal(3, deployments.size)
-    assert_equal(["web-one", "web-three", "web-two"], deployments.map { |d| d.metadata.name }.sort)
   end
 
   # The next three tests reproduce a k8s bug
@@ -438,7 +399,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result)
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      %r{Pod\/unmanaged-pod-1-\w+-\w+: FAILED},
+      %r{Pod\/unmanaged-pod-1[-\w]+: FAILED},
       "The following containers encountered errors:",
       "hello-cloud: Failed to pull image hello-world:thisImageIsBad",
     ])
@@ -701,7 +662,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Hello from the second command runner!", # logs from successful pod printed before summary
       "Result: FAILURE",
       "Failed to deploy 1 priority resource",
-      %r{Pod\/unmanaged-pod-1-\w+-\w+: FAILED},
+      %r{Pod\/unmanaged-pod-1[-\w]+: FAILED},
       "Logs from container 'hello-cloud'",
       "sh: /some/bad/path: not found", # logs from failed pod printed in summary
     ], in_order: true)
@@ -818,55 +779,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       pod.status.conditions.any? { |condition| condition["type"] == "Ready" && condition["status"] == "True" }
     end
     assert_equal(1, new_ready_pods.length, "Expected exactly one new pod to be ready, saw #{new_ready_pods.length}")
-  end
-
-  def test_deploy_successful_with_multiple_template_paths
-    result = deploy_dirs(fixture_path("test-partials"), fixture_path("cronjobs"),
-      bindings: { 'supports_partials' => 'yep' })
-    assert_deploy_success(result)
-
-    assert_logs_match_all([
-      %r{ConfigMap/config-for-pod1\s+Available},
-      %r{ConfigMap/config-for-pod2\s+Available},
-      %r{ConfigMap/independent-configmap\s+Available},
-      %r{CronJob/my-cronjob\s+Exists},
-      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Pod/pod1\s+Succeeded},
-      %r{Pod/pod2\s+Succeeded},
-    ])
-  end
-
-  def test_deploy_successful_with_multiple_template_paths_multiple_partials
-    result = deploy_dirs(fixture_path("test-partials"), fixture_path("test-partials2"),
-      bindings: { 'supports_partials' => 'yep' })
-    assert_deploy_success(result)
-
-    assert_logs_match_all([
-      %r{ConfigMap/config-for-pod1\s+Available},
-      %r{ConfigMap/config-for-pod2\s+Available},
-      %r{ConfigMap/independent-configmap\s+Available},
-      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Deployment/web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Pod/pod1\s+Succeeded},
-      %r{Pod/pod2\s+Succeeded},
-    ])
-  end
-
-  def test_deploy_successful_partials_with_filename_args
-    partial_file_1 = File.join(fixture_path("test-partials"), "deployment.yaml.erb")
-    partial_file_2 = File.join(fixture_path("test-partials2"), "deployment.yml.erb")
-    result = deploy_dirs(partial_file_1, partial_file_2, bindings: { 'supports_partials' => 'yep' })
-    assert_deploy_success(result)
-
-    assert_logs_match_all([
-      %r{ConfigMap/config-for-pod1\s+Available},
-      %r{ConfigMap/config-for-pod2\s+Available},
-      %r{ConfigMap/independent-configmap\s+Available},
-      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Deployment/web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Pod/pod1\s+Succeeded},
-      %r{Pod/pod2\s+Succeeded},
-    ])
   end
 
   def test_ejson_secrets_are_created_from_multiple_template_paths
@@ -1171,21 +1083,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: %w(role.yml)))
   end
 
-  def test_partials
-    assert_deploy_success(deploy_raw_fixtures("test-partials", bindings: { 'supports_partials' => 'true' }))
-    assert_logs_match_all([
-      "log from pod1",
-      "log from pod2",
-      "Successfully deployed 6 resources",
-    ], in_order: false)
-
-    map = kubeclient.get_config_map('config-for-pod1', @namespace).data
-    assert_equal('true', map['supports_partials'])
-
-    map = kubeclient.get_config_map('independent-configmap', @namespace).data
-    assert_equal('renderer test', map['value'])
-  end
-
   def test_roll_back_a_bad_deploy
     result = deploy_fixtures("invalid", subset: ["cannot_run.yml"], sha: "REVA") do |fixtures|
       container = fixtures["cannot_run.yml"]["Deployment"].first["spec"]["template"]["spec"]["containers"].first
@@ -1401,18 +1298,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     refute_logs_match("YWRtaW4=")
   end
 
-  def test_render_failure_on_sensitive_resource_does_not_print_template
-    assert_deploy_failure(deploy_fixtures("invalid-resources", subset: %w(bad_binding_secret.yml.erb)))
-    assert_logs_match_all([
-      "Failed to render and parse template",
-      "Invalid template: bad_binding_secret.yml.erb",
-      "undefined local variable or method",
-      "Template content: Suppressed because it may contain a Secret",
-    ], in_order: true)
-    refute_logs_match("password")
-    refute_logs_match("YWRtaW4=")
-  end
-
   def test_missing_name_on_secret_does_not_print_template_at_all
     result = deploy_fixtures("hello-cloud", subset: %w(secret.yml)) do |fixtures|
       secret = fixtures["secret.yml"]["Secret"].first
@@ -1574,15 +1459,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Failed to deploy 1 priority resource",
       "PersistentVolumeClaim/with-storage-class: TIMED OUT (timeout: 10s)",
       "PVC specified a StorageClass of #{storage_class_name} but the resource does not exist",
-    ], in_order: true)
-  end
-
-  def test_fail_erb_templates_if_rendering_is_disabled
-    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod-1.yml.erb"])
-    # Expect that deploy will fail due to the ERB tags in this template
-    assert_deploy_failure(result)
-    assert_logs_match_all([
-      'Name: "unmanaged-pod-1-<%= deployment_id %>"',
     ], in_order: true)
   end
 
