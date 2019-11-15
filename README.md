@@ -1,8 +1,7 @@
 # krane [![Build status](https://badge.buildkite.com/61937e40a1fc69754d9d198be120543d6de310de2ba8d3cb0e.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy) [![codecov](https://codecov.io/gh/Shopify/kubernetes-deploy/branch/master/graph/badge.svg)](https://codecov.io/gh/Shopify/kubernetes-deploy)
 
-This project used to be called `kubernetes-deploy`, If you're curious about the rename to `krane` check [this issue](https://github.com/Shopify/kubernetes-deploy/issues/30#issuecomment-468750341) and [this issue](https://github.com/Shopify/kubernetes-deploy/issues?q=is%3Aissue+is%3Aopen+label%3A%22%3Arocket%3A+1.0+requirement%22) for context.
+This project used to be called `kubernetes-deploy`. Checkout our [migration guide](https://github.com/Shopify/kubernetes-deploy/blob/master/1.0-Upgrade.md) for more information including details about breaking changes.
 
-Check the [migration guide](https://github.com/Shopify/kubernetes-deploy/blob/master/1.0-Upgrade.md) to learn more about the changes related to the `kubernetes-deploy` to `krane`
 
 `krane` is a command line tool that helps you ship changes to a Kubernetes namespace and understand the result. At Shopify, we use it within our much-beloved, open-source [Shipit](https://github.com/Shopify/shipit-engine#kubernetes) deployment app.
 
@@ -37,7 +36,7 @@ This repo also includes related tools for [running tasks](#krane run) and [resta
 
 ## Table of contents
 
-**KRANE**
+**KRANE DEPLOY**
 * [Prerequisites](#prerequisites)
 * [Installation](#installation)
 * [Usage](#usage)
@@ -105,10 +104,7 @@ official compatibility chart below.
 
 *Environment variables:*
 
-- `$REVISION`: the SHA of the commit you are deploying. Will be exposed to your ERB templates as `current_sha`.
 - `$KUBECONFIG`: points to one or multiple valid kubeconfig files that include the context you want to deploy to. File names are separated by colon for Linux and Mac, and semi-colon for Windows. If ommitted, will use the Kubernetes default of `~/.kube/config`.
-- `$TASK_ID`: used as the ID of the deployment for resource naming.
-- `$ENVIRONMENT`: used to set the deploy directory to `config/deploy/$ENVIRONMENT`. You can use the `--template-dir=DIR` option instead if you prefer (**one or the other is required**).
 - `$GOOGLE_APPLICATION_CREDENTIALS`: points to the credentials for an authenticated service account (required if your kubeconfig `user`'s auth provider is GCP)
 
 
@@ -116,13 +112,17 @@ official compatibility chart below.
 
 Refer to `krane help` for the authoritative set of options.
 
-- `--template-dir=DIR`: Used to set the deploy directory. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`. Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx --template-dir=-`.
-- (alpha feature) `-f [PATHS]`: Accepts a comma-separated list of directories and/or filenames to specify the set of directories/files that will be deployed (use `-` to read from STDIN). Can be invoked multiple times. Cannot be combined with `--template-dir`. Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f -,path/to/dir,path/to/file.yml`
-- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane deploy my-app cluster1 --render-erb --bindings=color=blue,size=large` will expose `color` and `size`.
+
+- `-f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
+- `--stdin`: Read from STDIN. Can be combined with `-f` Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f path/to/dir path/to/file.yml --stdin`
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
-- `--max-watch-seconds=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
+- `--global-timeout=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
 resource to deploy.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
+- `--no-verify-result`: Skip verification that workloads correctly restarted.
+- `--protected-namespaces=default kube-system kube-public`: Fail validation if a deploy is targeted at a protected namespace.
+- `--verbose-log-prefix`: Add [context][namespace] to the log prefix
+
 
 > **NOTICE**: Deploy Secret resources at your own risk. Although we will fix any reported leak vectors with urgency, we cannot guarantee that sensitive information will never be logged.
 
@@ -138,102 +138,7 @@ If you need to share a namespace with resources which are managed by other tools
 
 Each app's templates are expected to be stored in a single directory. If this is not the case, you can create a directory containing symlinks to the templates. The recommended location for app's deploy directory is `{app root}/config/deploy/{env}`, but this is completely configurable.
 
-All templates must be YAML formatted. You can also use ERB. The following local variables will be available to your ERB templates by default:
-
-* `current_sha`: The value of `$REVISION`
-* `deployment_id`: The value of `$TASK_ID`, or in its absence, a randomly generated identifier for the deploy. Useful for creating unique names for task-runner pods (e.g. a pod that runs rails migrations at the beginning of deploys).
-
-You can add additional variables using the `--bindings=BINDINGS` option which can be formated as comma separated string, JSON string or path to a JSON or YAML file. Complex JSON or YAML data will be converted to a Hash for use in templates. To load a file the argument should include the relative file path prefixed with an `@` sign. An argument error will be raised if the string argument cannot be parsed, the referenced file does not include a valid extension (`.json`, `.yaml` or `.yml`) or the referenced file does not exist.
-
-#### Bindings examples
-
-```
-# Comma separated string. Exposes, 'color' and 'size'
-$ krane deploy my-app cluster1 --render-erb --bindings=color=blue,size=large
-
-# JSON string. Exposes, 'color' and 'size'
-$ krane deploy my-app cluster1 --render-erb --bindings='{"color":"blue","size":"large"}'
-
-# Load JSON file from ./config
-$ krane deploy my-app cluster1 --render-erb --bindings='@config/production.json'
-
-# Load YAML file from ./config (.yaml or .yml supported)
-$ krane deploy my-app cluster1 --render-erb --bindings='@config/production.yaml'
-```
-
-
-#### Using partials
-
-`krane` supports composing templates from so called partials in order to reduce duplication in Kubernetes YAML files. Given a template directory `DIR`, partials are searched for in `DIR/partials`and in 'DIR/../partials', in that order. They can be embedded in other ERB templates using the helper method `partial`. For example, let's assume an application needs a number of different CronJob resources, one could place a template called `cron` in one of those directories and then use it in the main deployment.yaml.erb like so:
-
-```yaml
-<%= partial "cron", name: "cleanup",   schedule: "0 0 * * *", args: %w(cleanup),    cpu: "100m", memory: "100Mi" %>
-<%= partial "cron", name: "send-mail", schedule: "0 0 * * *", args: %w(send-mails), cpu: "200m", memory: "256Mi" %>
-```
-
-Inside a partial, parameters can be accessed as normal variables, or via a hash called `locals`. Thus, the `cron` template could like this:
-
-```yaml
----
-apiVersion: batch/v1beta1
-kind: CronJob
-metadata:
-  name: cron-<%= name %>
-spec:
-  schedule: <%= schedule %>
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
-  concurrencyPolicy: Forbid
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-          - name: cron-<%= name %>
-            image: ...
-            args: <%= args %>
-            resources:
-              requests:
-                cpu: "<%= cpu %>"
-                memory: <%= memory %>
-          restartPolicy: OnFailure
-```
-
-Both `.yaml.erb` and `.yml.erb` file extensions are supported. Templates must refer to the bare filename (e.g. use `partial: 'cron'` to reference `cron.yaml.erb`).
-
-##### Limitations when using partials
-
-Partials can be included almost everywhere in ERB templates. Note: when using a partial to insert additional key-value pairs to a map you must use [YAML merge keys](http://yaml.org/type/merge.html). For example, given a partial `p` defining two fields 'a' and 'b',
-
-```yaml
-a: 1
-b: 2
-```
-
-you cannot do this:
-
-```yaml
-x: yz
-<%= partial 'p' %>
-```
-
-hoping to get
-
-```yaml
-x: yz
-a: 1
-b: 2
-```
-
-but you can do:
-
-```yaml
-<<: <%= partial 'p' %>
-x: yz
-```
-
-This is a limitation of the current implementation.
-
+All templates must be YAML formatted.
 
 ### Customizing behaviour with annotations
 - `krane.shopify.io/timeout-override`: Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours.
@@ -250,15 +155,12 @@ before the deployment is considered successful.
   that use the `RollingUpdate` strategy.
   - Percent (e.g. 90%): The deploy is successful when the number of new pods that are ready is equal to
   `spec.replicas` * Percent.
-- `krane.shopify.io/prunable`: Allows a Custom Resource to be pruned during deployment.
-  - _Compatibility_: Custom Resource Definition
-  - `true`: The custom resource will be pruned if the resource is not in the deploy directory.
-  - All other values: The custom resource will not be pruned.
 - `krane.shopify.io/predeployed`: Causes a Custom Resource to be deployed in the pre-deploy phase.
   - _Compatibility_: Custom Resource Definition
   - _Default_: `true`
   - `true`: The custom resource will be deployed in the pre-deploy phase.
   - All other values: The custom resource will be deployed in the main deployment phase.
+
 
 ### Running tasks at the beginning of a deploy
 
@@ -336,9 +238,6 @@ Since their data is only base64 encoded, Kubernetes secrets should not be commit
 ### Deploying custom resources
 
 By default, krane does not check the status of custom resources; it simply assumes that they deployed successfully. In order to meaningfully monitor the rollout of custom resources, krane supports configuring pass/fail conditions using annotations on CustomResourceDefinitions (CRDs).
-
->Note:
-This feature is only available on clusters running Kubernetes 1.11+ since it relies on the `metadata.generation` field being updated when custom resource specs are changed.
 
 *Requirements:*
 
@@ -428,7 +327,7 @@ status:
 Let's walk through what happens when you run the `deploy` task with [this directory of templates](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud). You can see this for yourself by running the following command:
 
 ```bash
-krane deploy my-namespace my-k8s-cluster -f test/fixtures/hello-cloud --render-erb
+krane render -f test/fixtures/hello-cloud --current-sha 1| krane deploy my-namespace my-k8s-cluster  --stdin
 ```
 
 As soon as you run this, you'll start seeing some output being streamed to STDERR.
@@ -439,7 +338,6 @@ In this phase, we:
 
 - Perform basic validation to ensure we can proceed with the deploy. This includes checking if we can reach the context, if the context is valid, if the namespace exists within the context, and more. We try to validate as much as we can before trying to ship something because we want to avoid having an incomplete deploy in case of a failure (this is especially important because there's no rollback support).
 - List out all the resources we want to deploy (as described in the template files we used).
-- Render ERB templates and apply partials, if enabled (which is the case for this example). If enabled, we also perform basic validation on the parsed templates.
 
 #### Phase 2: Checking initial resource statuses
 
@@ -491,7 +389,7 @@ In this phase, we:
 
 Just like in the previous phase, we essentially run `kubectl apply` on those templates and periodically check the cluster for the current status of each resource so we can display error or success information.
 
-If pruning is enabled (which, again, is the default), any [resource which type is listed in `DeployTask.prune_whitelist`](https://github.com/Shopify/kubernetes-deploy/blob/ac42ad7c8c4f6f6b27e706d6642ebe002ca1f683/lib/kubernetes-deploy/deploy_task.rb#L80-L104) that we can find in the namespace but not in the templates will be removed. A particular message about pruning will be printed in the next phase if any resource matches this criteria.
+If pruning is enabled (which, again, is the default), any [kind not listed in the blacklist](https://github.com/Shopify/kubernetes-deploy/blob/master/lib/krane/cluster_resource_discovery.rb#L20) that we can find in the namespace but not in the templates will be removed. A particular message about pruning will be printed in the next phase if any resource matches this criteria.
 
 #### Result
 
@@ -534,15 +432,17 @@ $ krane global-deploy my-k8s-context -f my-template.yml --selector app=krane
 
 Refer to `krane global-deploy help` for the authoritative set of options.
 
-- `-f [PATHS]`: Accepts a comma-separated list of directories and/or filenames to specify the set of directories/files that will be deployed (use `-` to read from STDIN). Can be invoked multiple times. Cannot be combined with `--template-dir`. Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f -,path/to/dir,path/to/file.yml`
+- `-f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
+- `--stdin`: Read from STDIN. Can be combined with `-f`
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
+- `--global-timeout=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
+resource to deploy.
+- `--no-verify-result`: Skip verification that workloads correctly restarted.
 
 # krane restart
 
 `krane restart` is a tool for restarting all of the pods in one or more deployments. It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec. The rollout strategy defined for each deployment will be respected by the restart.
-
-
 
 ## Usage
 
@@ -550,7 +450,7 @@ Refer to `krane global-deploy help` for the authoritative set of options.
 
 The following command will restart all pods in the `web` and `jobs` deployments:
 
-`krane restart <kube namespace> <kube context> --deployments=web,jobs`
+`krane restart <kube namespace> <kube context> --deployments=web jobs`
 
 
 **Option 2: Annotate the deployments you want to restart**
@@ -576,6 +476,9 @@ Refer to `krane restart --help` for the authoritative set of options.
 
 - `--selector`: Only restarts Deployments which match the specified Kubernetes resource selector.
 - `--deployments`: Restart specific Deployment resources by name.
+- `--global-timeout=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
+resource to deploy.
+- `--no-verify-result`: Skip verification that workloads correctly restarted.
 
 # krane run
 
@@ -599,11 +502,11 @@ Based on this specification `krane run` will create a new pod with the entrypoin
 *Options:*
 
 * `--template=TEMPLATE`:  Specifies the name of the PodTemplate to use (default is `task-runner-template` if this option is not set).
-* `--env-vars=ENV_VARS`: Accepts a comma separated list of environment variables to be added to the pod template. For example, `--env-vars="ENV=VAL,ENV2=VAL2"` will make `ENV` and `ENV2` available to the container.
-* `--entrypoint=ENTRYPOINT`: Specify the entrypoint to use to start the task runner container.
-* `--skip-wait`: Skip verification of pod success
-* `--max-watch-seconds=seconds`: Raise a timeout error if the pod runs for longer than the specified number of seconds
-
+* `--env-vars=ENV_VARS`: Accepts a list of environment variables to be added to the pod template. For example, `--env-vars="ENV=VAL ENV2=VAL2"` will make `ENV` and `ENV2` available to the container.
+* `--command=`: Override the default command in the container image.
+* `--no-verify-result`: Skip verification of pod success
+* `--global-timeout=seconds`: Raise a timeout error if the pod runs for longer than the specified number of seconds
+* `--arguments:`: Override the default arguments for the command with a space-separated list of arguments
 
 
 # krane render
@@ -621,26 +524,119 @@ Based on this specification `krane run` will create a new pod with the entrypoin
 To render all templates in your template dir, run:
 
 ```
-krane render --template-dir=./path/to/template/dir
+krane render --f ./path/to/template/dir
 ```
 
 To render some templates in a template dir, run krane render with the names of the templates to render:
 
 ```
-krane render --template-dir=./path/to/template/dir this-template.yaml.erb that-template.yaml.erb
+krane render -f ./path/to/template/dir/this-template.yaml.erb that-template.yaml.erb
 ```
 
 To render a template in a template dir and output it to a file, run krane render with the name of the template and redirect the output to a file:
 
 ```
-krane render --template-dir=./path/to/template/dir template.yaml.erb > template.yaml
+krane render --f./path/to/template/dir/template.yaml.erb > template.yaml
 ```
 
 *Options:*
 
-- `--template-dir=DIR`: Used to set the directory to interpret template names relative to. This is often the same directory passed as `--template-dir` when running `krane` to actually deploy templates. Set `$ENVIRONMENT` instead to use `config/deploy/$ENVIRONMENT`. This flag also supports reading from STDIN. You can do this by using `--template-dir=-`.
-- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane render --bindings=color=blue,size=large some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
+- `-f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
+- `--stdin`: Read from STDIN. Can be combined with `-f` Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f path/to/dir path/to/file.yml --stdin`
+- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane render --bindings=color=blue size=large some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
+- `--current-sha`: Expose SHA `current_sha` in ERB bindings
 
+You can add additional variables using the `--bindings=BINDINGS` option which can be formated as a string, JSON string or path to a JS
+ON or YAML file. Complex JSON or YAML data will be converted to a Hash for use in templates. To load a file the argument should include the relative
+file path prefixed with an `@` sign. An argument error will be raised if the string argument cannot be parsed, the referenced file does not include a
+ valid extension (`.json`, `.yaml` or `.yml`) or the referenced file does not exist.
+
+#### Bindings examples
+
+```
+# Comma separated string. Exposes, 'color' and 'size'
+$ krane render --bindings=color=blue size=large
+
+# JSON string. Exposes, 'color' and 'size'
+$ krane render --bindings='{"color":"blue","size":"large"}'
+
+# Load JSON file from ./config
+$ krane render --bindings='@config/production.json'
+
+# Load YAML file from ./config (.yaml or yml supported)
+$ krane render --bindings='@config/production.yaml'
+```
+
+#### Using partials
+
+`krane` supports composing templates from so called partials in order to reduce duplication in Kubernetes YAML files. Given a template directory `DIR`, partials are searched for in `DIR/partials`and in 'DIR/../partials', in that order. They can be embedded in other ERB templates using the helper method `partial`. For example, let's assume an application needs a number of different CronJob resources, one could place a template called `cron` in one of those directories and then use it in the main deployment.yaml.erb like so:
+
+```yaml
+<%= partial "cron", name: "cleanup",   schedule: "0 0 * * *", args: %w(cleanup),    cpu: "100m", memory: "100Mi" %>
+<%= partial "cron", name: "send-mail", schedule: "0 0 * * *", args: %w(send-mails), cpu: "200m", memory: "256Mi" %>
+```
+
+Inside a partial, parameters can be accessed as normal variables, or via a hash called `locals`. Thus, the `cron` template could like this:
+
+```yaml
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: cron-<%= name %>
+spec:
+  schedule: <%= schedule %>
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 3
+    concurrencyPolicy: Forbid
+    jobTemplate:
+      spec:
+        template:
+          spec:
+            containers:
+            - name: cron-<%= name %>
+              image: ...
+              args: <%= args %>
+              resources:
+                requests:
+                  cpu: "<%= cpu %>"
+                  memory: <%= memory %>
+            restartPolicy: OnFailure
+```
+
+Both `.yaml.erb` and `.yml.erb` file extensions are supported. Templates must refer to the bare filename (e.g. use `partial: 'cron'` to reference `cron.yaml.erb`).
+
+##### Limitations when using partials
+
+Partials can be included almost everywhere in ERB templates. Note: when using a partial to insert additional key-value pairs to a map you must use [YAML merge keys](http://yaml.org/type/merge.html). For example, given a partial `p` defining two fields 'a' and 'b',
+
+```yaml
+a: 1
+b: 2
+```
+
+you cannot do this:
+
+```yaml
+x: yz
+<%= partial 'p' %>
+```
+
+hoping to get
+
+```yaml
+x: yz
+a: 1
+b: 2
+
+but you can do:
+
+```yaml
+<<: <%= partial 'p' %>
+x: yz
+```
+
+This is a limitation of the current implementation.
 
 # Contributing
 
