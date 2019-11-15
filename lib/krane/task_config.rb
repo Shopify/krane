@@ -15,7 +15,7 @@ module Krane
     def global_kinds
       @global_kinds ||= begin
         cluster_resource_discoverer = ClusterResourceDiscovery.new(task_config: self)
-        cluster_resource_discoverer.global_resource_kinds
+        cluster_resource_discoverer.fetch_resources(namespaced: false).map { |g| g["kind"] }
       end
     end
   end

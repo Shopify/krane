@@ -4,16 +4,6 @@ require 'test_helper'
 class HorizontalPodAutoscalerTest < Krane::TestCase
   include ResourceCacheTestHelper
 
-  # We can't get integration coverage for HPA right now because the metrics server just isn't reliable enough on our CI
-  def test_hpa_is_whitelisted_for_pruning
-    Krane::Kubectl.any_instance.expects("run")
-      .with("get", "CustomResourceDefinition", output: "json", attempts: 5, use_namespace: false)
-      .returns(['{ "items": [] }', "", SystemExit.new(0)])
-    task = Krane::DeployTask.new(namespace: 'test', context: KubeclientHelper::TEST_CONTEXT,
-      current_sha: 'foo', template_paths: [''], logger: logger)
-    assert(task.prune_whitelist.one? { |whitelisted_type| whitelisted_type.include?("HorizontalPodAutoscaler") })
-  end
-
   def test_hpa_succeeds_when_scaling_is_active
     conditions = [{
       "lastTransitionTime" => 5.seconds.ago,
