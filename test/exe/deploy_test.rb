@@ -16,16 +16,6 @@ class DeployTest < Krane::TestCase
     krane_deploy!(flags: '--global-timeout 1h')
   end
 
-  def test_deploy_parses_std_in
-    set_krane_deploy_expectations(new_args: { template_paths: ['/my/file/path', '-'] })
-    krane_deploy!(flags: '-f /my/file/path --std-in')
-  end
-
-  def test_deploy_parses_std_in_without_filenames
-    set_krane_deploy_expectations(new_args: { template_paths: ['-'] })
-    krane_deploy!(flags: '--std-in')
-  end
-
   def test_deploy_parses_selector
     selector = Krane::LabelSelector.new('name' => 'web')
     Krane::LabelSelector.expects(:parse).returns(selector)
@@ -72,6 +62,15 @@ class DeployTest < Krane::TestCase
     krane_deploy!(flags: "--protected-namespaces=''")
   end
 
+  def test_deploy_parses_std_in_without_filenames
+    Dir.mktmpdir do |tmp_path|
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
+      set_krane_deploy_expectations(new_args: { template_paths: [tmp_path] })
+      krane_deploy!(flags: '--std-in')
+    end
+  end
+
   def test_deploy_passes_filename
     set_krane_deploy_expectations(new_args: { template_paths: ['/my/file/path'] })
     krane_deploy!(flags: '-f /my/file/path')
@@ -79,12 +78,21 @@ class DeployTest < Krane::TestCase
     krane_deploy!(flags: '--filenames /my/other/file/path')
   end
 
-  def test_deploy_fails_without_filename
+  def test_deploy_parses_std_in
+    Dir.mktmpdir do |tmp_path|
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
+      set_krane_deploy_expectations(new_args: { template_paths: ['/my/file/path', tmp_path] })
+      krane_deploy!(flags: '-f /my/file/path --std-in')
+    end
+  end
+
+  def test_deploy_fails_without_filename_and_std_in
     krane = Krane::CLI::Krane.new(
       [deploy_task_config.namespace, deploy_task_config.context],
       []
     )
-    assert_raises_message(Thor::RequiredArgumentMissingError, "No value provided for required options '--filenames'") do
+    assert_raises_message(Thor::RequiredArgumentMissingError, "Must provied a value for --filenames or --std-in") do
       krane.invoke("deploy")
     end
   end
@@ -106,7 +114,7 @@ class DeployTest < Krane::TestCase
   end
 
   def krane_deploy!(flags: '')
-    flags += ' -f /tmp' unless flags.include?('-f')
+    flags += ' -f /tmp' unless flags.include?('-f') || flags.include?("--std-in")
     krane = Krane::CLI::Krane.new(
       [deploy_task_config.namespace, deploy_task_config.context],
       flags.split

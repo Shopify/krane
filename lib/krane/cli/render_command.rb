@@ -6,8 +6,8 @@ module Krane
       OPTIONS = {
         bindings: { type: :array, banner: "foo=bar abc=def", desc: 'Bindings for erb' },
         filenames: { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
-                     required: true, aliases: 'f', desc: 'Directories and files to render' },
-        'std-in': { type: :boolean, desc: 'Have directories and files to render from stdin', default: false },
+                     required: false, default: [], aliases: 'f', desc: 'Directories and files to render' },
+        'std-in': { type: :boolean, desc: "Read resources from stdin", default: false },
         'current-sha': { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings" },
       }
 
@@ -20,6 +20,10 @@ module Krane
         options[:bindings]&.each { |b| bindings_parser.add(b) }
 
         options[:filenames] << "-" if options['std-in']
+        if options[:filenames].empty?
+          raise Thor::RequiredArgumentMissingError, 'Must provied a value for --filenames or --std-in'
+        end
+
         ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames]) do |paths|
           runner = ::Krane::RenderTask.new(
             current_sha: options['current-sha'],

@@ -23,11 +23,36 @@ class GlobalDeployTest < Krane::TestCase
     krane_global_deploy!(flags: '--verify-result false')
   end
 
+  def test_deploy_parses_std_in_without_filenames
+    Dir.mktmpdir do |tmp_path|
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
+      set_krane_global_deploy_expectations!(new_args: { filenames: [tmp_path] })
+      krane_global_deploy!(flags: '--std-in')
+    end
+  end
+
   def test_deploy_passes_filename
     set_krane_global_deploy_expectations!(new_args: { filenames: ['/my/file/path'] })
     krane_global_deploy!(flags: '-f /my/file/path')
     set_krane_global_deploy_expectations!(new_args: { filenames: %w(/my/other/file/path just/a/file.yml) })
     krane_global_deploy!(flags: '--filenames /my/other/file/path just/a/file.yml')
+  end
+
+  def test_deploy_parses_std_in
+    Dir.mktmpdir do |tmp_path|
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
+      set_krane_global_deploy_expectations!(new_args: { filenames: ['/my/file/path', tmp_path] })
+      krane_global_deploy!(flags: '-f /my/file/path --std-in')
+    end
+  end
+
+  def test_deploy_fails_without_filename_and_std_in
+    krane = Krane::CLI::Krane.new([task_config.context], %w(--selector app=krane))
+    assert_raises_message(Thor::RequiredArgumentMissingError, "Must provied a value for --filenames or --std-in") do
+      krane.invoke("global_deploy")
+    end
   end
 
   def test_deploy_parses_selector
@@ -54,7 +79,7 @@ class GlobalDeployTest < Krane::TestCase
   end
 
   def krane_global_deploy!(flags: '')
-    flags += ' -f /tmp' unless flags.include?('-f')
+    flags += ' -f /tmp' unless flags.include?('-f') || flags.include?('--std-in')
     flags += ' --selector name=web' unless flags.include?('--selector')
     krane = Krane::CLI::Krane.new(
       [task_config.context],

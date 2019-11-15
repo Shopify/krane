@@ -6,8 +6,9 @@ module Krane
       DEFAULT_DEPLOY_TIMEOUT = '300s'
       OPTIONS = {
         "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
-                         aliases: :f, required: true,
+                         aliases: :f, required: false, default: [],
                          desc: "Directories and files that contains the configuration to apply" },
+        "std-in" => { type: :boolean, default: false, desc: "Read resources from stdin" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_DEPLOY_TIMEOUT,
                               desc: "Max duration to monitor workloads correctly deployed" },
         "verify-result" => { type: :boolean, default: true,
@@ -26,6 +27,11 @@ module Krane
         require 'krane/duration_parser'
 
         selector = ::Krane::LabelSelector.parse(options[:selector])
+
+        options[:filenames] << "-" if options['std-in']
+        if options[:filenames].empty?
+          raise Thor::RequiredArgumentMissingError, 'Must provied a value for --filenames or --std-in'
+        end
 
         ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames],
           require_explicit_path: true) do |paths|
