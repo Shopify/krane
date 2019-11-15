@@ -432,6 +432,38 @@ $ krane global-deploy my-k8s-context -f my-template.yml --selector app=krane
 
 Refer to `krane global-deploy help` for the authoritative set of options.
 
+- `-f [PATHS]`: Accepts a comma-separated list of directories and/or filenames to specify the set of directories/files that will be deployed (use `-` to read from STDIN). Can be invoked multiple times. Cannot be combined with `--template-dir`. Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f -,path/to/dir,path/to/file.yml`
+- `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
+- `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
+
+# krane restart
+
+`krane restart` is a tool for restarting all of the pods in one or more deployments. It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec. The rollout strategy defined for each deployment will be respected by the restart.
+
+krane global-deploy (accessible through the Ruby API as Krane::GlobalDeployTask) can deploy global (non-namespaced) resources such as PersistentVolume, Namespace, and CustomResourceDefinition.
+Its interface is very similar to krane deploy.
+
+## Usage
+
+`krane global-deploy <kube context>`
+
+```bash
+$ cat my-template.yml
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: testing-storage-class
+      labels:
+        app: krane
+    provisioner: kubernetes.io/no-provisioner
+
+$ krane global-deploy my-k8s-context -f my-template.yml --selector app=krane
+```
+
+*Options:*
+
+Refer to `krane global-deploy help` for the authoritative set of options.
+
 - `-f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
 - `--stdin`: Read from STDIN. Can be combined with `-f`
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
@@ -530,7 +562,7 @@ krane render --f ./path/to/template/dir
 To render some templates in a template dir, run krane render with the names of the templates to render:
 
 ```
-krane render -f ./path/to/template/dir/this-template.yaml.erb that-template.yaml.erb
+krane render -f ./path/to/template/dir/this-template.yaml.erb
 ```
 
 To render a template in a template dir and output it to a file, run krane render with the name of the template and redirect the output to a file:
