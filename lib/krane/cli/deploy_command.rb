@@ -10,9 +10,6 @@ module Krane
         kube-public
       )
       OPTIONS = {
-        "bindings" => { type: :array, banner: "foo=bar abc=def",
-                        desc: "Expose additional variables to ERB templates (format: k1=v1 k2=v2, JSON string or file "\
-                          "(JSON or YAML) path prefixed by '@')" },
         "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                          aliases: :f, required: false, default: [],
                          desc: "Directories and files that contains the configuration to apply" },
@@ -26,25 +23,18 @@ module Krane
                                     default: PROTECTED_NAMESPACES },
         "prune" => { type: :boolean, desc: "Enable deletion of resources that do not appear in the template dir",
                      default: true },
-        "render-erb" => { type: :boolean, desc: "Enable ERB rendering", default: false },
         "selector" => { type: :string, banner: "'label=value'",
                         desc: "Select workloads by selector(s)" },
         "verbose-log-prefix" => { type: :boolean, desc: "Add [context][namespace] to the log prefix",
                                   default: true },
         "verify-result" => { type: :boolean, default: true,
                              desc: "Verify workloads correctly deployed" },
-        "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings" },
-
       }
 
       def self.from_options(namespace, context, options)
         require 'krane/deploy_task'
         require 'krane/options_helper'
-        require 'krane/bindings_parser'
         require 'krane/label_selector'
-
-        bindings_parser = ::Krane::BindingsParser.new
-        options[:bindings]&.each { |binding_pair| bindings_parser.add(binding_pair) }
 
         selector = ::Krane::LabelSelector.parse(options[:selector]) if options[:selector]
 
@@ -67,9 +57,7 @@ module Krane
           deploy = ::Krane::DeployTask.new(
             namespace: namespace,
             context: context,
-            current_sha: options['current-sha'],
             filenames: paths,
-            bindings: bindings_parser.parse,
             logger: logger,
             global_timeout: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
             selector: selector,

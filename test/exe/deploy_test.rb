@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 require 'test_helper'
 require 'krane/cli/krane'
-require 'krane/bindings_parser'
 
 class DeployTest < Krane::TestCase
   def test_deploy_with_default_options
@@ -21,16 +20,6 @@ class DeployTest < Krane::TestCase
     Krane::LabelSelector.expects(:parse).returns(selector)
     set_krane_deploy_expectations(new_args: { selector: selector })
     krane_deploy!(flags: '--selector name:web')
-  end
-
-  def test_deploy_parses_bindings
-    bindings_parser = Krane::BindingsParser.new
-    bindings_parser.expects(:add).with('foo=bar')
-    bindings_parser.expects(:add).with('abc=def')
-    bindings_parser.expects(:parse).returns(true)
-    Krane::BindingsParser.expects(:new).returns(bindings_parser)
-    set_krane_deploy_expectations(new_args: { bindings: true })
-    krane_deploy!(flags: '--bindings foo=bar abc=def')
   end
 
   def test_deploy_passes_verify_result
@@ -94,12 +83,6 @@ class DeployTest < Krane::TestCase
     end
   end
 
-  def test_deploy_uses_current_sha
-    test_sha = "TEST"
-    set_krane_deploy_expectations(new_args: { current_sha: test_sha })
-    krane_deploy!(flags: "--current-sha #{test_sha}")
-  end
-
   private
 
   def set_krane_deploy_expectations(new_args: {}, run_args: {})
@@ -128,9 +111,7 @@ class DeployTest < Krane::TestCase
       new_args: {
         namespace: deploy_task_config.namespace,
         context: deploy_task_config.context,
-        current_sha: nil,
         filenames: ['/tmp'],
-        bindings: {},
         logger: logger,
         global_timeout: 300,
         selector: nil,
