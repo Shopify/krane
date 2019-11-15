@@ -28,12 +28,14 @@ module Krane
 
         selector = ::Krane::LabelSelector.parse(options[:selector])
 
-        options[:filenames] << "-" if options[:stdin]
-        if options[:filenames].empty?
+        # never mutate options directly
+        filenames = options[:filenames].dup
+        filenames << "-" if options[:stdin]
+        if filenames.empty?
           raise Thor::RequiredArgumentMissingError, 'Must provied a value for --filenames or --stdin'
         end
 
-        ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames],
+        ::Krane::OptionsHelper.with_processed_template_paths(filenames,
           require_explicit_path: true) do |paths|
           deploy = ::Krane::GlobalDeployTask.new(
             context: context,
