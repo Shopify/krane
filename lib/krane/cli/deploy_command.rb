@@ -14,8 +14,10 @@ module Krane
                         desc: "Expose additional variables to ERB templates (format: k1=v1 k2=v2, JSON string or file "\
                           "(JSON or YAML) path prefixed by '@')" },
         "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
-                         aliases: :f, required: true,
+                         aliases: :f, required: false, default: [],
                          desc: "Directories and files that contains the configuration to apply" },
+        "stdin" => { type: :boolean, default: false,
+                     desc: "Read resources from stdin" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_DEPLOY_TIMEOUT,
                               desc: "Max duration to monitor workloads correctly deployed" },
         "protected-namespaces" => { type: :array, banner: "namespace1 namespace2 namespaceN",
@@ -54,7 +56,14 @@ module Krane
           protected_namespaces = []
         end
 
-        ::Krane::OptionsHelper.with_processed_template_paths(options[:filenames],
+        # never mutate options directly
+        filenames = options[:filenames].dup
+        filenames << "-" if options[:stdin]
+        if filenames.empty?
+          raise Thor::RequiredArgumentMissingError, 'At least one of --filenames or --stdin must be set'
+        end
+
+        ::Krane::OptionsHelper.with_processed_template_paths(filenames,
           require_explicit_path: true) do |paths|
           deploy = ::Krane::DeployTask.new(
             namespace: namespace,
