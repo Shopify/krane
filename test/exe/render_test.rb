@@ -23,7 +23,7 @@ class RendertTest < Krane::TestCase
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
       install_krane_render_expectations(template_paths: [file_path, tmp_path])
-      krane_render!("--filenames #{file_path} --std-in")
+      krane_render!("--filenames #{file_path} --stdin")
     end
   end
 
@@ -32,14 +32,14 @@ class RendertTest < Krane::TestCase
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path).once
       install_krane_render_expectations(template_paths: [tmp_path])
-      krane_render!("--std-in")
+      krane_render!("--stdin")
     end
   end
 
   def test_render_fails_without_filename_and_std_in
     krane = Krane::CLI::Krane.new([], %w(--current-sha 1))
 
-    assert_raises_message(Thor::RequiredArgumentMissingError, "Must provied a value for --filenames or --std-in") do
+    assert_raises_message(Thor::RequiredArgumentMissingError, "Must provied a value for --filenames or --stdin") do
       krane.invoke("render")
     end
   end
@@ -65,7 +65,7 @@ class RendertTest < Krane::TestCase
   end
 
   def krane_render!(flags = "")
-    flags += ' -f /dev/null' unless flags.include?("-f") || flags.include?("--std-in")
+    flags += ' -f /dev/null' unless flags.include?("-f") || flags.include?("--stdin")
     krane = Krane::CLI::Krane.new(
       [],
       flags.split

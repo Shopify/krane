@@ -67,7 +67,7 @@ class DeployTest < Krane::TestCase
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
       set_krane_deploy_expectations(new_args: { template_paths: [tmp_path] })
-      krane_deploy!(flags: '--std-in')
+      krane_deploy!(flags: '--stdin')
     end
   end
 
@@ -83,7 +83,7 @@ class DeployTest < Krane::TestCase
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
       set_krane_deploy_expectations(new_args: { template_paths: ['/my/file/path', tmp_path] })
-      krane_deploy!(flags: '-f /my/file/path --std-in')
+      krane_deploy!(flags: '-f /my/file/path --stdin')
     end
   end
 
@@ -92,7 +92,7 @@ class DeployTest < Krane::TestCase
       [deploy_task_config.namespace, deploy_task_config.context],
       []
     )
-    assert_raises_message(Thor::RequiredArgumentMissingError, "Must provied a value for --filenames or --std-in") do
+    assert_raises_message(Thor::RequiredArgumentMissingError, "Must provied a value for --filenames or --stdin") do
       krane.invoke("deploy")
     end
   end
@@ -114,7 +114,7 @@ class DeployTest < Krane::TestCase
   end
 
   def krane_deploy!(flags: '')
-    flags += ' -f /tmp' unless flags.include?('-f') || flags.include?("--std-in")
+    flags += ' -f /tmp' unless flags.include?('-f') || flags.include?("--stdin")
     krane = Krane::CLI::Krane.new(
       [deploy_task_config.namespace, deploy_task_config.context],
       flags.split

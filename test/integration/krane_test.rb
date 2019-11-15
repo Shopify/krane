@@ -65,7 +65,7 @@ class KraneTest < Krane::IntegrationTest
   def test_deploy_black_box_failure
     out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT}")
     assert_empty(out)
-    assert_match("No value provided for required options '--filenames'", err)
+    assert_match("Must provied a value for --filenames or --stdin", err)
     refute_predicate(status, :success?)
     assert_equal(status.exitstatus, 1)
   end
