@@ -48,16 +48,19 @@ This repo also includes related tools for [running tasks](#krane run) and [resta
   * [Deploying custom resources](#deploying-custom-resources)
 * [Walk through the steps of a deployment](#deploy-walkthrough)
 
-**KRANE RESTART**
+**KRANE GLOBAL DEPLOY**
 * [Usage](#usage-1)
 
-**KRANE RUN**
-* [Prerequisites](#prerequisites-1)
+**KRANE RESTART**
 * [Usage](#usage-2)
 
-**KRANE RENDER**
+**KRANE RUN**
 * [Prerequisites](#prerequisites-2)
 * [Usage](#usage-3)
+
+**KRANE RENDER**
+* [Prerequisites](#prerequisites-3)
+* [Usage](#usage-4)
 
 **CONTRIBUTING**
 * [Contributing](#contributing)
@@ -502,6 +505,38 @@ At this point the command also returns a status code:
 - If any other failure happened, `1`
 
 **On timeouts**: It's important to notice that a single resource timeout or a global deploy timeout doesn't necessarily mean that the operation failed. Since Kubernetes updates are asynchronous, maybe something was just too slow to return in the configured time; in those cases, usually running the deploy again might work (that should be a no-op for most - if not all - resources).
+
+# krane global deploy
+
+Ship non-namespaced resources to a cluster
+
+krane global-deploy (accessible through the Ruby API as Krane::GlobalDeployTask) can deploy global (non-namespaced) resources such as PersistentVolume, Namespace, and CustomResourceDefinition.
+Its interface is very similar to krane deploy.
+
+## Usage
+
+`krane global-deploy <kube context>`
+
+```bash
+$ cat my-template.yml
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: testing-storage-class
+      labels:
+        app: krane
+    provisioner: kubernetes.io/no-provisioner
+
+$ krane global-deploy my-k8s-context -f my-template.yml --selector app=krane
+```
+
+*Options:*
+
+Refer to `krane global-deploy help` for the authoritative set of options.
+
+- `-f [PATHS]`: Accepts a comma-separated list of directories and/or filenames to specify the set of directories/files that will be deployed (use `-` to read from STDIN). Can be invoked multiple times. Cannot be combined with `--template-dir`. Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f -,path/to/dir,path/to/file.yml`
+- `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
+- `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
 
 # krane restart
 
