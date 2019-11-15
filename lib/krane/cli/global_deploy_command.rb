@@ -32,7 +32,7 @@ module Krane
         filenames = options[:filenames].dup
         filenames << "-" if options[:stdin]
         if filenames.empty?
-          raise Thor::RequiredArgumentMissingError, 'Must provied a value for --filenames or --stdin'
+          raise Thor::RequiredArgumentMissingError, 'At least one of --filenames or --stdin must be set'
         end
 
         ::Krane::OptionsHelper.with_processed_template_paths(filenames,
