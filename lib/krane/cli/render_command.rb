@@ -6,7 +6,7 @@ module Krane
       OPTIONS = {
         "bindings" => { type: :array, banner: "foo=bar abc=def", desc: 'Bindings for erb' },
         "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
-                     required: false, default: [], aliases: 'f', desc: 'Directories and files to render' },
+                         required: false, default: [], aliases: 'f', desc: 'Directories and files to render' },
         "stdin" => { type: :boolean, desc: "Read resources from stdin", default: false },
         "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings" },
       }
@@ -23,7 +23,7 @@ module Krane
         filenames = options[:filenames].dup
         filenames << "-" if options[:stdin]
         if filenames.empty?
-          raise Thor::RequiredArgumentMissingError, 'Must provied a value for --filenames or --stdin'
+          raise Thor::RequiredArgumentMissingError, 'At least one of --filenames or --stdin must be set'
         end
 
         ::Krane::OptionsHelper.with_processed_template_paths(filenames) do |paths|

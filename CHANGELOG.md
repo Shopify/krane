@@ -3,9 +3,6 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
-*Enhancements*
-- `krane deploy` and `krane render` allow template filenames given from stdin stream with given `--stdin` argument. ([#630](https://github.com/Shopify/kubernetes-deploy/pull/630))
-
 ## 0.31.1
 
 *Bug Fixes*
