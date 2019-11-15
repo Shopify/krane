@@ -3,6 +3,22 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
+## 1.0.0.pre.1
+
+*Important!*
+
+- This is the final release of KubernetesDeploy. Version 1.0.0 will be released
+under the name `Krane`. We've added a migration guide to help make it easier to migrate.
+([#607](https://github.com/Shopify/kubernetes-deploy/pull/607))
+
+*Enhancements*
+- (beta) `krane deploy` will now consider all namespaced resources eligible for pruning
+and does not respect the `krane.shopify.io/prunable` annotation. This adds 5 additional
+types: Endpoints, Event, LimitRange, ReplicationController, and Lease.
+ ([#616](https://github.com/Shopify/kubernetes-deploy/pull/616)
+
+- (beta) Added the `--stdin` flag to `krane deploy|global-deploy|render` to read resources from stdin. ([#630](https://github.com/Shopify/kubernetes-deploy/pull/630))
+
 ## 0.31.1
 
 *Bug Fixes*
