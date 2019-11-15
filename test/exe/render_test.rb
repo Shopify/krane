@@ -39,7 +39,7 @@ class RendertTest < Krane::TestCase
   def test_render_fails_without_filename_and_std_in
     krane = Krane::CLI::Krane.new([], %w(--current-sha 1))
 
-    assert_raises_message(Thor::RequiredArgumentMissingError, "Must provied a value for --filenames or --stdin") do
+    assert_raises_message(Thor::RequiredArgumentMissingError, "At least one of --filenames or --stdin must be set") do
       krane.invoke("render")
     end
   end

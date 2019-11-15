@@ -50,7 +50,7 @@ class GlobalDeployTest < Krane::TestCase
 
   def test_deploy_fails_without_filename_and_std_in
     krane = Krane::CLI::Krane.new([task_config.context], %w(--selector app=krane))
-    assert_raises_message(Thor::RequiredArgumentMissingError, "Must provied a value for --filenames or --stdin") do
+    assert_raises_message(Thor::RequiredArgumentMissingError, "At least one of --filenames or --stdin must be set") do
       krane.invoke("global_deploy")
     end
   end

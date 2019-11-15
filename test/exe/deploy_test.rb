@@ -92,7 +92,7 @@ class DeployTest < Krane::TestCase
       [deploy_task_config.namespace, deploy_task_config.context],
       []
     )
-    assert_raises_message(Thor::RequiredArgumentMissingError, "Must provied a value for --filenames or --stdin") do
+    assert_raises_message(Thor::RequiredArgumentMissingError, "At least one of --filenames or --stdin must be set") do
       krane.invoke("deploy")
     end
   end
