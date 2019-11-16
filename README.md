@@ -444,42 +444,6 @@ resource to deploy.
 
 `krane restart` is a tool for restarting all of the pods in one or more deployments. It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec. The rollout strategy defined for each deployment will be respected by the restart.
 
-krane global-deploy (accessible through the Ruby API as Krane::GlobalDeployTask) can deploy global (non-namespaced) resources such as PersistentVolume, Namespace, and CustomResourceDefinition.
-Its interface is very similar to krane deploy.
-
-## Usage
-
-`krane global-deploy <kube context>`
-
-```bash
-$ cat my-template.yml
-    apiVersion: storage.k8s.io/v1
-    kind: StorageClass
-    metadata:
-      name: testing-storage-class
-      labels:
-        app: krane
-    provisioner: kubernetes.io/no-provisioner
-
-$ krane global-deploy my-k8s-context -f my-template.yml --selector app=krane
-```
-
-*Options:*
-
-Refer to `krane global-deploy help` for the authoritative set of options.
-
-- `-f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
-- `--stdin`: Read from STDIN. Can be combined with `-f`
-- `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
-- `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
-- `--global-timeout=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
-resource to deploy.
-- `--no-verify-result`: Skip verification that workloads correctly restarted.
-
-# krane restart
-
-`krane restart` is a tool for restarting all of the pods in one or more deployments. It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec. The rollout strategy defined for each deployment will be respected by the restart.
-
 ## Usage
 
 **Option 1: Specify the deployments you want to restart**
@@ -533,7 +497,7 @@ Based on this specification `krane run` will create a new pod with the entrypoin
 
 ## Usage
 
-`krane run <kube namespace> <kube context> <arguments> --entrypoint=<entrypoint> --template=<template name>`
+`krane run <kube namespace> <kube context> --arguments=<arguments> --command=<command> --template=<template name>`
 
 *Options:*
 
@@ -547,13 +511,12 @@ Based on this specification `krane run` will create a new pod with the entrypoin
 
 # krane render
 
-`krane render` is a tool for rendering ERB templates to raw Kubernetes YAML. It's useful for seeing what `krane deploy` does before actually invoking `kubectl` on the rendered YAML. It's also useful for outputting YAML that can be passed to other tools, for validation or introspection purposes.
+`krane render` is a tool for rendering ERB templates to raw Kubernetes YAML. It's useful for outputting YAML that can be passed to other tools, for validation or introspection purposes. It can also be used.
 
 
 ## Prerequisites
 
  * `krane render` does __not__ require a running cluster or an active kubernetes context, which is nice if you want to run it in a CI environment, potentially alongside something like https://github.com/garethr/kubeval to make sure your configuration is sound.
- * Like the other `krane` commands, `krane render` requires the `$REVISION` environment variable to be set, and will make it available as `current_sha` in your ERB templates.
 
 ## Usage
 
@@ -578,12 +541,11 @@ krane render --f./path/to/template/dir/template.yaml.erb > template.yaml
 *Options:*
 
 - `-f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
-- `--stdin`: Read from STDIN. Can be combined with `-f` Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f path/to/dir path/to/file.yml --stdin`
-- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane render --bindings=color=blue size=large some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
+- `--stdin`: Read from STDIN. Can be combined with `-f` Example: `cat templates_from_stdin/*.yml | krane render -f path/to/dir path/to/file.yml --stdin`
+- `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane render --bindings=color=blue size=large -f some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
 - `--current-sha`: Expose SHA `current_sha` in ERB bindings
 
-You can add additional variables using the `--bindings=BINDINGS` option which can be formated as a string, JSON string or path to a JS
-ON or YAML file. Complex JSON or YAML data will be converted to a Hash for use in templates. To load a file the argument should include the relative
+You can add additional variables using the `--bindings=BINDINGS` option which can be formated as a string, JSON string or path to a JSON or YAML file. Complex JSON or YAML data will be converted to a Hash for use in templates. To load a file the argument should include the relative
 file path prefixed with an `@` sign. An argument error will be raised if the string argument cannot be parsed, the referenced file does not include a
  valid extension (`.json`, `.yaml` or `.yml`) or the referenced file does not exist.
 
