@@ -93,7 +93,7 @@ official compatibility chart below.
 
 1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.11.0 or higher) and make sure it is available in your $PATH
 2. Set up your [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/) for access to your cluster(s).
-3. `gem install kubernetes-deploy`
+3. `gem install krane`
 
 
 
