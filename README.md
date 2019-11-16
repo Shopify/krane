@@ -432,9 +432,13 @@ $ krane global-deploy my-k8s-context -f my-template.yml --selector app=krane
 
 Refer to `krane global-deploy help` for the authoritative set of options.
 
-- `-f [PATHS]`: Accepts a comma-separated list of directories and/or filenames to specify the set of directories/files that will be deployed (use `-` to read from STDIN). Can be invoked multiple times. Cannot be combined with `--template-dir`. Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f -,path/to/dir,path/to/file.yml`
+- `-f [PATHS]`: Accepts a  list of directories and/or filenames to specify the set of directories/files that will be deployed
+- `--stdin`: Read from STDIN. Can be combined with `-f`
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
+- `--global-timeout=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
+resource to deploy.
+- `--no-verify-result`: Skip verification that workloads correctly deployed.
 
 # krane restart
 
