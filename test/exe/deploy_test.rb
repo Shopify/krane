@@ -63,7 +63,7 @@ class DeployTest < Krane::TestCase
     Dir.mktmpdir do |tmp_path|
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
-      set_krane_deploy_expectations(new_args: { template_paths: [tmp_path] })
+      set_krane_deploy_expectations(new_args: { filenames: [tmp_path] })
       krane_deploy!(flags: '--stdin')
     end
   end
@@ -79,7 +79,7 @@ class DeployTest < Krane::TestCase
     Dir.mktmpdir do |tmp_path|
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
-      set_krane_deploy_expectations(new_args: { template_paths: ['/my/file/path', tmp_path] })
+      set_krane_deploy_expectations(new_args: { filenames: ['/my/file/path', tmp_path] })
       krane_deploy!(flags: '-f /my/file/path --stdin')
     end
   end

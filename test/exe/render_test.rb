@@ -22,7 +22,7 @@ class RenderTest < Krane::TestCase
       file_path = "/dev/null"
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
-      install_krane_render_expectations(template_paths: [file_path, tmp_path])
+      install_krane_render_expectations(filenames: [file_path, tmp_path])
       krane_render!("--filenames #{file_path} --stdin")
     end
   end
@@ -31,7 +31,7 @@ class RenderTest < Krane::TestCase
     Dir.mktmpdir do |tmp_path|
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path).once
-      install_krane_render_expectations(template_paths: [tmp_path])
+      install_krane_render_expectations(filenames: [tmp_path])
       krane_render!("--stdin")
     end
   end
