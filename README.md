@@ -1,6 +1,6 @@
 # krane [![Build status](https://badge.buildkite.com/61937e40a1fc69754d9d198be120543d6de310de2ba8d3cb0e.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy) [![codecov](https://codecov.io/gh/Shopify/kubernetes-deploy/branch/master/graph/badge.svg)](https://codecov.io/gh/Shopify/kubernetes-deploy)
 
-This project used to be called `kubernetes-deploy`. Checkout our [migration guide](https://github.com/Shopify/kubernetes-deploy/blob/master/1.0-Upgrade.md) for more information including details about breaking changes.
+This project used to be called `kubernetes-deploy`. Check out our [migration guide](https://github.com/Shopify/kubernetes-deploy/blob/master/1.0-Upgrade.md) for more information including details about breaking changes.
 
 
 `krane` is a command line tool that helps you ship changes to a Kubernetes namespace and understand the result. At Shopify, we use it within our much-beloved, open-source [Shipit](https://github.com/Shopify/shipit-engine#kubernetes) deployment app.
@@ -19,7 +19,7 @@ Especially in a CI/CD environment, we need a clear, actionable pass/fail result 
 
 ​:running: [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy) using bare pods (example use case: Rails migrations)
 
-This repo also includes related tools for [running tasks](#krane run) and [restarting deployments](#krane restart).
+If you need the ability to render dynamic values in templates before deploying, you can use [krane render](#krane render). Alongside that, this repo also includes tools for [running tasks](#krane run) and [restarting deployments](#krane restart).
 
 
 
@@ -113,7 +113,7 @@ official compatibility chart below.
 Refer to `krane help` for the authoritative set of options.
 
 
-- `-f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
+- `--filenames / -f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
 - `--stdin`: Read from STDIN. Can be combined with `-f` Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f path/to/dir path/to/file.yml --stdin`
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--global-timeout=seconds`: Raise a timeout error if it takes longer than _seconds_ for any
@@ -134,11 +134,13 @@ If you need to, you may specify `--no-prune` to disable all pruning behaviour, b
 
 If you need to share a namespace with resources which are managed by other tools or indeed other krane deployments, you can supply the `--selector` option, such that only resources with labels matching the selector are considered for pruning.
 
-### Using templates and variables
+### Using templates
 
-Each app's templates are expected to be stored in a single directory. If this is not the case, you can create a directory containing symlinks to the templates. The recommended location for app's deploy directory is `{app root}/config/deploy/{env}`, but this is completely configurable.
+Each app's templates are expected to be stored in a single directory. If this is not the case, you can create a directory containing symlinks to the templates. The recommended location for app's deploy directory is `{app root}/config/deploy/{env}`.
 
 All templates must be YAML formatted.
+
+If you want dynamic templates, you may render ERB with `krane render` and then pipe that result to `krane deploy --stdin`.
 
 ### Customizing behaviour with annotations
 - `krane.shopify.io/timeout-override`: Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours.
@@ -164,7 +166,7 @@ before the deployment is considered successful.
 
 ### Running tasks at the beginning of a deploy
 
-To run a task in your cluster at the beginning of every deploy, simply include a `Pod` template in your deploy directory. `krane` will first deploy any `ConfigMap` and `PersistentVolumeClaim` resources in your template set, followed by any such pods. If the command run by one of these pods fails (i.e. exits with a non-zero status), the overall deploy will fail at this step (no other resources will be deployed).
+To run a task in your cluster at the beginning of every deploy, simply include a `Pod` template in your deploy directory. `krane` will first deploy any `ConfigMap` and `PersistentVolumeClaim` resources present in the provided templates, followed by any such pods. If the command run by one of these pods fails (i.e. exits with a non-zero status), the overall deploy will fail at this step (no other resources will be deployed).
 
 *Requirements:*
 
@@ -324,10 +326,12 @@ status:
 
 ### Deploy walkthrough
 
-Let's walk through what happens when you run the `deploy` task with [this directory of templates](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud). You can see this for yourself by running the following command:
+Let's walk through what happens when you run the `deploy` task with [this directory of templates](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud). This particular example uses ERB templates as well, so we'll use the [krane render](#krane render) task to achieve that.
+
+You can test this out for yourself by running the following command:
 
 ```bash
-krane render -f test/fixtures/hello-cloud --current-sha 1| krane deploy my-namespace my-k8s-cluster  --stdin
+krane render -f test/fixtures/hello-cloud --current-sha 1 | krane deploy my-namespace my-k8s-cluster --stdin
 ```
 
 As soon as you run this, you'll start seeing some output being streamed to STDERR.
@@ -432,7 +436,7 @@ $ krane global-deploy my-k8s-context -f my-template.yml --selector app=krane
 
 Refer to `krane global-deploy help` for the authoritative set of options.
 
-- `-f [PATHS]`: Accepts a  list of directories and/or filenames to specify the set of directories/files that will be deployed
+- `--filenames / -if [PATHS]`: Accepts a  list of directories and/or filenames to specify the set of directories/files that will be deployed
 - `--stdin`: Read from STDIN. Can be combined with `-f`
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
@@ -511,7 +515,7 @@ Based on this specification `krane run` will create a new pod with the entrypoin
 
 # krane render
 
-`krane render` is a tool for rendering ERB templates to raw Kubernetes YAML. It's useful for outputting YAML that can be passed to other tools, for validation or introspection purposes. It can also be used.
+`krane render` is a tool for rendering ERB templates to raw Kubernetes YAML. It's useful for outputting YAML that can be passed to other tools, for validation or introspection purposes.
 
 
 ## Prerequisites
@@ -540,7 +544,7 @@ krane render --f./path/to/template/dir/template.yaml.erb > template.yaml
 
 *Options:*
 
-- `-f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
+- `--filenames / -f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
 - `--stdin`: Read from STDIN. Can be combined with `-f` Example: `cat templates_from_stdin/*.yml | krane render -f path/to/dir path/to/file.yml --stdin`
 - `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane render --bindings=color=blue size=large -f some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
 - `--current-sha`: Expose SHA `current_sha` in ERB bindings
