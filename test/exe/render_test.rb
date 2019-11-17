@@ -60,7 +60,7 @@ class RenderTest < Krane::TestCase
   def install_krane_render_expectations(new_args = {})
     options = default_options(new_args)
     response = mock('RenderTask')
-    response.expects(:run!).with(STDOUT).returns(true)
+    response.expects(:run!).with(stream: STDOUT).returns(true)
     Krane::RenderTask.expects(:new).with(options).returns(response)
   end
 

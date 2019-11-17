@@ -36,7 +36,7 @@ module Krane
     # @param stream [IO] Place to stream the output to
     #
     # @return [nil]
-    def run!(stream)
+    def run!(stream:)
       @logger.reset
       @logger.phase_heading("Initializing render task")
 
