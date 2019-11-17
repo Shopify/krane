@@ -37,9 +37,9 @@ class TemplateSetsTest < Krane::TestCase
     bad_filepath = File.join(fixture_path("for_unit_tests"), "partials_test.yaml.erb")
     template_sets = template_sets_from_paths(bad_filepath, render_erb: false)
     expected = [
+      "File #{bad_filepath} does not have valid suffix (supported suffixes: .yml, .yaml, or secrets.ejson)",
       "ERB template discovered with rendering disabled. If you were trying to render ERB and " \
         "deploy the result, try piping the output of `krane render` to `krane-deploy` with the --stdin flag",
-      "File #{bad_filepath} does not have valid suffix (supported suffixes: .yml, .yaml, or secrets.ejson)",
     ]
     assert_equal(template_sets.validate, expected)
   end

@@ -9,6 +9,7 @@ module Krane
     # private inner class
     class TemplateSet
       include DelayedExceptions
+      attr_reader :render_erb
       def initialize(template_dir:, file_whitelist: [], logger:, render_erb: true)
         @template_dir = template_dir
         @files = file_whitelist
@@ -54,11 +55,6 @@ module Krane
               "suffixes: #{supported_extensions.join(', ')}, or #{EjsonSecretProvisioner::EJSON_SECRETS_FILE})"
         end
 
-        if !@render_erb && deploying_with_erb_files?
-          errors << "ERB template discovered with rendering disabled. If you were trying to render ERB and " \
-            "deploy the result, try piping the output of `krane render` to `krane-deploy` with the --stdin flag"
-        end
-
         @files.each do |filename|
           filename = File.join(@template_dir, filename)
           if !File.exist?(filename)
@@ -72,11 +68,11 @@ module Krane
         errors
       end
 
-      private
-
       def deploying_with_erb_files?
         @files.any? { |file| file.end_with?("erb") }
       end
+
+      private
 
       def templates(filename:, raw:)
         file_content = File.read(File.join(@template_dir, filename))
@@ -150,10 +146,25 @@ module Krane
     end
 
     def validate
-      @template_sets.flat_map(&:validate)
+      errors = @template_sets.flat_map(&:validate)
+
+      if rendering_erb_disabled? && deploying_with_erb_files?
+        errors << "ERB template discovered with rendering disabled. If you were trying to render ERB and " \
+          "deploy the result, try piping the output of `krane render` to `krane-deploy` with the --stdin flag"
+      end
+
+      errors
     end
 
     private
+
+    def deploying_with_erb_files?
+      @template_sets.any?(&:deploying_with_erb_files?)
+    end
+
+    def rendering_erb_disabled?
+      !@template_sets.any?(&:render_erb)
+    end
 
     def initialize(template_sets: [])
       @template_sets = template_sets
