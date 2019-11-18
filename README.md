@@ -434,7 +434,7 @@ $ krane global-deploy my-k8s-context -f my-template.yml --selector app=krane
 
 Refer to `krane global-deploy help` for the authoritative set of options.
 
-- `--filenames / -if [PATHS]`: Accepts a  list of directories and/or filenames to specify the set of directories/files that will be deployed
+- `--filenames / -if [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed
 - `--stdin`: Read from STDIN. Can be combined with `-f`
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. By using this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
@@ -537,7 +537,7 @@ krane render -f ./path/to/template/dir/this-template.yaml.erb
 To render a template in a template dir and output it to a file, run krane render with the name of the template and redirect the output to a file:
 
 ```
-krane render --f./path/to/template/dir/template.yaml.erb > template.yaml
+krane render -f ./path/to/template/dir/template.yaml.erb > template.yaml
 ```
 
 *Options:*
