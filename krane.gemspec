@@ -5,14 +5,15 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'krane/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "kubernetes-deploy"
+  spec.name          = "krane"
   spec.version       = Krane::VERSION
-  spec.authors       = ["Katrina Verey", "Kir Shatrov"]
+  spec.authors       = ["Katrina Verey", "Daniel Turner", "Kir Shatrov"]
   spec.email         = ["ops-accounts+shipit@shopify.com"]
 
-  spec.summary       = 'Kubernetes deploy scripts'
+  spec.summary       = 'A command line tool that helps you ship changes to a Kubernetes' \
+    ' namespace and understand the result'
   spec.description   = spec.summary
-  spec.homepage      = "https://github.com/Shopify/kubernetes-deploy"
+  spec.homepage      = "https://github.com/Shopify/krane"
   spec.license       = "MIT"
 
   spec.files         = %x(git ls-files -z).split("\x0").reject do |f|
