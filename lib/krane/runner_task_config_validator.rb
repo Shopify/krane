@@ -1,10 +1,9 @@
 # frozen_string_literal: true
 module Krane
   class RunnerTaskConfigValidator < TaskConfigValidator
-    def initialize(template, args, *arguments)
+    def initialize(template, *arguments)
       super(*arguments)
       @template = template
-      @args = args
       @validations += %i(validate_template)
     end
 

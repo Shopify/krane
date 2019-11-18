@@ -10,7 +10,7 @@ class RenderTaskTest < Krane::TestCase
       File.join(fixture_path('hello-cloud'), 'configmap-data.yml')
     )
 
-    assert_render_success(render.run(mock_output_stream))
+    assert_render_success(render.run(stream: mock_output_stream))
 
     stdout_assertion do |output|
       assert_equal output, <<~RENDERED
@@ -36,7 +36,7 @@ class RenderTaskTest < Krane::TestCase
       File.join(fixture_path('hello-cloud'), 'configmap-data.yml'),
       File.join(fixture_path('hello-cloud'), 'unmanaged-pod-1.yml.erb'),
     ])
-    assert_render_success(render.run(mock_output_stream))
+    assert_render_success(render.run(stream: mock_output_stream))
 
     stdout_assertion do |output|
       expected = <<~RENDERED
@@ -87,7 +87,7 @@ class RenderTaskTest < Krane::TestCase
       'supports_partials': 'yep'
     )
 
-    assert_render_success(render.run(mock_output_stream))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       expected = <<~RENDERED
         ---
@@ -167,7 +167,7 @@ class RenderTaskTest < Krane::TestCase
   def test_render_task_rendering_all_files
     render = build_render_task(fixture_path('hello-cloud'))
 
-    assert_render_success(render.run(mock_output_stream))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       assert_match(/name: bare-replica-set/, output)
       assert_match(/name: hello-cloud-configmap-data/, output)
@@ -192,7 +192,7 @@ class RenderTaskTest < Krane::TestCase
       File.join(fixture_path('some-invalid'), 'yaml-error.yml'),
       File.join(fixture_path('some-invalid'), 'stateful_set.yml'),
     ])
-    assert_render_failure(render.run(mock_output_stream))
+    assert_render_failure(render.run(stream: mock_output_stream))
 
     stdout_assertion do |output|
       assert_match(/name: hello-cloud-configmap-data/, output)
@@ -210,7 +210,7 @@ class RenderTaskTest < Krane::TestCase
       'a': 'binding-a',
       'b': 'binding-b'
     )
-    assert_render_failure(render.run(mock_output_stream))
+    assert_render_failure(render.run(stream: mock_output_stream))
     assert_logs_match_all([
       /Invalid template: .*deployment.yaml.erb/,
       "> Error message:",
@@ -224,7 +224,7 @@ class RenderTaskTest < Krane::TestCase
     render = build_render_task(
       File.join(fixture_path('invalid'), 'raise_inside.yml.erb')
     )
-    assert_render_failure(render.run(mock_output_stream))
+    assert_render_failure(render.run(stream: mock_output_stream))
     assert_logs_match_all([
       /Invalid template: .*raise_inside.yml.erb/,
       "> Error message:",
@@ -237,7 +237,7 @@ class RenderTaskTest < Krane::TestCase
   def test_render_empty_template_dir
     tmp_dir = Dir.mktmpdir
     render = build_render_task(tmp_dir)
-    assert_render_failure(render.run(mock_output_stream))
+    assert_render_failure(render.run(stream: mock_output_stream))
     assert_logs_match_all([
       "Template directory #{tmp_dir} does not contain any valid templates",
     ])
@@ -248,7 +248,7 @@ class RenderTaskTest < Krane::TestCase
       File.join(fixture_path('invalid'), 'yaml-error.yml'),
       data: "data"
     )
-    assert_render_failure(render.run(mock_output_stream))
+    assert_render_failure(render.run(stream: mock_output_stream))
     assert_logs_match_all([
       /Invalid template: .*yaml-error.yml/,
       "> Error message:",
@@ -261,7 +261,7 @@ class RenderTaskTest < Krane::TestCase
       render = build_render_task(
         File.join(fixture_path('hello-cloud'), basename)
       )
-      assert_render_success render.run(mock_output_stream)
+      assert_render_success render.run(stream: mock_output_stream)
       stdout_assertion do |output|
         assert !output.empty?
       end
@@ -275,7 +275,7 @@ class RenderTaskTest < Krane::TestCase
     ])
     expected = "---\n# The first doc has no yaml separator\nkey1: foo\n---\nkey2: bar\n"
 
-    assert_render_success(render.run(mock_output_stream))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       assert_equal "#{expected}#{expected}", output
     end
@@ -296,7 +296,7 @@ class RenderTaskTest < Krane::TestCase
         value: "data"
       RENDERED
 
-    assert_render_success(render.run(mock_output_stream))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       assert_equal expected, output
     end
@@ -308,7 +308,7 @@ class RenderTaskTest < Krane::TestCase
     )
     expected = "---\nkey1: \"0\"\nkey1: \"1\"\nkey1: \"2\"\n"
 
-    assert_render_success(render.run(mock_output_stream))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       assert_equal expected, output
     end
@@ -318,7 +318,7 @@ class RenderTaskTest < Krane::TestCase
     render = build_render_task(
       File.join(fixture_path('collection-with-erb'), 'effectively_empty.yml.erb')
     )
-    assert_render_success(render.run(mock_output_stream))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       assert_equal "", output.strip
     end
@@ -327,12 +327,12 @@ class RenderTaskTest < Krane::TestCase
 
   private
 
-  def build_render_task(template_paths, bindings = {})
+  def build_render_task(filenames, bindings = {})
     Krane::RenderTask.new(
       logger: logger,
       current_sha: "k#{SecureRandom.hex(6)}",
       bindings: bindings,
-      template_paths: Array(template_paths)
+      filenames: Array(filenames)
     )
   end
 

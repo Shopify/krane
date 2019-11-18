@@ -11,9 +11,9 @@ class RunTest < Krane::TestCase
   end
 
   def test_run_parses_global_timeout
-    set_krane_run_expectations(new_args: { max_watch_seconds: 10 })
+    set_krane_run_expectations(new_args: { global_timeout: 10 })
     krane_run!(flags: '--global-timeout 10s')
-    set_krane_run_expectations(new_args: { max_watch_seconds: 60**2 })
+    set_krane_run_expectations(new_args: { global_timeout: 60**2 })
     krane_run!(flags: '--global-timeout 1h')
   end
 
@@ -25,17 +25,17 @@ class RunTest < Krane::TestCase
   end
 
   def test_run_parses_command
-    set_krane_run_expectations(run_args: { entrypoint: %w(/bin/sh) })
+    set_krane_run_expectations(run_args: { command: %w(/bin/sh) })
     krane_run!(flags: '--command /bin/sh')
   end
 
   def test_run_parses_arguments
-    set_krane_run_expectations(run_args: { args: %w(hello) })
+    set_krane_run_expectations(run_args: { arguments: %w(hello) })
     krane_run!(flags: '--arguments hello')
   end
 
   def test_run_parses_template
-    set_krane_run_expectations(run_args: { task_template: 'some-name' })
+    set_krane_run_expectations(run_args: { template: 'some-name' })
     krane_run!(flags: '--template some-name')
   end
 
@@ -92,13 +92,13 @@ class RunTest < Krane::TestCase
       new_args: {
         namespace: run_task_config.namespace,
         context: run_task_config.context,
-        max_watch_seconds: 300,
+        global_timeout: 300,
       }.merge(new_args),
       run_args: {
         verify_result: true,
-        task_template: TASK_TEMPLATE,
-        entrypoint: nil,
-        args: nil,
+        template: TASK_TEMPLATE,
+        command: nil,
+        arguments: nil,
         env_vars: [],
       }.merge(run_args),
     }
