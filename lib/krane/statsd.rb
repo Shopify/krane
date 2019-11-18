@@ -4,7 +4,7 @@ require 'logger'
 
 module Krane
   class StatsD
-    PREFIX = "KubernetesDeploy"
+    PREFIX = "Krane"
 
     def self.duration(start_time)
       (Time.now.utc - start_time).round(1)
