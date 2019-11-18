@@ -35,8 +35,7 @@ module Krane
           raise Thor::RequiredArgumentMissingError, 'At least one of --filenames or --stdin must be set'
         end
 
-        ::Krane::OptionsHelper.with_processed_template_paths(filenames,
-          require_explicit_path: true) do |paths|
+        ::Krane::OptionsHelper.with_processed_template_paths(filenames) do |paths|
           deploy = ::Krane::GlobalDeployTask.new(
             context: context,
             filenames: paths,

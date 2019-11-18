@@ -21,7 +21,6 @@ ENV["STATSD_USE_NEW_CLIENT"] ||= "1" # support forwards compatibility with v3.0
 
 $LOAD_PATH.unshift(File.expand_path('../../lib', __FILE__))
 require 'krane'
-require 'kubernetes-deploy'
 require 'kubeclient'
 require 'timecop'
 require 'minitest/autorun'

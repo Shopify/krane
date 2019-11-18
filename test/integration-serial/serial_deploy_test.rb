@@ -6,7 +6,7 @@ class SerialDeployTest < Krane::IntegrationTest
   # This cannot be run in parallel because it either stubs a constant or operates in a non-exclusive namespace
   def test_deploying_to_protected_namespace_with_override_does_not_prune
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml', 'disruption-budgets.yml'],
-      protected_namespaces: [@namespace], allow_protected_ns: true, prune: false))
+      protected_namespaces: [@namespace], prune: false))
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     hello_cloud.assert_configmap_data_present
     hello_cloud.assert_poddisruptionbudget
@@ -16,7 +16,7 @@ class SerialDeployTest < Krane::IntegrationTest
     ])
 
     result = deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"],
-      protected_namespaces: [@namespace], allow_protected_ns: true, prune: false)
+      protected_namespaces: [@namespace], prune: false)
     assert_deploy_success(result)
     hello_cloud.assert_configmap_data_present # not pruned
     hello_cloud.assert_poddisruptionbudget
@@ -123,7 +123,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_cr_merging
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml)))
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd", subset: %(mail.yml), clean_up: false))
     assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml)))
     result = deploy_fixtures("crd", subset: %w(mail_cr.yml)) do |f|
       mail = f.dig("mail_cr.yml", "Mail").first
@@ -135,14 +135,14 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_crd_can_fail
-    result = deploy_fixtures("crd", subset: %w(mail.yml)) do |f|
+    result = deploy_global_fixtures_non_namespaced("crd", subset: %(mail.yml), clean_up: false) do |f|
       crd = f.dig("mail.yml", "CustomResourceDefinition").first
       names = crd.dig("spec", "names")
       names["listKind"] = 'Conflict'
     end
     assert_deploy_success(result)
 
-    result = deploy_fixtures("crd", subset: %w(mail.yml)) do |f|
+    result = deploy_global_fixtures_non_namespaced("crd", subset: %(mail.yml), prune: false) do |f|
       crd = f.dig("mail.yml", "CustomResourceDefinition").first
       names = crd.dig("spec", "names")
       names["listKind"] = "Conflict"
@@ -159,58 +159,9 @@ class SerialDeployTest < Krane::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_crd_pruning_deprecated
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml widgets_deprecated.yml)))
-    assert_logs_match_all([
-      "Phase 1: Initializing deploy",
-      "Phase 3: Deploying all resources",
-      "CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
-      %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted},
-      "Template warning:",
-      "kubernetes-deploy.shopify.io as a prefix for annotations is deprecated:",
-    ])
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml widgets_cr.yml configmap-data.yml)))
-    # Deploy any other non-priority (predeployable) resource to trigger pruning
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(configmap-data.yml configmap2.yml)))
-
-    assert_predicate(build_kubectl.run("get", "mail.stable.example.io", "my-first-mail").last, :success?)
-    refute_logs_match(
-      /The following resources were pruned: #{prune_matcher("mail", "stable.example.io", "my-first-mail")}/
-    )
-    assert_logs_match_all([
-      /The following resources were pruned: #{prune_matcher("widget", "stable.example.io", "my-first-widget")}/,
-      "Pruned 1 resource and successfully deployed 2 resource",
-    ])
-  ensure
-    wait_for_all_crd_deletion
-  end
-
-  def test_crd_pruning
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml widgets.yml)))
-    assert_logs_match_all([
-      "Phase 1: Initializing deploy",
-      "Phase 3: Deploying all resources",
-      "CustomResourceDefinition/mail.stable.example.io (timeout: 120s)",
-      %r{CustomResourceDefinition/mail.stable.example.io\s+Names accepted},
-    ])
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail_cr.yml widgets_cr.yml configmap-data.yml)))
-    # Deploy any other non-priority (predeployable) resource to trigger pruning
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(configmap-data.yml configmap2.yml)))
-
-    assert_predicate(build_kubectl.run("get", "mail.stable.example.io", "my-first-mail").last, :success?)
-    refute_logs_match(
-      /The following resources were pruned: #{prune_matcher("mail", "stable.example.io", "my-first-mail")}/
-    )
-    assert_logs_match_all([
-      /The following resources were pruned: #{prune_matcher("widget", "stable.example.io", "my-first-widget")}/,
-      "Pruned 1 resource and successfully deployed 2 resource",
-    ])
-  ensure
-    wait_for_all_crd_deletion
-  end
-
   def test_custom_resources_predeployed_deprecated
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml things.yml widgets_deprecated.yml)) do |f|
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd",
+    subset: %w(mail.yml things.yml widgets_deprecated.yml), clean_up: false) do |f|
       mail = f.dig("mail.yml", "CustomResourceDefinition").first
       mail["metadata"]["annotations"] = {}
 
@@ -241,7 +192,8 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_custom_resources_predeployed
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(mail.yml things.yml widgets.yml)) do |f|
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd", subset: %w(mail.yml things.yml widgets.yml),
+    clean_up: false) do |f|
       mail = f.dig("mail.yml", "CustomResourceDefinition").first
       mail["metadata"]["annotations"] = {}
 
@@ -345,8 +297,9 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_cr_deploys_without_rollout_conditions_when_none_present_deprecated
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_deprecated.yml)))
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd",
+      subset: %(widgets_deprecated.yml), clean_up: false))
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml), prune: false))
     assert_logs_match_all([
       "Don't know how to monitor resources of type Widget. Assuming Widget/my-first-widget deployed successfully.",
       %r{Widget/my-first-widget\s+Exists},
@@ -356,8 +309,8 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_cr_deploys_without_rollout_conditions_when_none_present
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets.yml)))
-    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml)))
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd", subset: %(widgets.yml), clean_up: false))
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(widgets_cr.yml), prune: false))
     assert_logs_match_all([
       "Don't know how to monitor resources of type Widget. Assuming Widget/my-first-widget deployed successfully.",
       %r{Widget/my-first-widget\s+Exists},
@@ -367,7 +320,8 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_cr_success_with_default_rollout_conditions
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_conditions.yml"]))
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd",
+      subset: %(with_default_conditions.yml), clean_up: false))
     success_conditions = {
       "status" => {
         "observedGeneration" => 1,
@@ -382,7 +336,7 @@ class SerialDeployTest < Krane::IntegrationTest
       },
     }
 
-    result = deploy_fixtures("crd", subset: ["with_default_conditions_cr.yml"]) do |resource|
+    result = deploy_fixtures("crd", subset: ["with_default_conditions_cr.yml"], prune: false) do |resource|
       cr = resource["with_default_conditions_cr.yml"]["Parameterized"].first
       cr.merge!(success_conditions)
     end
@@ -395,8 +349,9 @@ class SerialDeployTest < Krane::IntegrationTest
     wait_for_all_crd_deletion
   end
 
-  def test_cr_succes_with_default_rollout_conditions_deprecated_annotation
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_conditions_deprecated.yml"]))
+  def test_cr_success_with_default_rollout_conditions_deprecated_annotation
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd",
+      subset: %(with_default_conditions_deprecated.yml), clean_up: false))
     success_conditions = {
       "status" => {
         "observedGeneration" => 1,
@@ -425,7 +380,8 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_cr_failure_with_default_rollout_conditions
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_default_conditions.yml"]))
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd",
+      subset: %(with_default_conditions.yml), clean_up: false))
     failure_conditions = {
       "status" => {
         "observedGeneration" => 1,
@@ -456,7 +412,8 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_cr_success_with_arbitrary_rollout_conditions
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]))
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd",
+      subset: %(with_custom_conditions.yml), clean_up: false))
 
     success_conditions = {
       "spec" => {},
@@ -480,7 +437,8 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_cr_failure_with_arbitrary_rollout_conditions
-    assert_deploy_success(deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]))
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd",
+      subset: %(with_custom_conditions.yml), clean_up: false))
     cr = load_fixtures("crd", ["with_custom_conditions_cr.yml"])
     failure_conditions = {
       "spec" => {},
@@ -508,7 +466,7 @@ class SerialDeployTest < Krane::IntegrationTest
   def test_deploying_crs_with_invalid_crd_conditions_fails
     # Since CRDs are not always deployed along with their CRs and krane is not the only way CRDs are
     # deployed, we need to model the case where poorly configured rollout_conditions are present before deploying a CR
-    KubernetesDeploy::DeployTask.any_instance.expects(:validate_resources).returns(:true)
+    Krane::DeployTask.any_instance.expects(:validate_resources).returns(:true)
     crd_result = deploy_fixtures("crd", subset: ["with_custom_conditions.yml"]) do |resource|
       crd = resource["with_custom_conditions.yml"]["CustomResourceDefinition"].first
       crd["metadata"]["annotations"].merge!(
@@ -517,7 +475,7 @@ class SerialDeployTest < Krane::IntegrationTest
     end
 
     assert_deploy_success(crd_result)
-    KubernetesDeploy::DeployTask.any_instance.unstub(:validate_resources)
+    Krane::DeployTask.any_instance.unstub(:validate_resources)
 
     cr_result = deploy_fixtures("crd", subset: ["with_custom_conditions_cr.yml", "with_custom_conditions_cr2.yml"])
     assert_deploy_failure(cr_result)
@@ -585,9 +543,9 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_global_deploy_validation_catches_namespaced_cr
-    assert_deploy_success(global_deploy_dirs_without_profiling('test/fixtures/crd/mail.yml', selector: "app=krane"))
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("crd", subset: %(mail.yml)))
     reset_logger
-    assert_deploy_failure(global_deploy_dirs_without_profiling('test/fixtures/crd/mail_cr.yml', selector: "app=krane"))
+    assert_deploy_failure(deploy_global_fixtures_non_namespaced("crd", subset: %(mail_cr.yml)))
     assert_logs_match_all([
       "Phase 1: Initializing deploy",
       "Using resource selector app=krane",
@@ -627,6 +585,112 @@ class SerialDeployTest < Krane::IntegrationTest
   ensure
     build_kubectl.run("delete", "-f", fixture_path("globals"), use_namespace: false, log_failure: false)
     build_kubectl.run("delete", "namespace", namespace_name, use_namespace: false, log_failure: false)
+  end
+
+  # Note: These tests assume a default storage class with a dynamic provisioner and 'Immediate' bind
+  def test_pvc
+    pvname = "local0001"
+    storage_class_name = "k8s-deploy-test"
+
+    assert_deploy_success(deploy_global_fixtures_non_namespaced("pvc",
+      subset: ["wait_for_first_consumer_storage_class.yml"]))
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    assert_deploy_success(deploy_fixtures("pvc", subset: %w(pod.yml pvc.yml)))
+
+    assert_logs_match_all([
+      "Successfully deployed 3 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Bound},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+      %r{Pod/pvc\s+Succeeded},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname)
+  end
+
+  def test_pvc_no_bind
+    pvname = "local0002"
+    storage_class_name = "k8s-deploy-test-no-bind"
+
+    result = deploy_global_fixtures_non_namespaced("pvc",
+    subset: ["wait_for_first_consumer_storage_class.yml"], clean_up: false) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 2 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Pending},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname)
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
+  end
+
+  def test_pvc_immediate_bind
+    pvname = "local0003"
+    storage_class_name = "k8s-deploy-test-immediate-bind"
+
+    result = deploy_global_fixtures_non_namespaced("pvc",
+    subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
+      sc["volumeBindingMode"] = "Immediate"
+    end
+    assert_deploy_success(result)
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 2 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Bound},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname)
+  end
+
+  def test_pvc_no_pv
+    storage_class_name = "k8s-deploy-test-no-pv"
+
+    result = deploy_global_fixtures_non_namespaced("pvc",
+    subset: ["wait_for_first_consumer_storage_class.yml"], clean_up: false) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      sc["metadata"]["name"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    result = deploy_fixtures("pvc", subset: ["pvc.yml", "pod.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_failure(result)
+
+    assert_logs_match_all([
+      "Failed to deploy 1 priority resource",
+      "Pod/pvc: TIMED OUT (timeout: 10s)",
+      %r{Pod could not be scheduled because 0/\d+ nodes are available:},
+      /\d+ node[(]s[)] didn't find available persistent volumes to bind./,
+    ], in_order: true)
   end
 
   private

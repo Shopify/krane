@@ -5,30 +5,9 @@ require 'krane/options_helper'
 
 class OptionsHelperTest < Krane::TestCase
   include EnvTestHelper
-  def test_with_template_dir
+  def test_with_template_paths
     Krane::OptionsHelper.with_processed_template_paths([fixture_path('hello-cloud')]) do |template_paths|
       assert_equal(template_paths, [fixture_path('hello-cloud')])
-    end
-  end
-
-  def test_template_dir_with_default_env_var
-    with_env("ENVIRONMENT", "test") do
-      assert_raises_message(Krane::OptionsHelper::OptionsError,
-        "Template directory config/deploy/test does not exist") do
-        Krane::OptionsHelper.with_processed_template_paths([])
-      end
-    end
-  end
-
-  def test_missing_template_dir_raises
-    with_env("ENVIRONMENT", nil) do
-      assert_raises_message(Krane::OptionsHelper::OptionsError,
-        "Template directory is unknown. " \
-        "Either specify --template-dir argument or set $ENVIRONMENT to use config/deploy/$ENVIRONMENT " \
-        "as a default path.") do
-        Krane::OptionsHelper.with_processed_template_paths([]) do
-        end
-      end
     end
   end
 

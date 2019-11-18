@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 require 'securerandom'
-require 'kubernetes-deploy/deploy_task'
+require 'krane/deploy_task'
 
 module FixtureDeployHelper
   EJSON_FILENAME = Krane::EjsonSecretProvisioner::EJSON_SECRETS_FILE
 
-  # Deploys the specified set of fixtures via KubernetesDeploy::DeployTask.
+  # Deploys the specified set of fixtures via Krane::DeployTask.
   #
   # Optionally takes an array of filenames belonging to the fixture, and deploys that subset only.
   # Example:
@@ -42,11 +42,11 @@ module FixtureDeployHelper
     success
   end
 
-  def deploy_global_fixtures(set, subset: nil, **args)
+  def deploy_global_fixtures(set, subset: nil, namespaced: true, **args)
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
     args[:selector] ||= "test=#{@namespace}"
-    namespace_globals(fixtures, args[:selector])
+    namespace_globals(fixtures, args[:selector]) if namespaced
 
     yield fixtures if block_given?
 
@@ -56,6 +56,11 @@ module FixtureDeployHelper
       success = global_deploy_dirs_without_profiling(target_dir, **args)
     end
     success
+  end
+
+  def deploy_global_fixtures_non_namespaced(fixture, subset:, prune: true, clean_up: true, &block)
+    deploy_global_fixtures(fixture, subset: subset, selector: 'app=krane', clean_up: clean_up, prune: prune,
+                                    namespaced: false, &block)
   end
 
   def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil, render_erb: false)
@@ -78,12 +83,12 @@ module FixtureDeployHelper
     success
   end
 
-  def deploy_dirs_without_profiling(dirs, wait: true, allow_protected_ns: false, prune: true, bindings: {},
+  def deploy_dirs_without_profiling(dirs, wait: true, prune: true, bindings: {},
     sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil, selector: nil,
-    protected_namespaces: nil, render_erb: false, allow_globals: true)
+    protected_namespaces: nil, render_erb: false)
     kubectl_instance ||= build_kubectl
 
-    deploy = KubernetesDeploy::DeployTask.new(
+    deploy = Krane::DeployTask.new(
       namespace: @namespace,
       current_sha: sha,
       context: KubeclientHelper::TEST_CONTEXT,
@@ -94,12 +99,10 @@ module FixtureDeployHelper
       max_watch_seconds: max_watch_seconds,
       selector: selector,
       protected_namespaces: protected_namespaces,
-      render_erb: render_erb,
-      allow_globals: allow_globals
+      render_erb: render_erb
     )
     deploy.run(
       verify_result: wait,
-      allow_protected_ns: allow_protected_ns,
       prune: prune
     )
   end
@@ -121,7 +124,7 @@ module FixtureDeployHelper
     delete_globals(Array(dirs)) if clean_up
   end
 
-  # Deploys all fixtures in the given directories via KubernetesDeploy::DeployTask
+  # Deploys all fixtures in the given directories via Krane::DeployTask
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
   def deploy_dirs(*dirs, **args)
