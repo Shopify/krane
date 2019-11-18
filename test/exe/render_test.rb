@@ -75,7 +75,7 @@ class RenderTest < Krane::TestCase
 
   def default_options(new_args = {})
     {
-      current_sha: ENV["REVISION"],
+      current_sha: nil,
       filenames: ["/dev/null"],
       bindings: {},
     }.merge(new_args)
