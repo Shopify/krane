@@ -4,9 +4,9 @@ module Krane
   module OptionsHelper
     class OptionsError < StandardError; end
 
-    STDIN_TEMP_FILE = "from_stdin.yml.erb"
+    STDIN_TEMP_FILE = "from_stdin.yml"
     class << self
-      def with_processed_template_paths(template_paths)
+      def with_processed_template_paths(template_paths, render_erb: false)
         validated_paths = []
         template_paths.uniq!
         template_paths.each do |template_path|
@@ -16,7 +16,7 @@ module Krane
 
         if template_paths.include?("-")
           Dir.mktmpdir("krane") do |dir|
-            template_dir_from_stdin(temp_dir: dir)
+            template_dir_from_stdin(temp_dir: dir, render_erb: render_erb)
             validated_paths << dir
             yield validated_paths
           end
@@ -27,8 +27,10 @@ module Krane
 
       private
 
-      def template_dir_from_stdin(temp_dir:)
-        File.open(File.join(temp_dir, STDIN_TEMP_FILE), 'w+') { |f| f.print($stdin.read) }
+      def template_dir_from_stdin(temp_dir:, render_erb:)
+        tempfile = STDIN_TEMP_FILE
+        tempfile += ".erb" if render_erb
+        File.open(File.join(temp_dir, tempfile), 'w+') { |f| f.print($stdin.read) }
       rescue IOError, Errno::ENOENT => e
         raise OptionsError, e.message
       end

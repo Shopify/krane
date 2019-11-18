@@ -54,6 +54,30 @@ class KraneTest < Krane::IntegrationTest
     assert_match(test_sha, out)
   end
 
+  def test_render_black_box_stdin
+    file = "test/fixtures/branched/web.yml.erb"
+    template = File.read(file)
+    data_value = rand(10_000).to_s
+    bindings = "branch=#{data_value}"
+    test_sha = rand(10_000).to_s
+
+    out, err, status = krane_black_box("render",
+      "--stdin --bindings #{bindings} --current-sha #{test_sha}", stdin: template)
+
+    assert_predicate(status, :success?)
+    assert_match("Success", err)
+    assert_match(test_sha, out)
+    assert_match(data_value, out)
+  end
+
+  def test_render_current_sha_cant_be_blank
+    paths = ["test/fixtures/test-partials/partials/independent-configmap.yml.erb"]
+    _, err, status = krane_black_box("render", "-f #{paths.join(' ')} --current-sha")
+    refute_predicate(status, :success?)
+    assert_match("FAILURE", err)
+    assert_match("current-sha is optional but can not be blank", err)
+  end
+
   def test_deploy_black_box_success
     setup_template_dir("hello-cloud", subset: %w(bare_replica_set.yml)) do |target_dir|
       flags = "-f #{target_dir}"
@@ -62,6 +86,18 @@ class KraneTest < Krane::IntegrationTest
       assert_match("Success", err)
       assert_predicate(status, :success?)
     end
+  end
+
+  def test_deploy_black_box_success_stdin
+    render_out, _, render_status = krane_black_box("render",
+      "-f #{fixture_path('hello-cloud')} --bindings deployment_id=1 current_sha=123")
+    assert_predicate(render_status, :success?)
+
+    out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} --stdin",
+      stdin: render_out)
+    assert_empty(out)
+    assert_match("Success", err)
+    assert_predicate(status, :success?)
   end
 
   def test_deploy_black_box_failure

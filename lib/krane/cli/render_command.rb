@@ -8,7 +8,8 @@ module Krane
         "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                          required: false, default: [], aliases: 'f', desc: 'Directories and files to render' },
         "stdin" => { type: :boolean, desc: "Read resources from stdin", default: false },
-        "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings" },
+        "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings",
+                           lazy_default: '' },
       }
 
       def self.from_options(options)
@@ -26,7 +27,7 @@ module Krane
           raise Thor::RequiredArgumentMissingError, 'At least one of --filenames or --stdin must be set'
         end
 
-        ::Krane::OptionsHelper.with_processed_template_paths(filenames) do |paths|
+        ::Krane::OptionsHelper.with_processed_template_paths(filenames, render_erb: true) do |paths|
           renderer = ::Krane::RenderTask.new(
             current_sha: options['current-sha'],
             filenames: paths,

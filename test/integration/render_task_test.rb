@@ -325,6 +325,18 @@ class RenderTaskTest < Krane::TestCase
     assert_logs_match("Rendered effectively_empty.yml.erb successfully, but the result was blank")
   end
 
+  def test_render_errors_empty_sha
+    render = Krane::RenderTask.new(logger: logger, current_sha: "", bindings: {},
+      filenames: [fixture_path('test-partials')])
+
+    assert_render_failure(render.run(stream: mock_output_stream))
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Configuration invalid",
+      "- current-sha is optional but can not be blank",
+    ], in_order: true)
+  end
+
   private
 
   def build_render_task(filenames, bindings = {})
