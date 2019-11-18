@@ -8,7 +8,7 @@
 
 **Actual behavior:** [What actually happened]
 
-**Version(s) affected:** [run `kubernetes-deploy --version`]
+**Version(s) affected:** [run `krane version`]
 
 ### Steps to Reproduce
 
