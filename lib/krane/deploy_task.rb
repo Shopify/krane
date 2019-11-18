@@ -100,7 +100,7 @@ module Krane
       global_timeout: nil, selector: nil, filenames: [], protected_namespaces: nil,
       render_erb: true)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
-      @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger)
+      @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
       @task_config = Krane::TaskConfig.new(context, namespace, @logger)
       @bindings = bindings
       @namespace = namespace
@@ -229,8 +229,7 @@ module Krane
       @logger.info("Discovering resources:")
       resources = []
       crds_by_kind = cluster_resource_discoverer.crds.group_by(&:kind)
-      @template_sets.with_resource_definitions(render_erb: @render_erb,
-          current_sha: @current_sha, bindings: @bindings) do |r_def|
+      @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
           statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)

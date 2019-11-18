@@ -3,7 +3,9 @@ require 'integration_test_helper'
 
 class KraneTest < Krane::IntegrationTest
   def test_restart_black_box
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"]))
+    assert_deploy_success(
+      deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"], render_erb: true)
+    )
     refute(fetch_restarted_at("web"), "RESTARTED_AT env on fresh deployment")
     refute(fetch_restarted_at("redis"), "RESTARTED_AT env on fresh deployment")
 
@@ -53,8 +55,8 @@ class KraneTest < Krane::IntegrationTest
   end
 
   def test_deploy_black_box_success
-    setup_template_dir("hello-cloud") do |target_dir|
-      flags = "-f #{target_dir} --render-erb --bindings deployment_id=1 current_sha=123"
+    setup_template_dir("hello-cloud", subset: %w(bare_replica_set.yml)) do |target_dir|
+      flags = "-f #{target_dir}"
       out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} #{flags}")
       assert_empty(out)
       assert_match("Success", err)
@@ -71,8 +73,8 @@ class KraneTest < Krane::IntegrationTest
   end
 
   def test_deploy_black_box_timeout
-    setup_template_dir("hello-cloud") do |target_dir|
-      flags = "-f #{target_dir} --render-erb --bindings deployment_id=1 current_sha=123 --global-timeout=1s"
+    setup_template_dir("hello-cloud", subset: %w(bare_replica_set.yml)) do |target_dir|
+      flags = "-f #{target_dir} --global-timeout=0.1s"
       out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} #{flags}")
       assert_empty(out)
       assert_match("TIMED OUT", err)

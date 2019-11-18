@@ -57,8 +57,8 @@ module Krane
     def render_templates(stream, template_sets)
       @logger.phase_heading("Rendering template(s)")
       count = 0
-      template_sets.with_resource_definitions_and_filename(render_erb: true,
-          current_sha: @current_sha, bindings: @bindings, raw: true) do |rendered_content, filename|
+      template_sets.with_resource_definitions_and_filename(current_sha: @current_sha,
+        bindings: @bindings, raw: true) do |rendered_content, filename|
         write_to_stream(rendered_content, filename, stream)
         count += 1
       end

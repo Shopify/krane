@@ -496,7 +496,7 @@ class SerialDeployTest < Krane::IntegrationTest
   def test_apply_failure_with_sensitive_resources_hides_template_content
     logger.level = 0
     Krane::Deployment.any_instance.expects(:sensitive_template_content?).returns(true).at_least_once
-    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"]) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true) do |fixtures|
       bad_port_name = "http_test_is_really_long_and_invalid_chars"
       svc = fixtures["web.yml.erb"]["Service"].first
       svc["spec"]["ports"].first["targetPort"] = bad_port_name
