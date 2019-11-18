@@ -47,7 +47,7 @@ We handle Kubernetes secrets, so it is critical that changes do not cause the co
 
 **Project architecture**
 
-The main interface of this project is our four tasks: `DeployTask`, `RestartTask`, `RunnerTask`, and `RenderTask`. The code in these classes should be high-level abstractions, with implementation details encapsulated in other classes. The public interface of these tasks is a `run` method (and a `run!` equivalent), the body of which should read like a set of phases and steps. Note that non-task classes are considered internal and we reserve the right to change their API at any time.
+The main interface of this project is our five tasks: `DeployTask`, `GlobalDeployTask`, `RestartTask`, `RunnerTask`, and `RenderTask`. The code in these classes should be high-level abstractions, with implementation details encapsulated in other classes. The public interface of these tasks is a `run` method (and a `run!` equivalent), the body of which should read like a set of phases and steps. Note that non-task classes are considered internal and we reserve the right to change their API at any time.
 
 An important design principle of the tasks is that they should try to fail fast before touching the cluster if they will not succeed overall. Part of how we achieve this is by separating each task into phases, where the first phase simply gathers information and runs validations to determine what needs to be done and whether that will be able to succeed. In practice, this is the “Initializing <task>” phase for all tasks, plus the “Checking initial resource statuses” phase for DeployTask. Our users should be able to assume that these initial phases never modify their clusters.
 
@@ -70,10 +70,6 @@ DeployTask must remain performant when given several hundred resources at a time
 This project's mission is to make it easy to ship changes to a Kubernetes namespace and understand the result. Features that introduce new classes of responsibility to the tool are not usually accepted.
 
 Deploys can be a very tempting place to cram features. Imagine a proposed feature actually fits better elsewhere—where might that be? (Examples: validator in CI, custom controller, initializer, pre-processing step in the CD pipeline, or even Kubernetes core)
-
-**Global resources**
-
-This project is intended to manage a namespace (or a label-delimited subsection of one). It does not officially support non-namespaced resources. In practice, we do model custom resource definitions specifically, because it helps us better handle custom resources (which typically are namespaced). However, our intent is to keep this the only exception to the rule.
 
 **Template rendering**
 
