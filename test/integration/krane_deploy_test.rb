@@ -1318,7 +1318,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     result = deploy_fixtures(
       "invalid",
       subset: ["bad_probe.yml", "cannot_run.yml", "missing_volumes.yml", "config_map.yml"],
-      max_watch_seconds: 20
+      global_timeout: 20
     ) do |f|
       bad_probe = f["bad_probe.yml"]["Deployment"].first
       bad_probe["spec"]["progressDeadlineSeconds"] = 5
@@ -1340,7 +1340,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_resource_watcher_raises_after_timeout_seconds
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'], max_watch_seconds: 5,
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'], global_timeout: 5,
       render_erb: true) do |fixtures|
       deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 100
@@ -1596,9 +1596,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   private
 
-  def build_deploy_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, max_watch_seconds: nil)
+  def build_deploy_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, global_timeout: nil)
     Krane::DeployTask.new(context: context, namespace: ns, logger: logger,
-      max_watch_seconds: max_watch_seconds, template_paths: ['./test/fixtures/hello-cloud'], current_sha: '123')
+      global_timeout: global_timeout, filenames: ['./test/fixtures/hello-cloud'], current_sha: '123')
   end
 
   def run_params

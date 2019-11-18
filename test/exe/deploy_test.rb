@@ -10,9 +10,9 @@ class DeployTest < Krane::TestCase
   end
 
   def test_deploy_parses_global_timeout
-    set_krane_deploy_expectations(new_args: { max_watch_seconds: 10 })
+    set_krane_deploy_expectations(new_args: { global_timeout: 10 })
     krane_deploy!(flags: '--global-timeout 10s')
-    set_krane_deploy_expectations(new_args: { max_watch_seconds: 60**2 })
+    set_krane_deploy_expectations(new_args: { global_timeout: 60**2 })
     krane_deploy!(flags: '--global-timeout 1h')
   end
 
@@ -63,15 +63,15 @@ class DeployTest < Krane::TestCase
     Dir.mktmpdir do |tmp_path|
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
-      set_krane_deploy_expectations(new_args: { template_paths: [tmp_path] })
+      set_krane_deploy_expectations(new_args: { filenames: [tmp_path] })
       krane_deploy!(flags: '--stdin')
     end
   end
 
   def test_deploy_passes_filename
-    set_krane_deploy_expectations(new_args: { template_paths: ['/my/file/path'] })
+    set_krane_deploy_expectations(new_args: { filenames: ['/my/file/path'] })
     krane_deploy!(flags: '-f /my/file/path')
-    set_krane_deploy_expectations(new_args: { template_paths: ['/my/other/file/path'] })
+    set_krane_deploy_expectations(new_args: { filenames: ['/my/other/file/path'] })
     krane_deploy!(flags: '--filenames /my/other/file/path')
   end
 
@@ -79,7 +79,7 @@ class DeployTest < Krane::TestCase
     Dir.mktmpdir do |tmp_path|
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
-      set_krane_deploy_expectations(new_args: { template_paths: ['/my/file/path', tmp_path] })
+      set_krane_deploy_expectations(new_args: { filenames: ['/my/file/path', tmp_path] })
       krane_deploy!(flags: '-f /my/file/path --stdin')
     end
   end
@@ -129,10 +129,10 @@ class DeployTest < Krane::TestCase
         namespace: deploy_task_config.namespace,
         context: deploy_task_config.context,
         current_sha: nil,
-        template_paths: ['/tmp'],
+        filenames: ['/tmp'],
         bindings: {},
         logger: logger,
-        max_watch_seconds: 300,
+        global_timeout: 300,
         selector: nil,
         protected_namespaces: ["default", "kube-system", "kube-public"],
       }.merge(new_args),

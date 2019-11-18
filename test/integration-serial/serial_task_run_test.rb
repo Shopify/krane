@@ -67,10 +67,10 @@ class SerialTaskRunTest < Krane::IntegrationTest
 
   def test_timedout_statsd_metric_emitted
     deploy_task_template
-    task_runner = build_task_runner(max_watch_seconds: 0)
+    task_runner = build_task_runner(global_timeout: 0)
 
     metrics = capture_statsd_calls(client: Krane::StatsD.client) do
-      result = task_runner.run(run_params.merge(args: ["sleep 5"]))
+      result = task_runner.run(run_params.merge(arguments: ["sleep 5"]))
       assert_task_run_failure(result, :timed_out)
     end
 

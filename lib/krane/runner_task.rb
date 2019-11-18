@@ -19,16 +19,16 @@ module Krane
 
     # Initializes the runner task
     #
-    # @param namespace [String] Kubernetes namespace
-    # @param context [String] Kubernetes context / cluster
+    # @param namespace [String] Kubernetes namespace (*required*)
+    # @param context [String] Kubernetes context / cluster (*required*)
     # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
-    # @param max_watch_seconds [Integer] Timeout in seconds
-    def initialize(namespace:, context:, logger: nil, max_watch_seconds: nil)
+    # @param global_timeout [Integer] Timeout in seconds
+    def initialize(namespace:, context:, logger: nil, global_timeout: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @task_config = Krane::TaskConfig.new(context, namespace, @logger)
       @namespace = namespace
       @context = context
-      @max_watch_seconds = max_watch_seconds
+      @global_timeout = global_timeout
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -43,24 +43,24 @@ module Krane
 
     # Runs the task, raising exceptions in case of issues
     #
-    # @param task_template [String] The template file you'll be rendering
-    # @param entrypoint [Array<String>] Override the default command in the container image
-    # @param args [Array<String>] Override the default arguments for the command
+    # @param template [String] The filename of the template you'll be rendering (*required*)
+    # @param command [Array<String>] Override the default command in the container image
+    # @param arguments [Array<String>] Override the default arguments for the command
     # @param env_vars [Array<String>] List of env vars
     # @param verify_result [Boolean] Wait for completion and verify pod success
     #
     # @return [nil]
-    def run!(task_template:, entrypoint:, args:, env_vars: [], verify_result: true)
+    def run!(template:, command:, arguments:, env_vars: [], verify_result: true)
       start = Time.now.utc
       @logger.reset
 
       @logger.phase_heading("Initializing task")
 
       @logger.info("Validating configuration")
-      verify_config!(task_template, args)
+      verify_config!(template)
       @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
 
-      pod = build_pod(task_template, entrypoint, args, env_vars, verify_result)
+      pod = build_pod(template, command, arguments, env_vars, verify_result)
       validate_pod(pod)
 
       @logger.phase_heading("Running pod")
@@ -98,11 +98,11 @@ module Krane
       raise FatalDeploymentError, msg
     end
 
-    def build_pod(template_name, entrypoint, args, env_vars, verify_result)
+    def build_pod(template_name, command, args, env_vars, verify_result)
       task_template = get_template(template_name)
       @logger.info("Using template '#{template_name}'")
       pod_template = build_pod_definition(task_template)
-      set_container_overrides!(pod_template, entrypoint, args, env_vars)
+      set_container_overrides!(pod_template, command, args, env_vars)
       ensure_valid_restart_policy!(pod_template, verify_result)
       Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
                     definition: pod_template.to_hash.deep_stringify_keys, statsd_tags: [])
@@ -113,7 +113,7 @@ module Krane
     end
 
     def watch_pod(pod)
-      rw = ResourceWatcher.new(resources: [pod], timeout: @max_watch_seconds,
+      rw = ResourceWatcher.new(resources: [pod], timeout: @global_timeout,
         operation_name: "run", task_config: @task_config)
       rw.run(delay_sync: 1, reminder_interval: 30.seconds)
       raise DeploymentTimeoutError if pod.deploy_timed_out?
@@ -131,8 +131,8 @@ module Krane
       @logger.summary.add_paragraph(warning)
     end
 
-    def verify_config!(task_template, args)
-      task_config_validator = RunnerTaskConfigValidator.new(task_template, args, @task_config, kubectl,
+    def verify_config!(task_template)
+      task_config_validator = RunnerTaskConfigValidator.new(task_template, @task_config, kubectl,
         kubeclient_builder)
       unless task_config_validator.valid?
         @logger.summary.add_action("Configuration invalid")
@@ -165,7 +165,7 @@ module Krane
       pod_definition
     end
 
-    def set_container_overrides!(pod_definition, entrypoint, args, env_vars)
+    def set_container_overrides!(pod_definition, command, args, env_vars)
       container = pod_definition.spec.containers.find { |cont| cont.name == 'task-runner' }
       if container.nil?
         message = "Pod spec does not contain a template container called 'task-runner'"
@@ -173,7 +173,7 @@ module Krane
         raise TaskConfigurationError, message
       end
 
-      container.command = entrypoint if entrypoint
+      container.command = command if command
       container.args = args if args
 
       env_args = env_vars.map do |env|

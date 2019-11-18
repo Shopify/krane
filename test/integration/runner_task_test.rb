@@ -5,7 +5,7 @@ class RunnerTaskTest < Krane::IntegrationTest
   include TaskRunnerTestHelper
 
   def test_run_without_verify_result_succeeds_as_soon_as_pod_is_successfully_created
-    deploy_unschedulable_task_template
+    deploy_unschedulable_template
 
     task_runner = build_task_runner
     assert_nil(task_runner.pod_name)
@@ -26,10 +26,10 @@ class RunnerTaskTest < Krane::IntegrationTest
     assert_equal(task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run")
   end
 
-  def test_run_global_timeout_with_max_watch_seconds
+  def test_run_global_timeout_with_global_timeout
     deploy_task_template
 
-    task_runner = build_task_runner(max_watch_seconds: 5)
+    task_runner = build_task_runner(global_timeout: 5)
     result = task_runner.run(run_params(log_lines: 8, log_interval: 1))
     assert_task_run_failure(result, :timed_out)
 
@@ -45,7 +45,7 @@ class RunnerTaskTest < Krane::IntegrationTest
     deploy_task_template
 
     task_runner = build_task_runner
-    result = task_runner.run(run_params.merge(args: ["/not/a/command"]))
+    result = task_runner.run(run_params.merge(arguments: ["/not/a/command"]))
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -163,7 +163,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
     task_runner = build_task_runner
     assert_raises(Krane::FatalDeploymentError) do
-      task_runner.run!(run_params.merge(args: ["/not/a/command"]))
+      task_runner.run!(run_params.merge(arguments: ["/not/a/command"]))
     end
 
     assert_logs_match_all([
@@ -204,11 +204,11 @@ class RunnerTaskTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
-  def test_run_fails_if_task_template_is_blank
+  def test_run_fails_if_template_is_blank
     task_runner = build_task_runner
-    result = task_runner.run(task_template: '',
-      entrypoint: ['/bin/sh', '-c'],
-      args: nil,
+    result = task_runner.run(template: '',
+      command: ['/bin/sh', '-c'],
+      arguments: nil,
       env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
     assert_task_run_failure(result)
 
@@ -221,12 +221,12 @@ class RunnerTaskTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
-  def test_run_bang_fails_if_task_template_is_invalid
+  def test_run_bang_fails_if_template_is_invalid
     task_runner = build_task_runner
     assert_raises(Krane::TaskConfigurationError) do
-      task_runner.run!(task_template: '',
-        entrypoint: ['/bin/sh', '-c'],
-        args: nil,
+      task_runner.run!(template: '',
+        command: ['/bin/sh', '-c'],
+        arguments: nil,
         env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
     end
   end
@@ -271,9 +271,9 @@ class RunnerTaskTest < Krane::IntegrationTest
 
     task_runner = build_task_runner
     result = task_runner.run(
-      task_template: 'hello-cloud-template-runner',
-      entrypoint: ['/bin/sh', '-c'],
-      args: ['echo "The value is: $MY_CUSTOM_VARIABLE"'],
+      template: 'hello-cloud-template-runner',
+      command: ['/bin/sh', '-c'],
+      arguments: ['echo "The value is: $MY_CUSTOM_VARIABLE"'],
       env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"]
     )
     assert_task_run_success(result)
@@ -286,7 +286,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
   private
 
-  def deploy_unschedulable_task_template
+  def deploy_unschedulable_template
     deploy_task_template do |fixtures|
       way_too_fat = {
         "requests" => {

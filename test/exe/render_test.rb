@@ -2,7 +2,7 @@
 require 'test_helper'
 require 'krane/cli/krane'
 
-class RendertTest < Krane::TestCase
+class RenderTest < Krane::TestCase
   def test_render_with_default_options
     install_krane_render_expectations
     krane_render!
@@ -10,10 +10,10 @@ class RendertTest < Krane::TestCase
 
   def test_render_parses_paths
     paths = "/dev/null /dev/yes /dev/no"
-    install_krane_render_expectations(template_paths: paths.split)
+    install_krane_render_expectations(filenames: paths.split)
     krane_render!("-f #{paths}")
 
-    install_krane_render_expectations(template_paths: paths.split)
+    install_krane_render_expectations(filenames: paths.split)
     krane_render!("--filenames #{paths}")
   end
 
@@ -22,7 +22,7 @@ class RendertTest < Krane::TestCase
       file_path = "/dev/null"
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
-      install_krane_render_expectations(template_paths: [file_path, tmp_path])
+      install_krane_render_expectations(filenames: [file_path, tmp_path])
       krane_render!("--filenames #{file_path} --stdin")
     end
   end
@@ -31,7 +31,7 @@ class RendertTest < Krane::TestCase
     Dir.mktmpdir do |tmp_path|
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path).once
-      install_krane_render_expectations(template_paths: [tmp_path])
+      install_krane_render_expectations(filenames: [tmp_path])
       krane_render!("--stdin")
     end
   end
@@ -60,7 +60,7 @@ class RendertTest < Krane::TestCase
   def install_krane_render_expectations(new_args = {})
     options = default_options(new_args)
     response = mock('RenderTask')
-    response.expects(:run!).with(STDOUT).returns(true)
+    response.expects(:run!).with(stream: STDOUT).returns(true)
     Krane::RenderTask.expects(:new).with(options).returns(response)
   end
 
@@ -76,7 +76,7 @@ class RendertTest < Krane::TestCase
   def default_options(new_args = {})
     {
       current_sha: ENV["REVISION"],
-      template_paths: ["/dev/null"],
+      filenames: ["/dev/null"],
       bindings: {},
     }.merge(new_args)
   end

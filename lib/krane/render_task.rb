@@ -12,11 +12,11 @@ module Krane
     #
     # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param current_sha [String] The SHA of the commit
-    # @param template_paths [Array<String>] An array of template paths to render
+    # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
     # @param bindings [Hash] Bindings parsed by Krane::BindingsParser
-    def initialize(logger: nil, current_sha:, template_paths: [], bindings:)
+    def initialize(logger: nil, current_sha:, filenames: [], bindings:)
       @logger = logger || Krane::FormattedLogger.build
-      @template_paths = template_paths.map { |path| File.expand_path(path) }
+      @filenames = filenames.map { |path| File.expand_path(path) }
       @bindings = bindings
       @current_sha = current_sha
     end
@@ -36,11 +36,11 @@ module Krane
     # @param stream [IO] Place to stream the output to
     #
     # @return [nil]
-    def run!(stream)
+    def run!(stream:)
       @logger.reset
       @logger.phase_heading("Initializing render task")
 
-      ts = TemplateSets.from_dirs_and_files(paths: @template_paths, logger: @logger)
+      ts = TemplateSets.from_dirs_and_files(paths: @filenames, logger: @logger)
 
       validate_configuration(ts)
       count = render_templates(stream, ts)
@@ -88,8 +88,8 @@ module Krane
     def validate_configuration(template_sets)
       @logger.info("Validating configuration")
       errors = []
-      if @template_paths.blank?
-        errors << "template_paths must be set"
+      if @filenames.blank?
+        errors << "filenames must be set"
       end
       errors += template_sets.validate
 
