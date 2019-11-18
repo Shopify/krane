@@ -19,7 +19,7 @@ Especially in a CI/CD environment, we need a clear, actionable pass/fail result 
 
 ​:running: [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy) using bare pods (example use case: Rails migrations)
 
-If you need the ability to render dynamic values in templates before deploying, you can use [krane render](#krane render). Alongside that, this repo also includes tools for [running tasks](#krane run) and [restarting deployments](#krane restart).
+If you need the ability to render dynamic values in templates before deploying, you can use [krane render](#krane-render). Alongside that, this repo also includes tools for [running tasks](#krane-run) and [restarting deployments](#krane-restart).
 
 
 
@@ -324,7 +324,7 @@ status:
 
 ### Deploy walkthrough
 
-Let's walk through what happens when you run the `deploy` task with [this directory of templates](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud). This particular example uses ERB templates as well, so we'll use the [krane render](#krane render) task to achieve that.
+Let's walk through what happens when you run the `deploy` task with [this directory of templates](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud). This particular example uses ERB templates as well, so we'll use the [krane render](#krane-render) task to achieve that.
 
 You can test this out for yourself by running the following command:
 
@@ -437,7 +437,7 @@ Refer to `krane global-deploy help` for the authoritative set of options.
 - `--filenames / -if [PATHS]`: Accepts a  list of directories and/or filenames to specify the set of directories/files that will be deployed
 - `--stdin`: Read from STDIN. Can be combined with `-f`
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
-- `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
+- `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. By using this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
 - `--global-timeout=duration`: Raise a timeout error if it takes longer than _duration_ for any
 resource to deploy.
 - `--no-verify-result`: Skip verification that resources correctly deployed.
