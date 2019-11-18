@@ -34,9 +34,9 @@ class RunTest < Krane::TestCase
     krane_run!(flags: '--arguments hello')
   end
 
-  def test_run_parses_filename
-    set_krane_run_expectations(run_args: { filename: 'some-name' })
-    krane_run!(flags: '--filename some-name')
+  def test_run_parses_template
+    set_krane_run_expectations(run_args: { template: 'some-name' })
+    krane_run!(flags: '--template some-name')
   end
 
   def test_run_parses_env_vars
@@ -45,21 +45,21 @@ class RunTest < Krane::TestCase
   end
 
   def test_run_failure_with_not_enough_arguments_as_black_box
-    out, err, status = krane_black_box('run', '--filename some_template not_enough_arguments')
+    out, err, status = krane_black_box('run', '--template some_template not_enough_arguments')
     assert_equal(1, status.exitstatus)
     assert_empty(out)
     assert_match("ERROR", err)
   end
 
   def test_run_failure_with_too_many_args_as_black_box
-    out, err, status = krane_black_box('run', '--filename some_template ns ctx some_extra_arg')
+    out, err, status = krane_black_box('run', '--template some_template ns ctx some_extra_arg')
     assert_equal(1, status.exitstatus)
     assert_empty(out)
     assert_match("ERROR", err)
   end
 
   def test_run_failure_with_bad_timeout_as_black_box
-    out, err, status = krane_black_box('run', '--filename some_template ns ctx --global-timeout=mittens')
+    out, err, status = krane_black_box('run', '--template some_template ns ctx --global-timeout=mittens')
     assert_equal(1, status.exitstatus)
     assert_empty(out)
     assert_match("Error parsing duration", err)
@@ -75,7 +75,7 @@ class RunTest < Krane::TestCase
   end
 
   def krane_run!(flags: '')
-    flags += " --filename #{TASK_TEMPLATE}" unless flags.include?('--filename')
+    flags += " --template #{TASK_TEMPLATE}" unless flags.include?('--template')
     krane = Krane::CLI::Krane.new(
       [run_task_config.namespace, run_task_config.context],
       flags.split
@@ -96,7 +96,7 @@ class RunTest < Krane::TestCase
       }.merge(new_args),
       run_args: {
         verify_result: true,
-        filename: TASK_TEMPLATE,
+        template: TASK_TEMPLATE,
         command: nil,
         arguments: nil,
         env_vars: [],

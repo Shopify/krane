@@ -43,24 +43,24 @@ module Krane
 
     # Runs the task, raising exceptions in case of issues
     #
-    # @param filename [String] The filename of the template you'll be rendering (*required*)
+    # @param template [String] The filename of the template you'll be rendering (*required*)
     # @param command [Array<String>] Override the default command in the container image
     # @param arguments [Array<String>] Override the default arguments for the command
     # @param env_vars [Array<String>] List of env vars
     # @param verify_result [Boolean] Wait for completion and verify pod success
     #
     # @return [nil]
-    def run!(filename:, command:, arguments:, env_vars: [], verify_result: true)
+    def run!(template:, command:, arguments:, env_vars: [], verify_result: true)
       start = Time.now.utc
       @logger.reset
 
       @logger.phase_heading("Initializing task")
 
       @logger.info("Validating configuration")
-      verify_config!(filename)
+      verify_config!(template)
       @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
 
-      pod = build_pod(filename, command, arguments, env_vars, verify_result)
+      pod = build_pod(template, command, arguments, env_vars, verify_result)
       validate_pod(pod)
 
       @logger.phase_heading("Running pod")

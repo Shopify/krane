@@ -21,7 +21,7 @@ module TaskRunnerTestHelper
 
   def run_params(log_lines: 5, log_interval: 0.1, verify_result: true)
     {
-      filename: 'hello-cloud-template-runner',
+      template: 'hello-cloud-template-runner',
       command: ['/bin/sh', '-c'],
       arguments: [
         "i=1; " \

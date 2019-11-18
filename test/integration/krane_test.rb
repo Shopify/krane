@@ -21,7 +21,7 @@ class KraneTest < Krane::IntegrationTest
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["template-runner.yml", "configmap-data.yml"]))
     template = "hello-cloud-template-runner"
     out, err, status = krane_black_box("run",
-      "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} --filename #{template} --command ls --arguments '-a /'")
+      "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} --template #{template} --command ls --arguments '-a /'")
     assert_match("Success", err)
     assert_empty(out)
     assert_predicate(status, :success?)

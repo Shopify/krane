@@ -19,7 +19,7 @@ module Krane
         },
         "verify-result" => { type: :boolean, desc: "Wait for completion and verify pod success", default: true },
         "command" => { type: :array, desc: "Override the default command in the container image" },
-        "filename" => {
+        "template" => {
           type: :string,
           desc: "The template file you'll be rendering",
           required: true,
@@ -43,7 +43,7 @@ module Krane
 
         runner.run!(
           verify_result: options['verify-result'],
-          filename: options['filename'],
+          template: options['template'],
           command: options['command'],
           arguments: options['arguments']&.split(" "),
           env_vars: options['env-vars'].split(','),
