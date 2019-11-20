@@ -1,5 +1,5 @@
 ---
-name: kubernetes-deploy
+name: krane
 up:
   - ruby: 2.4.6 # Matches gemspec
   - bundler
@@ -11,8 +11,8 @@ up:
       meet: curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit && sudo install -o root -g wheel -m 4755 docker-machine-driver-hyperkit /usr/local/bin/ && rm ./docker-machine-driver-hyperkit
   - custom:
       name: Minikube Cluster
-      met?: test $(minikube status | grep Running | wc -l) -ge 2 && $(minikube status | grep -q 'Correctly Configured')
-      meet: minikube start --kubernetes-version=v1.11.6 --vm-driver=hyperkit
+      met?: test $(minikube status | grep Running | wc -l) -ge 2 && $(minikube status | grep -q 'Configured')
+      meet: minikube start --kubernetes-version=v1.11.10 --vm-driver=hyperkit
       down: minikube stop
 commands:
   reset-minikube: minikube delete && rm -rf ~/.minikube
