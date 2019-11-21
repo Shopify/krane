@@ -54,11 +54,11 @@ If you need the ability to render dynamic values in templates before deploying, 
 * [Usage](#usage-2)
 
 **KRANE RUN**
-* [Prerequisites](#prerequisites-2)
+* [Prerequisites](#prerequisites-1)
 * [Usage](#usage-3)
 
 **KRANE RENDER**
-* [Prerequisites](#prerequisites-3)
+* [Prerequisites](#prerequisites-2)
 * [Usage](#usage-4)
 
 **CONTRIBUTING**
