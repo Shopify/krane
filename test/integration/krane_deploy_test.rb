@@ -476,9 +476,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_deployment_with_progress_times_out_for_short_duration
     # The deployment adds a short progressDeadlineSeconds and attepts to deploy a container
     # which sleeps and cannot fulfill the readiness probe causing it to timeout
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'],
-      render_erb: true) do |fixtures|
-      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
+      deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 10
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
@@ -493,9 +492,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deployment_with_timeout_override_deprecated
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'],
-      render_erb: true) do |fixtures|
-      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
+      deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
       deployment["metadata"]["annotations"] = {
         Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED => "10S",
@@ -509,9 +507,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deployment_with_timeout_override
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'],
-      render_erb: true) do |fixtures|
-      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
+      deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
       deployment["metadata"]["annotations"] = {
         Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => "10S",
@@ -562,10 +559,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_long_running_deployment
-    2.times do |n|
-      assert_deploy_success(deploy_fixtures('long-running', sha: "deploy#{n}", render_erb: true))
-      assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
-    end
+    assert_deploy_success(deploy_fixtures('long-running'))
+    assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=undying,app=fixtures')
     by_revision = pods.group_by { |pod| pod.spec.containers.first.env.find { |var| var.name == "GITHUB_REV" }.value }
@@ -1340,9 +1335,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_resource_watcher_raises_after_timeout_seconds
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'], global_timeout: 5,
-      render_erb: true) do |fixtures|
-      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml'], global_timeout: 5) do |fixtures|
+      deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 100
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
