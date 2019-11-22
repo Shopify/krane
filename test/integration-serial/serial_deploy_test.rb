@@ -73,7 +73,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   # This can be run in parallel if we allow passing the config file path to DeployTask.new
-  # See https://github.com/Shopify/kubernetes-deploy/pull/428#pullrequestreview-209720675
+  # See https://github.com/Shopify/krane/pull/428#pullrequestreview-209720675
   def test_unreachable_context
     old_config = ENV['KUBECONFIG']
     begin

@@ -3,7 +3,7 @@
 # 1.0.0
 
 We've renamed the gem and cli to Krane.
-See our [migration guide](https://github.com/Shopify/kubernetes-deploy/blob/master/1.0-Upgrade.md) to help navigate the breaking changes.
+See our [migration guide](https://github.com/Shopify/krane/blob/master/1.0-Upgrade.md) to help navigate the breaking changes.
 
 ## 1.0.0.pre.1
 
