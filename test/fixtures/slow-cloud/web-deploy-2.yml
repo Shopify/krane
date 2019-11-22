@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels:
+    name: web
+    app: slow-cloud
+  annotations:
+    shipit.shopify.io/restart: "true"
+    krane.shopify.io/required-rollout: maxUnavailable
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      name: web
+      app: slow-cloud
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        name: web
+        app: slow-cloud
+        sha: deploy2
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        ports:
+        - containerPort: 80
+          name: http

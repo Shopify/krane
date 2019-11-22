@@ -849,11 +849,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deploy_successful_with_partial_availability
-    result = deploy_fixtures("slow-cloud", sha: "deploy1", render_erb: true)
+    result = deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml))
     assert_deploy_success(result)
 
-    result = deploy_fixtures("slow-cloud", sha: "deploy2", render_erb: true) do |fixtures|
-      dep = fixtures["web.yml.erb"]["Deployment"].first
+    result = deploy_fixtures("slow-cloud", subset: %w(web-deploy-2.yml)) do |fixtures|
+      dep = fixtures["web-deploy-2.yml"]["Deployment"].first
       container = dep["spec"]["template"]["spec"]["containers"].first
       container["readinessProbe"] = {
         "exec" => { "command" => %w(sleep 5) },
