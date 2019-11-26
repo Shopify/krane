@@ -22,7 +22,7 @@ The following is a set of guidelines for contributing to krane. Please take a mo
   * [CI (External contributors)](#ci-external-contributors)
 ## Code of Conduct
 
-This project and everyone participating in it are governed by the [Code of Conduct](https://github.com/Shopify/kubernetes-deploy/blob/master/CODE_OF_CONDUCT.md).
+This project and everyone participating in it are governed by the [Code of Conduct](https://github.com/Shopify/krane/blob/master/CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code. Please report unacceptable
 behavior to [krane@shopify.com](mailto:krane@shopify.com).
 
@@ -97,9 +97,9 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
     * `deploy_failed?`
 3. Adjust the `TIMEOUT` constant to an appropriate value for this type.
 4. Add the new class to list of resources in
-   [`deploy_task.rb`](https://github.com/Shopify/kubernetes-deploy/blob/master/lib/krane/deploy_task.rb#L8)
-5. Add the new resource to the [prune whitelist](https://github.com/Shopify/kubernetes-deploy/blob/master/lib/krane/deploy_task.rb#L81)
-6. Add a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/kubernetes-deploy/blob/master/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
+   [`deploy_task.rb`](https://github.com/Shopify/krane/blob/master/lib/krane/deploy_task.rb#L8)
+5. Add the new resource to the [prune whitelist](https://github.com/Shopify/krane/blob/master/lib/krane/deploy_task.rb#L81)
+6. Add a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/krane/tree/master/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/krane/blob/master/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
 7. Add tests for any edge cases you foresee.
 
 ### Contributor License Agreement

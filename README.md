@@ -1,6 +1,6 @@
 # krane [![Build status](https://badge.buildkite.com/61937e40a1fc69754d9d198be120543d6de310de2ba8d3cb0e.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy) [![codecov](https://codecov.io/gh/Shopify/kubernetes-deploy/branch/master/graph/badge.svg)](https://codecov.io/gh/Shopify/kubernetes-deploy)
 
-> This project used to be called `kubernetes-deploy`. Check out our [migration guide](https://github.com/Shopify/kubernetes-deploy/blob/master/1.0-Upgrade.md) for more information including details about breaking changes.
+> This project used to be called `kubernetes-deploy`. Check out our [migration guide](https://github.com/Shopify/krane/blob/master/1.0-Upgrade.md) for more information including details about breaking changes.
 
 
 `krane` is a command line tool that helps you ship changes to a Kubernetes namespace and understand the result. At Shopify, we use it within our much-beloved, open-source [Shipit](https://github.com/Shopify/shipit-engine#kubernetes) deployment app.
@@ -324,7 +324,7 @@ status:
 
 ### Deploy walkthrough
 
-Let's walk through what happens when you run the `deploy` task with [this directory of templates](https://github.com/Shopify/kubernetes-deploy/tree/master/test/fixtures/hello-cloud). This particular example uses ERB templates as well, so we'll use the [krane render](#krane-render) task to achieve that.
+Let's walk through what happens when you run the `deploy` task with [this directory of templates](https://github.com/Shopify/krane/tree/master/test/fixtures/hello-cloud). This particular example uses ERB templates as well, so we'll use the [krane render](#krane-render) task to achieve that.
 
 You can test this out for yourself by running the following command:
 
@@ -391,7 +391,7 @@ In this phase, we:
 
 Just like in the previous phase, we essentially run `kubectl apply` on those templates and periodically check the cluster for the current status of each resource so we can display error or success information.
 
-If pruning is enabled (which, again, is the default), any [kind not listed in the blacklist](https://github.com/Shopify/kubernetes-deploy/blob/master/lib/krane/cluster_resource_discovery.rb#L20) that we can find in the namespace but not in the templates will be removed. A particular message about pruning will be printed in the next phase if any resource matches this criteria.
+If pruning is enabled (which, again, is the default), any [kind not listed in the blacklist](https://github.com/Shopify/krane/blob/master/lib/krane/cluster_resource_discovery.rb#L20) that we can find in the namespace but not in the templates will be removed. A particular message about pruning will be printed in the next phase if any resource matches this criteria.
 
 #### Result
 
@@ -641,13 +641,13 @@ This is a limitation of the current implementation.
 # Contributing
 
 We :heart: contributors! To make it easier for you and us we've written a
-[Contributing Guide](https://github.com/Shopify/kubernetes-deploy/blob/master/CONTRIBUTING.md)
+[Contributing Guide](https://github.com/Shopify/krane/blob/master/CONTRIBUTING.md)
 
 
 You can also reach out to us on our slack channel, #krane, at https://kubernetes.slack.com. All are welcome!
 
 ## Code of Conduct
-Everyone is expected to follow our [Code of Conduct](https://github.com/Shopify/kubernetes-deploy/blob/master/CODE_OF_CONDUCT.md).
+Everyone is expected to follow our [Code of Conduct](https://github.com/Shopify/krane/blob/master/CODE_OF_CONDUCT.md).
 
 
 # License
