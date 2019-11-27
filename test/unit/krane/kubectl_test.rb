@@ -348,6 +348,16 @@ class KubectlTest < Krane::TestCase
     end
   end
 
+  def test_debug_level_output_log_uses_correct_encoding
+    logger.level = ::Logger::DEBUG
+    good = "hélas"
+    bad = good.dup.force_encoding(Encoding::US_ASCII)
+
+    stub_open3(%W(kubectl get pods --namespace=testn --context=testc --request-timeout=#{timeout}), resp: bad)
+    out, _err, _st = build_kubectl.run("get", "pods")
+    assert_equal good, out
+  end
+
   private
 
   def timeout

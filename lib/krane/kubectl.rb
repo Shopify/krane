@@ -34,7 +34,16 @@ module Krane
       (1..attempts).to_a.each do |current_attempt|
         logger.debug("Running command (attempt #{current_attempt}): #{cmd.join(' ')}")
         out, err, st = Open3.capture3(*cmd)
-        logger.debug("Kubectl out: " + out.gsub(/\s+/, ' ')) unless output_is_sensitive
+
+        # https://github.com/Shopify/krane/issues/395
+        if out.encoding != Encoding::UTF_8
+          out = out.dup.force_encoding(Encoding::UTF_8)
+        end
+
+        if logger.debug? && !output_is_sensitive
+          # don't do the gsub unless we're going to print this
+          logger.debug("Kubectl out: " + out.gsub(/\s+/, ' '))
+        end
 
         break if st.success?
         raise(ResourceNotFoundError, err) if err.match(ERROR_MATCHERS[:not_found]) && raise_if_not_found
