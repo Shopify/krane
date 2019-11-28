@@ -48,6 +48,37 @@ class EjsonSecretProvisionerTest < Krane::TestCase
     end
   end
 
+  def test_decryption_failure_with_error_on_stdout_reports_error
+    # ejson < 1.2 prints errors on stdout
+    Open3.expects(:capture3).with(regexp_matches(/ejson decrypt/))
+      .returns(["Some error from ejson", "", stub(success?: false)])
+    msg = "Generation of Kubernetes secrets from ejson failed: Some error from ejson"
+    assert_raises_message(Krane::EjsonSecretError, msg) do
+      build_provisioner(fixture_path('ejson-cloud')).resources
+    end
+  end
+
+  def test_decryption_successful_but_warning_on_stderr_does_not_confuse_us
+    valid_response = {
+      "_public_key" => fixture_public_key,
+      "kubernetes_secrets" =>
+        {
+          "test" => {
+            "_type" => "Opaque",
+            "data" => { "test" => "true" },
+          },
+        },
+    }.to_json
+
+    Open3.expects(:capture3).with(regexp_matches(/ejson decrypt/))
+      .returns([valid_response, "Permissions warning!", stub(success?: true)])
+    stub_server_dry_run_version_request
+    stub_server_dry_run_validation_request
+
+    resources = build_provisioner(fixture_path('ejson-cloud')).resources
+    refute_empty(resources)
+  end
+
   def test_no_ejson_keys_secret_provided
     assert_raises_message(Krane::EjsonSecretError,
       /Generation of Kubernetes secrets from ejson failed: Secret ejson-keys not provided, cannot decrypt secrets/) do
