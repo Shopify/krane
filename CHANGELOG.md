@@ -1,5 +1,8 @@
 ## next
 
+*Bug Fixes*
+- Fix a bug causing secret generation from ejson to fail when decryption succeeded but a warning was also emitted. [#647](https://github.com/Shopify/krane/pull/647)
+
 # 1.0.0
 
 We've renamed the gem and cli to Krane.
