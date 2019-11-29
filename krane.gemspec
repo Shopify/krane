@@ -35,10 +35,25 @@ Gem::Specification.new do |spec|
   spec.add_dependency("jsonpath", "~> 0.9.6")
   spec.add_dependency("thor", "~>  0.20.3")
 
+  # Basics
   spec.add_development_dependency("bundler")
   spec.add_development_dependency("rake", "~> 10.0")
+  spec.add_development_dependency("yard")
+
+  # Test framework
   spec.add_development_dependency("minitest", "~> 5.0")
   spec.add_development_dependency("minitest-stub-const", "~> 0.6")
-  spec.add_development_dependency("webmock", "~> 3.0")
+  spec.add_development_dependency("minitest-reporters")
   spec.add_development_dependency("mocha", "~> 1.5")
+  spec.add_development_dependency("webmock", "~> 3.0")
+  spec.add_development_dependency("timecop")
+
+  # Debugging and analysis
+  spec.add_development_dependency("pry")
+  spec.add_development_dependency("pry-byebug")
+  spec.add_development_dependency("byebug")
+  spec.add_development_dependency("ruby-prof")
+  spec.add_development_dependency("ruby-prof-flamegraph")
+  spec.add_development_dependency("rubocop", "~> 0.76.0")
+  spec.add_development_dependency("codecov")
 end
