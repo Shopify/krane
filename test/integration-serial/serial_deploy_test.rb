@@ -691,6 +691,8 @@ class SerialDeployTest < Krane::IntegrationTest
       %r{Pod could not be scheduled because 0/\d+ nodes are available:},
       /\d+ node[(]s[)] didn't find available persistent volumes to bind./,
     ], in_order: true)
+  ensure
+    storage_v1_kubeclient.delete_storage_class(storage_class_name)
   end
 
   private
