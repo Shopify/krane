@@ -84,7 +84,7 @@ class ResourceDeployerTest < Krane::TestCase
 
   private
 
-  def resource_deployer(kubectl_times: 2, prune_whitelist: [])
+  def resource_deployer(kubectl_times: 1, prune_whitelist: [])
     unless kubectl_times == 0
       Krane::Kubectl.expects(:new).returns(build_runless_kubectl).times(kubectl_times)
     end
