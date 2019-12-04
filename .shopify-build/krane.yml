@@ -51,4 +51,3 @@ steps:
     env:
       LOGGING_LEVEL: "4"
       KUBERNETES_VERSION: v1.11-latest
-
