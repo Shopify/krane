@@ -42,25 +42,21 @@ module FixtureDeployHelper
     success
   end
 
-  def deploy_global_fixtures(set, subset: nil, namespaced: true, **args)
+  def deploy_global_fixtures(set, subset: nil, selector: nil, **args)
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
-    args[:selector] ||= "test=#{@namespace}"
-    namespace_globals(fixtures, args[:selector]) if namespaced
+
+    selector = (selector == false ? "" : "#{selector},app=krane,test=#{@namespace}".sub(/^,/, ''))
+    apply_scope_to_resources(fixtures, labels: selector)
 
     yield fixtures if block_given?
 
     success = false
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
-      success = global_deploy_dirs_without_profiling(target_dir, **args)
+      success = global_deploy_dirs(target_dir, selector: selector, **args)
     end
     success
-  end
-
-  def deploy_global_fixtures_non_namespaced(fixture, subset:, prune: true, clean_up: true, &block)
-    deploy_global_fixtures(fixture, subset: subset, selector: 'app=krane', clean_up: clean_up, prune: prune,
-                                    namespaced: false, &block)
   end
 
   def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil, render_erb: false)
@@ -107,7 +103,7 @@ module FixtureDeployHelper
     )
   end
 
-  def global_deploy_dirs_without_profiling(dirs, clean_up: true, verify_result: true, prune: true,
+  def global_deploy_dirs(dirs, clean_up: true, verify_result: true, prune: true,
     global_timeout: 300, selector:)
     deploy = Krane::GlobalDeployTask.new(
       context: KubeclientHelper::TEST_CONTEXT,
@@ -183,14 +179,27 @@ module FixtureDeployHelper
       log_failure_by_default: log_failure_by_default, default_timeout: timeout)
   end
 
-  def namespace_globals(fixtures, selector)
-    selector_key, selector_value = selector.split("=")
+  def add_unique_prefix_for_test(original_name)
+    "t#{Digest::MD5.hexdigest(@namespace)}-#{original_name}"
+  end
+
+  def apply_scope_to_resources(fixtures, labels:)
+    labels = Krane::LabelSelector.parse(labels).to_h
     fixtures.each do |_, kinds_map|
       kinds_map.each do |_, resources|
         resources.each do |resource|
-          resource["metadata"]["name"] = (resource["metadata"]["name"] + Digest::MD5.hexdigest(@namespace))[0..63]
-          resource["metadata"]["labels"] ||= {}
-          resource["metadata"]["labels"][selector_key] = selector_value
+          resource["metadata"]["labels"] = (resource.dig("metadata", "labels") || {}).merge(labels) if labels.present?
+          if resource["kind"] == "CustomResourceDefinition"
+            %w(kind listKind plural singular).each do |field|
+              if original_name = resource.dig("spec", "names", field)
+                resource["spec"]["names"][field] = add_unique_prefix_for_test(original_name)
+              end
+            end
+            # metadata.name has to be composed this way for CRDs
+            resource["metadata"]["name"] = "#{resource['spec']['names']['plural']}.#{resource['spec']['group']}"
+          else
+            resource["metadata"]["name"] = add_unique_prefix_for_test(resource["metadata"]["name"])[0..63]
+          end
         end
       end
     end
