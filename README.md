@@ -40,7 +40,7 @@ If you need the ability to render dynamic values in templates before deploying, 
 * [Prerequisites](#prerequisites)
 * [Installation](#installation)
 * [Usage](#usage)
-  * [Using templates and variables](#using-templates-and-variables)
+  * [Using templates](#using-templates)
   * [Customizing behaviour with annotations](#customizing-behaviour-with-annotations)
   * [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy)
   * [Deploying Kubernetes secrets (from EJSON)](#deploying-kubernetes-secrets-from-ejson)
