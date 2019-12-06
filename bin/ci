@@ -8,18 +8,18 @@ echo "pipa_disable_binauth: $PIPA_DISABLE_BINAUTH"
 if [[ -n "${DEBUG:+set}" ]]; then
   set -x
 fi
-#
-#docker run --rm \
-#    --net=host \
-#    -v "$HOME/.kube":"/root/.kube" \
-#    -v "$HOME/.minikube":"$HOME/.minikube" \
-#    -v "$PWD":/usr/src/app \
-#    -v "/usr/bin/kubectl":"/usr/bin/kubectl" \
-#    -e CI=1 \
-#    -e CODECOV_TOKEN=$CODECOV_TOKEN \
-#    -e COVERAGE=1 \
-#    -e VERBOSE=1 \
-#    -e PARALLELISM=$PARALLELISM \
-#    -w /usr/src/app \
-#    ruby:2.4 \
-#    bin/test
+
+docker run --rm \
+   --net=host \
+   -v "$HOME/.kube":"/root/.kube" \
+   -v "$HOME/.minikube":"$HOME/.minikube" \
+   -v "$PWD":/usr/src/app \
+   -v "/usr/bin/kubectl":"/usr/bin/kubectl" \
+   -e CI=1 \
+   -e CODECOV_TOKEN=$CODECOV_TOKEN \
+   -e COVERAGE=1 \
+   -e VERBOSE=1 \
+   -e PARALLELISM=$PARALLELISM \
+   -w /usr/src/app \
+   ruby:2.4 \
+   bin/test
