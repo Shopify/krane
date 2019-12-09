@@ -1,4 +1,4 @@
-# krane [![Build status](https://badge.buildkite.com/61937e40a1fc69754d9d198be120543d6de310de2ba8d3cb0e.svg?branch=master)](https://buildkite.com/shopify/kubernetes-deploy) [![codecov](https://codecov.io/gh/Shopify/kubernetes-deploy/branch/master/graph/badge.svg)](https://codecov.io/gh/Shopify/kubernetes-deploy)
+# krane [![Build status](https://badge.buildkite.com/35c56e797c3bbd6ba50053aefdded0715898cd8e8c86f7e462.svg)](https://buildkite.com/shopify/krane) [![codecov](https://codecov.io/gh/Shopify/kubernetes-deploy/branch/master/graph/badge.svg)](https://codecov.io/gh/Shopify/kubernetes-deploy)
 
 > This project used to be called `kubernetes-deploy`. Check out our [migration guide](https://github.com/Shopify/krane/blob/master/1.0-Upgrade.md) for more information including details about breaking changes.
 
