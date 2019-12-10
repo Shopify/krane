@@ -4,6 +4,7 @@ metadata:
   name: web
   labels:
     name: web
+    branch: master
     app: slow-cloud
   annotations:
     shipit.shopify.io/restart: "true"
@@ -24,7 +25,7 @@ spec:
       labels:
         name: web
         app: slow-cloud
-        sha: "<%= current_sha %>"
+        sha: deploy1
     spec:
       terminationGracePeriodSeconds: 0
       containers:

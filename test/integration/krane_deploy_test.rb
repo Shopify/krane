@@ -162,15 +162,13 @@ class KraneDeployTest < Krane::IntegrationTest
   end
 
   def test_mismatched_selector
-    assert_deploy_failure(deploy_fixtures("branched",
-      bindings: { "branch" => "master" },
-      selector: Krane::LabelSelector.parse("branch=staging"),
-      render_erb: true))
+    assert_deploy_failure(deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml),
+      selector: Krane::LabelSelector.parse("branch=staging")))
     assert_logs_match_all([
       /Using resource selector branch=staging/,
       /Template validation failed/,
       /Invalid template: Deployment/,
-      /selector branch=staging does not match labels app=branched,branch=master/,
+      /selector branch=staging does not match labels name=web,branch=master,app=slow-cloud/,
       /> Template content:/,
     ], in_order: true)
   end
@@ -239,7 +237,7 @@ class KraneDeployTest < Krane::IntegrationTest
     resource_kind = "ReplicationController"
     resource_name = "test-rc"
 
-    result = deploy_fixtures("unrecognized-type", render_erb: true)
+    result = deploy_fixtures("unrecognized-type")
     assert_deploy_success(result)
 
     # This will raise an exception if the resource is missing
@@ -476,9 +474,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_deployment_with_progress_times_out_for_short_duration
     # The deployment adds a short progressDeadlineSeconds and attepts to deploy a container
     # which sleeps and cannot fulfill the readiness probe causing it to timeout
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'],
-      render_erb: true) do |fixtures|
-      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
+      deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 10
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
@@ -493,9 +490,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deployment_with_timeout_override_deprecated
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'],
-      render_erb: true) do |fixtures|
-      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
+      deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
       deployment["metadata"]["annotations"] = {
         Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED => "10S",
@@ -509,9 +505,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deployment_with_timeout_override
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'],
-      render_erb: true) do |fixtures|
-      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
+      deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
       deployment["metadata"]["annotations"] = {
         Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => "10S",
@@ -537,17 +532,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
   end
 
-  def test_extra_bindings_should_be_rendered
-    result = deploy_fixtures('collection-with-erb', subset: ["conf_map.yaml.erb"],
-      bindings: { binding_test_a: 'binding_test_a', binding_test_b: 'binding_test_b' },
-      render_erb: true)
-    assert_deploy_success(result)
-
-    map = kubeclient.get_config_map('extra-binding', @namespace).data
-    assert_equal('binding_test_a', map['BINDING_TEST_A'])
-    assert_equal('binding_test_b', map['BINDING_TEST_B'])
-  end
-
   def test_deploy_fails_if_required_binding_not_present
     assert_deploy_failure(deploy_fixtures('collection-with-erb', subset: ["conf_map.yaml.erb"], render_erb: true))
     assert_logs_match_all([
@@ -562,10 +546,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_long_running_deployment
-    2.times do |n|
-      assert_deploy_success(deploy_fixtures('long-running', sha: "deploy#{n}", render_erb: true))
-      assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
-    end
+    assert_deploy_success(deploy_fixtures('long-running'))
+    assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=undying,app=fixtures')
     by_revision = pods.group_by { |pod| pod.spec.containers.first.env.find { |var| var.name == "GITHUB_REV" }.value }
@@ -849,11 +831,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_deploy_successful_with_partial_availability
-    result = deploy_fixtures("slow-cloud", sha: "deploy1", render_erb: true)
+    result = deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml))
     assert_deploy_success(result)
 
-    result = deploy_fixtures("slow-cloud", sha: "deploy2", render_erb: true) do |fixtures|
-      dep = fixtures["web.yml.erb"]["Deployment"].first
+    result = deploy_fixtures("slow-cloud", subset: %w(web-deploy-2.yml)) do |fixtures|
+      dep = fixtures["web-deploy-2.yml"]["Deployment"].first
       container = dep["spec"]["template"]["spec"]["containers"].first
       container["readinessProbe"] = {
         "exec" => { "command" => %w(sleep 5) },
@@ -961,7 +943,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_deploy_successful_multiple_filenames_different_directories
     hello_cloud_file = File.join(fixture_path("hello-cloud"), "service-account.yml")
-    cronjob_file = File.join(fixture_path("cronjobs"), "cronjob.yaml.erb")
+    cronjob_file = File.join(fixture_path("cronjobs"), "cronjob.yaml")
     result = deploy_dirs(hello_cloud_file, cronjob_file, render_erb: true)
     assert_deploy_success(result)
     assert_logs_match_all([
@@ -1291,7 +1273,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_cronjobs_can_be_deployed
-    assert_deploy_success(deploy_fixtures("cronjobs", render_erb: true))
+    assert_deploy_success(deploy_fixtures("cronjobs"))
     cronjobs = FixtureSetAssertions::CronJobs.new(@namespace)
     cronjobs.assert_cronjob_present("my-cronjob")
   end
@@ -1340,9 +1322,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_resource_watcher_raises_after_timeout_seconds
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml.erb'], global_timeout: 5,
-      render_erb: true) do |fixtures|
-      deployment = fixtures['undying-deployment.yml.erb']['Deployment'].first
+    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml'], global_timeout: 5) do |fixtures|
+      deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 100
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }

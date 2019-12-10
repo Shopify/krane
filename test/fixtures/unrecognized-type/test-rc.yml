@@ -24,4 +24,4 @@ spec:
           name: http
         env:
         - name: GITHUB_REV
-          value: "<%= current_sha %>"
+          value: k123456

@@ -237,8 +237,8 @@ class RestartTaskTest < Krane::IntegrationTest
   end
 
   def test_restart_successful_with_partial_availability
-    result = deploy_fixtures("slow-cloud", render_erb: true) do |fixtures|
-      web = fixtures["web.yml.erb"]["Deployment"].first
+    result = deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml)) do |fixtures|
+      web = fixtures["web-deploy-1.yml"]["Deployment"].first
       web["spec"]["strategy"]['rollingUpdate']['maxUnavailable'] = '50%'
       container = web["spec"]["template"]["spec"]["containers"].first
       container["readinessProbe"] = {
