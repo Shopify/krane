@@ -4,6 +4,7 @@ require 'krane/kubernetes_resource/pod_set_base'
 module Krane
   class ReplicaSet < PodSetBase
     TIMEOUT = 5.minutes
+    SYNC_DEPENDENCIES = %w(Pod)
     attr_reader :pods
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: nil,
@@ -17,7 +18,7 @@ module Krane
 
     def sync(cache)
       super
-      @pods = fetch_pods_if_needed(cache) || []
+      @pods = exists? ? find_pods(cache) : []
     end
 
     def status
@@ -56,21 +57,6 @@ module Krane
 
     def stale_status?
       observed_generation != current_generation
-    end
-
-    def fetch_pods_if_needed(cache)
-      # If the ReplicaSet doesn't exist, its pods won't either
-      return unless exists?
-      # If the status hasn't been updated yet, we're not going to make a determination anyway
-      return if stale_status?
-      # If we don't want any pods at all, we don't need to look for them
-      return if desired_replicas == 0
-      # We only need to fetch pods so that deploy_failed? can check that they aren't ALL bad.
-      # If we can already tell some pods are ok from the RS data, don't bother fetching them (which can be expensive)
-      # Lower numbers here make us more susceptible to being fooled by replicas without probes briefly appearing ready
-      return if ready_replicas > 1
-
-      find_pods(cache)
     end
 
     def rollout_data

@@ -2,6 +2,7 @@
 module Krane
   class Cloudsql < KubernetesResource
     TIMEOUT = 10.minutes
+    SYNC_DEPENDENCIES = %w(Deployment Service)
 
     def sync(cache)
       super

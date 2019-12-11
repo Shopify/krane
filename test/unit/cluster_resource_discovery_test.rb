@@ -2,6 +2,8 @@
 require 'test_helper'
 
 class ClusterResourceDiscoveryTest < Krane::TestCase
+  include ClusterResourceDiscoveryHelper
+
   def test_fetch_resources_failure
     crd = mocked_cluster_resource_discovery(nil, success: false)
     resources = crd.fetch_resources
@@ -51,26 +53,5 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
     %w(ConfigMap CronJob Deployment).each do |expected_kind|
       assert kinds.one? { |k| k.include?(expected_kind) }
     end
-  end
-
-  private
-
-  def mocked_cluster_resource_discovery(response, success: true, namespaced: false)
-    Krane::Kubectl.any_instance.stubs(:run)
-      .with("api-resources", "--namespaced=#{namespaced}", attempts: 5, use_namespace: false, output: "wide")
-      .returns([response, "", stub(success?: success)])
-    Krane::ClusterResourceDiscovery.new(task_config: task_config, namespace_tags: [])
-  end
-
-  def api_versions_full_response
-    File.read(File.join(fixture_path('for_unit_tests'), "api_versions.txt"))
-  end
-
-  def api_resources_namespaced_full_response
-    File.read(File.join(fixture_path('for_unit_tests'), "api_resources_namespaced.txt"))
-  end
-
-  def api_resources_not_namespaced_full_response
-    File.read(File.join(fixture_path('for_unit_tests'), "api_resources_global.txt"))
   end
 end

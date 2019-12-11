@@ -23,26 +23,6 @@ class ReplicaSetTest < Krane::TestCase
     refute_predicate(rs, :deploy_failed?)
   end
 
-  def test_sync_does_not_request_pods_if_we_already_know_they_are_fine
-    should_fetch = build_rs_template(status: { "readyReplicas": 1, "observedGeneration": 2 })
-    should_not_fetch = build_rs_template(status: { "readyReplicas": 2, "observedGeneration": 2 })
-
-    rs = Krane::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: should_fetch)
-    stub_kind_get("ReplicaSet", items: [should_fetch])
-    stub_kind_get("Pod", items: [])
-    rs.sync(build_resource_cache)
-
-    stub_kind_get("ReplicaSet", items: [should_not_fetch])
-    rs.sync(build_resource_cache)
-  end
-
-  def test_sync_does_not_request_pods_if_desired_replicas_is_zero
-    template = build_rs_template
-    template["status"] = { "observedGeneration": 2 }
-    template["spec"]["replicas"] = 0
-    build_synced_rs(template: template) # does not stub pod get
-  end
-
   private
 
   def build_rs_template(status: {})
@@ -50,6 +30,7 @@ class ReplicaSetTest < Krane::TestCase
   end
 
   def build_synced_rs(template:)
+    stub_kind_get("Pod")
     rs = Krane::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
     stub_kind_get("ReplicaSet", items: [template])
     rs.sync(build_resource_cache)

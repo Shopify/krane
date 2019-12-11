@@ -53,6 +53,7 @@ module Krane
 
     def sync_resources(resources)
       cache = ResourceCache.new(@task_config)
+      cache.prewarm(resources)
       Krane::Concurrency.split_across_threads(resources) { |r| r.sync(cache) }
       resources.each(&:after_sync)
     end

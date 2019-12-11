@@ -38,6 +38,7 @@ module Krane
     LAST_APPLIED_ANNOTATION = "kubectl.kubernetes.io/last-applied-configuration"
     SENSITIVE_TEMPLATE_CONTENT = false
     SERVER_DRY_RUNNABLE = false
+    SYNC_DEPENDENCIES = []
 
     class << self
       def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [])

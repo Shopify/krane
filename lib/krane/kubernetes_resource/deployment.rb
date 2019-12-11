@@ -4,6 +4,7 @@ require 'krane/kubernetes_resource/replica_set'
 module Krane
   class Deployment < KubernetesResource
     TIMEOUT = 7.minutes
+    SYNC_DEPENDENCIES = %w(Pod ReplicaSet)
     REQUIRED_ROLLOUT_ANNOTATION_SUFFIX = "required-rollout"
     REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED = "kubernetes-deploy.shopify.io/#{REQUIRED_ROLLOUT_ANNOTATION_SUFFIX}"
     REQUIRED_ROLLOUT_ANNOTATION = "krane.shopify.io/#{REQUIRED_ROLLOUT_ANNOTATION_SUFFIX}"

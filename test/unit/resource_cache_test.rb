@@ -86,6 +86,60 @@ class ResourceCacheTest < Krane::TestCase
     assert(all_resources.all?(&:synced?))
   end
 
+  def test_warming_the_resource_cache_makes_kubectl_calls_and_populates_cache
+    deployments = build_fake_deployments(2) # these also get pods
+    pods = build_fake_pods(2)
+
+    stub_kind_get("FakeDeployment", items: deployments.map(&:kubectl_response), times: 1)
+    stub_kind_get("FakePod", items: pods.map(&:kubectl_response), times: 1)
+    @cache.prewarm(deployments) # Fetches both Deployments and Pods
+    assert_equal(2, @cache.get_all("FakeDeployment").count)
+    assert_equal(2, @cache.get_all("FakePod").count)
+  end
+
+  def test_warming_the_resource_cache_means_no_more_kubectl_calls_after
+    deployments = build_fake_deployments(10) # these also get pods
+    pods = build_fake_pods(10)
+    resources = deployments + pods
+
+    stub_kind_get("FakeDeployment", items: deployments.map(&:kubectl_response), times: 1)
+    stub_kind_get("FakePod", items: pods.map(&:kubectl_response), times: 1)
+    @cache.prewarm(deployments) # Fetches both Deployments and Pods
+
+    # The following line should act as assurance that no additional calls are made to kubectl
+    # In other words, if the test passes with the call made below, the cache warming did its job
+    resources.each { |r| r.sync(@cache) }
+  end
+
+  def test_warming_the_resource_cache_works_for_custom_resources
+    spec = YAML.load_file(File.join(fixture_path('for_unit_tests'), 'crd_test.yml'))
+    spec = spec.merge(
+      "metadata" => {
+        "name" => "unittests.stable.example.io",
+      },
+    )
+
+    crd = Krane::CustomResourceDefinition.new(namespace: 'test', context: 'nope',
+      definition: spec, logger: @logger)
+    cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
+      logger: @logger, statsd_tags: [], crd: crd,
+      definition: {
+        "kind" => "UnitTest",
+        "metadata" => {
+          "name" => "test",
+        },
+      })
+
+    stub_kind_get("UnitTest", times: 1)
+    stub_kind_get("CustomResourceDefinition", times: 1)
+    resources = [cr, crd]
+    @cache.prewarm(resources)
+
+    # The following line should act as assurance that no additional calls are made to kubectl
+    # In other words, if the test passes with the call made below, the cache warming did its job
+    resources.each { |r| r.sync(@cache) }
+  end
+
   private
 
   def build_fake_nodes(num)
@@ -105,6 +159,7 @@ class ResourceCacheTest < Krane::TestCase
   end
 
   class MockResource
+    SYNC_DEPENDENCIES = []
     attr_reader :name
 
     def initialize(name)
@@ -145,6 +200,7 @@ class ResourceCacheTest < Krane::TestCase
   end
 
   class FakeDeployment < MockResource
+    SYNC_DEPENDENCIES = %w(FakePod)
     def sync(mediator)
       super
       mediator.get_all("FakePod")

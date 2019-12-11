@@ -283,6 +283,7 @@ class DeploymentTest < Krane::TestCase
   end
 
   def test_deploy_succeeded_not_fooled_by_stale_status_data
+    stub_kind_get("Pod")
     deployment_status = {
       "replicas" => 3,
       "updatedReplicas" => 3, # stale -- hasn't been updated since deploy

@@ -9,6 +9,9 @@ class ServiceTest < Krane::TestCase
     svc = build_service(svc_def)
 
     stub_kind_get("Service", items: [])
+    stub_kind_get("Pod", times: 2)
+    stub_kind_get("Deployment", times: 2)
+    stub_kind_get("StatefulSet", times: 2)
     svc.sync(build_resource_cache)
     refute(svc.exists?)
     refute(svc.deploy_succeeded?)
@@ -26,6 +29,7 @@ class ServiceTest < Krane::TestCase
     svc = build_service(svc_def)
 
     stub_kind_get("Service", items: [svc_def])
+    %w(Pod Deployment StatefulSet).each { |kind| stub_kind_get(kind) }
     svc.sync(build_resource_cache)
     assert(svc.exists?)
     assert(svc.deploy_succeeded?)
@@ -40,6 +44,7 @@ class ServiceTest < Krane::TestCase
     ]
 
     stub_kind_get("Service", items: [])
+    %w(Pod Deployment StatefulSet).each { |kind| stub_kind_get(kind) }
     cache = build_resource_cache
     all_services.each { |svc| svc.sync(cache) }
 
