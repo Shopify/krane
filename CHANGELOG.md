@@ -1,5 +1,7 @@
 ## next
 
+## 1.1.0
+
 *Bug Fixes*
 - Fix a bug causing secret generation from ejson to fail when decryption succeeded but a warning was also emitted. [#647](https://github.com/Shopify/krane/pull/647)
 
