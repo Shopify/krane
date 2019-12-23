@@ -256,7 +256,7 @@ module Krane
       if cause == :gave_up
         debug_heading = ColorizedString.new("#{id}: GLOBAL WATCH TIMEOUT (#{info_hash[:timeout]} seconds)").yellow
         helpful_info << "If you expected it to take longer than #{info_hash[:timeout]} seconds for your deploy"\
-        " to roll out, increase --max-watch-seconds."
+        " to roll out, increase --global-timeout."
       elsif deploy_failed?
         debug_heading = ColorizedString.new("#{id}: FAILED").red
         helpful_info << failure_message if failure_message.present?

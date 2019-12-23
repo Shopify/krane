@@ -1,5 +1,8 @@
 ## next
 
+*Bug Fixes*
+- Prints the correct argument name in error message. [#670](https://github.com/Shopify/krane/pull/670)
+
 ## 1.1.0
 
 *Bug Fixes*

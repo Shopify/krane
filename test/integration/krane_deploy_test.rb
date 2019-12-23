@@ -1335,7 +1335,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Successful resources",
       "Service/multi-replica",
       "Deployment/undying: GLOBAL WATCH TIMEOUT (5 seconds)",
-      "If you expected it to take longer than 5 seconds for your deploy to roll out, increase --max-watch-seconds.",
+      "If you expected it to take longer than 5 seconds for your deploy to roll out, increase --global-timeout.",
     ], in_order: true)
   end
 

@@ -44,7 +44,7 @@ class GlobalDeployTest < Krane::IntegrationTest
       "Result: TIMED OUT",
       "Timed out waiting for 2 resources to deploy",
       %r{StorageClass\/testing-storage-class[\w-]+: GLOBAL WATCH TIMEOUT \(0 seconds\)},
-      "If you expected it to take longer than 0 seconds for your deploy to roll out, increase --max-watch-seconds.",
+      "If you expected it to take longer than 0 seconds for your deploy to roll out, increase --global-timeout.",
     ])
   end
 
