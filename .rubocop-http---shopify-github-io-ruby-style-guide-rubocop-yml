@@ -20,7 +20,7 @@ Style/Alias:
   - prefer_alias
   - prefer_alias_method
 
-Layout/AlignHash:
+Layout/HashAlignment:
   EnforcedHashRocketStyle: key
   EnforcedColonStyle: key
   EnforcedLastArgumentHashStyle: ignore_implicit
@@ -30,7 +30,7 @@ Layout/AlignHash:
   - ignore_implicit
   - ignore_explicit
 
-Layout/AlignParameters:
+Layout/ParameterAlignment:
   EnforcedStyle: with_fixed_indentation
   SupportedStyles:
   - with_first_parameter
@@ -172,7 +172,7 @@ Naming/FileName:
   Regex:
   IgnoreExecutableScripts: true
 
-Layout/IndentFirstArgument:
+Layout/FirstArgumentIndentation:
   EnforcedStyle: consistent
   SupportedStyles:
   - consistent
@@ -225,7 +225,7 @@ Layout/IndentationConsistency:
 Layout/IndentationWidth:
   Width: 2
 
-Layout/IndentFirstArrayElement:
+Layout/FirstArrayElementIndentation:
   EnforcedStyle: consistent
   SupportedStyles:
   - special_inside_parentheses
@@ -233,10 +233,10 @@ Layout/IndentFirstArrayElement:
   - align_brackets
   IndentationWidth:
 
-Layout/IndentAssignment:
+Layout/AssignmentIndentation:
   IndentationWidth:
 
-Layout/IndentFirstHashElement:
+Layout/FirstHashElementIndentation:
   EnforcedStyle: consistent
   SupportedStyles:
   - special_inside_parentheses
@@ -340,9 +340,9 @@ Style/PercentQLiterals:
 Naming/PredicateName:
   NamePrefix:
   - is_
-  NamePrefixBlacklist:
+  ForbiddenPrefixes:
   - is_
-  NameWhitelist:
+  AllowedMethods:
   - is_a?
   Exclude:
   - 'spec/**/*'
@@ -467,7 +467,7 @@ Style/TernaryParentheses:
   - require_no_parentheses
   AllowSafeAssignment: true
 
-Layout/TrailingBlankLines:
+Layout/TrailingEmptyLines:
   EnforcedStyle: final_newline
   SupportedStyles:
   - final_newline
@@ -478,7 +478,7 @@ Style/TrivialAccessors:
   AllowPredicates: true
   AllowDSLWriters: false
   IgnoreClassMethods: false
-  Whitelist:
+  AllowedMethods:
   - to_ary
   - to_a
   - to_c
@@ -561,7 +561,7 @@ Lint/UnusedMethodArgument:
 Naming/AccessorMethodName:
   Enabled: true
 
-Layout/AlignArray:
+Layout/ArrayAlignment:
   Enabled: true
 
 Style/ArrayJoin:
@@ -840,7 +840,7 @@ Style/WhileUntilDo:
 Style/ZeroLengthPredicate:
   Enabled: true
 
-Layout/IndentHeredoc:
+Layout/HeredocIndentation:
   EnforcedStyle: squiggly
 
 Lint/AmbiguousOperator:
@@ -864,7 +864,7 @@ Lint/DeprecatedClassMethods:
 Lint/DuplicateMethods:
   Enabled: true
 
-Lint/DuplicatedKey:
+Lint/DuplicateHashKey:
   Enabled: true
 
 Lint/EachWithObjectArgument:
@@ -891,7 +891,7 @@ Lint/FloatOutOfRange:
 Lint/FormatParameterMismatch:
   Enabled: true
 
-Lint/HandleExceptions:
+Lint/SuppressedException:
   AllowComments: true
 
 Lint/ImplicitStringConcatenation:
@@ -947,7 +947,7 @@ Lint/ShadowedException:
 Lint/ShadowingOuterLocalVariable:
   Enabled: true
 
-Lint/StringConversionInInterpolation:
+Lint/RedundantStringCoercion:
   Enabled: true
 
 Lint/UnderscorePrefixedVariableName:

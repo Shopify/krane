@@ -15,9 +15,20 @@ module Krane
     end
 
     def run
-      super { @namespace = TestProvisioner.claim_namespace(name) }
+      super do
+        @namespace = TestProvisioner.claim_namespace(name)
+        @global_fixtures_deployed = []
+      end
     ensure
       TestProvisioner.delete_namespace(@namespace)
+      delete_globals(@global_fixtures_deployed)
+    end
+
+    def delete_globals(dirs)
+      kubectl = build_kubectl
+      paths = dirs.flat_map { |d| ["-f", d] }
+      kubectl.run("delete", "--wait=false", *paths, log_failure: true, use_namespace: false)
+      dirs.each { |dir| FileUtils.remove_entry(dir) }
     end
 
     def ban_net_connect?

@@ -42,7 +42,7 @@ module FixtureDeployHelper
     success
   end
 
-  def deploy_global_fixtures(set, subset: nil, selector: nil, **args)
+  def deploy_global_fixtures(set, subset: nil, selector: nil, verify_result: true, prune: true, global_timeout: 300)
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
 
@@ -51,12 +51,21 @@ module FixtureDeployHelper
 
     yield fixtures if block_given?
 
-    success = false
-    Dir.mktmpdir("fixture_dir") do |target_dir|
-      write_fixtures_to_dir(fixtures, target_dir)
-      success = global_deploy_dirs(target_dir, selector: selector, **args)
-    end
-    success
+    target_dir = Dir.mktmpdir("fixture_dir")
+    write_fixtures_to_dir(fixtures, target_dir)
+    @global_fixtures_deployed << target_dir
+
+    deploy = Krane::GlobalDeployTask.new(
+      context: KubeclientHelper::TEST_CONTEXT,
+      filenames: Array(target_dir),
+      global_timeout: global_timeout,
+      selector: Krane::LabelSelector.parse(selector),
+      logger: logger,
+    )
+    deploy.run(
+      verify_result: verify_result,
+      prune: prune
+    )
   end
 
   def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil, render_erb: false)
@@ -101,23 +110,6 @@ module FixtureDeployHelper
       verify_result: wait,
       prune: prune
     )
-  end
-
-  def global_deploy_dirs(dirs, clean_up: true, verify_result: true, prune: true,
-    global_timeout: 300, selector:)
-    deploy = Krane::GlobalDeployTask.new(
-      context: KubeclientHelper::TEST_CONTEXT,
-      filenames: Array(dirs),
-      global_timeout: global_timeout,
-      selector: Krane::LabelSelector.parse(selector),
-      logger: logger,
-    )
-    deploy.run(
-      verify_result: verify_result,
-      prune: prune
-    )
-  ensure
-    delete_globals(Array(dirs)) if clean_up
   end
 
   # Deploys all fixtures in the given directories via Krane::DeployTask
@@ -191,7 +183,7 @@ module FixtureDeployHelper
           resource["metadata"]["labels"] = (resource.dig("metadata", "labels") || {}).merge(labels) if labels.present?
           if resource["kind"] == "CustomResourceDefinition"
             %w(kind listKind plural singular).each do |field|
-              if original_name = resource.dig("spec", "names", field)
+              if (original_name = resource.dig("spec", "names", field))
                 resource["spec"]["names"][field] = add_unique_prefix_for_test(original_name)
               end
             end
@@ -203,11 +195,5 @@ module FixtureDeployHelper
         end
       end
     end
-  end
-
-  def delete_globals(dirs)
-    kubectl = build_kubectl
-    paths = dirs.flat_map { |d| ["-f", d] }
-    kubectl.run("delete", *paths, log_failure: false, use_namespace: false)
   end
 end

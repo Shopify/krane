@@ -129,7 +129,7 @@ class GlobalDeployTest < Krane::IntegrationTest
 
   def test_global_deploy_prune_success
     selector = 'extraSelector=prune1'
-    assert_deploy_success(deploy_global_fixtures('globals', clean_up: false, selector: selector))
+    assert_deploy_success(deploy_global_fixtures('globals', selector: selector))
     reset_logger
     assert_deploy_success(deploy_global_fixtures('globals', subset: 'storage_classes.yml', selector: selector))
 
@@ -154,7 +154,7 @@ class GlobalDeployTest < Krane::IntegrationTest
 
   def test_no_prune_global_deploy_success
     selector = 'extraSelector=prune2'
-    assert_deploy_success(deploy_global_fixtures('globals', clean_up: false, selector: selector))
+    assert_deploy_success(deploy_global_fixtures('globals', selector: selector))
     reset_logger
     assert_deploy_success(deploy_global_fixtures('globals', subset: 'storage_classes.yml',
       selector: selector, prune: false))
