@@ -33,9 +33,11 @@ include(StatsD::Instrument::Assertions)
 
 Dir.glob(File.expand_path("../helpers/*.rb", __FILE__)).each { |file| require file }
 
-Mocha::Configuration.prevent(:stubbing_method_unnecessarily)
-Mocha::Configuration.prevent(:stubbing_non_existent_method)
-Mocha::Configuration.prevent(:stubbing_non_public_method)
+Mocha.configure do |c|
+  c.stubbing_method_unnecessarily = :prevent
+  c.stubbing_non_existent_method = :prevent
+  c.stubbing_non_public_method = :prevent
+end
 
 if ENV["PARALLELIZE_ME"]
   Minitest::Reporters.use!([
