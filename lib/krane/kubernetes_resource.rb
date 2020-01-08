@@ -16,7 +16,7 @@ module Krane
     TIMEOUT = 5.minutes
     LOG_LINE_COUNT = 250
     SERVER_DRY_RUN_DISABLED_ERROR =
-      /(unknown flag: --server-dry-run)|(doesn't support dry-run)|(dryRun alpha feature is disabled)/
+      /(unknown flag: --server-dry-run)|(doesn't support dry-run)|(does not support dry run)|(dryRun alpha feature is disabled)/
 
     DISABLE_FETCHING_LOG_INFO = 'DISABLE_FETCHING_LOG_INFO'
     DISABLE_FETCHING_EVENT_INFO = 'DISABLE_FETCHING_EVENT_INFO'

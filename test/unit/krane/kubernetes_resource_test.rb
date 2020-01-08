@@ -249,6 +249,24 @@ class KubernetesResourceTest < Krane::TestCase
     refute_includes(resource.validation_error_msg, 'S3CR3T')
   end
 
+  def test_validate_definition_ignores_server_dry_run_disabled_response
+    resource = DummySensitiveResource.new
+    kubectl.expects(:run)
+      .with('apply', '-f', anything, '--dry-run', '--output=name', anything)
+      .returns(["", "", stub(success?: true)])
+
+    kubectl.expects(:run)
+      .with('apply', '-f', anything, '--server-dry-run', '--output=name', anything)
+      .returns([
+      "Some Raw Output",
+      "Error from kubectl: something does not support dry run",
+      stub(success?: false),
+    ])
+    resource.validate_definition(kubectl)
+    refute(resource.validation_failed?, "Failed to ignore server dry run responses matching: 
+      #{Krane::KubernetesResource::SERVER_DRY_RUN_DISABLED_ERROR}")
+  end
+
   def test_annotation_and_kubectl_error_messages_are_combined_deprecated
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("bad", use_deprecated: true))
     kubectl.expects(:run).returns([
