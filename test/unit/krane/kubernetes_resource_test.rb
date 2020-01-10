@@ -259,7 +259,7 @@ class KubernetesResourceTest < Krane::TestCase
       .with('apply', '-f', anything, '--server-dry-run', '--output=name', anything)
       .returns([
       "Some Raw Output",
-      "Error from kubectl: something does not support dry run",
+      "Error from kubectl: admission webhook some-webhook does not support dry run",
       stub(success?: false),
     ])
     resource.validate_definition(kubectl)
