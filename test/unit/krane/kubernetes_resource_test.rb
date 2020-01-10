@@ -249,7 +249,7 @@ class KubernetesResourceTest < Krane::TestCase
     refute_includes(resource.validation_error_msg, 'S3CR3T')
   end
 
-  def test_validate_definition_ignores_server_dry_run_disabled_response
+    def test_validate_definition_ignores_server_dry_run_unsupported_by_webhook_response
     resource = DummySensitiveResource.new
     kubectl.expects(:run)
       .with('apply', '-f', anything, '--dry-run', '--output=name', anything)
