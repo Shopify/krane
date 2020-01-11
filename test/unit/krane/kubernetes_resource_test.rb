@@ -258,10 +258,10 @@ class KubernetesResourceTest < Krane::TestCase
     kubectl.expects(:run)
       .with('apply', '-f', anything, '--server-dry-run', '--output=name', anything)
       .returns([
-      "Some Raw Output",
-      "Error from kubectl: admission webhook some-webhook does not support dry run",
-      stub(success?: false),
-    ])
+        "Some Raw Output",
+        "Error from kubectl: admission webhook some-webhook does not support dry run",
+        stub(success?: false),
+      ])
     resource.validate_definition(kubectl)
     refute(resource.validation_failed?, "Failed to ignore server dry run responses matching:
       #{Krane::KubernetesResource::SERVER_DRY_RUN_DISABLED_ERROR}")
