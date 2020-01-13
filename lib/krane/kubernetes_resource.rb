@@ -390,9 +390,6 @@ module Krane
         .reason
         .message
         .eventTime
-        .deprecatedCount
-        .deprecatedLastTimestamp
-        .series
       )
       FIELD_EMPTY_VALUE = '<no value>'
 
@@ -415,8 +412,8 @@ module Krane
       def self.extract_all_from_go_template_blob(blob)
         blob.split(EVENT_SEPARATOR).map do |event_blob|
           pieces = event_blob.split(FIELD_SEPARATOR, FIELDS.length)
-          count = extract_event_count(pieces)
-          timestamp = extract_event_timestamp(pieces)
+          count = pieces[FIELDS.index(".count")]
+          timestamp = pieces[FIELDS.index(".lastTimestamp")]
 
           new(
             subject_kind: pieces[FIELDS.index(".involvedObject.kind")],
@@ -428,35 +425,6 @@ module Krane
           )
         end
       end
-
-      def self.extract_event_count(pieces)
-        series = pieces[FIELDS.index(".series")]
-        count = pieces[FIELDS.index(".count")]
-
-        # Find the right event count according to Kubernetes API and kubectl version
-        if count.present? && count != FIELD_EMPTY_VALUE
-          count # This is the default field, so let's try to use it first
-        elsif series.present? && series != FIELD_EMPTY_VALUE
-          # kubectl 1.16 uses Events/v1, which has the .series/.count field
-          count_regex = /count:(?<value>\S+?(?=\s))/
-          count_regex.match(series)['value']
-        end
-      end
-
-      def self.extract_event_timestamp(pieces)
-        series = pieces[FIELDS.index(".series")]
-        last_timestamp = pieces[FIELDS.index(".lastTimestamp")]
-
-        # Find the right event timestamp according to Kubernetes API and kubectl version
-        if last_timestamp.present? && last_timestamp != FIELD_EMPTY_VALUE
-          last_timestamp # kubernetes 1.16 also exposes .last_timestamp field, so let's support it
-        elsif series.present? && series != FIELD_EMPTY_VALUE
-          # kubectl 1.16 uses Events/v1, which has the .series/.lastObservedTime field
-          timestamp_regex = /lastObservedTime:(?<value>\S+?(?=\]))/
-          timestamp_regex.match(series)['value']
-        end
-      end
-      private_class_method :extract_event_timestamp, :extract_event_count
 
       def initialize(subject_kind:, last_timestamp:, reason:, message:, count:, subject_name:)
         @subject_kind = subject_kind
