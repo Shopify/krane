@@ -1,7 +1,18 @@
 ## next
 
+## 1.1.1
+
+*Enhancements*
+- Detect and handle case when webhook prevents server-dry-run. [#663](https://github.com/Shopify/krane/pull/663)
+
+
+*Other*
+
+- Relax dependency requirements. [#657](https://github.com/Shopify/krane/pull/670)
+
 *Bug Fixes*
 - Prints the correct argument name in error message. [#670](https://github.com/Shopify/krane/pull/670)
+- Fix mistakes in README.md [#664](https://github.com/Shopify/krane/pull/664) & [#659](https://github.com/Shopify/krane/pull/659)
 
 ## 1.1.0
 
