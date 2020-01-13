@@ -432,7 +432,6 @@ module Krane
       def self.extract_event_count(pieces)
         series = pieces[FIELDS.index(".series")]
         count = pieces[FIELDS.index(".count")]
-        deprecated_count = pieces[FIELDS.index(".deprecatedCount")]
 
         # Find the right event count according to Kubernetes API and kubectl version
         if count.present? && count != FIELD_EMPTY_VALUE
@@ -441,18 +440,12 @@ module Krane
           # kubectl 1.16 uses Events/v1, which has the .series/.count field
           count_regex = /count:(?<value>\S+?(?=\s))/
           count_regex.match(series)['value']
-        elsif deprecated_count.present? && deprecated_count != FIELD_EMPTY_VALUE
-          # kubectl < 1.16 uses events.k8s.io/v1beta1, which has .deprecatedCount
-          deprecated_count
-        else
-          "1" # Fallback to 1 when all count fields are null
         end
       end
 
       def self.extract_event_timestamp(pieces)
         series = pieces[FIELDS.index(".series")]
         last_timestamp = pieces[FIELDS.index(".lastTimestamp")]
-        deprecated_timestamp = pieces[FIELDS.index(".deprecatedLastTimestamp")]
 
         # Find the right event timestamp according to Kubernetes API and kubectl version
         if last_timestamp.present? && last_timestamp != FIELD_EMPTY_VALUE
@@ -461,11 +454,6 @@ module Krane
           # kubectl 1.16 uses Events/v1, which has the .series/.lastObservedTime field
           timestamp_regex = /lastObservedTime:(?<value>\S+?(?=\]))/
           timestamp_regex.match(series)['value']
-        elsif deprecated_timestamp.present? && deprecated_timestamp != FIELD_EMPTY_VALUE
-          # kubectl < 1.16 uses events.k8s.io/v1beta1, which has .deprecatedLastTimestamp
-          deprecated_timestamp
-        else
-          pieces[FIELDS.index(".eventTime")] # Fallback to eventTime when other timestamp fields are null
         end
       end
       private_class_method :extract_event_timestamp, :extract_event_count
