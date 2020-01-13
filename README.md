@@ -555,7 +555,7 @@ file path prefixed with an `@` sign. An argument error will be raised if the str
 
 ```
 # Comma separated string. Exposes, 'color' and 'size'
-$ krane render --bindings=color=blue size=large
+$ krane render --bindings=color=blue,size=large
 
 # JSON string. Exposes, 'color' and 'size'
 $ krane render --bindings='{"color":"blue","size":"large"}'
