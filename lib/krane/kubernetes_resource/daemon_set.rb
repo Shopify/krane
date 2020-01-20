@@ -80,8 +80,7 @@ module Krane
     def parent_of_pod?(pod_data)
       return false unless pod_data.dig("metadata", "ownerReferences")
 
-      template_generation = @instance_data.dig("spec", "templateGeneration") ||
-        @instance_data.dig("metadata", "annotations", "deprecated.daemonset.template.generation")
+      template_generation = @instance_data.dig("metadata", "generation")
       return false unless template_generation.present?
 
       pod_data["metadata"]["ownerReferences"].any? { |ref| ref["uid"] == @instance_data["metadata"]["uid"] } &&
