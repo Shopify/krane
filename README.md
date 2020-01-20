@@ -503,7 +503,7 @@ Based on this specification `krane run` will create a new pod with the entrypoin
 
 *Options:*
 
-* `--template=TEMPLATE`:  Specifies the name of the PodTemplate to use (default is `task-runner-template` if this option is not set).
+* `--template=TEMPLATE`: Specifies the name of the PodTemplate to use.
 * `--env-vars=ENV_VARS`: Accepts a list of environment variables to be added to the pod template. For example, `--env-vars="ENV=VAL ENV2=VAL2"` will make `ENV` and `ENV2` available to the container.
 * `--command=`: Override the default command in the container image.
 * `--no-verify-result`: Skip verification of pod success
