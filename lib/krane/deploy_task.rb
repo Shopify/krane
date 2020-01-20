@@ -60,14 +60,14 @@ module Krane
       before_crs = %w(
         ResourceQuota
         NetworkPolicy
-      )
-      after_crs = %w(
         ConfigMap
         PersistentVolumeClaim
         ServiceAccount
         Role
         RoleBinding
         Secret
+      )
+      after_crs = %w(
         Pod
       )
 
