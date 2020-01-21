@@ -26,7 +26,7 @@ module Krane
         "selector" => { type: :string, banner: "'label=value'",
                         desc: "Select workloads by selector(s)" },
         "verbose-log-prefix" => { type: :boolean, desc: "Add [context][namespace] to the log prefix",
-                                  default: true },
+                                  default: false },
         "verify-result" => { type: :boolean, default: true,
                              desc: "Verify workloads correctly deployed" },
       }
