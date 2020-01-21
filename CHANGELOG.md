@@ -8,6 +8,7 @@
 *Bug Fixes*
 - Prints the correct argument name in error message. [#660](https://github.com/Shopify/krane/pull/660)
 - Fix mistakes in README.md [#664](https://github.com/Shopify/krane/pull/664), [#659](https://github.com/Shopify/krane/pull/659), & [#668](https://github.com/Shopify/krane/pull/668)
+- Restores the default value of the `--verbose-log-prefix` flag on `krane deploy` to false. [#673](https://github.com/Shopify/krane/pull/673)
 
 *Other*
 
