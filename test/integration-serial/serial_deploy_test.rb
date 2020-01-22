@@ -492,7 +492,7 @@ class SerialDeployTest < Krane::IntegrationTest
     Tempfile.open([@namespace, ".yml"]) do |f|
       f.write(YAML.dump(crd))
       f.fsync
-      @global_fixtures_deployed << f.path
+      @deployed_global_fixture_paths << f.path
       out, err, st = build_kubectl.run("create", "-f", f.path, log_failure: true, use_namespace: false)
       assert(st.success?, "Failed to create invalid CRD: #{out}\n#{err}")
     end

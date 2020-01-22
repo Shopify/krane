@@ -53,7 +53,7 @@ module FixtureDeployHelper
 
     target_dir = Dir.mktmpdir("fixture_dir")
     write_fixtures_to_dir(fixtures, target_dir)
-    @global_fixtures_deployed << target_dir
+    @deployed_global_fixture_paths << target_dir
 
     deploy = Krane::GlobalDeployTask.new(
       context: KubeclientHelper::TEST_CONTEXT,
@@ -190,7 +190,7 @@ module FixtureDeployHelper
             # metadata.name has to be composed this way for CRDs
             resource["metadata"]["name"] = "#{resource['spec']['names']['plural']}.#{resource['spec']['group']}"
           else
-            resource["metadata"]["name"] = add_unique_prefix_for_test(resource["metadata"]["name"])[0..63]
+            resource["metadata"]["name"] = add_unique_prefix_for_test(resource["metadata"]["name"])[0..253]
           end
         end
       end

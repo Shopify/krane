@@ -17,11 +17,11 @@ module Krane
     def run
       super do
         @namespace = TestProvisioner.claim_namespace(name)
-        @global_fixtures_deployed = []
+        @deployed_global_fixture_paths = []
       end
     ensure
       TestProvisioner.delete_namespace(@namespace)
-      delete_globals(@global_fixtures_deployed)
+      delete_globals(@deployed_global_fixture_paths)
     end
 
     def delete_globals(dirs)
