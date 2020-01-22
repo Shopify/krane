@@ -1,3 +1,5 @@
+# Recommended rubocop version: ~> 0.78.0
+
 AllCops:
   Exclude:
   - 'db/schema.rb'
@@ -509,7 +511,7 @@ Style/WhileUntilModifier:
 Metrics/BlockNesting:
   Max: 3
 
-Metrics/LineLength:
+Layout/LineLength:
   Max: 120
   AllowHeredoc: true
   AllowURI: true
