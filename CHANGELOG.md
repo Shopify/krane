@@ -1,7 +1,19 @@
 ## next
 
+## 1.1.1
+
+*Enhancements*
+- Detect and handle case when webhook prevents server-dry-run. [#663](https://github.com/Shopify/krane/pull/663)
+- Deploy CustomResources after most other resources in the priority deploy phase. [#672](https://github.com/Shopify/krane/pull/672)
+
 *Bug Fixes*
-- Prints the correct argument name in error message. [#670](https://github.com/Shopify/krane/pull/670)
+- Prints the correct argument name in error message. [#660](https://github.com/Shopify/krane/pull/660)
+- Fix mistakes in README.md [#664](https://github.com/Shopify/krane/pull/664), [#659](https://github.com/Shopify/krane/pull/659), & [#668](https://github.com/Shopify/krane/pull/668)
+- Restores the default value of the `--verbose-log-prefix` flag on `krane deploy` to false. [#673](https://github.com/Shopify/krane/pull/673)
+
+*Other*
+
+- Relax dependency requirements. [#657](https://github.com/Shopify/krane/pull/657)
 
 ## 1.1.0
 
