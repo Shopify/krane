@@ -4,6 +4,7 @@
 
 *Enhancements*
 - Detect and handle case when webhook prevents server-dry-run. [#663](https://github.com/Shopify/krane/pull/663)
+- Deploy CustomResources after most other resources in the priority deploy phase. [#672](https://github.com/Shopify/krane/pull/672)
 
 *Bug Fixes*
 - Prints the correct argument name in error message. [#660](https://github.com/Shopify/krane/pull/660)
