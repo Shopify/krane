@@ -187,7 +187,7 @@ class KraneDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
-  def test_refuses_deploy_to_protected_namespace_with_override_if_pruning_enabled
+  def test_refuses_deploy_to_protected_namespace_if_pruning_enabled
     generated_ns = @namespace
     @namespace = 'default'
     assert_deploy_failure(deploy_fixtures("hello-cloud", prune: true))
@@ -197,6 +197,24 @@ class KraneDeployTest < Krane::IntegrationTest
     ], in_order: true)
   ensure
     @namespace = generated_ns
+  end
+
+  def test_deploying_to_protected_namespace_does_not_prune
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml', 'disruption-budgets.yml'],
+      protected_namespaces: [@namespace], prune: false))
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_configmap_data_present
+    hello_cloud.assert_poddisruptionbudget
+    assert_logs_match_all([
+      /cannot be pruned/,
+      /Please do not deploy to #{@namespace} unless you really know what you are doing/,
+    ])
+
+    result = deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"],
+      protected_namespaces: [@namespace], prune: false)
+    assert_deploy_success(result)
+    hello_cloud.assert_configmap_data_present # not pruned
+    hello_cloud.assert_poddisruptionbudget
   end
 
   def test_deploy_succeeds_with_specific_protected_namespaces
@@ -1573,6 +1591,175 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       %r{PodDisruptionBudget/#{pdb_name_matcher}\s+Available},
       %r{Secret/#{secret_name_matcher}\s+Available},
     ])
+  end
+
+  # Note: These tests assume a default storage class with a dynamic provisioner and 'Immediate' bind
+  def test_pvc
+    pvname = add_unique_prefix_for_test("local")
+    pv_created = false
+    storage_class_name = nil
+
+    result = deploy_global_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      storage_class_name = sc["metadata"]["name"] # will be made unique by the test helper
+    end
+    assert_deploy_success(result)
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    pv_created = true
+
+    result = deploy_fixtures("pvc", subset: %w(pod.yml pvc.yml)) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].find { |p| p["metadata"]["name"] = "with-storage-class" }
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 3 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Bound},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+      %r{Pod/pvc\s+Succeeded},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname) if pv_created
+  end
+
+  def test_pvc_no_bind
+    pvname = add_unique_prefix_for_test("local")
+    storage_class_name = nil
+    pv_created = false
+
+    result = deploy_global_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      storage_class_name = sc["metadata"]["name"] # will be made unique by the test helper
+    end
+    assert_deploy_success(result)
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    pv_created = true
+
+    result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 2 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Pending},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname) if pv_created
+  end
+
+  def test_pvc_immediate_bind
+    pvname = add_unique_prefix_for_test("local")
+    storage_class_name = nil
+    pv_created = false
+
+    result = deploy_global_fixtures("pvc", subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      storage_class_name = sc["metadata"]["name"] # will be made unique by the test helper
+      sc["volumeBindingMode"] = "Immediate"
+    end
+    assert_deploy_success(result)
+
+    TestProvisioner.prepare_pv(pvname, storage_class_name: storage_class_name)
+    pv_created = true
+
+    result = deploy_fixtures("pvc", subset: ["pvc.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_success(result)
+
+    assert_logs_match_all([
+      "Successfully deployed 2 resource",
+      "Successful resources",
+      %r{PersistentVolumeClaim/with-storage-class\s+Bound},
+      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+    ], in_order: true)
+
+  ensure
+    kubeclient.delete_persistent_volume(pvname) if pv_created
+  end
+
+  def test_pvc_no_pv
+    storage_class_name = nil
+
+    result = deploy_global_fixtures("pvc",
+    subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
+      storage_class_name = sc["metadata"]["name"] # will be made unique by the test helper
+    end
+    assert_deploy_success(result)
+
+    result = deploy_fixtures("pvc", subset: ["pvc.yml", "pod.yml"]) do |fixtures|
+      pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
+      pvc["spec"]["storageClassName"] = storage_class_name
+    end
+    assert_deploy_failure(result)
+
+    assert_logs_match_all([
+      "Failed to deploy 1 priority resource",
+      "Pod/pvc: TIMED OUT (timeout: 10s)",
+      %r{Pod could not be scheduled because 0/\d+ nodes are available:},
+      /\d+ node[(]s[)] didn't find available persistent volumes to bind./,
+    ], in_order: true)
+  end
+
+  def test_create_secrets_from_ejson
+    logger.level = ::Logger::DEBUG # for assertions that we don't log secret data
+
+    # Create secrets
+    ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
+    ejson_cloud.create_ejson_keys_secret
+    assert_deploy_success(deploy_fixtures("ejson-cloud"))
+    ejson_cloud.assert_all_up
+    assert_logs_match_all([
+      %r{Secret\/catphotoscom\s+Available},
+      %r{Secret\/unused-secret\s+Available},
+      %r{Secret\/monitoring-token\s+Available},
+    ])
+
+    refute_logs_match(ejson_cloud.test_private_key)
+    refute_logs_match(ejson_cloud.test_public_key)
+    refute_logs_match(Base64.strict_encode64(ejson_cloud.catphotoscom_key_value))
+  end
+
+  def test_sensitive_output_suppressed_when_creating_secret_with_generate_name
+    logger.level = ::Logger::DEBUG # for assertions that we don't log secret data
+
+    # Create secrets
+    result = deploy_fixtures("generateName", subset: "secret.yml")
+    secret_name = /generate-name-secret-[a-z0-9]{5}/
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      'Deploying Secret/generate-name-secret-',
+      'Successfully deployed 1 resource',
+      %r{Secret/#{secret_name}\s+Available},
+    ], in_order: true)
+
+    refute_logs_match("cGFzc3dvcmQ=")
+  end
+
+  def test_sensitive_output_suppressed_when_creating_secret_with_generate_name_fails
+    logger.level = ::Logger::DEBUG # for assertions that we don't log secret data
+
+    # Create secrets
+    result = deploy_fixtures("generateName", subset: "bad_secret.yml")
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      'Failed to replace or create resource: secret/generate-name-secret-',
+      "<suppressed sensitive output>",
+    ], in_order: true)
+
+    refute_logs_match("cGFzc3dvcmQ=")
   end
 
   private
