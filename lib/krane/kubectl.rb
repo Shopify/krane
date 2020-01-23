@@ -36,7 +36,7 @@ module Krane
         out, err, st = Open3.capture3(*cmd)
 
         # https://github.com/Shopify/krane/issues/395
-        if out.encoding != Encoding::UTF_8
+        unless out.valid_encoding?
           out = out.dup.force_encoding(Encoding::UTF_8)
         end
 
