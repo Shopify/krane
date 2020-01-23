@@ -25,6 +25,7 @@ module Krane
     end
 
     def delete_globals(dirs)
+      return if dirs.empty?
       kubectl = build_kubectl
       paths = dirs.flat_map { |d| ["-f", d] }
       kubectl.run("delete", "--wait=false", *paths, log_failure: true, use_namespace: false)
