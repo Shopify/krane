@@ -35,10 +35,10 @@ module Krane
         end
 
         metric ||= "#{method_name}.duration"
-        self::InstrumentationProxy.send(:define_method, method_name) do |*args, &block|
+        self::InstrumentationProxy.send(:define_method, method_name) do |*args, **kwargs, &block|
           begin
             start_time = Time.now.utc
-            super(*args, &block)
+            super(*args, **kwargs, &block)
           rescue
             error = true
             raise
