@@ -97,7 +97,7 @@ module Krane
       progress_condition.present? ? deploy_failing_to_progress? : super
     end
 
-    def validate_definition(*)
+    def validate_definition(*, **)
       super
 
       unless REQUIRED_ROLLOUT_TYPES.include?(required_rollout) || percent?(required_rollout)

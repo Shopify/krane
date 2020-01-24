@@ -62,7 +62,7 @@ module Krane
       kind
     end
 
-    def validate_definition(*)
+    def validate_definition(*, **)
       super
 
       @crd.validate_rollout_conditions
