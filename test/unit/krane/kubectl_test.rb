@@ -348,6 +348,29 @@ class KubectlTest < Krane::TestCase
     end
   end
 
+  def test_kubectl_run_fixes_encoding_when_locales_set_to_non_utf8
+    ext_before = Encoding.default_external
+    int_before = Encoding.default_internal
+    logger.level = ::Logger::DEBUG
+    utf8 = "こんにちは！hélas!"
+
+    # This is how setting the env from https://github.com/Shopify/krane/issues/395 manifests internally
+    Encoding.default_external = Encoding::US_ASCII
+    Encoding.default_internal = nil
+
+    # put the string through the default external encoder
+    data = %x(echo #{utf8})
+    assert_equal(Encoding::US_ASCII, data.encoding)
+
+    stub_open3(%W(kubectl get pods --namespace=testn --context=testc --request-timeout=#{timeout}), resp: data)
+    out, _err, _st = build_kubectl.run("get", "pods")
+    assert_equal(utf8, out)
+    assert_equal(Encoding::UTF_8, out.encoding)
+  ensure
+    Encoding.default_external = ext_before
+    Encoding.default_internal = int_before
+  end
+
   private
 
   def timeout

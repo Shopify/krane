@@ -1,5 +1,8 @@
 ## next
 
+*Bug Fixes*
+- Help ruby correctly identify kubectl output encoding. [#646](https://github.com/Shopify/krane/pull/646)
+
 ## 1.1.1
 
 *Enhancements*
