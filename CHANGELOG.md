@@ -1,7 +1,12 @@
 ## next
 
+*Enhancements*
+
 *Bug Fixes*
 - Help ruby correctly identify kubectl output encoding. [#646](https://github.com/Shopify/krane/pull/646)
+
+*Other*
+- Reduces the number of container logs printed for failures from 250 to 25 to reduce noise. [#676](https://github.com/Shopify/krane/pull/676)
 
 ## 1.1.1
 
