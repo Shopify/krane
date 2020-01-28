@@ -68,7 +68,7 @@ module Krane
     end
 
     def global_timeout?(started_at)
-      @timeout && (Time.now.utc - started_at > @timeout)
+      @timeout && (Time.now.utc - started_at >= @timeout)
     end
 
     def sleep_until_next_sync(min_interval)
