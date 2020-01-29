@@ -10,7 +10,6 @@ require 'krane/resource_cache'
 require 'krane/kubernetes_resource'
 %w(
   custom_resource
-  cloudsql
   config_map
   deployment
   ingress

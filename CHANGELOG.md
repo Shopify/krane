@@ -7,6 +7,7 @@
 
 *Other*
 - Reduces the number of container logs printed for failures from 250 to 25 to reduce noise. [#676](https://github.com/Shopify/krane/pull/676)
+- Remove hardcoded cloudsql class. [#680](https://github.com/Shopify/krane/pull/680)
 
 ## 1.1.1
 
