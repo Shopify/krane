@@ -454,14 +454,6 @@ class KubernetesResourceTest < Krane::TestCase
   end
 
   def test_build_handles_hardcoded_and_core_and_dynamic_objects
-    # Hardcoded CRs
-    cloudsql_crd = Krane::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: [], definition: build_crd(name: "cloudsql"))
-    cloudsql_cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
-      logger: @logger, statsd_tags: [], crd: cloudsql_crd,
-      definition: { "kind" => "Cloudsql", "metadata" => { "name" => "test" } })
-    assert_equal(cloudsql_cr.class, Krane::Cloudsql)
-
     # Dynamic with no rollout config
     no_config_crd = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], definition: build_crd(name: "noconfig"))
