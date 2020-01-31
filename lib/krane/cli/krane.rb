@@ -6,6 +6,7 @@ require 'krane/cli/version_command'
 require 'krane/cli/restart_command'
 require 'krane/cli/run_command'
 require 'krane/cli/render_command'
+require 'krane/cli/annotate_command'
 require 'krane/cli/deploy_command'
 require 'krane/cli/global_deploy_command'
 
@@ -19,6 +20,14 @@ module Krane
 
       def self.expand_options(task_options)
         task_options.each { |option_name, config| method_option(option_name, config) }
+      end
+
+      desc("annotate ANNOTATIONS", "Add custom annotations")
+      expand_options(AnnotateCommand::OPTIONS)
+      def annotate(annotations)
+        rescue_and_exit do
+          AnnotateCommand.from_options(annotations, options)
+        end
       end
 
       desc("render", "Render templates")
