@@ -49,6 +49,7 @@ module Krane
     extend Krane::StatsD::MeasureMethods
     include Krane::TemplateReporting
 
+    POD_CONTROLLER_RESOURCES = ['deployment', 'replicaset', 'statefulset', 'daemonset']
     PROTECTED_NAMESPACES = %w(
       default
       kube-system
@@ -96,7 +97,7 @@ module Krane
     #   to Krane::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha: nil, logger: nil, kubectl_instance: nil, bindings: {},
-      global_timeout: nil, selector: nil, filenames: [], protected_namespaces: nil,
+      global_timeout: nil, selector: nil, filenames: [], protected_namespaces: nil, resources_with_annotations: {},
       render_erb: false)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
@@ -111,6 +112,7 @@ module Krane
       @selector = selector
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
       @render_erb = render_erb
+      @resources_with_annotations = resources_with_annotations
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -226,14 +228,19 @@ module Krane
     end
 
     def discover_resources
-      @logger.info("Discovering resources:")
+      @logger.info("Discovering resources and injecting any annotations:")
       resources = []
+      annotated_resources = []
       crds_by_kind = cluster_resource_discoverer.crds.group_by(&:kind)
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
+        annotated_resource, r_def = inject_annotations(r_def)
         crd = crds_by_kind[r_def["kind"]]&.first
+        
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
           statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
+        
         resources << r
+        annotated_resources.concat(annotated_resource)
         @logger.info("  - #{r.id}")
       end
 
@@ -242,6 +249,9 @@ module Krane
         @logger.info("  - #{secret.id} (from ejson)")
       end
 
+      unannotated_resources = @resources_with_annotations.nil? ? [] : @resources_with_annotations.keys - annotated_resources
+      @logger.warn("Couldn't find and annotate `#{unannotated_resources.join(',')}` resource(s)") if unannotated_resources.size > 0
+
       resources.sort
     rescue InvalidTemplateError => e
       record_invalid_template(logger: @logger, err: e.message, filename: e.filename,
@@ -249,6 +259,29 @@ module Krane
       raise FatalDeploymentError, "Failed to render and parse template"
     end
     measure_method(:discover_resources)
+
+    def inject_annotations(content)
+      annotated_resources = []
+      return annotated_resources, content if content['kind'].nil? || @resources_with_annotations.nil?
+
+      if @resources_with_annotations.has_key?(content['kind'].downcase)
+        content['metadata'].has_key?('annotations') ? nil : content['metadata']['annotations'] = {}
+        content['metadata']['annotations'].merge!(@resources_with_annotations[content['kind'].downcase])
+        
+        annotated_resources << content['kind'].downcase
+        @logger.info("Annotated #{content['kind']} resource")
+      end
+
+      if @resources_with_annotations.has_key?('pod') && POD_CONTROLLER_RESOURCES.include?(content['kind'].downcase)
+        content['spec']['template']['metadata'].has_key?('annotations') ? nil : content['spec']['template']['metadata']['annotations'] = {}
+        content['spec']['template']['metadata']['annotations'].merge!(@resources_with_annotations['pod'])
+
+        annotated_resources << 'pod'
+        @logger.info("Annotated pod resource defined in #{content['kind']} resource")
+      end
+
+      return annotated_resources, content
+    end
 
     def validate_configuration(prune:)
       task_config_validator = DeployTaskConfigValidator.new(@protected_namespaces, prune,

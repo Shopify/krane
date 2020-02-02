@@ -116,6 +116,7 @@ class DeployTest < Krane::TestCase
         global_timeout: 300,
         selector: nil,
         protected_namespaces: ["default", "kube-system", "kube-public"],
+        resources_with_annotations: nil,
       }.merge(new_args),
       run_args: {
         verify_result: true,
