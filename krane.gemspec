@@ -33,7 +33,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency("oj", "~> 3.0")
   spec.add_dependency("concurrent-ruby", "~> 1.1")
   spec.add_dependency("jsonpath", "~> 0.9.6")
-  spec.add_dependency("thor", ">= 0.20.3", "< 2.0")
+  spec.add_dependency("thor", ">= 1.0", "< 2.0")
 
   # Basics
   spec.add_development_dependency("bundler")
