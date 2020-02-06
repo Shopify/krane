@@ -7,7 +7,6 @@ module Krane
         "bindings" => { type: :array, banner: "foo=bar abc=def", desc: 'Bindings for erb' },
         "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                          required: false, default: [], aliases: 'f', desc: 'Directories and files to render' },
-        "stdin" => { type: :boolean, desc: "Read resources from stdin", default: false },
         "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings",
                            lazy_default: '' },
       }
