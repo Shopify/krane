@@ -1,5 +1,8 @@
 ## next
 
+*Deprecations*
+- `--stdin` flag is deprecated. To read from STDIN, use `-f -` (can be combined with other files/directories) [#684](https://github.com/Shopify/krane/pull/684) 
+
 *Enhancements*
 
 *Bug Fixes*
