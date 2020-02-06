@@ -48,7 +48,7 @@ class GlobalDeployTest < Krane::TestCase
     end
   end
 
-  def test_deploy_fails_without_filename_and_std_in
+  def test_deploy_fails_without_filename
     krane = Krane::CLI::Krane.new([task_config.context], %w(--selector app=krane))
     assert_raises_message(Thor::RequiredArgumentMissingError, '--filenames must be set and not empty') do
       krane.invoke("global_deploy")

@@ -73,7 +73,7 @@ class DeployTest < Krane::TestCase
     krane_deploy!(flags: '--filenames /my/other/file/path')
   end
 
-  def test_deploy_fails_without_filename_and_std_in
+  def test_deploy_fails_without_filename
     krane = Krane::CLI::Krane.new(
       [deploy_task_config.namespace, deploy_task_config.context],
       []
