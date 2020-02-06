@@ -20,11 +20,9 @@ module Krane
         bindings_parser = ::Krane::BindingsParser.new
         options[:bindings]&.each { |b| bindings_parser.add(b) }
 
-        # never mutate options directly
-        filenames = options[:filenames].dup
-        filenames << "-" if options[:stdin]
+        filenames = options[:filenames]
         if filenames.empty?
-          raise Thor::RequiredArgumentMissingError, 'At least one of --filenames or --stdin must be set'
+          raise(Thor::RequiredArgumentMissingError, '--filenames must be set and not empty')
         end
 
         ::Krane::OptionsHelper.with_processed_template_paths(filenames, render_erb: true) do |paths|

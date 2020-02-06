@@ -48,12 +48,21 @@ class DeployTest < Krane::TestCase
     krane_deploy!(flags: "--protected-namespaces=''")
   end
 
-  def test_deploy_parses_std_in_without_filenames
+  def test_deploy_parses_std_in_alone
     Dir.mktmpdir do |tmp_path|
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
       set_krane_deploy_expectations(new_args: { filenames: [tmp_path] })
-      krane_deploy!(flags: '--stdin')
+      krane_deploy!(flags: '-f -')
+    end
+  end
+
+  def test_deploy_parses_std_in_with_multiple_files
+    Dir.mktmpdir do |tmp_path|
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
+      set_krane_deploy_expectations(new_args: { filenames: ['/my/file/path', tmp_path] })
+      krane_deploy!(flags: '-f /my/file/path -')
     end
   end
 
@@ -64,21 +73,12 @@ class DeployTest < Krane::TestCase
     krane_deploy!(flags: '--filenames /my/other/file/path')
   end
 
-  def test_deploy_parses_std_in
-    Dir.mktmpdir do |tmp_path|
-      $stdin.expects("read").returns("")
-      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
-      set_krane_deploy_expectations(new_args: { filenames: ['/my/file/path', tmp_path] })
-      krane_deploy!(flags: '-f /my/file/path --stdin')
-    end
-  end
-
   def test_deploy_fails_without_filename_and_std_in
     krane = Krane::CLI::Krane.new(
       [deploy_task_config.namespace, deploy_task_config.context],
       []
     )
-    assert_raises_message(Thor::RequiredArgumentMissingError, "At least one of --filenames or --stdin must be set") do
+    assert_raises_message(Thor::RequiredArgumentMissingError, "--filenames must be set and not empty") do
       krane.invoke("deploy")
     end
   end
@@ -94,7 +94,7 @@ class DeployTest < Krane::TestCase
   end
 
   def krane_deploy!(flags: '')
-    flags += ' -f /tmp' unless flags.include?('-f') || flags.include?("--stdin")
+    flags += ' -f /tmp' unless flags.include?('-f')
     krane = Krane::CLI::Krane.new(
       [deploy_task_config.namespace, deploy_task_config.context],
       flags.split

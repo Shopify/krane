@@ -62,7 +62,7 @@ class KraneTest < Krane::IntegrationTest
     test_sha = rand(10_000).to_s
 
     out, err, status = krane_black_box("render",
-      "--stdin --bindings #{bindings} --current-sha #{test_sha}", stdin: template)
+      "--filenames - --bindings #{bindings} --current-sha #{test_sha}", stdin: template)
 
     assert_predicate(status, :success?)
     assert_match("Success", err)
@@ -93,7 +93,7 @@ class KraneTest < Krane::IntegrationTest
       "-f #{fixture_path('hello-cloud')} --bindings deployment_id=1 current_sha=123")
     assert_predicate(render_status, :success?)
 
-    out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} --stdin",
+    out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT} --filenames -",
       stdin: render_out)
     assert_empty(out)
     assert_match("Success", err)
@@ -103,7 +103,7 @@ class KraneTest < Krane::IntegrationTest
   def test_deploy_black_box_failure
     out, err, status = krane_black_box("deploy", "#{@namespace} #{KubeclientHelper::TEST_CONTEXT}")
     assert_empty(out)
-    assert_match("At least one of --filenames or --stdin must be set", err)
+    assert_match("--filenames must be set and not empty", err)
     refute_predicate(status, :success?)
     assert_equal(status.exitstatus, 1)
   end

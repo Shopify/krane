@@ -150,7 +150,7 @@ module Krane
 
       if rendering_erb_disabled? && deploying_with_erb_files?
         errors << "ERB template discovered with rendering disabled. If you were trying to render ERB and " \
-          "deploy the result, try piping the output of `krane render` to `krane-deploy` with the --stdin flag"
+          "deploy the result, try piping the output of `krane render` to `krane-deploy -f -`"
       end
 
       errors
