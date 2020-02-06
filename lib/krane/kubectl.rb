@@ -57,9 +57,9 @@ module Krane
             "The following command failed and cannot be retried"
           end
           logger.warn("#{warning}: #{Shellwords.join(cmd)}")
-          logger.warn(err) unless output_is_sensitive
+          logger.warn(err.inspect) unless output_is_sensitive
         else
-          logger.debug("Kubectl err: #{output_is_sensitive ? '<suppressed sensitive output>' : err}")
+          logger.debug("Kubectl err: #{output_is_sensitive ? '<suppressed sensitive output>' : err.inspect}")
         end
         StatsD.client.increment('kubectl.error', 1, tags: { context: context, namespace: namespace, cmd: cmd[1] })
 
