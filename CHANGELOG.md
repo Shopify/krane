@@ -1,14 +1,12 @@
 ## next
 
-*Deprecations*
-- `--stdin` flag is deprecated. To read from STDIN, use `-f -` (can be combined with other files/directories) [#684](https://github.com/Shopify/krane/pull/684) 
-
 *Enhancements*
 
 *Bug Fixes*
 - Help ruby correctly identify kubectl output encoding. [#646](https://github.com/Shopify/krane/pull/646)
 
 *Other*
+- `--stdin` flag is deprecated. To read from STDIN, use `-f -` (can be combined with other files/directories) [#684](https://github.com/Shopify/krane/pull/684).
 - Reduces the number of container logs printed for failures from 250 to 25 to reduce noise. [#676](https://github.com/Shopify/krane/pull/676)
 - Remove hardcoded cloudsql class. [#680](https://github.com/Shopify/krane/pull/680)
 
