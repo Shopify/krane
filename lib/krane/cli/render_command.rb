@@ -7,6 +7,8 @@ module Krane
         "bindings" => { type: :array, banner: "foo=bar abc=def", desc: 'Bindings for erb' },
         "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                          required: false, default: [], aliases: 'f', desc: 'Directories and files to render' },
+        "stdin" => { type: :boolean, default: false,
+                     desc: "Read resources from stdin" },
         "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings",
                            lazy_default: '' },
       }
@@ -19,7 +21,8 @@ module Krane
         bindings_parser = ::Krane::BindingsParser.new
         options[:bindings]&.each { |b| bindings_parser.add(b) }
 
-        filenames = options[:filenames]
+        filenames = options[:filenames].dup
+        filenames << "-" if options[:stdin]
         if filenames.empty?
           raise(Thor::RequiredArgumentMissingError, '--filenames must be set and not empty')
         end

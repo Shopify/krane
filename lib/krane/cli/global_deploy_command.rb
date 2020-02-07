@@ -8,6 +8,8 @@ module Krane
         "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                          aliases: :f, required: false, default: [],
                          desc: "Directories and files that contains the configuration to apply" },
+        "stdin" => { type: :boolean, default: false,
+                     desc: "Read resources from stdin" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_DEPLOY_TIMEOUT,
                               desc: "Max duration to monitor workloads correctly deployed" },
         "verify-result" => { type: :boolean, default: true,
@@ -27,7 +29,8 @@ module Krane
 
         selector = ::Krane::LabelSelector.parse(options[:selector])
 
-        filenames = options[:filenames]
+        filenames = options[:filenames].dup
+        filenames << "-" if options[:stdin]
         if filenames.empty?
           raise(Thor::RequiredArgumentMissingError, '--filenames must be set and not empty')
         end

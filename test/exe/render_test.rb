@@ -24,6 +24,12 @@ class RenderTest < Krane::TestCase
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
       install_krane_render_expectations(filenames: [file_path, tmp_path])
       krane_render!("--filenames #{file_path} -")
+
+      # with deprecated --stdin flag
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
+      install_krane_render_expectations(filenames: [file_path, tmp_path])
+      krane_render!("--filenames #{file_path} --stdin")
     end
   end
 
@@ -33,6 +39,25 @@ class RenderTest < Krane::TestCase
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path).once
       install_krane_render_expectations(filenames: [tmp_path])
       krane_render!("-f -")
+
+      # with deprecated --stdin flag
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path).once
+      install_krane_render_expectations(filenames: [tmp_path])
+      krane_render!("--stdin")
+    end
+  end
+
+  def test_stdin_flag_deduped_if_specified_multiple_times
+    Dir.mktmpdir do |tmp_path|
+      $stdin.expects("read").returns("").times(2)
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path).times(2)
+      install_krane_render_expectations(filenames: [tmp_path])
+      krane_render!('-f - -')
+
+      # with deprecated --stdin flag
+      install_krane_render_expectations(filenames: [tmp_path])
+      krane_render!('-f - --stdin')
     end
   end
 
@@ -65,7 +90,7 @@ class RenderTest < Krane::TestCase
   end
 
   def krane_render!(flags = "")
-    flags += ' -f /dev/null' unless flags.include?("-f")
+    flags += ' -f /dev/null' unless flags.include?("-f") || flags.include?("--stdin")
     krane = Krane::CLI::Krane.new(
       [],
       flags.split
