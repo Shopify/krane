@@ -561,6 +561,7 @@ module Krane
       end
 
       return true if st.success?
+      return true if err.empty?
       @validation_errors << if sensitive_template_content?
         "Validation for #{id} failed. Detailed information is unavailable as the raw error may contain sensitive data."
       else
