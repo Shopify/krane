@@ -565,6 +565,9 @@ $ krane render --bindings='@config/production.json'
 
 # Load YAML file from ./config (.yaml or yml supported)
 $ krane render --bindings='@config/production.yaml'
+
+# Load multiple files via a space separated string
+$ krane render --bindings='@config/production.yaml' '@config/common.yaml'
 ```
 
 #### Using partials
