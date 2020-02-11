@@ -1,6 +1,6 @@
 containers:
   default:
-    docker: circleci/ruby:2.4.6-node-browsers
+    docker: circleci/ruby:2.5.7-node-browsers
 
 steps:
   - label: Lint
@@ -16,7 +16,7 @@ steps:
     env:
       LOGGING_LEVEL: "4"
       KUBERNETES_VERSION: v1.17-latest
-      RUBY_VERSION: "2.7"
+      RUBY_VERSION: "2.6"
   - label: 'Run Test Suite (:kubernetes: 1.16-latest)'
     command: bin/ci
     agents:
