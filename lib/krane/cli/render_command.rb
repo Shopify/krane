@@ -8,7 +8,7 @@ module Krane
         "filenames" => { type: :array, banner: 'config/deploy/production config/deploy/my-extra-resource.yml',
                          required: false, default: [], aliases: 'f', desc: 'Directories and files to render' },
         "stdin" => { type: :boolean, default: false,
-                     desc: "Read resources from stdin" },
+                     desc: "[DEPRECATED] Read resources from stdin" },
         "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings",
                            lazy_default: '' },
       }

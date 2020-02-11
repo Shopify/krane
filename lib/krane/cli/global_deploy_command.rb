@@ -9,7 +9,7 @@ module Krane
                          aliases: :f, required: false, default: [],
                          desc: "Directories and files that contains the configuration to apply" },
         "stdin" => { type: :boolean, default: false,
-                     desc: "Read resources from stdin" },
+                     desc: "[DEPRECATED] Read resources from stdin" },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_DEPLOY_TIMEOUT,
                               desc: "Max duration to monitor workloads correctly deployed" },
         "verify-result" => { type: :boolean, default: true,
