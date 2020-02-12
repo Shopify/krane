@@ -23,6 +23,12 @@ class RenderTest < Krane::TestCase
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
       install_krane_render_expectations(filenames: [file_path, tmp_path])
+      krane_render!("--filenames #{file_path} -")
+
+      # with deprecated --stdin flag
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
+      install_krane_render_expectations(filenames: [file_path, tmp_path])
       krane_render!("--filenames #{file_path} --stdin")
     end
   end
@@ -32,14 +38,33 @@ class RenderTest < Krane::TestCase
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path).once
       install_krane_render_expectations(filenames: [tmp_path])
+      krane_render!("-f -")
+
+      # with deprecated --stdin flag
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path).once
+      install_krane_render_expectations(filenames: [tmp_path])
       krane_render!("--stdin")
+    end
+  end
+
+  def test_stdin_flag_deduped_if_specified_multiple_times
+    Dir.mktmpdir do |tmp_path|
+      $stdin.expects("read").returns("").times(2)
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path).times(2)
+      install_krane_render_expectations(filenames: [tmp_path])
+      krane_render!('-f - -')
+
+      # with deprecated --stdin flag
+      install_krane_render_expectations(filenames: [tmp_path])
+      krane_render!('-f - --stdin')
     end
   end
 
   def test_render_fails_without_filename_and_std_in
     krane = Krane::CLI::Krane.new([], %w(--current-sha 1))
 
-    assert_raises_message(Thor::RequiredArgumentMissingError, "At least one of --filenames or --stdin must be set") do
+    assert_raises_message(Thor::RequiredArgumentMissingError, "--filenames must be set and not empty") do
       krane.invoke("render")
     end
   end

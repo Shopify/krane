@@ -112,8 +112,7 @@ official compatibility chart below.
 Refer to `krane help` for the authoritative set of options.
 
 
-- `--filenames / -f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
-- `--stdin`: Read from STDIN. Can be combined with `-f` Example: `cat templates_from_stdin/*.yml | krane deploy ns ctx -f path/to/dir path/to/file.yml --stdin`
+- `--filenames / -f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed, use `-` to specify reading from STDIN.
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--global-timeout=duration`: Raise a timeout error if it takes longer than _duration_ for any
 resource to deploy.
@@ -138,7 +137,7 @@ If you need to share a namespace with resources which are managed by other tools
 All templates must be YAML formatted.
 We recommended storing each app's templates in a single directory, `{app root}/config/deploy/{env}`. However, you may use multiple directories.
 
-If you want dynamic templates, you may render ERB with `krane render` and then pipe that result to `krane deploy --stdin`. `krane deploy` supports using both `--filenames` and `--stdin` together.
+If you want dynamic templates, you may render ERB with `krane render` and then pipe that result to `krane deploy -f -`.
 
 ### Customizing behaviour with annotations
 - `krane.shopify.io/timeout-override`: Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours.
@@ -329,7 +328,7 @@ Let's walk through what happens when you run the `deploy` task with [this direct
 You can test this out for yourself by running the following command:
 
 ```bash
-krane render -f test/fixtures/hello-cloud --current-sha 1 | krane deploy my-namespace my-k8s-cluster --stdin
+krane render -f test/fixtures/hello-cloud --current-sha 1 | krane deploy my-namespace my-k8s-cluster -f -
 ```
 
 As soon as you run this, you'll start seeing some output being streamed to STDERR.
@@ -434,8 +433,7 @@ $ krane global-deploy my-k8s-context -f my-template.yml --selector app=krane
 
 Refer to `krane global-deploy help` for the authoritative set of options.
 
-- `--filenames / -if [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed
-- `--stdin`: Read from STDIN. Can be combined with `-f`
+- `--filenames / -f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed. Use `-` to specify STDIN.
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. By using this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
 - `--global-timeout=duration`: Raise a timeout error if it takes longer than _duration_ for any
@@ -542,8 +540,7 @@ krane render -f ./path/to/template/dir/template.yaml.erb > template.yaml
 
 *Options:*
 
-- `--filenames / -f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed.
-- `--stdin`: Read from STDIN. Can be combined with `-f` Example: `cat templates_from_stdin/*.yml | krane render -f path/to/dir path/to/file.yml --stdin`
+- `--filenames / -f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed. Use `-` to specify STDIN.
 - `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane render --bindings=color=blue size=large -f some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
 - `--current-sha`: Expose SHA `current_sha` in ERB bindings
 

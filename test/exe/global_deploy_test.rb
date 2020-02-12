@@ -23,8 +23,14 @@ class GlobalDeployTest < Krane::TestCase
     krane_global_deploy!(flags: '--verify-result false')
   end
 
-  def test_deploy_parses_std_in_without_filenames
+  def test_deploy_parses_std_in_alone
     Dir.mktmpdir do |tmp_path|
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
+      set_krane_global_deploy_expectations!(new_args: { filenames: [tmp_path] })
+      krane_global_deploy!(flags: '--filenames -')
+
+      # with deprecated --stdin flag
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
       set_krane_global_deploy_expectations!(new_args: { filenames: [tmp_path] })
@@ -44,13 +50,32 @@ class GlobalDeployTest < Krane::TestCase
       $stdin.expects("read").returns("")
       Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
       set_krane_global_deploy_expectations!(new_args: { filenames: ['/my/file/path', tmp_path] })
+      krane_global_deploy!(flags: '-f /my/file/path -')
+
+      # with deprecated --stdin flag
+      $stdin.expects("read").returns("")
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path)
+      set_krane_global_deploy_expectations!(new_args: { filenames: ['/my/file/path', tmp_path] })
       krane_global_deploy!(flags: '-f /my/file/path --stdin')
     end
   end
 
-  def test_deploy_fails_without_filename_and_std_in
+  def test_stdin_flag_deduped_if_specified_multiple_times
+    Dir.mktmpdir do |tmp_path|
+      $stdin.expects("read").returns("").times(2)
+      Dir.expects(:mktmpdir).with("krane").yields(tmp_path).times(2)
+      set_krane_global_deploy_expectations!(new_args: { filenames: [tmp_path] })
+      krane_global_deploy!(flags: '-f - -')
+
+      # with deprecated --stdin flag
+      set_krane_global_deploy_expectations!(new_args: { filenames: [tmp_path] })
+      krane_global_deploy!(flags: '-f - --stdin')
+    end
+  end
+
+  def test_deploy_fails_without_filename
     krane = Krane::CLI::Krane.new([task_config.context], %w(--selector app=krane))
-    assert_raises_message(Thor::RequiredArgumentMissingError, "At least one of --filenames or --stdin must be set") do
+    assert_raises_message(Thor::RequiredArgumentMissingError, '--filenames must be set and not empty') do
       krane.invoke("global_deploy")
     end
   end
@@ -79,7 +104,7 @@ class GlobalDeployTest < Krane::TestCase
   end
 
   def krane_global_deploy!(flags: '')
-    flags += ' -f /tmp' unless flags.include?('-f') || flags.include?('--stdin')
+    flags += ' -f /tmp' unless flags.include?("-f") || flags.include?("--stdin")
     flags += ' --selector name=web' unless flags.include?('--selector')
     krane = Krane::CLI::Krane.new(
       [task_config.context],
