@@ -85,7 +85,8 @@ module Krane
     def version_for_kind(versions, kind)
       # Override list for kinds that don't appear in the lastest version of a group
       version_override = { "CronJob" => "v1beta1", "VolumeAttachment" => "v1beta1",
-                           "CSIDriver" => "v1beta1", "Ingress" => "v1beta1", "CSINode" => "v1beta1" }
+                           "CSIDriver" => "v1beta1", "Ingress" => "v1beta1",
+                           "CSINode" => "v1beta1", "Job" => "v1" }
 
       pattern = /v(?<major>\d+)(?<pre>alpha|beta)?(?<minor>\d+)?/
       latest = versions.sort_by do |version|
