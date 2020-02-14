@@ -137,7 +137,7 @@ If you need to share a namespace with resources which are managed by other tools
 All templates must be YAML formatted.
 We recommended storing each app's templates in a single directory, `{app root}/config/deploy/{env}`. However, you may use multiple directories.
 
-If you want dynamic templates, you may render ERB with `krane render` and then pipe that result to `krane deploy -f -`.
+If you want dynamic templates, you may render ERB with `krane render` and then pipe that result to `krane deploy my-namespace my-k8s-cluster --stdin`.
 
 ### Customizing behaviour with annotations
 - `krane.shopify.io/timeout-override`: Override the tool's hard timeout for one specific resource. Both full ISO8601 durations and the time portion of ISO8601 durations are valid. Value must be between 1 second and 24 hours.
@@ -328,7 +328,7 @@ Let's walk through what happens when you run the `deploy` task with [this direct
 You can test this out for yourself by running the following command:
 
 ```bash
-krane render -f test/fixtures/hello-cloud --current-sha 1 | krane deploy my-namespace my-k8s-cluster -f -
+krane render -f test/fixtures/hello-cloud --current-sha 1 | krane deploy my-namespace my-k8s-cluster --stdin
 ```
 
 As soon as you run this, you'll start seeing some output being streamed to STDERR.
