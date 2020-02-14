@@ -222,9 +222,13 @@ module Krane
         if @status.dig("lastState", "terminated", "reason") == "ContainerCannotRun"
           # ref: https://github.com/kubernetes/kubernetes/blob/562e721ece8a16e05c7e7d6bdd6334c910733ab2/pkg/kubelet/dockershim/docker_container.go#L353
           exit_code = @status.dig('lastState', 'terminated', 'exitCode')
+          # We've observed failures here that are actually issues with the node or kube infra, and not with the
+          # container. These issues have been transient and result in a 128 exit code, so do not treat these as fatal.
+          return if exit_code == 128
           "Failed to start (exit #{exit_code}): #{@status.dig('lastState', 'terminated', 'message')}"
         elsif @status.dig("state", "terminated", "reason") == "ContainerCannotRun"
           exit_code = @status.dig('state', 'terminated', 'exitCode')
+          return if exit_code == 128
           "Failed to start (exit #{exit_code}): #{@status.dig('state', 'terminated', 'message')}"
         elsif limbo_reason == "CrashLoopBackOff"
           exit_code = @status.dig('lastState', 'terminated', 'exitCode')

@@ -136,6 +136,23 @@ class PodTest < Krane::TestCase
     assert_equal(expected_msg.strip, pod.failure_message)
   end
 
+  def test_deploy_failed_is_false_for_container_cannot_run_error_with_128_exit_code
+    container_state = {
+      "state" => {
+        "terminated" => {
+          "message" => "Error: failed to start container 'foo': Error response from daemon: grpc: the client" \
+                       "connection is closing",
+          "reason" => "ContainerCannotRun",
+          "exitCode" => 128,
+        },
+      },
+    }
+    pod = build_synced_pod(build_pod_template(container_state: container_state))
+
+    refute_predicate(pod, :deploy_failed?)
+    assert_nil(pod.failure_message)
+  end
+
   def test_deploy_failed_is_true_for_evicted_unmanaged_pods
     template = pod_spec.merge(
       "status" => {
