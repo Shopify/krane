@@ -39,7 +39,7 @@ class KubeClientBuilderTest < Krane::TestCase
   end
 
   def test_multiple_valid_configuration_files
-    default_config = "#{Dir.home}/.kube/config"
+    default_config = File.join(__dir__, '../../fixtures/kube-config/default_config.yml')
     extra_config = File.join(__dir__, '../../fixtures/kube-config/dummy_config.yml')
     builder = Krane::KubeclientBuilder.new(kubeconfig: "#{default_config}:#{extra_config}")
     assert_empty(builder.validate_config_files)
@@ -47,7 +47,7 @@ class KubeClientBuilderTest < Krane::TestCase
 
   def test_build_client_from_multiple_config_files
     Kubeclient::Client.any_instance.stubs(:discover)
-    default_config = "#{Dir.home}/.kube/config"
+    default_config = File.join(__dir__, '../../fixtures/kube-config/default_config.yml')
     dummy_config = File.join(__dir__, '../../fixtures/kube-config/dummy_config.yml')
 
     kubeclient_builder = Krane::KubeclientBuilder.new(kubeconfig: "#{default_config}:#{dummy_config}")

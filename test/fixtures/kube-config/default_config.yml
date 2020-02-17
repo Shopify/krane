@@ -1,0 +1,25 @@
+apiVersion: v1
+clusters:
+- cluster:
+    insecure-skip-tls-verify: true
+    server: https://192.168.5.1
+  name: invalid-2
+contexts:
+- context:
+    cluster: invalid-2
+    user: test-user-2
+  name: minikube-2
+- context:
+    cluster: invalid-2
+    user: test-user-2
+  name: dind-2
+- context:
+    cluster: invalid-2
+    user: test-user-2
+  name: docker-for-desktop-2
+kind: Config
+users:
+- name: test-user-2
+  user:
+    username: username
+    password: password

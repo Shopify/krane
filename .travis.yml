@@ -1,0 +1,47 @@
+dist: xenial
+language: ruby
+cache: bundler
+
+git:
+  depth: 1
+
+services:
+  - docker
+
+before_install:
+  # Install Kubectl
+  - curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+  - chmod +x kubectl
+  - sudo mv kubectl /usr/local/bin/kubectl
+
+  # Install KinD
+  - curl -sLo kind https://github.com/kubernetes-sigs/kind/releases/download/v0.7.0/kind-linux-amd64
+  - chmod +x kind
+  - sudo mv kind /usr/local/bin/kind
+
+before_script:
+  - mkdir -p $HOME/.kube
+  - touch $HOME/.kube/config
+  - export KUBECONFIG=$HOME/.kube/config
+  - if [ "$INTEGRATION" = "true" ]; then kind create cluster --wait=5m --name=krane --image=kindest/node:v1.11.10 --quiet; fi
+  - if [ "$INTEGRATION" = "true" ]; then kubectl config rename-context kind-krane minikube; fi
+
+rvm:
+  - 2.4.9
+  - 2.5.7
+  - 2.6.5
+  - 2.7.0
+env:
+  - INTEGRATION=true TEST_SUITE=serial_integration_test
+  - INTEGRATION=true TEST_SUITE=integration_test
+  - INTEGRATION=false TEST_SUITE=cli_test
+  - INTEGRATION=false TEST_SUITE=unit_test
+
+jobs:
+  fast_finish: true
+
+script:
+  - bundle exec rake "$TEST_SUITE"
+
+notifications:
+  email: false
