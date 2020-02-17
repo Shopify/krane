@@ -1,0 +1,28 @@
+#!/bin/bash
+set -euo pipefail
+
+parse_latest() {
+  echo $(echo "${1}" | ruby -e "puts ARGF.read[/\[(v${2}\.\d+(.*)?)\]/, 1]")
+}
+
+set_k8s_version() {
+  if [[ ${KUBERNETES_VERSION} =~ .*-latest ]]; then
+    echo "Detecting Latest Version"
+    local VERSION_ARR=(${KUBERNETES_VERSION//-/ })
+    local FAMILY=$(echo ${VERSION_ARR[0]} | tr -d 'v')
+    local CHANGELOG=$(curl -f -sL https://raw.githubusercontent.com/kubernetes/kubernetes/master/CHANGELOG/CHANGELOG-${FAMILY}.md | grep -v -e '^$' | head -n2 | tail -n1)
+    local LATEST_VERSION=$(parse_latest "${CHANGELOG}" "${FAMILY}")
+    export KUBERNETES_VERSION="${LATEST_VERSION}"
+    echo "Detected: ${KUBERNETES_VERSION}"
+  fi
+}
+
+set_k8s_version
+
+echo "Creating KinD Cluster: kindest/node:${KUBERNETES_VERSION}";
+kind create cluster --wait=5m --name=krane --image=kindest/node:"${KUBERNETES_VERSION}";
+echo "Created KinD Cluster";
+
+echo "Renaming context to minikube"
+kubectl config rename-context kind-krane minikube
+echo "Renamed context to minikube"
