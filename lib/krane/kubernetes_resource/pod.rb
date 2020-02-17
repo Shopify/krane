@@ -219,7 +219,15 @@ module Krane
         limbo_reason = @status.dig("state", "waiting", "reason")
         limbo_message = @status.dig("state", "waiting", "message")
 
-        if @status.dig("lastState", "terminated", "reason") == "ContainerCannotRun"
+        if limbo_reason == "CrashLoopBackOff"
+          exit_code = @status.dig('lastState', 'terminated', 'exitCode')
+          "Crashing repeatedly (exit #{exit_code}). See logs for more information."
+        elsif limbo_reason == "ErrImagePull" && limbo_message.match(/not found/i)
+          "Failed to pull image #{@image}. "\
+          "Did you wait for it to be built and pushed to the registry before deploying?"
+        elsif limbo_reason == "CreateContainerConfigError"
+          "Failed to generate container configuration: #{limbo_message}"
+        elsif @status.dig("lastState", "terminated", "reason") == "ContainerCannotRun"
           # ref: https://github.com/kubernetes/kubernetes/blob/562e721ece8a16e05c7e7d6bdd6334c910733ab2/pkg/kubelet/dockershim/docker_container.go#L353
           exit_code = @status.dig('lastState', 'terminated', 'exitCode')
           # We've observed failures here that are actually issues with the node or kube infra, and not with the
@@ -230,14 +238,6 @@ module Krane
           exit_code = @status.dig('state', 'terminated', 'exitCode')
           return if exit_code == 128
           "Failed to start (exit #{exit_code}): #{@status.dig('state', 'terminated', 'message')}"
-        elsif limbo_reason == "CrashLoopBackOff"
-          exit_code = @status.dig('lastState', 'terminated', 'exitCode')
-          "Crashing repeatedly (exit #{exit_code}). See logs for more information."
-        elsif limbo_reason == "ErrImagePull" && limbo_message.match(/not found/i)
-          "Failed to pull image #{@image}. "\
-          "Did you wait for it to be built and pushed to the registry before deploying?"
-        elsif limbo_reason == "CreateContainerConfigError"
-          "Failed to generate container configuration: #{limbo_message}"
         end
       end
 
