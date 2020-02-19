@@ -1,6 +1,6 @@
 containers:
   default:
-    docker: circleci/ruby:2.5.7-node-browsers
+    docker: circleci/ruby:2.5.7
 
 steps:
   - label: Lint
