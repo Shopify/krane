@@ -138,7 +138,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
       kwargs: {
         log_failure: false,
         output_is_sensitive: true,
-        retry_whitelist: [:client_timeout],
+        retry_whitelist: [:client_timeout, :empty],
         attempts: 3,
       })
   end

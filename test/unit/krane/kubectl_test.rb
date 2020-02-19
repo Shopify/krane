@@ -249,6 +249,7 @@ class KubectlTest < Krane::TestCase
       "context deadline exceeded (Client.Timeout exceeded while awaiting headers)",
       'Error from server (TooManyRequests): Please try again later',
       "some weird error",
+      "", # Empty error
     ].each do |error_message|
       stub_open3(
         %W(kubectl get namespaces --context=testc --request-timeout=#{timeout}), resp: "",
