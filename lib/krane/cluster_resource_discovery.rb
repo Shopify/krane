@@ -37,7 +37,7 @@ module Krane
     def fetch_resources(namespaced: false)
       command = %w(api-resources)
       command << "--namespaced=#{namespaced}"
-      raw, _, st = kubectl.run(*command, output: "wide", attempts: 5,
+      raw, err, st = kubectl.run(*command, output: "wide", attempts: 5,
         use_namespace: false)
       if st.success?
         rows = raw.split("\n")
@@ -59,7 +59,7 @@ module Krane
           resource
         end
       else
-        []
+        raise FatalKubeAPIError, "Error retrieving api-resources: #{err}"
       end
     end
 
@@ -68,7 +68,7 @@ module Krane
     # kubectl api-versions returns a list of group/version strings e.g. autoscaling/v2beta2
     # A kind may not exist in all versions of the group.
     def fetch_api_versions
-      raw, _, st = kubectl.run("api-versions", attempts: 5, use_namespace: false)
+      raw, err, st = kubectl.run("api-versions", attempts: 5, use_namespace: false)
       # The "core" group is represented by an empty string
       versions = { "" => %w(v1) }
       if st.success?
@@ -78,6 +78,8 @@ module Krane
           versions[group] ||= []
           versions[group] << version
         end
+      else
+        raise FatalKubeAPIError, "Error retrieving api-versions: #{err}"
       end
       versions
     end
@@ -97,12 +99,12 @@ module Krane
     end
 
     def fetch_crds
-      raw_json, _, st = kubectl.run("get", "CustomResourceDefinition", output: "json", attempts: 5,
+      raw_json, err, st = kubectl.run("get", "CustomResourceDefinition", output: "json", attempts: 5,
         use_namespace: false)
       if st.success?
         JSON.parse(raw_json)["items"]
       else
-        []
+        raise FatalKubeAPIError, "Error retrieving CustomResourceDefinition: #{err}"
       end
     end
 

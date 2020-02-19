@@ -6,8 +6,9 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
 
   def test_fetch_resources_failure
     crd = mocked_cluster_resource_discovery(nil, success: false)
-    resources = crd.fetch_resources
-    assert_equal(resources, [])
+    assert_raises_message(Krane::FatalKubeAPIError, "Error retrieving api-resources:") do
+      crd.fetch_resources
+    end
   end
 
   def test_fetch_resources_not_namespaced

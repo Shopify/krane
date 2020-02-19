@@ -558,4 +558,15 @@ class SerialDeployTest < Krane::IntegrationTest
       "#{add_unique_prefix_for_test('my-first-mail')} (#{add_unique_prefix_for_test('Mail')})",
     ])
   end
+
+  def test_resource_discovery_stops_deploys_when_kubectl_errs
+    failure_msg = "Stubbed failure reason"
+    Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_resources).raises(Krane::FatalKubeAPIError, failure_msg)
+    assert_deploy_failure(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]))
+
+    assert_logs_match_all([
+      "Result: FAILURE",
+      failure_msg,
+    ], in_order: true)
+  end
 end
