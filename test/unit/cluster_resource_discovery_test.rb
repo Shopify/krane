@@ -50,7 +50,18 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
     kinds = crd.prunable_resources(namespaced: true)
 
     assert_equal(kinds.length, 25)
-    %w(ConfigMap CronJob Deployment batch/v1/Job).each do |expected_kind|
+    %w(ConfigMap CronJob Deployment).each do |expected_kind|
+      assert kinds.one? { |k| k.include?(expected_kind) }
+    end
+  end
+
+  def test_prunable_namespaced_resources_apply_group_version_kind_overrides
+    Krane::Kubectl.any_instance.stubs(:run).with("api-versions", attempts: 5, use_namespace: false)
+      .returns([api_versions_full_response, "", stub(success?: true)])
+    crd = mocked_cluster_resource_discovery(api_resources_namespaced_full_response, namespaced: true)
+    kinds = crd.prunable_resources(namespaced: true)
+
+    %w(batch/v1/Job extensions/v1beta1/Ingress).each do |expected_kind|
       assert kinds.one? { |k| k.include?(expected_kind) }
     end
   end
