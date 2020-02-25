@@ -1,6 +1,7 @@
 ## next
 
-...
+*Other*
+- Dropped support for Ruby 2.4 since it will be EoL shortly [#693](https://github.com/Shopify/krane/pull/693).
 
 ## 1.1.2
 *Enhancements*

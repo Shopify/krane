@@ -73,7 +73,7 @@ If you need the ability to render dynamic values in templates before deploying, 
 
 ## Prerequisites
 
-* Ruby 2.4+
+* Ruby 2.5+
 * Your cluster must be running Kubernetes v1.11.0 or higher<sup>1</sup>
 
 <sup>1</sup> We run integration tests against these Kubernetes versions. You can find our
