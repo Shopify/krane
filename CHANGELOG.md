@@ -1,9 +1,14 @@
 ## next
 
+...
+
+## 1.1.2
 *Enhancements*
+- Don't treat `containerCannotRun` termination reason as a fatal deploy failure, since it is usually transient. [#694](https://github.com/Shopify/krane/pull/694)
 
 *Bug Fixes*
 - Help ruby correctly identify kubectl output encoding. [#646](https://github.com/Shopify/krane/pull/646)
+- Add an override for Job kind for version `batch/v2alpha1` [#696](https://github.com/Shopify/krane/pull/696)
 
 *Other*
 - `--stdin` flag is deprecated. To read from STDIN, use `-f -` (can be combined with other files/directories) [#684](https://github.com/Shopify/krane/pull/684).
