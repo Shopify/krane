@@ -1546,7 +1546,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_deploy_fails_if_context_is_invalid
     task_runner = build_deploy_runner(context: "unknown")
-    assert_task_run_failure(task_runner.run(run_params))
+    assert_task_run_failure(task_runner.run(**run_params))
 
     assert_logs_match_all([
       "Context unknown missing from your kubeconfig file(s)",
@@ -1555,7 +1555,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
   def test_deploy_fails_if_namespace_is_invalid
     task_runner = build_deploy_runner(ns: "unknown")
-    assert_task_run_failure(task_runner.run(run_params))
+    assert_task_run_failure(task_runner.run(**run_params))
 
     assert_logs_match_all([
       "Could not find Namespace: unknown in Context: minikube",

@@ -191,7 +191,7 @@ module Krane
     def min_available_replicas
       if percent?(required_rollout)
         (desired_replicas * required_rollout.to_i / 100.0).ceil
-      elsif max_unavailable =~ /%/
+      elsif max_unavailable.is_a?(String) && max_unavailable =~ /%/
         (desired_replicas * (100 - max_unavailable.to_i) / 100.0).ceil
       else
         desired_replicas - max_unavailable.to_i
