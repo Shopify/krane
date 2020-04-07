@@ -4,7 +4,7 @@ MockResource = Struct.new(:id, :hits_to_complete, :status) do
   self::SYNC_DEPENDENCIES = []
   self::SENSITIVE_TEMPLATE_CONTENT = false
 
-  def debug_message(*)
+  def debug_message(*, **)
     @debug_message
   end
 

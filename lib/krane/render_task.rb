@@ -24,8 +24,8 @@ module Krane
     # Runs the task, returning a boolean representing success or failure
     #
     # @return [Boolean]
-    def run(*args)
-      run!(*args)
+    def run(**args)
+      run!(**args)
       true
     rescue Krane::FatalDeploymentError
       false

@@ -9,7 +9,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
     task_runner = build_task_runner
     assert_nil(task_runner.pod_name)
-    result = task_runner.run(run_params(verify_result: false))
+    result = task_runner.run(**run_params(verify_result: false))
     assert_task_run_success(result)
 
     assert_logs_match_all([
@@ -30,7 +30,7 @@ class RunnerTaskTest < Krane::IntegrationTest
     deploy_task_template
 
     task_runner = build_task_runner(global_timeout: 5)
-    result = task_runner.run(run_params(log_lines: 8, log_interval: 1))
+    result = task_runner.run(**run_params(log_lines: 8, log_interval: 1))
     assert_task_run_failure(result, :timed_out)
 
     assert_logs_match_all([
@@ -45,7 +45,7 @@ class RunnerTaskTest < Krane::IntegrationTest
     deploy_task_template
 
     task_runner = build_task_runner
-    result = task_runner.run(run_params.merge(arguments: ["/not/a/command"]))
+    result = task_runner.run(**run_params.merge(arguments: ["/not/a/command"]))
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -67,7 +67,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
     task_runner = build_task_runner
     assert_nil(task_runner.pod_name)
-    result = task_runner.run(run_params(log_lines: 8, log_interval: 0.25))
+    result = task_runner.run(**run_params(log_lines: 8, log_interval: 0.25))
     assert_task_run_success(result)
 
     assert_logs_match_all([
@@ -108,7 +108,7 @@ class RunnerTaskTest < Krane::IntegrationTest
     end
     deleter_thread.abort_on_exception = true
 
-    result = task_runner.run(run_params(log_lines: 20, log_interval: 1))
+    result = task_runner.run(**run_params(log_lines: 20, log_interval: 1))
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -123,7 +123,7 @@ class RunnerTaskTest < Krane::IntegrationTest
   def test_run_with_verify_result_neither_misses_nor_duplicates_logs_across_pollings
     deploy_task_template
     task_runner = build_task_runner
-    result = task_runner.run(run_params(log_lines: 5_000, log_interval: 0.0005))
+    result = task_runner.run(**run_params(log_lines: 5_000, log_interval: 0.0005))
     assert_task_run_success(result)
 
     logging_assertion do |all_logs|
@@ -148,7 +148,7 @@ class RunnerTaskTest < Krane::IntegrationTest
     end
 
     task_runner = build_task_runner
-    assert_task_run_success(task_runner.run(run_params))
+    assert_task_run_success(task_runner.run(**run_params))
 
     assert_logs_match_all([
       "Phase 1: Initializing task",
@@ -163,7 +163,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
     task_runner = build_task_runner
     assert_raises(Krane::FatalDeploymentError) do
-      task_runner.run!(run_params.merge(arguments: ["/not/a/command"]))
+      task_runner.run!(**run_params.merge(arguments: ["/not/a/command"]))
     end
 
     assert_logs_match_all([
@@ -180,7 +180,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
   def test_run_fails_if_context_is_invalid
     task_runner = build_task_runner(context: "unknown")
-    assert_task_run_failure(task_runner.run(run_params))
+    assert_task_run_failure(task_runner.run(**run_params))
 
     assert_logs_match_all([
       "Initializing task",
@@ -193,7 +193,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
   def test_run_fails_if_namespace_is_missing
     task_runner = build_task_runner(ns: "missing")
-    assert_task_run_failure(task_runner.run(run_params))
+    assert_task_run_failure(task_runner.run(**run_params))
 
     assert_logs_match_all([
       "Initializing task",
@@ -233,7 +233,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
   def test_run_with_template_missing
     task_runner = build_task_runner
-    assert_task_run_failure(task_runner.run(run_params))
+    assert_task_run_failure(task_runner.run(**run_params))
     message = "Pod template `hello-cloud-template-runner` not found in namespace `#{@namespace}`, " \
       "context `#{KubeclientHelper::TEST_CONTEXT}`"
     assert_logs_match_all([
@@ -242,7 +242,7 @@ class RunnerTaskTest < Krane::IntegrationTest
     ], in_order: true)
 
     assert_raises_message(Krane::RunnerTask::TaskTemplateMissingError, message) do
-      task_runner.run!(run_params)
+      task_runner.run!(**run_params)
     end
   end
 
@@ -253,11 +253,11 @@ class RunnerTaskTest < Krane::IntegrationTest
     end
 
     task_runner = build_task_runner
-    assert_task_run_failure(task_runner.run(run_params))
+    assert_task_run_failure(task_runner.run(**run_params))
     message = "Pod spec does not contain a template container called 'task-runner'"
 
     assert_raises_message(Krane::TaskConfigurationError, message) do
-      task_runner.run!(run_params)
+      task_runner.run!(**run_params)
     end
 
     assert_logs_match_all([

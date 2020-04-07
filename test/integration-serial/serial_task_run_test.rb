@@ -18,7 +18,7 @@ class SerialTaskRunTest < Krane::IntegrationTest
     mock.expects(:create_pod).raises(Kubeclient::HttpError.new("409", "Pod with same name exists", {}))
     task_runner.instance_variable_set(:@kubeclient, mock)
 
-    result = task_runner.run(run_params(verify_result: false))
+    result = task_runner.run(**run_params(verify_result: false))
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -36,7 +36,7 @@ class SerialTaskRunTest < Krane::IntegrationTest
     task_runner = build_task_runner(ns: bad_ns)
 
     metrics = capture_statsd_calls(client: Krane::StatsD.client) do
-      result = task_runner.run(run_params)
+      result = task_runner.run(**run_params)
       assert_task_run_failure(result)
     end
 
@@ -53,7 +53,7 @@ class SerialTaskRunTest < Krane::IntegrationTest
     task_runner = build_task_runner
 
     metrics = capture_statsd_calls(client: Krane::StatsD.client) do
-      result = task_runner.run(run_params.merge(verify_result: false))
+      result = task_runner.run(**run_params.merge(verify_result: false))
       assert_task_run_success(result)
     end
 
@@ -70,7 +70,7 @@ class SerialTaskRunTest < Krane::IntegrationTest
     task_runner = build_task_runner(global_timeout: 0)
 
     metrics = capture_statsd_calls(client: Krane::StatsD.client) do
-      result = task_runner.run(run_params.merge(arguments: ["sleep 5"]))
+      result = task_runner.run(**run_params.merge(arguments: ["sleep 5"]))
       assert_task_run_failure(result, :timed_out)
     end
 

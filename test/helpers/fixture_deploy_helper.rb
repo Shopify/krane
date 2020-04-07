@@ -37,7 +37,7 @@ module FixtureDeployHelper
     success = false
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
-      success = deploy_dirs(target_dir, args)
+      success = deploy_dirs(target_dir, **args)
     end
     success
   end
@@ -124,7 +124,7 @@ module FixtureDeployHelper
       printer.print(File.new(filename, "a+"), {})
       deploy_result
     else
-      deploy_dirs_without_profiling(dirs, args)
+      deploy_dirs_without_profiling(dirs, **args)
     end
   end
 
