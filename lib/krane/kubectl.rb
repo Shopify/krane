@@ -6,6 +6,7 @@ module Krane
     ERROR_MATCHERS = {
       not_found: /NotFound/,
       client_timeout: /Client\.Timeout exceeded while awaiting headers/,
+      empty: /\A\z/,
     }
     DEFAULT_TIMEOUT = 15
     MAX_RETRY_DELAY = 16
