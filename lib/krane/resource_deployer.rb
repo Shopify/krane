@@ -154,7 +154,7 @@ module Krane
           log_pruning(out) if prune
         else
           record_apply_failure(err, resources: resources)
-          raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
+          raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}:\n#{err}"
         end
       end
     end
