@@ -103,7 +103,7 @@ official compatibility chart below.
 
 *Environment variables:*
 
-- `$KUBECONFIG`: points to one or multiple valid kubeconfig files that include the context you want to deploy to. File names are separated by colon for Linux and Mac, and semi-colon for Windows. If omitted, will use the Kubernetes default of `~/.kube/config`.
+- `$KUBECONFIG`: points to one or multiple valid kubeconfig files that include the context you want to deploy to. File names are separated by colon for Linux and Mac, and semi-colon for Windows. If omitted, Krane will use the Kubernetes default of `~/.kube/config`.
 - `$GOOGLE_APPLICATION_CREDENTIALS`: points to the credentials for an authenticated service account (required if your kubeconfig `user`'s auth provider is GCP)
 
 
@@ -544,9 +544,7 @@ krane render -f ./path/to/template/dir/template.yaml.erb > template.yaml
 - `--bindings=BINDINGS`: Makes additional variables available to your ERB templates. For example, `krane render --bindings=color=blue size=large -f some-template.yaml.erb` will expose `color` and `size` to `some-template.yaml.erb`.
 - `--current-sha`: Expose SHA `current_sha` in ERB bindings
 
-You can add additional variables using the `--bindings=BINDINGS` option which can be formatted as a string, JSON string or path to a JSON or YAML file. Complex JSON or YAML data will be converted to a Hash for use in templates. To load a file the argument should include the relative
-file path prefixed with an `@` sign. An argument error will be raised if the string argument cannot be parsed, the referenced file does not include a
- valid extension (`.json`, `.yaml` or `.yml`) or the referenced file does not exist.
+You can add additional variables using the `--bindings=BINDINGS` option which can be formatted as a string, JSON string or path to a JSON or YAML file. Complex JSON or YAML data will be converted to a Hash for use in templates. To load a file, the argument should include the relative file path prefixed with an `@` sign. An argument error will be raised if the string argument cannot be parsed, the referenced file does not include a valid extension (`.json`, `.yaml` or `.yml`) or the referenced file does not exist.
 
 #### Bindings examples
 
