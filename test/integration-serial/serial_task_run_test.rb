@@ -30,7 +30,7 @@ class SerialTaskRunTest < Krane::IntegrationTest
   end
 
   # Run statsd tests in serial because capture_statsd_calls modifies global state in a way
-  # that makes capturing metrics across parrallel runs unreliable
+  # that makes capturing metrics across parallel runs unreliable
   def test_failure_statsd_metric_emitted
     bad_ns = "missing"
     task_runner = build_task_runner(ns: bad_ns)
