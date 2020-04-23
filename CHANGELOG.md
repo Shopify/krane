@@ -1,7 +1,14 @@
 ## next
 
+## 1.1.3
+
+*Bug Fixes*
+- Retry dry-run validation when no error is returned. [#705](https://github.com/Shopify/krane/pull/705)
+- Stop deploys if ClusterResourceDiscovery's kubectl calls fail. [#701](https://github.com/Shopify/krane/pull/701)
+
 *Other*
-- Dropped support for Ruby 2.4 since it will be EoL shortly [#693](https://github.com/Shopify/krane/pull/693).
+- Dropped support for Ruby 2.4 since it will be EoL shortly. [#693](https://github.com/Shopify/krane/pull/693).
+- Ruby 2.7 support: fix deprecation warnings, add testing. [#710](https://github.com/Shopify/krane/pull/705)
 
 ## 1.1.2
 *Enhancements*
