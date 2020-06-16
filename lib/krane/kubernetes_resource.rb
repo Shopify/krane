@@ -60,8 +60,8 @@ module Krane
       end
 
       def class_for_kind(kind)
-        if Krane.const_defined?(kind)
-          Krane.const_get(kind)
+        if Krane.const_defined?(kind, false)
+          Krane.const_get(kind, false)
         end
       rescue NameError
         nil
