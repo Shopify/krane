@@ -10,7 +10,7 @@ module Krane
       @image_tag = image_tag
     end
 
-    def run!(container)
+    def apply!(container)
       container.command = command if command
       container.args = arguments if arguments
 

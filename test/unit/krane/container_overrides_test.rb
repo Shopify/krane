@@ -16,43 +16,43 @@ module Krane
 
     def test_updates_command_if_command_is_provided
       override = Krane::ContainerOverrides.new(command: ['/bin/sh', '-c'])
-      override.run!(@container)
+      override.apply!(@container)
       assert_equal(['/bin/sh', '-c'], @container.command)
     end
 
     def test_does_not_update_command_if_not_provided
       override = Krane::ContainerOverrides.new
-      override.run!(@container)
+      override.apply!(@container)
       assert_equal(["sh", "-c", "echo 'Hello from the command runner!' "], @container.command)
     end
 
     def test_updates_image_tag_if_provided
       override = Krane::ContainerOverrides.new(image_tag: 'latest')
-      override.run!(@container)
+      override.apply!(@container)
       assert_equal('busybox:latest', @container.image)
     end
 
     def test_does_not_updates_image_tag_if_not_provided
       override = Krane::ContainerOverrides.new
-      override.run!(@container)
+      override.apply!(@container)
       assert_equal('busybox', @container.image)
     end
 
     def test_updates_args_if_provided
       override = Krane::ContainerOverrides.new(arguments: ['ping'])
-      override.run!(@container)
+      override.apply!(@container)
       assert_equal(['ping'], @container.args)
     end
 
     def test_does_not_updates_args_if_not_provided
       override = Krane::ContainerOverrides.new
-      override.run!(@container)
+      override.apply!(@container)
       assert_nil(@container.args)
     end
 
     def test_updates_env_if_provided
       override = Krane::ContainerOverrides.new(env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
-      override.run!(@container)
+      override.apply!(@container)
       expectd_env = [
         Kubeclient::Resource.new(name: "CONFIG", value: "NUll"),
         Kubeclient::Resource.new(name: "MY_CUSTOM_VARIABLE", value: "MITTENS"),
@@ -62,7 +62,7 @@ module Krane
 
     def test_does_not_updates_env_if_not_provided
       override = Krane::ContainerOverrides.new
-      override.run!(@container)
+      override.apply!(@container)
       expectd_env = [
         Kubeclient::Resource.new(name: "CONFIG", value: "NUll"),
       ]

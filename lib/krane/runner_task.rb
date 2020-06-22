@@ -179,7 +179,7 @@ module Krane
         raise TaskConfigurationError, message
       end
 
-      container_overrides.run!(container)
+      container_overrides.apply!(container)
     end
 
     def ensure_valid_restart_policy!(template, verify)
