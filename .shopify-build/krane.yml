@@ -9,13 +9,13 @@ steps:
       - bundle exec rubocop
     dependencies:
       - bundler
-  - label: 'Run Test Suite (:kubernetes: 1.17-latest :ruby: 2.7)'
+  - label: 'Run Test Suite (:kubernetes: 1.18-latest :ruby: 2.7)'
     command: bin/ci
     agents:
       queue: k8s-ci
     env:
       LOGGING_LEVEL: "4"
-      KUBERNETES_VERSION: v1.17-latest
+      KUBERNETES_VERSION: v1.18-latest
       RUBY_VERSION: "2.7"
   - label: 'Run Test Suite (:kubernetes: 1.17-latest)'
     command: bin/ci
