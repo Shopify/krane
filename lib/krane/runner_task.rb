@@ -108,7 +108,8 @@ module Krane
       task_template = get_template(template_name)
       @logger.info("Using template '#{template_name}'")
       pod_template = build_pod_definition(task_template)
-      set_container_overrides!(pod_template, container_overrides)
+      container = extract_task_runner_container(pod_template)
+      container_overrides.apply!(container)
       ensure_valid_restart_policy!(pod_template, verify_result)
       Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
                     definition: pod_template.to_hash.deep_stringify_keys, statsd_tags: [])
@@ -171,7 +172,7 @@ module Krane
       pod_definition
     end
 
-    def set_container_overrides!(pod_definition, container_overrides)
+    def extract_task_runner_container(pod_definition)
       container = pod_definition.spec.containers.find { |cont| cont.name == 'task-runner' }
       if container.nil?
         message = "Pod spec does not contain a template container called 'task-runner'"
@@ -179,7 +180,7 @@ module Krane
         raise TaskConfigurationError, message
       end
 
-      container_overrides.apply!(container)
+      container
     end
 
     def ensure_valid_restart_policy!(template, verify)
