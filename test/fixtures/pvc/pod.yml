@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    krane.shopify.io/timeout-override: 10s
+  name: pvc
+  labels:
+    type: unmanaged-pod
+    name: pvc
+    app: hello-cloud
+spec:
+  activeDeadlineSeconds: 20
+  restartPolicy: Never
+  containers:
+  - name: hello-cloud
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "echo 'Hello from the command runner!' && test 1 -eq 1"]
+    volumeMounts:
+    - mountPath: /tmp
+      name: tmp
+    - mountPath: /home
+      name: home
+  volumes:
+  - name: tmp
+    persistentVolumeClaim:
+      claimName: with-storage-class
+  - name: home
+    persistentVolumeClaim:
+      claimName: without-storage-class

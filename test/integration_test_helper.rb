@@ -2,8 +2,8 @@
 
 require 'test_helper'
 
-module KubernetesDeploy
-  class IntegrationTest < KubernetesDeploy::TestCase
+module Krane
+  class IntegrationTest < Krane::TestCase
     include KubeclientHelper
     include FixtureDeployHelper
 
@@ -15,9 +15,21 @@ module KubernetesDeploy
     end
 
     def run
-      super { @namespace = TestProvisioner.claim_namespace(name) }
+      super do
+        @namespace = TestProvisioner.claim_namespace(name)
+        @deployed_global_fixture_paths = []
+      end
     ensure
       TestProvisioner.delete_namespace(@namespace)
+      delete_globals(@deployed_global_fixture_paths)
+    end
+
+    def delete_globals(dirs)
+      return if dirs.empty?
+      kubectl = build_kubectl
+      paths = dirs.flat_map { |d| ["-f", d] }
+      kubectl.run("delete", "--wait=false", *paths, log_failure: true, use_namespace: false)
+      dirs.each { |dir| FileUtils.remove_entry(dir) }
     end
 
     def ban_net_connect?
@@ -36,8 +48,12 @@ module KubernetesDeploy
       _kubectl.server_version
     end
 
+    def server_dry_run_available?
+      kube_server_version >= Gem::Version.new('1.13')
+    end
+
     def _kubectl
-      @_kubectl ||= KubernetesDeploy::Kubectl.new(namespace: "default", context: TEST_CONTEXT, logger: logger,
+      @_kubectl ||= Krane::Kubectl.new(task_config: task_config(namespace: "default"),
         log_failure_by_default: true, default_timeout: '5s')
     end
   end

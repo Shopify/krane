@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 require 'test_helper'
-require 'kubernetes-deploy/render_task'
+require 'krane/render_task'
 
-class RenderTaskTest < KubernetesDeploy::TestCase
+class RenderTaskTest < Krane::TestCase
   include FixtureDeployHelper
 
   def test_render_task
-    render = build_render_task(fixture_path('hello-cloud'))
-    fixture = 'configmap-data.yml'
+    render = build_render_task(
+      File.join(fixture_path('hello-cloud'), 'configmap-data.yml')
+    )
 
-    assert_render_success(render.run(mock_output_stream, [fixture]))
+    assert_render_success(render.run(stream: mock_output_stream))
 
     stdout_assertion do |output|
       assert_equal output, <<~RENDERED
@@ -31,8 +32,11 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   def test_render_task_multiple_templates
     SecureRandom.expects(:hex).with(4).returns('aaaa')
     SecureRandom.expects(:hex).with(6).returns('bbbbbb')
-    render = build_render_task(fixture_path('hello-cloud'))
-    assert_render_success(render.run(mock_output_stream, ['configmap-data.yml', 'unmanaged-pod-1.yml.erb']))
+    render = build_render_task([
+      File.join(fixture_path('hello-cloud'), 'configmap-data.yml'),
+      File.join(fixture_path('hello-cloud'), 'unmanaged-pod-1.yml.erb'),
+    ])
+    assert_render_success(render.run(stream: mock_output_stream))
 
     stdout_assertion do |output|
       expected = <<~RENDERED
@@ -53,7 +57,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
         metadata:
           name: unmanaged-pod-1-kbbbbbb-aaaa
           annotations:
-            kubernetes-deploy.shopify.io/timeout-override: 60s
+            krane.shopify.io/timeout-override: 60s
           labels:
             type: unmanaged-pod
             name: unmanaged-pod-1-kbbbbbb-aaaa
@@ -78,19 +82,28 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def test_render_task_with_partials_and_bindings
-    render = build_render_task(fixture_path('test-partials'), 'supports_partials': 'yep')
-    fixture = 'deployment.yaml.erb'
+    render = build_render_task(
+      File.join(fixture_path('test-partials'), 'deployment.yaml.erb'),
+      'supports_partials': 'yep'
+    )
 
-    assert_render_success(render.run(mock_output_stream, [fixture]))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       expected = <<~RENDERED
         ---
-        apiVersion: extensions/v1beta1
+        apiVersion: apps/v1
         kind: Deployment
         metadata:
           name: web
+          labels:
+            name: web
+            app: test-partials
         spec:
           replicas: 1
+          selector:
+            matchLabels:
+              name: web
+              app: test-partials
           template:
             metadata:
               labels:
@@ -154,7 +167,7 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   def test_render_task_rendering_all_files
     render = build_render_task(fixture_path('hello-cloud'))
 
-    assert_render_success(render.run(mock_output_stream, []))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       assert_match(/name: bare-replica-set/, output)
       assert_match(/name: hello-cloud-configmap-data/, output)
@@ -174,12 +187,12 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def test_render_task_multiple_templates_with_middle_failure
-    render = build_render_task(fixture_path('some-invalid'))
-    assert_render_failure(render.run(mock_output_stream, [
-      'configmap-data.yml',
-      'yaml-error.yml',
-      'stateful_set.yml',
-    ]))
+    render = build_render_task([
+      File.join(fixture_path('some-invalid'), 'configmap-data.yml'),
+      File.join(fixture_path('some-invalid'), 'yaml-error.yml'),
+      File.join(fixture_path('some-invalid'), 'stateful_set.yml'),
+    ])
+    assert_render_failure(render.run(stream: mock_output_stream))
 
     stdout_assertion do |output|
       assert_match(/name: hello-cloud-configmap-data/, output)
@@ -192,10 +205,12 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def test_render_invalid_binding
-    render = build_render_task(fixture_path('test-partials'), 'a': 'binding-a', 'b': 'binding-b')
-    fixture = 'deployment.yaml.erb'
-
-    assert_render_failure(render.run(mock_output_stream, [fixture]))
+    render = build_render_task(
+      File.join(fixture_path('test-partials'), 'deployment.yaml.erb'),
+      'a': 'binding-a',
+      'b': 'binding-b'
+    )
+    assert_render_failure(render.run(stream: mock_output_stream))
     assert_logs_match_all([
       /Invalid template: .*deployment.yaml.erb/,
       "> Error message:",
@@ -206,9 +221,10 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def test_render_runtime_error_when_rendering
-    render = build_render_task(fixture_path('invalid'))
-
-    assert_render_failure(render.run(mock_output_stream, ['raise_inside.yml.erb']))
+    render = build_render_task(
+      File.join(fixture_path('invalid'), 'raise_inside.yml.erb')
+    )
+    assert_render_failure(render.run(stream: mock_output_stream))
     assert_logs_match_all([
       /Invalid template: .*raise_inside.yml.erb/,
       "> Error message:",
@@ -218,38 +234,21 @@ class RenderTaskTest < KubernetesDeploy::TestCase
     ], in_order: true)
   end
 
-  def test_render_invalid_arguments
-    render = build_render_task(fixture_path('test-partials'), 'a': 'binding-a')
-
-    assert_render_failure(render.run(mock_output_stream, ["../"]))
-    assert_logs_match_all([
-      %r{test/fixtures" is not a file},
-    ])
-  end
-
-  def test_render_path_outside_template_dir
-    render = build_render_task(fixture_path('test-partials'), 'a': 'binding-a')
-
-    assert_render_failure(render.run(mock_output_stream, ["../hello-cloud/configmap-data.yml"]))
-    assert_logs_match_all([
-      %r{test/fixtures/hello-cloud/configmap-data.yml" is outside the template dir},
-    ])
-  end
-
   def test_render_empty_template_dir
-    render = build_render_task(Dir.mktmpdir)
-
-    assert_render_failure(render.run(mock_output_stream))
+    tmp_dir = Dir.mktmpdir
+    render = build_render_task(tmp_dir)
+    assert_render_failure(render.run(stream: mock_output_stream))
     assert_logs_match_all([
-      /no templates found in template dir/,
+      "Template directory #{tmp_dir} does not contain any valid templates",
     ])
   end
 
   def test_render_invalid_yaml
-    render = build_render_task(fixture_path('invalid'))
-    fixture = 'yaml-error.yml'
-
-    assert_render_failure(render.run(mock_output_stream, [fixture]))
+    render = build_render_task(
+      File.join(fixture_path('invalid'), 'yaml-error.yml'),
+      data: "data"
+    )
+    assert_render_failure(render.run(stream: mock_output_stream))
     assert_logs_match_all([
       /Invalid template: .*yaml-error.yml/,
       "> Error message:",
@@ -258,28 +257,34 @@ class RenderTaskTest < KubernetesDeploy::TestCase
   end
 
   def test_render_valid_fixtures
-    render = build_render_task(fixture_path('hello-cloud'))
     load_fixtures('hello-cloud', nil).each do |basename, _docs|
-      assert_render_success render.run(mock_output_stream, [basename])
+      render = build_render_task(
+        File.join(fixture_path('hello-cloud'), basename)
+      )
+      assert_render_success render.run(stream: mock_output_stream)
       stdout_assertion do |output|
         assert !output.empty?
       end
     end
   end
 
-  def test_render_only_adds_initial_doc_seperator_when_missing
-    render = build_render_task(fixture_path('partials'))
-    fixture = 'no-doc-seperator.yml.erb'
-    expected = "---\n# This doc has no yaml seperator\nkey1: foo\n"
+  def test_render_only_adds_initial_doc_separator_when_missing
+    render = build_render_task([
+      File.join(fixture_path('partials'), 'no-doc-separator.yml.erb'),
+      File.join(fixture_path('partials'), 'no-doc-separator.yml.erb'),
+    ])
+    expected = "---\n# The first doc has no yaml separator\nkey1: foo\n---\nkey2: bar\n"
 
-    assert_render_success(render.run(mock_output_stream, [fixture]))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
-      assert_equal expected, output
+      assert_equal "#{expected}#{expected}", output
     end
 
     mock_output_stream.rewind
-    render = build_render_task(fixture_path('test-partials/partials'), data: "data")
-    fixture = 'independent-configmap.yml.erb'
+    render = build_render_task(
+      File.join(fixture_path('test-partials/partials'), 'independent-configmap.yml.erb'),
+      data: "data"
+    )
     expected = <<~RENDERED
       # This is valid
       ---						# leave this whitespace
@@ -291,31 +296,55 @@ class RenderTaskTest < KubernetesDeploy::TestCase
         value: "data"
       RENDERED
 
-    assert_render_success(render.run(mock_output_stream, [fixture]))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       assert_equal expected, output
     end
   end
 
   def test_render_preserves_duplicate_keys
-    render = build_render_task(fixture_path('partials'))
-    fixture = 'duplicate-keys.yml.erb'
+    render = build_render_task(
+      File.join(fixture_path('partials'), 'duplicate-keys.yml.erb')
+    )
     expected = "---\nkey1: \"0\"\nkey1: \"1\"\nkey1: \"2\"\n"
 
-    assert_render_success(render.run(mock_output_stream, [fixture]))
+    assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
       assert_equal expected, output
     end
   end
 
+  def test_render_does_not_generate_extra_blank_documents_when_file_is_empty
+    render = build_render_task(
+      File.join(fixture_path('collection-with-erb'), 'effectively_empty.yml.erb')
+    )
+    assert_render_success(render.run(stream: mock_output_stream))
+    stdout_assertion do |output|
+      assert_equal "", output.strip
+    end
+    assert_logs_match("Rendered effectively_empty.yml.erb successfully, but the result was blank")
+  end
+
+  def test_render_errors_empty_sha
+    render = Krane::RenderTask.new(logger: logger, current_sha: "", bindings: {},
+      filenames: [fixture_path('test-partials')])
+
+    assert_render_failure(render.run(stream: mock_output_stream))
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Configuration invalid",
+      "- current-sha is optional but can not be blank",
+    ], in_order: true)
+  end
+
   private
 
-  def build_render_task(template_dir, bindings = {})
-    KubernetesDeploy::RenderTask.new(
+  def build_render_task(filenames, bindings = {})
+    Krane::RenderTask.new(
       logger: logger,
       current_sha: "k#{SecureRandom.hex(6)}",
       bindings: bindings,
-      template_dir: template_dir
+      filenames: Array(filenames)
     )
   end
 

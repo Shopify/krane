@@ -28,7 +28,14 @@ module FixtureSetAssertions
     end
 
     def refute_resource_exists(type, name, beta: false)
-      client = beta ? v1beta1_kubeclient : kubeclient
+      client = if beta
+        v1beta1_kubeclient
+      elsif %w(daemonset deployment replicaset statefulset).include?(type)
+        apps_v1_kubeclient
+      else
+        kubeclient
+      end
+
       res = client.public_send("get_#{type}", name, namespace)
       if res.metadata.deletionTimestamp.blank?
         flunk("#{type} #{name} unexpectedly existed and is not being deleted.")
@@ -56,7 +63,7 @@ module FixtureSetAssertions
     end
 
     def assert_deployment_up(dep_name, replicas:)
-      deployments = v1beta1_kubeclient.get_deployments(
+      deployments = apps_v1_kubeclient.get_deployments(
         namespace: namespace,
         label_selector: "name=#{dep_name},app=#{app_name}"
       )
@@ -68,7 +75,7 @@ module FixtureSetAssertions
     end
 
     def assert_replica_set_up(rs_name, replicas:)
-      replica_sets = v1beta1_kubeclient.get_replica_sets(
+      replica_sets = apps_v1_kubeclient.get_replica_sets(
         namespace: namespace,
         label_selector: "name=#{rs_name},app=#{app_name}"
       )
@@ -126,7 +133,7 @@ module FixtureSetAssertions
     def assert_secret_present(secret_name, expected_data = nil, type: 'Opaque', ejson: false)
       secret = kubeclient.get_secret(secret_name, namespace)
       refute_nil(secret, "Secret `#{secret_name}` not found")
-      assert_annotated(secret, KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION) if ejson
+      assert_annotated(secret, Krane::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION) if ejson
       assert_equal(type, secret["type"])
       return unless expected_data
 
@@ -161,14 +168,14 @@ module FixtureSetAssertions
     end
 
     def assert_daemon_set_present(name)
-      daemon_sets = v1beta1_kubeclient.get_daemon_sets(namespace: namespace)
+      daemon_sets = apps_v1_kubeclient.get_daemon_sets(namespace: namespace)
       desired = daemon_sets.find { |ds| ds.metadata.name == name }
       assert(desired.present?, "Daemon set #{name} does not exist")
     end
 
     def assert_stateful_set_present(name)
       labels = "name=#{name},app=#{app_name}"
-      stateful_sets = apps_v1beta1_kubeclient.get_stateful_sets(namespace: namespace, label_selector: labels)
+      stateful_sets = apps_v1_kubeclient.get_stateful_sets(namespace: namespace, label_selector: labels)
       desired = stateful_sets.find { |ss| ss.metadata.name == name }
       assert(desired.present?, "Stateful set #{name} does not exist")
     end

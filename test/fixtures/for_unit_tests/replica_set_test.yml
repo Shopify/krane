@@ -1,9 +1,12 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
   name: test
   generation: 2
+  labels:
+    app: hello-cloud
+    name: test
 spec:
   replicas: 3
   selector:

@@ -23,7 +23,14 @@ Rake::TestTask.new(:unit_test) do |t|
   t.test_files = FileList['test/unit/**/*_test.rb']
 end
 
+desc("Run cli tests")
+Rake::TestTask.new(:cli_test) do |t|
+  t.libs << "test"
+  t.libs << "lib"
+  t.test_files = FileList['test/exe/**/*_test.rb']
+end
+
 desc("Run all tests")
-task(test: %w(unit_test serial_integration_test integration_test))
+task(test: %w(unit_test serial_integration_test integration_test cli_test))
 
 task(default: :test)

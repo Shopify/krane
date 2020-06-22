@@ -9,8 +9,7 @@ class TestProvisioner
     def prepare_cluster
       WebMock.allow_net_connect!
       $stderr.print("Preparing test cluster... ")
-      prepare_pv("pv0001")
-      prepare_pv("pv0002")
+      [ENV['PARALLELISM'].to_i, 4].max.times { |i| prepare_pv("pv000#{i}") }
       $stderr.puts "Done."
       WebMock.disable_net_connect!
     end
@@ -31,15 +30,7 @@ class TestProvisioner
       raise unless e.is_a?(Kubeclient::ResourceNotFoundError)
     end
 
-    private
-
-    def create_namespace(namespace)
-      ns = Kubeclient::Resource.new(kind: 'Namespace')
-      ns.metadata = { name: namespace }
-      kubeclient.create_namespace(ns)
-    end
-
-    def prepare_pv(name)
+    def prepare_pv(name, storage_class_name: nil)
       existing_pvs = kubeclient.get_persistent_volumes(label_selector: "name=#{name}")
       return if existing_pvs.present?
 
@@ -54,7 +45,17 @@ class TestProvisioner
         hostPath: { path: "/data/#{name}" },
         persistentVolumeReclaimPolicy: "Recycle",
       }
+      pv.spec[:storageClassName] = storage_class_name if storage_class_name.present?
+
       kubeclient.create_persistent_volume(pv)
+    end
+
+    private
+
+    def create_namespace(namespace)
+      ns = Kubeclient::Resource.new(kind: 'Namespace')
+      ns.metadata = { name: namespace }
+      kubeclient.create_namespace(ns)
     end
   end
 end

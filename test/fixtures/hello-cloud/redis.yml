@@ -59,12 +59,19 @@ spec:
     requests:
       storage: 100M
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
+  labels:
+    name: redis
+    app: hello-cloud
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: redis
+      app: hello-cloud
   progressDeadlineSeconds: 60
   template:
     metadata:

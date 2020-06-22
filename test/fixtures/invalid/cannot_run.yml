@@ -1,9 +1,16 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cannot-run
+  labels:
+    name: cannot-run
+    app: crash-app
 spec:
   replicas: 2
+  selector:
+    matchLabels:
+      name: cannot-run
+      app: crash-app
   progressDeadlineSeconds: 60
   template:
     metadata:

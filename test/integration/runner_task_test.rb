@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 require 'integration_test_helper'
 
-class RunnerTaskTest < KubernetesDeploy::IntegrationTest
+class RunnerTaskTest < Krane::IntegrationTest
   include TaskRunnerTestHelper
 
   def test_run_without_verify_result_succeeds_as_soon_as_pod_is_successfully_created
-    deploy_unschedulable_task_template
+    deploy_unschedulable_template
 
     task_runner = build_task_runner
     assert_nil(task_runner.pod_name)
-    result = task_runner.run(run_params(verify_result: false))
+    result = task_runner.run(**run_params(verify_result: false))
     assert_task_run_success(result)
 
     assert_logs_match_all([
@@ -26,11 +26,11 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     assert_equal(task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run")
   end
 
-  def test_run_global_timeout_with_max_watch_seconds
+  def test_run_global_timeout_with_global_timeout
     deploy_task_template
 
-    task_runner = build_task_runner(max_watch_seconds: 5)
-    result = task_runner.run(run_params(log_lines: 8, log_interval: 1))
+    task_runner = build_task_runner(global_timeout: 5)
+    result = task_runner.run(**run_params(log_lines: 8, log_interval: 1))
     assert_task_run_failure(result, :timed_out)
 
     assert_logs_match_all([
@@ -45,7 +45,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_task_template
 
     task_runner = build_task_runner
-    result = task_runner.run(run_params.merge(args: ["/not/a/command"]))
+    result = task_runner.run(**run_params.merge(arguments: ["/not/a/command"]))
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -67,7 +67,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     task_runner = build_task_runner
     assert_nil(task_runner.pod_name)
-    result = task_runner.run(run_params(log_lines: 8, log_interval: 0.25))
+    result = task_runner.run(**run_params(log_lines: 8, log_interval: 0.25))
     assert_task_run_success(result)
 
     assert_logs_match_all([
@@ -108,7 +108,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     end
     deleter_thread.abort_on_exception = true
 
-    result = task_runner.run(run_params(log_lines: 20, log_interval: 1))
+    result = task_runner.run(**run_params(log_lines: 20, log_interval: 1))
     assert_task_run_failure(result)
 
     assert_logs_match_all([
@@ -123,7 +123,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   def test_run_with_verify_result_neither_misses_nor_duplicates_logs_across_pollings
     deploy_task_template
     task_runner = build_task_runner
-    result = task_runner.run(run_params(log_lines: 5_000, log_interval: 0.0005))
+    result = task_runner.run(**run_params(log_lines: 5_000, log_interval: 0.0005))
     assert_task_run_success(result)
 
     logging_assertion do |all_logs|
@@ -148,7 +148,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     end
 
     task_runner = build_task_runner
-    assert_task_run_success(task_runner.run(run_params))
+    assert_task_run_success(task_runner.run(**run_params))
 
     assert_logs_match_all([
       "Phase 1: Initializing task",
@@ -162,8 +162,8 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     deploy_task_template
 
     task_runner = build_task_runner
-    assert_raises(KubernetesDeploy::FatalDeploymentError) do
-      task_runner.run!(run_params.merge(args: ["/not/a/command"]))
+    assert_raises(Krane::FatalDeploymentError) do
+      task_runner.run!(**run_params.merge(arguments: ["/not/a/command"]))
     end
 
     assert_logs_match_all([
@@ -179,34 +179,61 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
   end
 
   def test_run_fails_if_context_is_invalid
-    task_runner = build_task_runner(context: "missing")
-    assert_task_run_failure(task_runner.run(run_params))
+    task_runner = build_task_runner(context: "unknown")
+    assert_task_run_failure(task_runner.run(**run_params))
 
     assert_logs_match_all([
       "Initializing task",
       "Validating configuration",
       "Result: FAILURE",
       "Configuration invalid",
-      "- Could not connect to kubernetes cluster - context invalid",
+      "Context unknown missing from your kubeconfig file(s)",
     ], in_order: true)
   end
 
   def test_run_fails_if_namespace_is_missing
     task_runner = build_task_runner(ns: "missing")
-    assert_task_run_failure(task_runner.run(run_params))
+    assert_task_run_failure(task_runner.run(**run_params))
 
     assert_logs_match_all([
       "Initializing task",
       "Validating configuration",
       "Result: FAILURE",
       "Configuration invalid",
-      "- Namespace was not found",
+      "Could not find Namespace:",
     ], in_order: true)
+  end
+
+  def test_run_fails_if_template_is_blank
+    task_runner = build_task_runner
+    result = task_runner.run(template: '',
+      command: ['/bin/sh', '-c'],
+      arguments: nil,
+      env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
+    assert_task_run_failure(result)
+
+    assert_logs_match_all([
+      "Initializing task",
+      "Validating configuration",
+      "Result: FAILURE",
+      "Configuration invalid",
+      "Task template name can't be nil",
+    ], in_order: true)
+  end
+
+  def test_run_bang_fails_if_template_is_invalid
+    task_runner = build_task_runner
+    assert_raises(Krane::TaskConfigurationError) do
+      task_runner.run!(template: '',
+        command: ['/bin/sh', '-c'],
+        arguments: nil,
+        env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"])
+    end
   end
 
   def test_run_with_template_missing
     task_runner = build_task_runner
-    assert_task_run_failure(task_runner.run(run_params))
+    assert_task_run_failure(task_runner.run(**run_params))
     message = "Pod template `hello-cloud-template-runner` not found in namespace `#{@namespace}`, " \
       "context `#{KubeclientHelper::TEST_CONTEXT}`"
     assert_logs_match_all([
@@ -214,8 +241,8 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
       message,
     ], in_order: true)
 
-    assert_raises_message(KubernetesDeploy::RunnerTask::TaskTemplateMissingError, message) do
-      task_runner.run!(run_params)
+    assert_raises_message(Krane::RunnerTask::TaskTemplateMissingError, message) do
+      task_runner.run!(**run_params)
     end
   end
 
@@ -226,11 +253,11 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
     end
 
     task_runner = build_task_runner
-    assert_task_run_failure(task_runner.run(run_params))
+    assert_task_run_failure(task_runner.run(**run_params))
     message = "Pod spec does not contain a template container called 'task-runner'"
 
-    assert_raises_message(KubernetesDeploy::TaskConfigurationError, message) do
-      task_runner.run!(run_params)
+    assert_raises_message(Krane::TaskConfigurationError, message) do
+      task_runner.run!(**run_params)
     end
 
     assert_logs_match_all([
@@ -244,9 +271,9 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
     task_runner = build_task_runner
     result = task_runner.run(
-      task_template: 'hello-cloud-template-runner',
-      entrypoint: ['/bin/sh', '-c'],
-      args: ['echo "The value is: $MY_CUSTOM_VARIABLE"'],
+      template: 'hello-cloud-template-runner',
+      command: ['/bin/sh', '-c'],
+      arguments: ['echo "The value is: $MY_CUSTOM_VARIABLE"'],
       env_vars: ["MY_CUSTOM_VARIABLE=MITTENS"]
     )
     assert_task_run_success(result)
@@ -259,7 +286,7 @@ class RunnerTaskTest < KubernetesDeploy::IntegrationTest
 
   private
 
-  def deploy_unschedulable_task_template
+  def deploy_unschedulable_template
     deploy_task_template do |fixtures|
       way_too_fat = {
         "requests" => {

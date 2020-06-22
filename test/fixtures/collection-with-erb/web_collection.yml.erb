@@ -1,10 +1,13 @@
 <% %w(one two three).each do |name| %>
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: <%= "web-#{name}" %>
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: <%= "web-#{name}" %>
   progressDeadlineSeconds: 60
   template:
     metadata:

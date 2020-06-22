@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 require 'securerandom'
-module FixtureDeployHelper
-  EJSON_FILENAME = KubernetesDeploy::EjsonSecretProvisioner::EJSON_SECRETS_FILE
+require 'krane/deploy_task'
 
-  # Deploys the specified set of fixtures via KubernetesDeploy::DeployTask.
+module FixtureDeployHelper
+  EJSON_FILENAME = Krane::EjsonSecretProvisioner::EJSON_SECRETS_FILE
+
+  # Deploys the specified set of fixtures via Krane::DeployTask.
   #
   # Optionally takes an array of filenames belonging to the fixture, and deploys that subset only.
   # Example:
@@ -26,7 +28,7 @@ module FixtureDeployHelper
   #     pod = fixtures["unmanaged-pod.yml.erb"]["Pod"].first
   #     pod["spec"]["containers"].first["image"] = "hello-world:thisImageIsBad"
   #   end
-  def deploy_fixtures(set, subset: nil, **args) # extra args are passed through to deploy_dir_without_profiling
+  def deploy_fixtures(set, subset: nil, **args) # extra args are passed through to deploy_dirs_without_profiling
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
 
@@ -35,12 +37,38 @@ module FixtureDeployHelper
     success = false
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
-      success = deploy_dir(target_dir, args)
+      success = deploy_dirs(target_dir, **args)
     end
     success
   end
 
-  def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil)
+  def deploy_global_fixtures(set, subset: nil, selector: nil, verify_result: true, prune: true, global_timeout: 300)
+    fixtures = load_fixtures(set, subset)
+    raise "Cannot deploy empty template set" if fixtures.empty?
+
+    selector = (selector == false ? "" : "#{selector},app=krane,test=#{@namespace}".sub(/^,/, ''))
+    apply_scope_to_resources(fixtures, labels: selector)
+
+    yield fixtures if block_given?
+
+    target_dir = Dir.mktmpdir("fixture_dir")
+    write_fixtures_to_dir(fixtures, target_dir)
+    @deployed_global_fixture_paths << target_dir
+
+    deploy = Krane::GlobalDeployTask.new(
+      context: KubeclientHelper::TEST_CONTEXT,
+      filenames: Array(target_dir),
+      global_timeout: global_timeout,
+      selector: Krane::LabelSelector.parse(selector),
+      logger: logger,
+    )
+    deploy.run(
+      verify_result: verify_result,
+      prune: prune
+    )
+  end
+
+  def deploy_raw_fixtures(set, wait: true, bindings: {}, subset: nil, render_erb: false)
     success = false
     if subset
       Dir.mktmpdir("fixture_dir") do |target_dir|
@@ -52,49 +80,59 @@ module FixtureDeployHelper
         subset.each do |file|
           FileUtils.copy_entry(File.join(fixture_path(set), file), File.join(target_dir, file))
         end
-        success = deploy_dir(target_dir, wait: wait, bindings: bindings)
+        success = deploy_dirs(target_dir, wait: wait, bindings: bindings, render_erb: render_erb)
       end
     else
-      success = deploy_dir(fixture_path(set), wait: wait, bindings: bindings)
+      success = deploy_dirs(fixture_path(set), wait: wait, bindings: bindings, render_erb: render_erb)
     end
     success
   end
 
-  def deploy_dir_without_profiling(dir, wait: true, allow_protected_ns: false, prune: true, bindings: {},
-    sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, max_watch_seconds: nil, selector: nil)
+  def deploy_dirs_without_profiling(dirs, wait: true, prune: true, bindings: {},
+    sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, global_timeout: nil, selector: nil,
+    protected_namespaces: nil, render_erb: false)
     kubectl_instance ||= build_kubectl
 
-    deploy = KubernetesDeploy::DeployTask.new(
+    deploy = Krane::DeployTask.new(
       namespace: @namespace,
       current_sha: sha,
       context: KubeclientHelper::TEST_CONTEXT,
-      template_dir: dir,
+      filenames: dirs,
       logger: logger,
       kubectl_instance: kubectl_instance,
       bindings: bindings,
-      max_watch_seconds: max_watch_seconds,
+      global_timeout: global_timeout,
       selector: selector,
+      protected_namespaces: protected_namespaces,
+      render_erb: render_erb
     )
     deploy.run(
       verify_result: wait,
-      allow_protected_ns: allow_protected_ns,
       prune: prune
     )
   end
 
-  # Deploys all fixtures in the given directory via KubernetesDeploy::DeployTask
+  # Deploys all fixtures in the given directories via Krane::DeployTask
   # Exposed for direct use only when deploy_fixtures cannot be used because the template cannot be loaded pre-deploy,
   # for example because it contains an intentional syntax error
-  def deploy_dir(dir, **args)
+  def deploy_dirs(*dirs, **args)
     if ENV["PROFILE"]
       deploy_result = nil
-      result = RubyProf.profile { deploy_result = deploy_dir_without_profiling(dir, args) }
+      result = RubyProf.profile { deploy_result = deploy_dirs_without_profiling(dirs, args) }
       printer = RubyProf::FlameGraphPrinter.new(result)
       filename = File.expand_path("../../../dev/profile", __FILE__)
       printer.print(File.new(filename, "a+"), {})
       deploy_result
     else
-      deploy_dir_without_profiling(dir, args)
+      deploy_dirs_without_profiling(dirs, **args)
+    end
+  end
+
+  def setup_template_dir(set, subset: nil)
+    fixtures = load_fixtures(set, subset)
+    Dir.mktmpdir("fixture_dir") do |target_dir|
+      write_fixtures_to_dir(fixtures, target_dir)
+      yield target_dir if block_given?
     end
   end
 
@@ -129,7 +167,33 @@ module FixtureDeployHelper
   end
 
   def build_kubectl(log_failure_by_default: true, timeout: '5s')
-    KubernetesDeploy::Kubectl.new(namespace: @namespace, context: KubeclientHelper::TEST_CONTEXT, logger: logger,
+    Krane::Kubectl.new(task_config: task_config,
       log_failure_by_default: log_failure_by_default, default_timeout: timeout)
+  end
+
+  def add_unique_prefix_for_test(original_name)
+    "t#{Digest::MD5.hexdigest(@namespace)}-#{original_name}"
+  end
+
+  def apply_scope_to_resources(fixtures, labels:)
+    labels = Krane::LabelSelector.parse(labels).to_h
+    fixtures.each do |_, kinds_map|
+      kinds_map.each do |_, resources|
+        resources.each do |resource|
+          resource["metadata"]["labels"] = (resource.dig("metadata", "labels") || {}).merge(labels) if labels.present?
+          if resource["kind"] == "CustomResourceDefinition"
+            %w(kind listKind plural singular).each do |field|
+              if (original_name = resource.dig("spec", "names", field))
+                resource["spec"]["names"][field] = add_unique_prefix_for_test(original_name)
+              end
+            end
+            # metadata.name has to be composed this way for CRDs
+            resource["metadata"]["name"] = "#{resource['spec']['names']['plural']}.#{resource['spec']['group']}"
+          else
+            resource["metadata"]["name"] = add_unique_prefix_for_test(resource["metadata"]["name"])[0..253]
+          end
+        end
+      end
+    end
   end
 end

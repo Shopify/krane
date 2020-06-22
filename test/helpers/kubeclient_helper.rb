@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'kubernetes-deploy/kubeclient_builder'
+require 'krane/kubeclient_builder'
 
 module KubeclientHelper
   LOCAL_CONTEXT_OVERRIDE_PATH = File.expand_path("../../.local-context", __dir__)
@@ -20,8 +20,8 @@ module KubeclientHelper
     @policy_v1beta1_kubeclient ||= kubeclient_builder.build_policy_v1beta1_kubeclient(TEST_CONTEXT)
   end
 
-  def apps_v1beta1_kubeclient
-    @apps_v1beta1_kubeclient ||= kubeclient_builder.build_apps_v1beta1_kubeclient(TEST_CONTEXT)
+  def apps_v1_kubeclient
+    @apps_v1_kubeclient ||= kubeclient_builder.build_apps_v1_kubeclient(TEST_CONTEXT)
   end
 
   def batch_v1beta1_kubeclient
@@ -48,7 +48,15 @@ module KubeclientHelper
     @networking_v1_kubeclient ||= kubeclient_builder.build_networking_v1_kubeclient(TEST_CONTEXT)
   end
 
+  def storage_v1_kubeclient
+    @storage_v1_kubeclient ||= kubeclient_builder.build_storage_v1_kubeclient(TEST_CONTEXT)
+  end
+
+  def scheduling_v1beta1_kubeclient
+    @scheduling_v1beta1_kubeclient ||= kubeclient_builder.build_scheduling_v1beta1_kubeclient(TEST_CONTEXT)
+  end
+
   def kubeclient_builder
-    @kubeclient_builder ||= KubernetesDeploy::KubeclientBuilder.new
+    @kubeclient_builder ||= Krane::KubeclientBuilder.new
   end
 end

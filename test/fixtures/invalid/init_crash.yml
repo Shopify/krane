@@ -1,9 +1,16 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: init-crash
+  labels:
+    name: init-crash
+    app: crash-app
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: init-crash
+      app: crash-app
   progressDeadlineSeconds: 60
   template:
     metadata:

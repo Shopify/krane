@@ -17,9 +17,10 @@ if ENV["PROFILE"]
   require 'ruby-prof'
   require 'ruby-prof-flamegraph'
 end
+ENV["STATSD_USE_NEW_CLIENT"] ||= "1" # support forwards compatibility with v3.0
 
 $LOAD_PATH.unshift(File.expand_path('../../lib', __FILE__))
-require 'kubernetes-deploy'
+require 'krane'
 require 'kubeclient'
 require 'timecop'
 require 'minitest/autorun'
@@ -32,9 +33,11 @@ include(StatsD::Instrument::Assertions)
 
 Dir.glob(File.expand_path("../helpers/*.rb", __FILE__)).each { |file| require file }
 
-Mocha::Configuration.prevent(:stubbing_method_unnecessarily)
-Mocha::Configuration.prevent(:stubbing_non_existent_method)
-Mocha::Configuration.prevent(:stubbing_non_public_method)
+Mocha.configure do |c|
+  c.stubbing_method_unnecessarily = :prevent
+  c.stubbing_non_existent_method = :prevent
+  c.stubbing_non_public_method = :prevent
+end
 
 if ENV["PARALLELIZE_ME"]
   Minitest::Reporters.use!([
@@ -55,7 +58,7 @@ else
   ])
 end
 
-module KubernetesDeploy
+module Krane
   class TestCase < ::Minitest::Test
     attr_reader :logger
 
@@ -91,7 +94,7 @@ module KubernetesDeploy
         device = @logger_stream
       end
 
-      @logger = KubernetesDeploy::FormattedLogger.build(@namespace, KubeclientHelper::TEST_CONTEXT, device)
+      @logger = Krane::FormattedLogger.build(@namespace, KubeclientHelper::TEST_CONTEXT, device)
     end
 
     def ban_net_connect?
@@ -192,14 +195,18 @@ module KubernetesDeploy
         resp = resp.to_json
       end
       response = [resp, err, stub(success?: success)]
-      KubernetesDeploy::Kubectl.any_instance.expects(:run).with(*args, kwargs.presence).returns(response).times(times)
+      Krane::Kubectl.any_instance.expects(:run).with(*args, kwargs.presence).returns(response).times(times)
     end
 
     def build_runless_kubectl
-      obj = KubernetesDeploy::Kubectl.new(namespace: 'test', context: KubeclientHelper::TEST_CONTEXT,
-        logger: logger, log_failure_by_default: false)
-      def obj.run(*)
+      obj = Krane::Kubectl.new(task_config: task_config(namespace: 'test'),
+        log_failure_by_default: false)
+      def obj.run(*, **)
         ["", "", SystemExit.new(0)]
+      end
+
+      def obj.server_dry_run_enabled?
+        true
       end
       obj
     end
@@ -216,6 +223,15 @@ module KubernetesDeploy
       else
         @mock_output_stream
       end
+    end
+
+    def task_config(context: KubeclientHelper::TEST_CONTEXT, namespace: @namespace, logger: @logger)
+      @task_config ||= Krane::TaskConfig.new(context, namespace, logger)
+    end
+
+    def krane_black_box(command, args = "", stdin: nil)
+      path = File.expand_path("../../exe/krane", __FILE__)
+      Open3.capture3("#{path} #{command} #{args}", stdin_data: stdin)
     end
 
     private

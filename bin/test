@@ -32,13 +32,16 @@ if [[ ${CI:="0"} == "1" ]]; then
   bundle install --jobs 4
 fi
 
+print_header "Run CLI Tests"
+bundle exec rake cli_test
+
 print_header "Run Unit Tests"
 bundle exec rake unit_test
 
 print_header "Run Non-Parallel Integration Tests"
 bundle exec rake serial_integration_test
 
-print_header "Run Parallel Integration Tests (N=$PARALLELISM)"
-PARALLELIZE_ME=1 N=$PARALLELISM bundle exec rake integration_test
+print_header "Run Parallel Integration Tests (MT_CPU=$PARALLELISM)"
+PARALLELIZE_ME=1 MT_CPU=$PARALLELISM bundle exec rake integration_test
 
 test $err -eq 0

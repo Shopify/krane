@@ -1,5 +1,201 @@
 ## next
 
+## 1.1.3
+
+*Bug Fixes*
+- Retry dry-run validation when no error is returned. [#705](https://github.com/Shopify/krane/pull/705)
+- Stop deploys if ClusterResourceDiscovery's kubectl calls fail. [#701](https://github.com/Shopify/krane/pull/701)
+
+*Other*
+- Dropped support for Ruby 2.4 since it will be EoL shortly. [#693](https://github.com/Shopify/krane/pull/693).
+- Ruby 2.7 support: fix deprecation warnings, add testing. [#710](https://github.com/Shopify/krane/pull/705)
+
+## 1.1.2
+*Enhancements*
+- Don't treat `containerCannotRun` termination reason as a fatal deploy failure, since it is usually transient. [#694](https://github.com/Shopify/krane/pull/694)
+
+*Bug Fixes*
+- Help ruby correctly identify kubectl output encoding. [#646](https://github.com/Shopify/krane/pull/646)
+- Add an override for Job kind for version `batch/v2alpha1` [#696](https://github.com/Shopify/krane/pull/696)
+
+*Other*
+- `--stdin` flag is deprecated. To read from STDIN, use `-f -` (can be combined with other files/directories) [#684](https://github.com/Shopify/krane/pull/684).
+- Reduces the number of container logs printed for failures from 250 to 25 to reduce noise. [#676](https://github.com/Shopify/krane/pull/676)
+- Remove hardcoded cloudsql class. [#680](https://github.com/Shopify/krane/pull/680)
+
+## 1.1.1
+
+*Enhancements*
+- Detect and handle case when webhook prevents server-dry-run. [#663](https://github.com/Shopify/krane/pull/663)
+- Deploy CustomResources after most other resources in the priority deploy phase. [#672](https://github.com/Shopify/krane/pull/672)
+
+*Bug Fixes*
+- Prints the correct argument name in error message. [#660](https://github.com/Shopify/krane/pull/660)
+- Fix mistakes in README.md [#664](https://github.com/Shopify/krane/pull/664), [#659](https://github.com/Shopify/krane/pull/659), & [#668](https://github.com/Shopify/krane/pull/668)
+- Restores the default value of the `--verbose-log-prefix` flag on `krane deploy` to false. [#673](https://github.com/Shopify/krane/pull/673)
+
+*Other*
+
+- Relax dependency requirements. [#657](https://github.com/Shopify/krane/pull/657)
+
+## 1.1.0
+
+*Bug Fixes*
+- Fix a bug causing secret generation from ejson to fail when decryption succeeded but a warning was also emitted. [#647](https://github.com/Shopify/krane/pull/647)
+
+*Enhancements*
+- Warm the ResourceCache before running resource.sync to improve sync performance. ([#603](https://github.com/Shopify/kubernetes-deploy/pull/603))
+
+# 1.0.0
+
+We've renamed the gem and cli to Krane.
+See our [migration guide](https://github.com/Shopify/krane/blob/master/1.0-Upgrade.md) to help navigate the breaking changes.
+
+## 1.0.0.pre.1
+
+*Important!*
+
+- This is the final release of KubernetesDeploy. Version 1.0.0 will be released
+under the name `Krane`. We've added a migration guide to help make it easier to migrate.
+([#607](https://github.com/Shopify/kubernetes-deploy/pull/607))
+
+*Enhancements*
+- (beta) `krane deploy` will now consider all namespaced resources eligible for pruning
+and does not respect the `krane.shopify.io/prunable` annotation. This adds 5 additional
+types: Endpoints, Event, LimitRange, ReplicationController, and Lease.
+ ([#616](https://github.com/Shopify/kubernetes-deploy/pull/616)
+
+- (beta) Added the `--stdin` flag to `krane deploy|global-deploy|render` to read resources from stdin. ([#630](https://github.com/Shopify/kubernetes-deploy/pull/630))
+
+## 0.31.1
+
+*Bug Fixes*
+- Fix a scoping issue of ClusterResourceDiscovery where it was not visible to kubernetes-run, causing a crash. ([#624](https://github.com/Shopify/kubernetes-deploy/pull/624))
+
+## 0.31.0
+
+*Enhancements*
+- (alpha) Add a new krane global-deploy task for deploying global resources. Note that global pruning is turned on by default ([#602](https://github.com/Shopify/kubernetes-deploy/pull/602) and [#612](https://github.com/Shopify/kubernetes-deploy/pull/612))
+- Add support for deploying resources that use `generateName` ([#608](https://github.com/Shopify/kubernetes-deploy/pull/608))
+- ENV["REVISION"] is not transparently passed into krane. Instead, you must now use the `--current-sha` flag to set the `current_sha` ERB binding in your templates. Note that kubernetes-deploy, _but not krane_, can still use ENV["REVISION"] as a fallback if `--current-sha` is not provided. ([#613](https://github.com/Shopify/kubernetes-deploy/pull/613))
+
+*Bug Fixes*
+- `krane deploy` can accept multiple filenames with `-f` flag ([#606](https://github.com/Shopify/kubernetes-deploy/pull/606))
+- Ensure DaemonSet status has converged with pod statuses before reporting rollout success ([#617](https://github.com/Shopify/kubernetes-deploy/pull/617))
+
+*Other*
+- Update references from using `kubernetes-deploy` to `krane` in preparation for 1.0 release ([#585](https://github.com/Shopify/kubernetes-deploy/pull/585))
+- Refactor StatsD usage so we can depend on the latest version again. ([#594](https://github.com/Shopify/kubernetes-deploy/pull/594))
+
+## 0.30.0
+
+*Enhancements*
+- **[Breaking change]** Added PersistentVolumeClaim to the prune whitelist. ([#573](https://github.com/Shopify/kubernetes-deploy/pull/573))
+  * To see what resources may be affected, run `kubectl get pvc -o jsonpath='{ range .items[*] }{.metadata.namespace}{ "\t" }{.metadata.name}{ "\t" }{.metadata.annotations}{ "\n" }{ end }' --all-namespaces | grep "last-applied"`
+  * To exclude a resource from kubernetes-deploy (and kubectl apply) management, remove the last-applied annotation `kubectl annotate pvc $PVC_NAME kubectl.kubernetes.io/last-applied-configuration-`.
+- Deploying global resources directly from `KubernetesDeploy::DeployTask` is disabled by default. You can use `allow_globals: true` to enable the old behavior. This will be disabled in the Krane version of the task, and a separate purpose-built task will be provided. [#567](https://github.com/Shopify/kubernetes-deploy/pull/567)
+- Deployments to daemonsets now better tolerate autoscaling: nodes that appear mid-deploy aren't required for convergence. [#580](https://github.com/Shopify/kubernetes-deploy/pull/580)
+
+## 0.29.0
+
+*Enhancements*
+- The KubernetesDeploy::RenderTask now supports a template_paths argument. ([#555](https://github.com/Shopify/kubernetes-deploy/pull/546))
+- We no longer hide errors from apply if all sensitive resources have passed server-dry-run validation. ([#570](https://github.com/Shopify/kubernetes-deploy/pull/570))
+
+
+*Bug Fixes*
+- Handle improper duration values more elegantly with better messaging
+
+
+*Other*
+- We now require Ruby 2.4.x since Ruby 2.3 is past EoL.
+- Lock statsd-instrument to 2.3.X due to breaking changes in 2.5.0
+
+## 0.28.0
+
+*Enhancements*
+- Officially support Kubernetes 1.15 ([#546](https://github.com/Shopify/kubernetes-deploy/pull/546))
+- Make sure that we only declare a Service of type LoadBalancer as deployed after its IP address is published. [#547](https://github.com/Shopify/kubernetes-deploy/pull/547)
+- Add more validations to `RunnerTask`. [#554](https://github.com/Shopify/kubernetes-deploy/pull/554)
+- Validate secrets with `--server-dry-run` on supported clusters. [#553](https://github.com/Shopify/kubernetes-deploy/pull/553)
+*Bug Fixes*
+- Fix a bug in rendering where we failed to add a yaml doc separator (`---`) to
+  an implicit document if there are multiple documents in the file.
+  ([#551](https://github.com/Shopify/kubernetes-deploy/pull/551))
+
+*Other*
+- Kubernetes 1.10 is no longer officially supported as of this version ([#546](https://github.com/Shopify/kubernetes-deploy/pull/546))
+- We've added a new Krane cli. This code is in alpha. We are providing
+no warranty at this time and reserve the right to make major breaking changes including
+removing it entirely at any time. ([#256](https://github.com/Shopify/kubernetes-deploy/issues/256))
+- Deprecate `kubernetes-deploy.shopify.io` annotations in favour of `krane.shopify.io` ([#539](https://github.com/Shopify/kubernetes-deploy/pull/539))
+
+## 0.27.0
+
+*Enhancements*
+- (alpha) Introduce a new `-f` flag for `kubernetes-deploy`. Allows passing in of multiple directories and/or filenames. Currently only usable by `kubernetes-deploy`, not `kubernetes-render`. [#514](https://github.com/Shopify/kubernetes-deploy/pull/514)
+- Initial implementation of shared task validation objects. [#533](https://github.com/Shopify/kubernetes-deploy/pull/533)
+- Restructure `require`s so that requiring a given task actually gives you the dependencies you need, and doesn't give what you don't need. [#487](https://github.com/Shopify/kubernetes-deploy/pull/487)
+- **[Breaking change]** Added ServiceAccount, PodTemplate, ReplicaSet, Role, and RoleBinding to the prune whitelist.
+  * To see what resources may be affected, run `kubectl get $RESOURCE -o jsonpath='{ range .items[*] }{.metadata.namespace}{ "\t" }{.metadata.name}{ "\t" }{.metadata.annotations}{ "\n" }{ end }' --all-namespaces | grep "last-applied"`
+  * To exclude a resource from kubernetes-deploy (and kubectl apply) management, remove the last-applied annotation `kubectl annotate $RESOURCE $SECRET_NAME kubectl.kubernetes.io/last-applied-configuration-`.
+
+*Bug Fixes*
+- StatefulSets with 0 replicas explicitly specified don't fail deploy. [#540](https://github.com/Shopify/kubernetes-deploy/pull/540)
+- Search all workloads if a Pod selector doesn't match any workloads when deploying a Service. [#541](https://github.com/Shopify/kubernetes-deploy/pull/541)
+
+*Other*
+- `EjsonSecretProvisioner#new` signature has changed. `EjsonSecretProvisioner` objects no longer have access to `kubectl`. Rather, the `ejson-keys` secret used for decryption is now passed in via the calling task. Note that we only consider the `new` and `run(!)` methods of tasks (render, deploy, etc) to have inviolable APIs, so we do not consider this change breaking. [#514](https://github.com/Shopify/kubernetes-deploy/pull/514)
+
+## 0.26.7
+
+*Other*
+- Bump `googleauth` dependency. ([#512](https://github.com/Shopify/kubernetes-deploy/pull/512))
+
+## 0.26.6
+
+*Bug Fixes*
+- Re-enable support for YAML aliases when using YAML.safe_load [#510](https://github.com/Shopify/kubernetes-deploy/pull/510)
+
+## 0.26.5
+
+*Bug Fixes*
+- Support 'volumeBindingMode: WaitForFirstConsumer' condition in StorageClass. [#479](https://github.com/Shopify/kubernetes-deploy/pull/479)
+- Fix: Undefined method "merge" on LabelSelector. [#488](https://github.com/Shopify/kubernetes-deploy/pull/488)
+
+*Enhancements*
+- Officially support Kubernetes 1.14. [#461](https://github.com/Shopify/kubernetes-deploy/pull/461)
+- Allow customising which custom resources are deployed in the pre-deploy phase. [#505](https://github.com/Shopify/kubernetes-deploy/pull/505)
+
+*Other*
+- Removes special treatment of GCP authentication by upgrading to `kubeclient` 4.3. [#465](https://github.com/Shopify/kubernetes-deploy/pull/465)
+
+## 0.26.4
+
+*Bug fixes*
+- Adds several additional safeguards against the content of Secret resources being logged. [#474](https://github.com/Shopify/kubernetes-deploy/pull/474)
+
+*Enhancements*
+- Improves scalability by removing a check that caused recoverable registry problems to fail deploys. [#477](https://github.com/Shopify/kubernetes-deploy/pull/477)
+
+*Other*
+- Relaxes our dependency on the OJ gem. [#471](https://github.com/Shopify/kubernetes-deploy/pull/471)
+
+## 0.26.3
+
+*Bug fixes*
+- Fixes a bug introduced in 0.26.0 where listing multiple files in the $KUBECONFIG environment variable would throw an error ([#468](https://github.com/Shopify/kubernetes-deploy/pull/468))
+- Fixes a bug introduced in 0.26.2 where kubernetes-render started adding YAML headers to empty render results ([#467](https://github.com/Shopify/kubernetes-deploy/pull/467))
+
+## 0.26.2
+
+*Enhancements*
+- kubernetes-render outputs results of rendering yml.erb files without passing them
+through a yaml parser. ([#454](https://github.com/Shopify/kubernetes-deploy/pull/454))
+
+*Bug fixes*
+- Remove use of deprecated feature preventing use with Kubernetes 1.14 ([#460](https://github.com/Shopify/kubernetes-deploy/pull/460))
+
 ## 0.26.1
 
 *Bug fixes*

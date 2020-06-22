@@ -1,0 +1,68 @@
+containers:
+  default:
+    docker: circleci/ruby:2.5.7
+
+steps:
+  - label: Lint
+    timeout: 5m
+    run:
+      - bundle exec rubocop
+    dependencies:
+      - bundler
+  - label: 'Run Test Suite (:kubernetes: 1.17-latest :ruby: 2.7)'
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: "4"
+      KUBERNETES_VERSION: v1.17-latest
+      RUBY_VERSION: "2.7"
+  - label: 'Run Test Suite (:kubernetes: 1.17-latest)'
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: "4"
+      KUBERNETES_VERSION: v1.17-latest
+  - label: 'Run Test Suite (:kubernetes: 1.16-latest)'
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: "4"
+      KUBERNETES_VERSION: v1.16-latest
+  - label: 'Run Test Suite (:kubernetes: 1.15-latest)'
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: "4"
+      KUBERNETES_VERSION: v1.15-latest
+  - label: 'Run Test Suite (:kubernetes: 1.14-latest)'
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: "4"
+      KUBERNETES_VERSION: v1.14-latest
+  - label: 'Run Test Suite (:kubernetes: 1.13-latest)'
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: "4"
+      KUBERNETES_VERSION: v1.13-latest
+  - label: 'Run Test Suite (:kubernetes: 1.12-latest)'
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: "4"
+      KUBERNETES_VERSION: v1.12-latest
+  - label: 'Run Test Suite (:kubernetes: 1.11-latest)'
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: "4"
+      KUBERNETES_VERSION: v1.11-latest

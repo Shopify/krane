@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-replica
+spec:
+  ports:
+  - port: 80
+    name: http
+    targetPort: http
+  selector:
+    name: undying
+    app: fixtures
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: undying
+  labels:
+    name: undying
+    app: fixtures
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      name: undying
+      app: fixtures
+  progressDeadlineSeconds: 60
+  revisionHistoryLimit: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 50%
+  template:
+    metadata:
+      labels:
+        name: undying
+        app: fixtures
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sleep", "40"]
+        env:
+        - name: GITHUB_REV
+          value: kf9dac0657193
+      terminationGracePeriodSeconds: 30

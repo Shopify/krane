@@ -9,8 +9,8 @@ if [ ! -x "$(which minikube)" ]; then
 fi
 
 if [ ! -x "$(which kubectl)" ]; then
-  echo -e "\n\033[0;33mPlease install kubectl version 1.10.0 or higher:\nhttps://kubernetes.io/docs/user-guide/prereqs/\033[0m"
+  echo -e "\n\033[0;33mPlease install kubectl version 1.11.0 or higher:\nhttps://kubernetes.io/docs/user-guide/prereqs/\033[0m"
 else
   KUBECTL_VERSION=$(kubectl version --short --client | grep -oe "v[[:digit:]\.]\+")
-  echo -e "\n\033[0;32mKubectl version $KUBECTL_VERSION is already installed. This gem requires version v1.10.0 or greater.\033[0m"
+  echo -e "\n\033[0;32mKubectl version $KUBECTL_VERSION is already installed. This gem requires version v1.11.0 or greater.\033[0m"
 fi

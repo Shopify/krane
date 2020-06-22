@@ -2,9 +2,4 @@ inherit_from:
   - http://shopify.github.io/ruby-style-guide/rubocop.yml
 
 AllCops:
-  TargetRubyVersion: 2.3
-
-Naming/FileName:
-  Enabled: true
-  Exclude:
-    - lib/kubernetes-deploy.rb
+  TargetRubyVersion: 2.4

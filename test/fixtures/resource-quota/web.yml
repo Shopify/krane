@@ -1,11 +1,18 @@
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
+  labels:
+    name: web
+    app: hello-cloud
   annotations:
     shipit.shopify.io/restart: "true"
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: web
+      app: hello-cloud
   progressDeadlineSeconds: 20 # Don't set too high--fixture is used in timeout tests
   template:
     metadata:

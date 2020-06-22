@@ -1,0 +1,8 @@
+apiVersion: scheduling.k8s.io/v1beta1
+description: Used for testing global deploys and pruning.
+kind: PriorityClass
+metadata:
+  name: testing-priority-class
+  labels:
+    app: krane
+value: 20

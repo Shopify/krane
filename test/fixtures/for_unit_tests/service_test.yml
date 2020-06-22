@@ -22,10 +22,10 @@ metadata:
 spec:
   type: ClusterIP
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  type: standard
+  name: standard
   labels:
     type: standard
 spec:
@@ -72,10 +72,10 @@ spec:
   selector:
     type: zero-replica
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
-  type: zero-replica
+  name: zero-replica
   labels:
     type: zero-replica
 spec:
@@ -91,3 +91,127 @@ spec:
       containers:
       - name: app
         image: busybox
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zero-replica-multiple
+spec:
+  selector:
+    type: zero-replica-multiple
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zero-replica-multiple-1
+  labels:
+    type: zero-replica-multiple
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      type: zero-replica-multiple
+  template:
+    metadata:
+      labels:
+        type: zero-replica-multiple
+    spec:
+      containers:
+      - name: app
+        image: busybox
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zero-replica-multiple-2
+  labels:
+    type: zero-replica-multiple
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      type: zero-replica-multiple
+  template:
+    metadata:
+      labels:
+        type: zero-replica-multiple
+    spec:
+      containers:
+      - name: app
+        image: busybox
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zero-replica-statefulset
+spec:
+  selector:
+    type: zero-replica-statefulset
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: hello-cloud
+    name: stateful-busybox
+    type: zero-replica-statefulset
+  name: stateful-busybox
+spec:
+  serviceName: "zero-replica-statefulset"
+  selector:
+    matchLabels:
+      app: hello-cloud
+      name: stateful-busybox
+  replicas: 0
+  template:
+    metadata:
+      labels:
+        app: hello-cloud
+        name: stateful-busybox
+        type: zero-replica-statefulset
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: standard-mis-matched-lables
+spec:
+  selector:
+    type: mis-matched-pod
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mis-matched-deployment
+  labels:
+    type: mis-matched-deployment
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      type: mis-matched-pod
+  template:
+    metadata:
+      labels:
+        type: mis-matched-pod
+    spec:
+      containers:
+      - name: app
+        image: busybox
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: standard-lb
+spec:
+  type: LoadBalancer
+  selector:
+    type: standard
