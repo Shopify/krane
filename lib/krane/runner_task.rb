@@ -9,6 +9,7 @@ require 'krane/resource_watcher'
 require 'krane/kubernetes_resource'
 require 'krane/kubernetes_resource/pod'
 require 'krane/runner_task_config_validator'
+require 'krane/container_overrides'
 
 module Krane
   # Run a pod that exits upon completing a task
@@ -50,7 +51,7 @@ module Krane
     # @param verify_result [Boolean] Wait for completion and verify pod success
     #
     # @return [nil]
-    def run!(template:, command:, arguments:, env_vars: [], verify_result: true)
+    def run!(template:, command:, arguments:, env_vars: [], image_tag: nil, verify_result: true)
       start = Time.now.utc
       @logger.reset
 
@@ -59,8 +60,13 @@ module Krane
       @logger.info("Validating configuration")
       verify_config!(template)
       @logger.info("Using namespace '#{@namespace}' in context '#{@context}'")
-
-      pod = build_pod(template, command, arguments, env_vars, verify_result)
+      container_overrides = ContainerOverrides.new(
+        command: command,
+        arguments: arguments,
+        env_vars: env_vars,
+        image_tag: image_tag
+      )
+      pod = build_pod(template, container_overrides, verify_result)
       validate_pod(pod)
 
       @logger.phase_heading("Running pod")
@@ -98,11 +104,12 @@ module Krane
       raise FatalDeploymentError, msg
     end
 
-    def build_pod(template_name, command, args, env_vars, verify_result)
+    def build_pod(template_name, container_overrides, verify_result)
       task_template = get_template(template_name)
       @logger.info("Using template '#{template_name}'")
       pod_template = build_pod_definition(task_template)
-      set_container_overrides!(pod_template, command, args, env_vars)
+      container = extract_task_runner_container(pod_template)
+      container_overrides.apply!(container)
       ensure_valid_restart_policy!(pod_template, verify_result)
       Pod.new(namespace: @namespace, context: @context, logger: @logger, stream_logs: true,
                     definition: pod_template.to_hash.deep_stringify_keys, statsd_tags: [])
@@ -165,7 +172,7 @@ module Krane
       pod_definition
     end
 
-    def set_container_overrides!(pod_definition, command, args, env_vars)
+    def extract_task_runner_container(pod_definition)
       container = pod_definition.spec.containers.find { |cont| cont.name == 'task-runner' }
       if container.nil?
         message = "Pod spec does not contain a template container called 'task-runner'"
@@ -173,15 +180,7 @@ module Krane
         raise TaskConfigurationError, message
       end
 
-      container.command = command if command
-      container.args = args if args
-
-      env_args = env_vars.map do |env|
-        key, value = env.split('=', 2)
-        { name: key, value: value }
-      end
-      container.env ||= []
-      container.env = container.env.map(&:to_h) + env_args
+      container
     end
 
     def ensure_valid_restart_policy!(template, verify)
