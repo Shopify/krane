@@ -151,7 +151,7 @@ To see the full-color output of a specific integration test, you can use `PRINT_
 1. Make sure CHANGELOG.md includes all user-facing changes since the last release. Things like test changes or refactors do not need to be included.
 1. Update the version number in `version.rb`.
 1. Commit your changes with message "Version x.y.z" and open a PR.
-1. After merging your PR, deploy via [Shipit](https://shipit.shopify.io/shopify/kubernetes-deploy/rubygems). Shipit will automatically tag the release and upload the gem to [rubygems.org](https://rubygems.org/gems/krane).
+1. After merging your PR, deploy via [Shipit](https://shipit.shopify.io/shopify/krane/rubygems). Shipit will automatically tag the release and upload the gem to [rubygems.org](https://rubygems.org/gems/krane).
 
 ## CI (External contributors)
 
