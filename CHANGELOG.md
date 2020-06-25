@@ -1,5 +1,13 @@
 ## next
 
+## 1.1.4
+
+*Bug Fixes*
+- Properly look up constant on Krane namespace. [#720](https://github.com/Shopify/krane/pull/720)
+
+*Enhancements*
+- Allow to configure `image_tag` when using task runner. [#719](https://github.com/Shopify/krane/pull/719)
+
 ## 1.1.3
 
 *Bug Fixes*
