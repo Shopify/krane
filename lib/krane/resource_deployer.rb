@@ -48,6 +48,8 @@ module Krane
 
       predeploy_sequence.each do |resource_type|
         matching_resources = resource_list.select { |r| r.type == resource_type }
+        StatsD.client.gauge('priority_resources.count', matching_resources.size, tags: statsd_tags)
+
         next if matching_resources.empty?
         deploy_resources(matching_resources, verify: true, record_summary: false)
 
