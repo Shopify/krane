@@ -242,6 +242,8 @@ module Krane
         @logger.info("  - #{secret.id} (from ejson)")
       end
 
+      StatsD.client.gauge('discover_resources.count', resources.size, tags: statsd_tags)
+
       resources.sort
     rescue InvalidTemplateError => e
       record_invalid_template(logger: @logger, err: e.message, filename: e.filename,

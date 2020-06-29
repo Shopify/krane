@@ -91,12 +91,15 @@ class SerialDeployTest < Krane::IntegrationTest
     %w(
       Krane.validate_configuration.duration
       Krane.discover_resources.duration
+      Krane.discover_resources.count
       Krane.validate_resources.duration
       Krane.initial_status.duration
       Krane.priority_resources.duration
+      Krane.priority_resources.count
       Krane.apply_all.duration
       Krane.normal_resources.duration
       Krane.all_resources.duration
+
     ).each do |expected_metric|
       metric = metrics.find { |m| m.name == expected_metric }
       refute_nil metric, "Metric #{expected_metric} not emitted"
@@ -115,9 +118,11 @@ class SerialDeployTest < Krane::IntegrationTest
     %w(
       Krane.validate_configuration.duration
       Krane.discover_resources.duration
+      Krane.discover_resources.count
       Krane.initial_status.duration
       Krane.validate_resources.duration
       Krane.priority_resources.duration
+      Krane.priority_resources.count
       Krane.apply_all.duration
       Krane.normal_resources.duration
       Krane.sync.duration
@@ -141,6 +146,7 @@ class SerialDeployTest < Krane::IntegrationTest
     %w(
       Krane.validate_configuration.duration
       Krane.discover_resources.duration
+      Krane.discover_resources.count
       Krane.initial_status.duration
       Krane.validate_resources.duration
       Krane.apply_all.duration
