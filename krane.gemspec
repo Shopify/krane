@@ -56,6 +56,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency("byebug")
   spec.add_development_dependency("ruby-prof")
   spec.add_development_dependency("ruby-prof-flamegraph")
-  spec.add_development_dependency("rubocop", "~> 0.78.0")
+  spec.add_development_dependency("rubocop", "~> 0.88.0")
   spec.add_development_dependency("codecov")
 end

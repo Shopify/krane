@@ -6,9 +6,8 @@ steps:
   - label: Lint
     timeout: 5m
     run:
+      - bundle: ~
       - bundle exec rubocop
-    dependencies:
-      - bundler
   - label: 'Run Test Suite (:kubernetes: 1.18-latest :ruby: 2.7)'
     command: bin/ci
     agents:
