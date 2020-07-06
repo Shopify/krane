@@ -4,18 +4,25 @@ up:
   - ruby: 2.5.7 # Matches gemspec
   - bundler
   - homebrew:
-    - Caskroom/cask/minikube
+      - homebrew/cask/docker:
+          or: [homebrew/cask/docker-edge]
   - custom:
-      name: Install the minikube fork of driver-hyperkit
-      met?: command -v docker-machine-driver-hyperkit
-      meet: curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit && sudo install -o root -g wheel -m 4755 docker-machine-driver-hyperkit /usr/local/bin/ && rm ./docker-machine-driver-hyperkit
+      name: Install Kubernetes in Docker (KinD)
+      met?: bin/kind version 2>&1 | grep -q 0.8.1
+      meet: |
+        mkdir -p bin
+        curl -sLo bin/kind "https://github.com/kubernetes-sigs/kind/releases/download/v0.8.1/kind-darwin-amd64"
+        chmod +x bin/kind
   - custom:
-      name: Minikube Cluster
-      met?: test $(minikube status | grep Running | wc -l) -ge 2 && $(minikube status | grep -q 'Configured')
-      meet: minikube start --kubernetes-version=v1.11.10 --vm-driver=hyperkit
-      down: minikube stop
+      name: Create Kind cluster
+      met?: bin/kind get clusters | grep -q krane
+      meet: bin/kind create cluster --name krane --image kindest/node:v1.15.11
+      down: ((bin/kind get clusters | grep -q krane) && bin/kind delete cluster --name krane) || true
+
 commands:
-  reset-minikube: minikube delete && rm -rf ~/.minikube
+  reset-kind: |
+    (bin/kind get clusters | grep -q krane) && bin/kind delete cluster --name krane;
+    bin/kind create cluster --name krane --image kindest/node:v1.15.11
   test:
     run: bin/test
   tophat:

@@ -8,7 +8,6 @@ fi
 docker run --rm \
     --net=host \
     -v "$HOME/.kube":"/root/.kube" \
-    -v "$HOME/.minikube":"$HOME/.minikube" \
     -v "$PWD":/usr/src/app \
     -v "/usr/bin/kubectl":"/usr/bin/kubectl" \
     -e CI=1 \
