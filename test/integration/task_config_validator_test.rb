@@ -37,6 +37,7 @@ class TaskConfigValidatorTest < Krane::IntegrationTest
   def test_invalid_server_version
     old_min_version = Krane::MIN_KUBE_VERSION
     new_min_version = "99999"
+    Krane.send(:remove_const, :MIN_KUBE_VERSION)
     Krane.const_set(:MIN_KUBE_VERSION, new_min_version)
     validator(context: KubeclientHelper::TEST_CONTEXT, namespace: 'default', logger: @logger).valid?
     assert_logs_match_all([

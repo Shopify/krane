@@ -577,6 +577,7 @@ Layout/BlockEndNewline:
 
 Style/CaseEquality:
   Enabled: true
+  AllowOnConstant: true
 
 Style/CharacterLiteral:
   Enabled: true
@@ -657,6 +658,9 @@ Style/IfWithSemicolon:
   Enabled: true
 
 Style/IdenticalConditionalBranches:
+  Enabled: true
+
+Layout/IndentationStyle:
   Enabled: true
 
 Style/InfiniteLoop:
@@ -803,9 +807,6 @@ Layout/SpaceInsideRangeLiteral:
 Style/SymbolLiteral:
   Enabled: true
 
-Layout/Tab:
-  Enabled: true
-
 Layout/TrailingWhitespace:
   Enabled: true
 
@@ -834,7 +835,7 @@ Style/ZeroLengthPredicate:
   Enabled: true
 
 Layout/HeredocIndentation:
-  EnforcedStyle: squiggly
+  Enabled: true
 
 Lint/AmbiguousOperator:
   Enabled: true
@@ -870,9 +871,6 @@ Lint/EmptyEnsure:
   Enabled: true
 
 Lint/EmptyInterpolation:
-  Enabled: true
-
-Lint/EndInMethod:
   Enabled: true
 
 Lint/EnsureReturn:
@@ -1017,4 +1015,7 @@ Style/ModuleFunction:
   EnforcedStyle: extend_self
 
 Lint/OrderedMagicComments:
+  Enabled: true
+
+Lint/DeprecatedOpenSSLConstant:
   Enabled: true
