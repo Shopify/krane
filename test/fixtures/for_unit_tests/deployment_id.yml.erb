@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: migrate-<%= deployment_id %>
+spec:
+  containers:
+    - name: migrate
+      image: gcr.io/foobar/api
