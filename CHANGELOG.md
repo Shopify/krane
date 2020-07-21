@@ -3,6 +3,12 @@
 *Important!*
 - The next release will be 1.0.0, which means that master will contain breaking changes.
 
+## 1.0.0.pre.2
+
+*Enhancements*
+- Relax thor version requirement. ([#731](https://github.com/Shopify/krane/pull/731))
+- Relax googleauth restriction. ([#731](https://github.com/Shopify/krane/pull/731))
+
 ## 1.0.0.pre.1
 
 *Important!*

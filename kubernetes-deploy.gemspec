@@ -25,14 +25,14 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 2.4.0'
   spec.add_dependency("activesupport", ">= 5.0")
   spec.add_dependency("kubeclient", "~> 4.3")
-  spec.add_dependency("googleauth", "~> 0.8.0")
+  spec.add_dependency("googleauth", "~> 0.8")
   spec.add_dependency("ejson", "~> 1.0")
   spec.add_dependency("colorize", "~> 0.8")
   spec.add_dependency("statsd-instrument", ['>= 2.8', "< 3.1"])
   spec.add_dependency("oj", "~> 3.0")
   spec.add_dependency("concurrent-ruby", "~> 1.1")
   spec.add_dependency("jsonpath", "~> 0.9.6")
-  spec.add_dependency("thor", "~>  0.20.3")
+  spec.add_dependency("thor", [">= 0.20", "< 2.0"])
 
   spec.add_development_dependency("bundler")
   spec.add_development_dependency("rake", "~> 10.0")
