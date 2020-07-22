@@ -28,6 +28,8 @@ module Krane
         ENV["TASK_ID"]
       elsif current_sha
         current_sha[0...8] + "-#{SecureRandom.hex(4)}"
+      else
+        SecureRandom.hex(8)
       end
     end
 

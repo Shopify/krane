@@ -4,6 +4,7 @@ require 'test_helper'
 class RendererTest < Krane::TestCase
   def setup
     super
+    SecureRandom.stubs(:hex).returns("aaaa")
     @renderer = Krane::Renderer.new(
       current_sha: "12345678",
       template_dir: fixture_path('for_unit_tests'),
@@ -69,10 +70,48 @@ class RendererTest < Krane::TestCase
         c: c3
         d: d4
         foo: bar
-      EOY
-    actual = YAML.dump(YAML.safe_load(render('nest-as-rhs.yaml.erb')))
+    EOY
+    actual = YAML.dump(YAML.safe_load(render("nest-as-rhs.yaml.erb")))
     assert_equal(expected, actual)
-    actual = YAML.dump(YAML.safe_load(render('nest-indented.yaml.erb')))
+    actual = YAML.dump(YAML.safe_load(render("nest-indented.yaml.erb")))
+    assert_equal(expected, actual)
+  end
+
+  def test_deployment_id
+    expected = <<~EOY
+      ---
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: migrate-12345678-aaaa
+      spec:
+        containers:
+        - name: migrate
+          image: gcr.io/foobar/api
+    EOY
+    actual = YAML.dump(YAML.safe_load(render("deployment_id.yml.erb")))
+    assert_equal(expected, actual)
+  end
+
+  def test_renderer_without_current_sha_still_has_a_deployment_id
+    @renderer = Krane::Renderer.new(
+      current_sha: nil,
+      template_dir: fixture_path("for_unit_tests"),
+      logger: logger,
+      bindings: { "a" => "1", "b" => "2" },
+    )
+    expected = <<~EOY
+      ---
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: migrate-aaaa
+      spec:
+        containers:
+        - name: migrate
+          image: gcr.io/foobar/api
+    EOY
+    actual = YAML.dump(YAML.safe_load(render("deployment_id.yml.erb")))
     assert_equal(expected, actual)
   end
 
