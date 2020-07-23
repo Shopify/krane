@@ -56,6 +56,7 @@ module Krane
     )
 
     def predeploy_sequence
+      default_group = { :group => nil }
       before_crs = %w(
         ResourceQuota
         NetworkPolicy
@@ -65,12 +66,14 @@ module Krane
         Role
         RoleBinding
         Secret
-      )
+      ).map {|r| [r, default_group]}
+
       after_crs = %w(
         Pod
-      )
+      ).map {|r| [r, default_group]}
 
-      before_crs + cluster_resource_discoverer.crds.select(&:predeployed?).map(&:kind) + after_crs
+      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |crs| [crs.kind, {:group => crs.group}] }
+      Hash[before_crs + crs + after_crs]
     end
 
     def prune_whitelist
@@ -143,7 +146,7 @@ module Krane
 
       if deploy_has_priority_resources?(resources)
         @logger.phase_heading("Predeploying priority resources")
-        resource_deployer.predeploy_priority_resources(resources, predeploy_sequence)
+        resource_deployer.predeploy_priority_resources(resources, predeploy_sequence.keys)
       end
 
       @logger.phase_heading("Deploying all resources")
@@ -210,7 +213,10 @@ module Krane
     end
 
     def deploy_has_priority_resources?(resources)
-      resources.any? { |r| predeploy_sequence.include?(r.type) }
+      resources.any? do |r| 
+        next unless cr = predeploy_sequence[r.type]
+        !cr[:group] || cr[:group] == r.group
+      end
     end
 
     def check_initial_status(resources)
