@@ -56,7 +56,7 @@ module Krane
     )
 
     def predeploy_sequence
-      default_group = { :group => nil }
+      default_group = { group: nil }
       before_crs = %w(
         ResourceQuota
         NetworkPolicy
@@ -66,13 +66,13 @@ module Krane
         Role
         RoleBinding
         Secret
-      ).map {|r| [r, default_group]}
+      ).map { |r| [r, default_group] }
 
       after_crs = %w(
         Pod
-      ).map {|r| [r, default_group]}
+      ).map { |r| [r, default_group] }
 
-      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |crs| [crs.kind, {:group => crs.group}] }
+      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, { group: cr.group }] }
       Hash[before_crs + crs + after_crs]
     end
 
@@ -213,8 +213,8 @@ module Krane
     end
 
     def deploy_has_priority_resources?(resources)
-      resources.any? do |r| 
-        next unless cr = predeploy_sequence[r.type]
+      resources.any? do |r|
+        next unless (cr = predeploy_sequence[r.type])
         !cr[:group] || cr[:group] == r.group
       end
     end
