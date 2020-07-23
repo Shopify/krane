@@ -46,6 +46,10 @@ module Krane
       @definition.dig("spec", "names", "kind")
     end
 
+    def group
+      @definition.dig("spec", "group")
+    end
+
     def prunable?
       prunable = krane_annotation_value("prunable")
       prunable == "true"

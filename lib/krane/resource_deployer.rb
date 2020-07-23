@@ -46,8 +46,11 @@ module Krane
         bare_pods.first.stream_logs = true
       end
 
-      predeploy_sequence.each do |resource_type|
-        matching_resources = resource_list.select { |r| r.type == resource_type }
+      predeploy_sequence.each do |resource_type, attributes|
+        matching_resources = resource_list.select do |r|
+          r.type == resource_type &&
+          (!attributes[:group] || r.group == attributes[:group])
+        end
         StatsD.client.gauge('priority_resources.count', matching_resources.size, tags: statsd_tags)
 
         next if matching_resources.empty?
