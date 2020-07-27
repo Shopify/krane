@@ -230,7 +230,7 @@ module Krane
 
     def group
       grouping, *version = @definition.dig("apiVersion").split("/")
-      version.empty? ? grouping : "core"
+      version.empty? ? "core" : grouping
     end
 
     def kubectl_resource_type
