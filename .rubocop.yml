@@ -3,15 +3,3 @@ inherit_from:
 
 AllCops:
   TargetRubyVersion: 2.4
-
-Naming/FileName:
-  Enabled: true
-  Exclude:
-    - lib/kubernetes-deploy.rb
-
-Sorbet/ConstantsFromStrings:
-  Enabled: false
-
-Layout/Tab:
-  Exclude:
-    - test/integration/krane_deploy_test.rb
