@@ -59,6 +59,12 @@
 We've renamed the gem and cli to Krane.
 See our [migration guide](https://github.com/Shopify/krane/blob/master/1.0-Upgrade.md) to help navigate the breaking changes.
 
+## 1.0.0.pre.2
+
+*Enhancements*
+- Relax thor version requirement. ([#731](https://github.com/Shopify/krane/pull/731))
+- Relax googleauth restriction. ([#731](https://github.com/Shopify/krane/pull/731))
+
 ## 1.0.0.pre.1
 
 *Important!*
