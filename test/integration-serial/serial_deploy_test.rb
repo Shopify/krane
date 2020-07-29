@@ -382,6 +382,19 @@ class SerialDeployTest < Krane::IntegrationTest
     ])
   end
 
+  def test_cr_success_with_service
+    filepath = "#{fixture_path('crd')}/service_cr.yml"
+    out, err, st = build_kubectl.run("create", "-f", filepath, log_failure: true, use_namespace: false)
+    assert(st.success?, "Failed to create CRD: #{out}\n#{err}")
+
+    assert_deploy_success(deploy_fixtures("crd", subset: %w(web.yml)))
+
+    refute_logs_match(/Predeploying priority resources/)
+    assert_logs_match_all([/Phase 3: Deploying all resources/])
+  ensure
+    build_kubectl.run("delete", "-f", filepath, use_namespace: false, log_failure: false)
+  end
+
   def test_cr_success_with_default_rollout_conditions_deprecated_annotation
     assert_deploy_success(deploy_global_fixtures("crd", subset: %(with_default_conditions_deprecated.yml)))
     success_conditions = {

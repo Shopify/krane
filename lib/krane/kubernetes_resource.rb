@@ -228,6 +228,11 @@ module Krane
       @type || self.class.kind
     end
 
+    def group
+      grouping, version = @definition.dig("apiVersion").split("/")
+      version ? grouping : "core"
+    end
+
     def kubectl_resource_type
       type
     end

@@ -21,6 +21,10 @@ MockResource = Struct.new(:id, :hits_to_complete, :status) do
   end
   alias_method :kubectl_resource_type, :type
 
+  def group
+    "core"
+  end
+
   def pretty_timeout_type
   end
 
