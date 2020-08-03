@@ -170,15 +170,15 @@ class EjsonSecretProvisionerTest < Krane::TestCase
   end
 
   def dummy_ejson_secret(data = correct_ejson_key_secret_data)
-    dummy_secret_hash(data: data, name: 'ejson-keys', ejson: false)
+    dummy_secret_hash(data: data, name: 'ejson-keys')
   end
 
-  def dummy_secret_hash(name: SecureRandom.hex(4), data: {}, ejson: true)
+  def dummy_secret_hash(name: SecureRandom.hex(4), data: {})
     encoded_data = data.each_with_object({}) do |(key, value), encoded|
       encoded[key] = Base64.strict_encode64(value)
     end
 
-    secret = {
+    {
       'kind' => 'Secret',
       'apiVersion' => 'v1',
       'type' => 'Opaque',
@@ -189,10 +189,6 @@ class EjsonSecretProvisionerTest < Krane::TestCase
       },
       "data" => encoded_data,
     }
-    if ejson
-      secret['metadata']['annotations'] = { Krane::EjsonSecretProvisioner::EJSON_SECRET_ANNOTATION => true }
-    end
-    secret
   end
 
   def dummy_version
