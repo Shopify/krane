@@ -507,28 +507,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
-  def test_deployment_with_timeout_override_deprecated
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
-      deployment = fixtures['undying-deployment.yml']['Deployment'].first
-      deployment['spec']['progressDeadlineSeconds'] = 5
-      deployment["metadata"]["annotations"] = {
-        Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED => "10S",
-      }
-      container = deployment['spec']['template']['spec']['containers'].first
-      container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
-    end
-    assert_deploy_failure(result, :timed_out)
-    assert_logs_match_all(Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n") +
-      ["timeout override: 10s"])
-  end
-
   def test_deployment_with_timeout_override
     result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
       deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
-      deployment["metadata"]["annotations"] = {
-        Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => "10S",
-      }
+      deployment["metadata"]["annotations"] = { timeout_override_annotation_key => "10S" }
+
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
@@ -1779,5 +1763,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     nodes.count do |node|
       !node.metadata.labels.to_h.keys.include?(:"node-role.kubernetes.io/master")
     end
+  end
+
+  def timeout_override_annotation_key
+    Krane::Annotation.for(Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION)
   end
 end

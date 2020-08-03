@@ -133,11 +133,6 @@ module Krane
         r.validate_definition(@kubectl, selector: @selector)
       end
 
-      resources.select(&:has_warnings?).each do |resource|
-        record_warnings(logger: logger, warning: resource.validation_warning_msg,
-          filename: File.basename(resource.file_path))
-      end
-
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
         failed_resources.each do |r|
