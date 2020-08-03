@@ -364,7 +364,9 @@ class DeploymentTest < Krane::TestCase
       .returns([out, err, status])
   end
 
-  def build_deployment_template(status: { 'replicas' => 3 }, rollout: nil, strategy: 'rollingUpdate', max_unavailable: nil)
+  def build_deployment_template(status: { 'replicas' => 3 }, rollout: nil,
+    strategy: 'rollingUpdate', max_unavailable: nil)
+
     base_deployment_manifest = fixtures.find { |fixture| fixture["kind"] == "Deployment" }
     result = base_deployment_manifest.deep_merge("status" => status)
     result["metadata"]["annotations"][rollout_annotation_key] = rollout if rollout
