@@ -507,28 +507,12 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ])
   end
 
-  def test_deployment_with_timeout_override_deprecated
-    result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
-      deployment = fixtures['undying-deployment.yml']['Deployment'].first
-      deployment['spec']['progressDeadlineSeconds'] = 5
-      deployment["metadata"]["annotations"] = {
-        Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION_DEPRECATED => "10S",
-      }
-      container = deployment['spec']['template']['spec']['containers'].first
-      container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
-    end
-    assert_deploy_failure(result, :timed_out)
-    assert_logs_match_all(Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE.split("\n") +
-      ["timeout override: 10s"])
-  end
-
   def test_deployment_with_timeout_override
     result = deploy_fixtures("long-running", subset: ['undying-deployment.yml']) do |fixtures|
       deployment = fixtures['undying-deployment.yml']['Deployment'].first
       deployment['spec']['progressDeadlineSeconds'] = 5
-      deployment["metadata"]["annotations"] = {
-        Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION => "10S",
-      }
+      deployment["metadata"]["annotations"] = { timeout_override_annotation_key => "10S" }
+
       container = deployment['spec']['template']['spec']['containers'].first
       container['readinessProbe'] = { "exec" => { "command" => ['- ls'] } }
     end
@@ -594,7 +578,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
-    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
+    ejson_cloud.assert_secret_present('unused-secret')
 
     result = deploy_fixtures("ejson-cloud") do |fixtures|
       fixtures["secrets.ejson"]["kubernetes_secrets"].delete("unused-secret")
@@ -605,10 +589,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     # The removed secret was pruned
     ejson_cloud.refute_resource_exists('secret', 'unused-secret')
     # The remaining secrets exist
-    ejson_cloud.assert_secret_present('monitoring-token', ejson: true)
-    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', ejson: true)
+    ejson_cloud.assert_secret_present('monitoring-token')
+    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls')
     # The unmanaged secret was not pruned
-    ejson_cloud.assert_secret_present('ejson-keys', ejson: false)
+    ejson_cloud.assert_secret_present('ejson-keys')
   end
 
   def test_pruning_of_existing_managed_secrets_when_ejson_file_has_been_deleted
@@ -1177,7 +1161,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
     assert_deploy_success(deploy_fixtures("ejson-cloud"))
-    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
+    ejson_cloud.assert_secret_present('unused-secret')
 
     result = deploy_fixtures("ejson-cloud", prune: false) do |fixtures|
       fixtures["secrets.ejson"]["kubernetes_secrets"].delete("unused-secret")
@@ -1185,11 +1169,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(result)
 
     # The removed secret was not pruned
-    ejson_cloud.assert_secret_present('unused-secret', ejson: true)
+    ejson_cloud.assert_secret_present('unused-secret')
     # The remaining secrets also exist
-    ejson_cloud.assert_secret_present('monitoring-token', ejson: true)
-    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls', ejson: true)
-    ejson_cloud.assert_secret_present('ejson-keys', ejson: false)
+    ejson_cloud.assert_secret_present('monitoring-token')
+    ejson_cloud.assert_secret_present('catphotoscom', type: 'kubernetes.io/tls')
+    ejson_cloud.assert_secret_present('ejson-keys')
   end
 
   def test_deploy_task_fails_when_ejson_keys_prunable
@@ -1779,5 +1763,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     nodes.count do |node|
       !node.metadata.labels.to_h.keys.include?(:"node-role.kubernetes.io/master")
     end
+  end
+
+  def timeout_override_annotation_key
+    Krane::Annotation.for(Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION)
   end
 end

@@ -54,7 +54,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
 
     assert(crd.validation_failed?, "Missing path/value keys should fail validation")
     assert_equal(crd.validation_error_msg,
-      "Annotation #{Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "Annotation #{rollout_conditions_annotation_key} " \
       "on #{crd.name} is invalid: Missing required key(s) for success_condition: [:value], " \
       "Missing required key(s) for failure_condition: [:path]")
   end
@@ -67,7 +67,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
 
     assert(crd.validation_failed?, "success_conditions requires at least one entry")
     assert_equal(crd.validation_error_msg,
-      "Annotation #{Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "Annotation #{rollout_conditions_annotation_key} " \
       "on #{crd.name} is invalid: success_conditions must contain at least one entry")
   end
 
@@ -76,7 +76,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     crd.validate_definition(kubectl)
     assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
     assert(crd.validation_error_msg.match(
-      "Annotation #{Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION} " \
+      "Annotation #{rollout_conditions_annotation_key} " \
       "on #{crd.name} is invalid: Rollout conditions are not valid JSON:"
     ))
   end
@@ -149,9 +149,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     crd = build_crd(crd_spec.merge(
       "metadata" => {
         "name" => "unittests.stable.example.io",
-        "annotations" => {
-          Krane::CustomResourceDefinition::TIMEOUT_FOR_INSTANCE_ANNOTATION => "60S",
-        },
+        "annotations" => { timeout_for_instance_annotation_key => "60S" },
       }
     ))
     cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
@@ -165,7 +163,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
       "metadata" => {
         "name" => "unittests.stable.example.io",
         "annotations" => {
-          Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => "true",
+          rollout_conditions_annotation_key => "true",
         },
       },
     ))
@@ -220,7 +218,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
       "metadata" => {
         "name" => "unittests.stable.example.io",
         "annotations" => {
-          Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION => rollout_conditions,
+          rollout_conditions_annotation_key => rollout_conditions,
         },
       },
     )
@@ -229,5 +227,13 @@ class CustomResourceDefinitionTest < Krane::TestCase
   def build_crd(spec)
     Krane::CustomResourceDefinition.new(namespace: 'test', context: 'nope',
       definition: spec, logger: @logger)
+  end
+
+  def rollout_conditions_annotation_key
+    Krane::Annotation.for(Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
+  end
+
+  def timeout_for_instance_annotation_key
+    Krane::Annotation.for(Krane::CustomResourceDefinition::TIMEOUT_FOR_INSTANCE_ANNOTATION)
   end
 end

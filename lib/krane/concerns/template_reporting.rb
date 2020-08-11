@@ -15,12 +15,6 @@ module Krane
       logger.summary.add_paragraph(debug_msg)
     end
 
-    def record_warnings(logger:, warning:, filename:)
-      warn_msg = "Template warning: #{filename}\n"
-      warn_msg += "> Warning message:\n#{Krane::FormattedLogger.indent_four(warning)}"
-      logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-    end
-
     def add_para_from_list(logger:, action:, enum:)
       logger.summary.add_action(action)
       logger.summary.add_paragraph(enum.map { |e| "- #{e}" }.join("\n"))

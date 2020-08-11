@@ -12,10 +12,10 @@ module Krane
   end
 
   class EjsonSecretProvisioner
-    EJSON_SECRET_ANNOTATION = "kubernetes-deploy.shopify.io/ejson-secret"
     EJSON_SECRET_KEY = "kubernetes_secrets"
     EJSON_SECRETS_FILE = "secrets.ejson"
     EJSON_KEYS_SECRET = "ejson-keys"
+
     delegate :namespace, :context, :logger, to: :@task_config
 
     def initialize(task_config:, ejson_keys_secret:, ejson_file:, statsd_tags:, selector: nil)
@@ -106,7 +106,6 @@ module Krane
           "name" => secret_name,
           "labels" => labels,
           "namespace" => namespace,
-          "annotations" => { EJSON_SECRET_ANNOTATION => "true" },
         },
         "data" => encoded_data,
       }

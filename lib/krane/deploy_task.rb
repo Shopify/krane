@@ -4,6 +4,7 @@ require 'shellwords'
 require 'tempfile'
 require 'fileutils'
 
+require 'krane/annotation'
 require 'krane/common'
 require 'krane/concurrency'
 require 'krane/resource_cache'
@@ -280,11 +281,6 @@ module Krane
       validate_globals(resources)
       Krane::Concurrency.split_across_threads(resources) do |r|
         r.validate_definition(kubectl, selector: @selector)
-      end
-
-      resources.select(&:has_warnings?).each do |resource|
-        record_warnings(logger: @logger, warning: resource.validation_warning_msg,
-          filename: File.basename(resource.file_path))
       end
 
       failed_resources = resources.select(&:validation_failed?)

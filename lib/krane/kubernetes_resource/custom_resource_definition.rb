@@ -2,9 +2,8 @@
 module Krane
   class CustomResourceDefinition < KubernetesResource
     TIMEOUT = 2.minutes
-    ROLLOUT_CONDITIONS_ANNOTATION_SUFFIX = "instance-rollout-conditions"
-    ROLLOUT_CONDITIONS_ANNOTATION = "krane.shopify.io/#{ROLLOUT_CONDITIONS_ANNOTATION_SUFFIX}"
-    TIMEOUT_FOR_INSTANCE_ANNOTATION = "krane.shopify.io/instance-timeout"
+    ROLLOUT_CONDITIONS_ANNOTATION = "instance-rollout-conditions"
+    TIMEOUT_FOR_INSTANCE_ANNOTATION = "instance-timeout"
     GLOBAL = true
 
     def deploy_succeeded?
@@ -20,7 +19,7 @@ module Krane
     end
 
     def timeout_for_instance
-      timeout = krane_annotation_value("instance-timeout")
+      timeout = krane_annotation_value(TIMEOUT_FOR_INSTANCE_ANNOTATION)
       DurationParser.new(timeout).parse!.to_i
     rescue DurationParser::ParsingError
       nil
@@ -63,8 +62,8 @@ module Krane
     def rollout_conditions
       return @rollout_conditions if defined?(@rollout_conditions)
 
-      @rollout_conditions = if krane_annotation_value(ROLLOUT_CONDITIONS_ANNOTATION_SUFFIX)
-        RolloutConditions.from_annotation(krane_annotation_value(ROLLOUT_CONDITIONS_ANNOTATION_SUFFIX))
+      @rollout_conditions = if krane_annotation_value(ROLLOUT_CONDITIONS_ANNOTATION)
+        RolloutConditions.from_annotation(krane_annotation_value(ROLLOUT_CONDITIONS_ANNOTATION))
       end
     rescue RolloutConditionsError
       @rollout_conditions = nil
@@ -75,13 +74,13 @@ module Krane
 
       validate_rollout_conditions
     rescue RolloutConditionsError => e
-      @validation_errors << "Annotation #{krane_annotation_key(ROLLOUT_CONDITIONS_ANNOTATION_SUFFIX)} "\
+      @validation_errors << "Annotation #{Annotation.for(ROLLOUT_CONDITIONS_ANNOTATION)} " \
         "on #{name} is invalid: #{e}"
     end
 
     def validate_rollout_conditions
-      if krane_annotation_value(ROLLOUT_CONDITIONS_ANNOTATION_SUFFIX) && @rollout_conditions_validated.nil?
-        conditions = RolloutConditions.from_annotation(krane_annotation_value(ROLLOUT_CONDITIONS_ANNOTATION_SUFFIX))
+      if krane_annotation_value(ROLLOUT_CONDITIONS_ANNOTATION) && @rollout_conditions_validated.nil?
+        conditions = RolloutConditions.from_annotation(krane_annotation_value(ROLLOUT_CONDITIONS_ANNOTATION))
         conditions.validate!
       end
 

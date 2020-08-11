@@ -158,43 +158,18 @@ class DeploymentTest < Krane::TestCase
     refute(deploy.deploy_succeeded?)
   end
 
-  def test_deploy_succeeded_raises_with_invalid_rollout_annotation_deprecated
-    deploy = build_synced_deployment(
-      template: build_deployment_template(rollout: 'bad', use_deprecated: true),
-      replica_sets: [build_rs_template]
-    )
-    msg = "'#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: bad' is "\
-      "invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
-    assert_raises_message(Krane::FatalDeploymentError, msg) do
-      deploy.deploy_succeeded?
-    end
-  end
-
   def test_deploy_succeeded_raises_with_invalid_rollout_annotation
     deploy = build_synced_deployment(
       template: build_deployment_template(rollout: 'bad'),
       replica_sets: [build_rs_template]
     )
-    msg = "'#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: bad' is "\
-      "invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
+
+    msg = "'#{rollout_annotation_key}: bad' is invalid. " \
+      "Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
+
     assert_raises_message(Krane::FatalDeploymentError, msg) do
       deploy.deploy_succeeded?
     end
-  end
-
-  def test_validation_fails_with_invalid_rollout_annotation_deprecated
-    deploy = build_synced_deployment(
-      template: build_deployment_template(rollout: 'bad', use_deprecated: true),
-      replica_sets: []
-    )
-    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
-    refute(deploy.validate_definition(kubectl))
-
-    expected = <<~STRING.strip
-      super failed
-      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: bad' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
-    STRING
-    assert_equal(expected, deploy.validation_error_msg)
   end
 
   def test_validation_fails_with_invalid_rollout_annotation
@@ -204,7 +179,7 @@ class DeploymentTest < Krane::TestCase
 
     expected = <<~STRING.strip
       super failed
-      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: bad' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+      '#{rollout_annotation_key}: bad' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -216,21 +191,6 @@ class DeploymentTest < Krane::TestCase
     assert_empty(deploy.validation_error_msg)
   end
 
-  def test_validation_with_number_rollout_annotation_deprecated
-    deploy = build_synced_deployment(
-      template: build_deployment_template(rollout: '10', use_deprecated: true),
-      replica_sets: []
-    )
-    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
-
-    refute(deploy.validate_definition(kubectl))
-    expected = <<~STRING.strip
-      super failed
-      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: 10' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
-    STRING
-    assert_equal(expected, deploy.validation_error_msg)
-  end
-
   def test_validation_with_number_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10'), replica_sets: [])
     stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
@@ -238,22 +198,7 @@ class DeploymentTest < Krane::TestCase
     refute(deploy.validate_definition(kubectl))
     expected = <<~STRING.strip
       super failed
-      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: 10' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
-    STRING
-    assert_equal(expected, deploy.validation_error_msg)
-  end
-
-  def test_validation_fails_with_invalid_mix_of_annotation_deprecated
-    deploy = build_synced_deployment(
-      template: build_deployment_template(rollout: 'maxUnavailable', strategy: 'Recreate', use_deprecated: true),
-      replica_sets: [build_rs_template]
-    )
-    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
-    refute(deploy.validate_definition(kubectl))
-
-    expected = <<~STRING.strip
-      super failed
-      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED}: maxUnavailable' is incompatible with strategy 'Recreate'
+      '#{rollout_annotation_key}: 10' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -268,7 +213,7 @@ class DeploymentTest < Krane::TestCase
 
     expected = <<~STRING.strip
       super failed
-      '#{Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION}: maxUnavailable' is incompatible with strategy 'Recreate'
+      '#{rollout_annotation_key}: maxUnavailable' is incompatible with strategy 'Recreate'
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -370,7 +315,7 @@ class DeploymentTest < Krane::TestCase
           }],
         }
       )
-      template["metadata"]["annotations"][Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION] = "15S"
+      template["metadata"]["annotations"][timeout_override_annotation_key] = "15S"
       template["spec"]["progressDeadlineSeconds"] = "10"
       deploy = build_synced_deployment(
         template: template,
@@ -420,17 +365,11 @@ class DeploymentTest < Krane::TestCase
   end
 
   def build_deployment_template(status: { 'replicas' => 3 }, rollout: nil,
-    strategy: 'rollingUpdate', max_unavailable: nil, use_deprecated: false)
-
-    required_rollout_annotation = if use_deprecated
-      Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION_DEPRECATED
-    else
-      Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION
-    end
+    strategy: 'rollingUpdate', max_unavailable: nil)
 
     base_deployment_manifest = fixtures.find { |fixture| fixture["kind"] == "Deployment" }
     result = base_deployment_manifest.deep_merge("status" => status)
-    result["metadata"]["annotations"][required_rollout_annotation] = rollout if rollout
+    result["metadata"]["annotations"][rollout_annotation_key] = rollout if rollout
 
     if (spec_override = status["replicas"].presence) # ignores possibility of surge; need a spec_replicas arg for that
       result["spec"]["replicas"] = spec_override
@@ -481,5 +420,13 @@ class DeploymentTest < Krane::TestCase
 
   def fixtures
     @fixtures ||= YAML.load_stream(File.read(File.join(fixture_path('for_unit_tests'), 'deployment_test.yml')))
+  end
+
+  def timeout_override_annotation_key
+    Krane::Annotation.for(Krane::KubernetesResource::TIMEOUT_OVERRIDE_ANNOTATION)
+  end
+
+  def rollout_annotation_key
+    Krane::Annotation.for(Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION)
   end
 end

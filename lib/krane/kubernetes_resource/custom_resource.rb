@@ -70,7 +70,7 @@ module Krane
       @validation_errors << "The CRD that specifies this resource is using invalid rollout conditions. " \
       "Krane will not be able to continue until those rollout conditions are fixed.\n" \
       "Rollout conditions can be found on the CRD that defines this resource (#{@crd.name}), " \
-      "under the annotation #{CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION}.\n" \
+      "under the annotation #{Annotation.for(CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)}.\n" \
       "Validation failed with: #{e}"
     end
 
