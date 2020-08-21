@@ -43,6 +43,103 @@ class RendererTest < Krane::TestCase
     assert_equal(expected, actual)
   end
 
+  def test_renders_env_with_e_notation_incorrectly_when_psych_patch_deactivated
+    expected = <<~EOY
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: web
+        annotations:
+          shipit.shopify.io/restart: 'true'
+        labels:
+          name: web
+          app: hello-cloud
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            name: web
+            app: hello-cloud
+        progressDeadlineSeconds: 60
+        template:
+          metadata:
+            labels:
+              name: web
+              app: hello-cloud
+          spec:
+            containers:
+            - name: app
+              image: busybox
+              imagePullPolicy: IfNotPresent
+              command:
+              - tail
+              - "-f"
+              - "/dev/null"
+              ports:
+              - containerPort: 80
+                name: http
+              env:
+              - name: FOO
+                value: 123e4
+    EOY
+    actual = YAML.load_stream(render("pod_with_e_notation_env.yml")).map do |t|
+      YAML.dump(t)
+    end.join
+    assert_equal(expected, actual)
+  end
+
+  def test_renders_env_with_e_notation_correctly_when_psych_patch_activated
+    expected = <<~EOY
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: web
+        annotations:
+          shipit.shopify.io/restart: 'true'
+        labels:
+          name: web
+          app: hello-cloud
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            name: web
+            app: hello-cloud
+        progressDeadlineSeconds: 60
+        template:
+          metadata:
+            labels:
+              name: web
+              app: hello-cloud
+          spec:
+            containers:
+            - name: app
+              image: busybox
+              imagePullPolicy: IfNotPresent
+              command:
+              - tail
+              - "-f"
+              - "/dev/null"
+              ports:
+              - containerPort: 80
+                name: http
+              env:
+              - name: FOO
+                value: "123e4"
+    EOY
+    PsychK8sPatch.activate
+    begin
+      actual = YAML.load_stream(render("pod_with_e_notation_env.yml")).map do |t|
+        YAML.dump(t)
+      end.join
+    ensure
+      PsychK8sPatch.deactivate
+    end
+    assert_equal(expected, actual)
+  end
+
   def test_invalid_partial_raises
     err = assert_raises(Krane::InvalidTemplateError) do
       render('broken-partial-inclusion.yaml.erb')

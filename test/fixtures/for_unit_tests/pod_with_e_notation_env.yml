@@ -1,0 +1,34 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  annotations:
+    shipit.shopify.io/restart: "true"
+  labels:
+    name: web
+    app: hello-cloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: web
+      app: hello-cloud
+  progressDeadlineSeconds: 60
+  template:
+    metadata:
+      labels:
+        name: web
+        app: hello-cloud
+    spec:
+      containers:
+      - name: app
+        image: busybox
+        imagePullPolicy: IfNotPresent
+        command: ["tail", "-f", "/dev/null"]
+        ports:
+        - containerPort: 80
+          name: http
+        env:
+        - name: FOO
+          value: "123e4"
