@@ -1,5 +1,10 @@
 ## next
 
+## 1.1.5
+
+*Bug Fixes*
+- YAML string scalars with scientific/e-notation numeric format not properly quoted. [#740](https://github.com/Shopify/krane/pull/740)
+
 ## 1.1.4
 
 *Bug Fixes*
