@@ -3,3 +3,8 @@ inherit_from:
 
 AllCops:
   TargetRubyVersion: 2.4
+
+Lint/DuplicateMethods:
+  Enabled: true
+  Exclude:
+    - lib/krane/psych_k8s_patch.rb

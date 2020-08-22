@@ -39,14 +39,12 @@ module PsychK8sPatch
   # Deactivate will restore the original methods from backup aliases.
   def self.deactivate
     class << Psych
-      raise "Patch was not activated!" if !@activated
+      raise "Patch was not activated!" unless @activated
       @activated = false
       alias_method :dump, :__orig__dump
       alias_method :dump_stream, :__orig__dump_stream
     end
   end
-
-  private
 
   # fix_node applies DOUBLE_QUOTED style to string scalars that look like scientific/e-notation numbers.
   # This is required by YAML 1.2. Failure to do so results in Go-based tools (ie: K8s) to interpret as number!

@@ -17,7 +17,7 @@ module Krane
 
       package_name "Krane"
 
-      # Hack: CLI activates patch of Psych to ensure serialized YAML is K8s compatible.
+      # HACK: CLI activates patch of Psych to ensure serialized YAML is K8s compatible.
       PsychK8sPatch.activate
 
       def self.expand_options(task_options)
