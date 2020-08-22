@@ -9,7 +9,7 @@ class PsychK8sPatchTest < Krane::TestCase
     'a: "-123e4"',
     'a: "123e+4"',
     'a: "123e-4"',
-    'a: "123.0e-4"'
+    'a: "123.0e-4"',
   ]
 
   EXPECTED_DEACTIVATED = [
@@ -19,7 +19,7 @@ class PsychK8sPatchTest < Krane::TestCase
     %(---\n- a: "-123e4"\n), # Psych sees this as non-numeric; deviates from YAML 1.2 spec; quoted due to '-' :|
     %(---\n- a: 123e+4\n), # Psych sees this as non-numeric; deviates from YAML 1.2 spec :(
     %(---\n- a: 123e-4\n), # Psych sees this as non-numeric; deviates from YAML 1.2 spec :(
-    %(---\n- a: '123.0e-4'\n) # Psych sees this as numeric; encapsulated with single quotes :)
+    %(---\n- a: '123.0e-4'\n), # Psych sees this as numeric; encapsulated with single quotes :)
   ]
 
   EXPECTED_ACTIVATED = [
@@ -29,7 +29,7 @@ class PsychK8sPatchTest < Krane::TestCase
     %(---\n- a: "-123e4"\n),
     %(---\n- a: "123e+4"\n),
     %(---\n- a: "123e-4"\n),
-    %(---\n- a: '123.0e-4'\n)
+    %(---\n- a: '123.0e-4'\n),
   ]
 
   def test_dump
