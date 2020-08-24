@@ -9,6 +9,7 @@ require 'krane/rollout_conditions'
 
 module Krane
   class KubernetesResource
+    using PsychK8sPatch
     attr_reader :name, :namespace, :context
     attr_writer :type, :deploy_started_at, :global
 
