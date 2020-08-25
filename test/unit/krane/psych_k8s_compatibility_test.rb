@@ -2,15 +2,15 @@
 require 'test_helper'
 
 class PsychK8sCompatibilityTest < Krane::TestCase
-  TEST_CASES = [
+  TEST_CASES = {
     'a: "123e4"' => %(---\n- a: "123e4"\n),
     'a: "123E4"' => %(---\n- a: "123E4"\n),
     'a: "+123e4"' => %(---\n- a: "+123e4"\n),
     'a: "-123e4"' => %(---\n- a: "-123e4"\n),
     'a: "123e+4"' => %(---\n- a: "123e+4"\n),
     'a: "123e-4"' => %(---\n- a: "123e-4"\n),
-    'a: "123.0e-4"' => %(---\n- a: '123.0e-4'\n),
-  ]
+    'a: "123.0e-4"' => %(---\n- a: "123.0e-4"\n),
+  }
 
   def test_dump_k8s_compatible
     TEST_CASES.each do |input, expected|
