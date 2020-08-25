@@ -423,7 +423,7 @@ class SerialDeployTest < Krane::IntegrationTest
     crd["metadata"]["annotations"].merge!(rollout_conditions_annotation_key => "blah")
     apply_scope_to_resources(fixtures, labels: "app=krane,test=#{@namespace}")
     Tempfile.open([@namespace, ".yml"]) do |f|
-      f.write(YAML.dump(crd))
+      f.write(YAML.dump_k8s_compatible(crd))
       f.fsync
       @deployed_global_fixture_paths << f.path
       out, err, st = build_kubectl.run("create", "-f", f.path, log_failure: true, use_namespace: false)

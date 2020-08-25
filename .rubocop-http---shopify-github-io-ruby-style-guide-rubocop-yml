@@ -675,7 +675,7 @@ Style/LineEndConcatenation:
 Style/MethodCallWithoutArgsParentheses:
   Enabled: true
 
-Style/MethodMissingSuper:
+Lint/MissingSuper:
   Enabled: true
 
 Style/MissingRespondToMissing:
@@ -965,7 +965,7 @@ Lint/UselessAccessModifier:
 Lint/UselessAssignment:
   Enabled: true
 
-Lint/UselessComparison:
+Lint/BinaryOperatorWithIdenticalOperands:
   Enabled: true
 
 Lint/UselessElseWithoutRescue:

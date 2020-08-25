@@ -565,7 +565,7 @@ module Krane
 
     def create_definition_tempfile
       file = Tempfile.new(["#{type}-#{name}", ".yml"])
-      file.write(YAML.dump(@definition))
+      file.write(YAML.dump_k8s_compatible(@definition))
       file
     ensure
       file&.close

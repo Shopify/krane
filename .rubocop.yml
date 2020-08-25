@@ -7,4 +7,4 @@ AllCops:
 Lint/DuplicateMethods:
   Enabled: true
   Exclude:
-    - lib/krane/psych_k8s_patch.rb
+    - lib/krane/psych_k8s_compatibility.rb
