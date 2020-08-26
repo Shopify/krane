@@ -1,8 +1,12 @@
 ## next
 
-## 1.1.5
+## 2.0.0
+
+*Breaking Changes*
+- Remove kubernetes deploy annotation prefix [#738](https://github.com/Shopify/krane/pull/738)
 
 *Bug Fixes*
+- Always set a deployment_id, even if the current_sha isn't set [#730](https://github.com/Shopify/krane/pull/730)
 - YAML string scalars with scientific/e-notation numeric format not properly quoted. [#740](https://github.com/Shopify/krane/pull/740)
 
 ## 1.1.4
