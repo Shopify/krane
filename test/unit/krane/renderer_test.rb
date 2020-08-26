@@ -38,53 +38,7 @@ class RendererTest < Krane::TestCase
             result: 24
       EOY
     actual = YAML.load_stream(render("partials_test.yaml.erb")).map do |t|
-      YAML.dump_k8s_compatible(t)
-    end.join
-    assert_equal(expected, actual)
-  end
-
-  def test_renders_env_with_e_notation_correctly
-    expected = <<~EOY
-      ---
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata:
-        name: web
-        annotations:
-          shipit.shopify.io/restart: 'true'
-        labels:
-          name: web
-          app: hello-cloud
-      spec:
-        replicas: 1
-        selector:
-          matchLabels:
-            name: web
-            app: hello-cloud
-        progressDeadlineSeconds: 60
-        template:
-          metadata:
-            labels:
-              name: web
-              app: hello-cloud
-          spec:
-            containers:
-            - name: app
-              image: busybox
-              imagePullPolicy: IfNotPresent
-              command:
-              - tail
-              - "-f"
-              - "/dev/null"
-              ports:
-              - containerPort: 80
-                name: http
-              env:
-              - name: FOO
-                value: "123e4"
-    EOY
-    actual = YAML.load_stream(render("pod_with_e_notation_env.yml")).map do |t|
-      YAML.dump_k8s_compatible(t)
+      YAML.dump(t)
     end.join
     assert_equal(expected, actual)
   end
@@ -117,9 +71,9 @@ class RendererTest < Krane::TestCase
         d: d4
         foo: bar
     EOY
-    actual = YAML.dump_k8s_compatible(YAML.safe_load(render("nest-as-rhs.yaml.erb")))
+    actual = YAML.dump(YAML.safe_load(render("nest-as-rhs.yaml.erb")))
     assert_equal(expected, actual)
-    actual = YAML.dump_k8s_compatible(YAML.safe_load(render("nest-indented.yaml.erb")))
+    actual = YAML.dump(YAML.safe_load(render("nest-indented.yaml.erb")))
     assert_equal(expected, actual)
   end
 
@@ -135,7 +89,7 @@ class RendererTest < Krane::TestCase
         - name: migrate
           image: gcr.io/foobar/api
     EOY
-    actual = YAML.dump_k8s_compatible(YAML.safe_load(render("deployment_id.yml.erb")))
+    actual = YAML.dump(YAML.safe_load(render("deployment_id.yml.erb")))
     assert_equal(expected, actual)
   end
 
@@ -157,7 +111,7 @@ class RendererTest < Krane::TestCase
         - name: migrate
           image: gcr.io/foobar/api
     EOY
-    actual = YAML.dump_k8s_compatible(YAML.safe_load(render("deployment_id.yml.erb")))
+    actual = YAML.dump(YAML.safe_load(render("deployment_id.yml.erb")))
     assert_equal(expected, actual)
   end
 

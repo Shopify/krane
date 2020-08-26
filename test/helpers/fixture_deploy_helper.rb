@@ -161,11 +161,7 @@ module FixtureDeployHelper
 
   def write_fixtures_to_dir(fixtures, target_dir)
     fixtures.each do |filename, file_data|
-      data_str = if filename == EJSON_FILENAME
-        file_data.to_json
-      else
-        YAML.dump_stream_k8s_compatible(*file_data.values.flatten)
-      end
+      data_str = filename == EJSON_FILENAME ? file_data.to_json : YAML.dump_stream(*file_data.values.flatten)
       File.write(File.join(target_dir, filename), data_str)
     end
   end

@@ -166,7 +166,7 @@ class ServiceTest < Krane::TestCase
     stub_kind_get("StatefulSet", items: [])
     svc.sync(build_resource_cache)
 
-    assert_includes(YAML.dump_k8s_compatible(svc), 'type: LoadBalancer')
+    assert_includes(svc.to_yaml, 'type: LoadBalancer')
     assert(svc.exists?)
     refute(svc.deploy_succeeded?)
     assert_equal("LoadBalancer IP address is not provisioned yet", svc.status)

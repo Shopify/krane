@@ -1746,6 +1746,26 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     refute_logs_match("cGFzc3dvcmQ=")
   end
 
+  def test_deploy_k8s_compatibility
+    # Note: Without PsychK8sCompatibility used in KubernetesResource, this would result in validation failure.
+    assert_deploy_success(deploy_fixtures("k8s-compatibility", render_erb: true))
+
+    assert_logs_match_all([
+      "All required parameters and files are present",
+      /Deploying all resources/,
+      "Deploying Deployment/web (progress deadline: 60s)", # annotation timeout override
+      "Result: SUCCESS",
+      "Successfully deployed 1 resource",
+    ], in_order: true)
+
+    assert_logs_match_all([
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+    ])
+
+    # Verify that success section isn't duplicated for predeployed resources
+    assert_logs_match("Successful resources", 1)
+  end
+
   private
 
   def build_deploy_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, global_timeout: nil)

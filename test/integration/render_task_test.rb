@@ -337,6 +337,57 @@ class RenderTaskTest < Krane::TestCase
     ], in_order: true)
   end
 
+  def test_render_k8s_compatibility
+    render = build_render_task(
+      File.join(fixture_path('k8s-compatibility'), 'pod_with_e_notation_env.yml')
+    )
+
+    assert_render_success(render.run(stream: mock_output_stream))
+
+    stdout_assertion do |output|
+      assert_equal output, <<~RENDERED
+        ---
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: web
+          annotations:
+            shipit.shopify.io/restart: "true"
+          labels:
+            name: web
+            app: hello-cloud
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: web
+              app: hello-cloud
+          progressDeadlineSeconds: 60
+          template:
+            metadata:
+              labels:
+                name: web
+                app: hello-cloud
+            spec:
+              containers:
+              - name: app
+                image: busybox
+                imagePullPolicy: IfNotPresent
+                command: ["tail", "-f", "/dev/null"]
+                ports:
+                - containerPort: 80
+                  name: http
+                env:
+                - name: FOO1
+                  value: "1e3"
+                - name: FOO2
+                  value: "1e+3"
+                - name: FOO2
+                  value: "1e-3"
+      RENDERED
+    end
+  end
+
   private
 
   def build_render_task(filenames, bindings = {})

@@ -3,12 +3,3 @@ inherit_from:
 
 AllCops:
   TargetRubyVersion: 2.4
-
-Lint/DuplicateMethods:
-  Enabled: true
-  Exclude:
-    - lib/krane/psych_k8s_compatibility.rb
-
-Naming/MethodName:
-  Exclude:
-    - lib/krane/psych_k8s_compatibility.rb

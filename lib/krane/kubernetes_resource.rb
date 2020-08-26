@@ -6,9 +6,12 @@ require 'krane/remote_logs'
 require 'krane/duration_parser'
 require 'krane/label_selector'
 require 'krane/rollout_conditions'
+require 'krane/psych_k8s_compatibility'
 
 module Krane
   class KubernetesResource
+    using PsychK8sCompatibility
+
     attr_reader :name, :namespace, :context
     attr_writer :type, :deploy_started_at, :global
 
@@ -565,7 +568,7 @@ module Krane
 
     def create_definition_tempfile
       file = Tempfile.new(["#{type}-#{name}", ".yml"])
-      file.write(YAML.dump_k8s_compatible(@definition))
+      file.write(YAML.dump(@definition))
       file
     ensure
       file&.close

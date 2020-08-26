@@ -18,7 +18,7 @@ module Krane
 
       @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
       unless @containers.present?
-        logger.summary.add_paragraph("Rendered template content:\n#{YAML.dump_k8s_compatible(definition)}")
+        logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
         raise FatalDeploymentError, "Template is missing required field spec.containers"
       end
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
