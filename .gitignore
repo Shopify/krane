@@ -7,7 +7,7 @@
 /pkg/
 /spec/reports/
 /tmp/
-/bin/kind
+/bin
 
 .byebug_history
 .ruby-version

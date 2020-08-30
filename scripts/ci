@@ -17,4 +17,4 @@ docker run --rm \
     -e PARALLELISM=$PARALLELISM \
     -w /usr/src/app \
     ruby:"${RUBY_VERSION:-2.5}" \
-    bin/test
+    scripts/test
