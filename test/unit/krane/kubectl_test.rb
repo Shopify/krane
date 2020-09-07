@@ -102,10 +102,22 @@ class KubectlTest < Krane::TestCase
     assert_logs_match("[WARN]", 2)
   end
 
+  def test_explicit_kubeconfig_path_is_respected
+    stub_open3(
+      %w(kubectl config view) +
+      %W(--namespace=testn --context=testc --request-timeout=#{timeout}),
+      resp: '',
+      env: { 'KUBECONFIG' => '/some/path' },
+    )
+
+    _, _, st = build_kubectl(kubeconfig: '/some/path').run('config', 'view')
+    assert(st.success?)
+  end
+
   def test_run_with_multiple_attempts_retries_and_emits_failure_metrics
     command = %w(kubectl get pods) +
       %W(--namespace=testn --context=testc --request-timeout=#{timeout})
-    Open3.expects(:capture3).with(*command).times(5).returns(["", "oops", stub(success?: false)])
+    Open3.expects(:capture3).with(instance_of(Hash), *command).times(5).returns(["", "oops", stub(success?: false)])
     kubectl = build_kubectl
     kubectl.expects(:retry_delay).returns(0).times(4)
 
@@ -321,7 +333,8 @@ class KubectlTest < Krane::TestCase
     timeout_error = "context deadline exceeded (Client.Timeout exceeded while awaiting headers)"
     not_found_err = "Error from server (NotFound): pods 'foo' not found"
     Open3.expects(:capture3)
-      .with("kubectl", "get", "pod", "foo", "--namespace=testn", "--context=testc", "--request-timeout=#{timeout}")
+      .with(instance_of(Hash),
+        "kubectl", "get", "pod", "foo", "--namespace=testn", "--context=testc", "--request-timeout=#{timeout}")
       .times(3)
       .returns(["", timeout_error, stub(success?: false)])
       .returns(["", timeout_error, stub(success?: false)])
@@ -393,12 +406,12 @@ class KubectlTest < Krane::TestCase
     STRING
   end
 
-  def build_kubectl(log_failure_by_default: true)
-    task_config = Krane::TaskConfig.new('testc', 'testn', logger)
+  def build_kubectl(log_failure_by_default: true, kubeconfig: nil)
+    task_config = Krane::TaskConfig.new('testc', 'testn', logger, kubeconfig)
     Krane::Kubectl.new(task_config: task_config, log_failure_by_default: log_failure_by_default)
   end
 
-  def stub_open3(command, resp:, err: "", success: true)
-    Open3.expects(:capture3).with(*command).returns([resp, err, stub(success?: success)])
+  def stub_open3(command, resp:, err: "", success: true, env: instance_of(Hash))
+    Open3.expects(:capture3).with(env, *command).returns([resp, err, stub(success?: success)])
   end
 end
