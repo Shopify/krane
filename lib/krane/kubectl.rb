@@ -14,7 +14,7 @@ module Krane
 
     class ResourceNotFoundError < StandardError; end
 
-    delegate :namespace, :context, :logger, to: :@task_config
+    delegate :namespace, :context, :logger, :kubeconfig, to: :@task_config
 
     def initialize(task_config:, log_failure_by_default:, default_timeout: DEFAULT_TIMEOUT,
       output_is_sensitive_default: false)
@@ -34,7 +34,8 @@ module Krane
 
       (1..attempts).to_a.each do |current_attempt|
         logger.debug("Running command (attempt #{current_attempt}): #{cmd.join(' ')}")
-        out, err, st = Open3.capture3(*cmd)
+        env = { 'KUBECONFIG' => kubeconfig }
+        out, err, st = Open3.capture3(env, *cmd)
 
         # https://github.com/Shopify/krane/issues/395
         unless out.valid_encoding?
