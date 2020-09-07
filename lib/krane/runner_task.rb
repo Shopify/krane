@@ -16,7 +16,7 @@ module Krane
   class RunnerTask
     class TaskTemplateMissingError < TaskConfigurationError; end
 
-    attr_reader :pod_name
+    attr_reader :pod_name, :task_config
 
     # Initializes the runner task
     #
@@ -24,9 +24,9 @@ module Krane
     # @param context [String] Kubernetes context / cluster (*required*)
     # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param global_timeout [Integer] Timeout in seconds
-    def initialize(namespace:, context:, logger: nil, global_timeout: nil)
+    def initialize(namespace:, context:, logger: nil, global_timeout: nil, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
-      @task_config = Krane::TaskConfig.new(context, namespace, @logger)
+      @task_config = Krane::TaskConfig.new(context, namespace, @logger, kubeconfig)
       @namespace = namespace
       @context = context
       @global_timeout = global_timeout
@@ -201,7 +201,7 @@ module Krane
     end
 
     def kubeclient_builder
-      @kubeclient_builder ||= KubeclientBuilder.new
+      @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: @task_config.kubeconfig)
     end
 
     def statsd_tags(status)

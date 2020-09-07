@@ -22,15 +22,17 @@ module Krane
     HTTP_OK_RANGE = 200..299
     ANNOTATION = "shipit.shopify.io/restart"
 
+    attr_reader :task_config
+
     # Initializes the restart task
     #
     # @param context [String] Kubernetes context / cluster (*required*)
     # @param namespace [String] Kubernetes namespace (*required*)
     # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
     # @param global_timeout [Integer] Timeout in seconds
-    def initialize(context:, namespace:, logger: nil, global_timeout: nil)
+    def initialize(context:, namespace:, logger: nil, global_timeout: nil, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
-      @task_config = Krane::TaskConfig.new(context, namespace, @logger)
+      @task_config = Krane::TaskConfig.new(context, namespace, @logger, kubeconfig)
       @context = context
       @namespace = namespace
       @global_timeout = global_timeout
@@ -222,7 +224,7 @@ module Krane
     end
 
     def kubeclient_builder
-      @kubeclient_builder ||= KubeclientBuilder.new
+      @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: @task_config.kubeconfig)
     end
   end
 end

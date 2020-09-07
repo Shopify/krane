@@ -85,6 +85,8 @@ module Krane
       kubectl.server_version
     end
 
+    attr_reader :task_config
+
     # Initializes the deploy task
     #
     # @param namespace [String] Kubernetes namespace (*required*)
