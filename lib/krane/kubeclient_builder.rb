@@ -10,6 +10,8 @@ module Krane
       end
     end
 
+    attr_reader :kubeconfig_files
+
     def initialize(kubeconfig: nil)
       files = kubeconfig || ENV["KUBECONFIG"] || "#{Dir.home}/.kube/config"
       # Split the list by colon for Linux and Mac, and semicolon for Windows.
