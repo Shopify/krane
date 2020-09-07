@@ -4,7 +4,7 @@ up:
   - ruby: 2.5.7 # Matches gemspec
   - bundler
   - homebrew:
-    - Caskroom/cask/minikube
+    - homebrew/cask/minikube
   - custom:
       name: Install the minikube fork of driver-hyperkit
       met?: command -v docker-machine-driver-hyperkit
