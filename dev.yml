@@ -5,6 +5,7 @@ up:
   - bundler
   - homebrew:
     - homebrew/cask/minikube
+    - hyperkit
   - custom:
       name: Install the minikube fork of driver-hyperkit
       met?: command -v docker-machine-driver-hyperkit
