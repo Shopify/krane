@@ -19,5 +19,9 @@ module Krane
         cluster_resource_discoverer.fetch_resources(namespaced: false).map { |g| g["kind"] }
       end
     end
+
+    def kubeclient_builder
+      @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: kubeconfig)
+    end
   end
 end
