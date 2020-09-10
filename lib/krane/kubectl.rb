@@ -79,7 +79,7 @@ module Krane
     def version_info
       @version_info ||=
         begin
-          response, _, status = run("version", use_namespace: false, log_failure: true)
+          response, _, status = run("version", use_namespace: false, log_failure: true, attempts: 2)
           raise KubectlError, "Could not retrieve kubectl version info" unless status.success?
           extract_version_info_from_kubectl_response(response)
         end
