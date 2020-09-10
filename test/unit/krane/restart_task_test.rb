@@ -10,6 +10,5 @@ class RestartTaskTest < Krane::TestCase
       kubeconfig: '/some/path.yml',
     )
     assert_equal('/some/path.yml', task.task_config.kubeconfig)
-    assert_equal(['/some/path.yml'], task.send(:kubeclient_builder).kubeconfig_files)
   end
 end
