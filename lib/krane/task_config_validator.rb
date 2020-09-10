@@ -71,7 +71,7 @@ module Krane
       end
 
       _, err, st = @kubectl.run("get", "namespace", "-o", "name", namespace,
-        use_namespace: false, log_failure: false, attempts: 2)
+        use_namespace: false, log_failure: false, attempts: 3)
 
       unless st.success?
         @errors << if err.match("Error from server [(]NotFound[)]: namespace")
