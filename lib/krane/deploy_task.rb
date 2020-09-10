@@ -87,6 +87,8 @@ module Krane
 
     attr_reader :task_config
 
+    delegate :kubeclient_builder, to: :@task_config
+
     # Initializes the deploy task
     #
     # @param namespace [String] Kubernetes namespace (*required*)
@@ -190,10 +192,6 @@ module Krane
       @resource_deployer ||= Krane::ResourceDeployer.new(task_config: @task_config,
         prune_whitelist: prune_whitelist, global_timeout: @global_timeout,
         selector: @selector, statsd_tags: statsd_tags, current_sha: @current_sha)
-    end
-
-    def kubeclient_builder
-      @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: @task_config.kubeconfig)
     end
 
     def cluster_resource_discoverer

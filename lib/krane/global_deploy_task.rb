@@ -25,7 +25,7 @@ module Krane
   class GlobalDeployTask
     extend Krane::StatsD::MeasureMethods
     include TemplateReporting
-    delegate :context, :logger, :global_kinds, to: :@task_config
+    delegate :context, :logger, :global_kinds, :kubeclient_builder, to: :@task_config
     attr_reader :task_config
 
     # Initializes the deploy task
@@ -188,10 +188,6 @@ module Krane
 
     def kubectl
       @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
-    end
-
-    def kubeclient_builder
-      @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: @task_config.kubeconfig)
     end
 
     def prune_whitelist
