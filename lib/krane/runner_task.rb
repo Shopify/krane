@@ -18,6 +18,8 @@ module Krane
 
     attr_reader :pod_name, :task_config
 
+    delegate :kubeclient_builder, to: :@task_config
+
     # Initializes the runner task
     #
     # @param namespace [String] Kubernetes namespace (*required*)
@@ -198,10 +200,6 @@ module Krane
 
     def kubeclient
       @kubeclient ||= kubeclient_builder.build_v1_kubeclient(@context)
-    end
-
-    def kubeclient_builder
-      @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: @task_config.kubeconfig)
     end
 
     def statsd_tags(status)

@@ -24,6 +24,8 @@ module Krane
 
     attr_reader :task_config
 
+    delegate :kubeclient_builder, to: :@task_config
+
     # Initializes the restart task
     #
     # @param context [String] Kubernetes context / cluster (*required*)
@@ -221,10 +223,6 @@ module Krane
 
     def v1beta1_kubeclient
       @v1beta1_kubeclient ||= kubeclient_builder.build_v1beta1_kubeclient(@context)
-    end
-
-    def kubeclient_builder
-      @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: @task_config.kubeconfig)
     end
   end
 end
