@@ -143,7 +143,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
       })
   end
 
-  def stub_server_dry_run_version_request(attempts: 3)
+  def stub_server_dry_run_version_request(attempts: 1)
     stub_kubectl_response("version",
       resp: dummy_version, json: false,
         kwargs: {
