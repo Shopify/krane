@@ -152,6 +152,7 @@ module Krane
 
         output_is_sensitive = resources.any?(&:sensitive_template_content?)
         global_mode = resources.all?(&:global?)
+        
         out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
           attempts: 2, use_namespace: !global_mode)
 
