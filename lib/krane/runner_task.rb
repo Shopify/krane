@@ -18,7 +18,7 @@ module Krane
 
     attr_reader :pod_name, :task_config
 
-    delegate :kubeclient_builder, to: :@task_config
+    delegate :kubeclient_builder, to: :task_config
 
     # Initializes the runner task
     #

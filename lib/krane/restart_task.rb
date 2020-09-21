@@ -24,7 +24,7 @@ module Krane
 
     attr_reader :task_config
 
-    delegate :kubeclient_builder, to: :@task_config
+    delegate :kubeclient_builder, to: :task_config
 
     # Initializes the restart task
     #
