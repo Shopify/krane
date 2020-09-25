@@ -19,7 +19,7 @@ MockResource = Struct.new(:id, :hits_to_complete, :status) do
   def type
     "MockResource"
   end
-  alias_method :kubectl_resource_type, :type
+  alias_method(:kubectl_resource_type, :type)
 
   def group
     "core"

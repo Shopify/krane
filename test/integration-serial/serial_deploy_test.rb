@@ -85,7 +85,7 @@ class SerialDeployTest < Krane::IntegrationTest
     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
     kubeclient.patch_namespace(hello_cloud.namespace, metadata: { labels: { foo: 'bar' } })
     metrics = capture_statsd_calls(client: Krane::StatsD.client) do
-      assert_deploy_success deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"], wait: false)
+      assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"], wait: false))
     end
 
     %w(
@@ -102,8 +102,8 @@ class SerialDeployTest < Krane::IntegrationTest
 
     ).each do |expected_metric|
       metric = metrics.find { |m| m.name == expected_metric }
-      refute_nil metric, "Metric #{expected_metric} not emitted"
-      assert_includes metric.tags, "foo:bar", "Metric #{expected_metric} did not have custom tags"
+      refute_nil(metric, "Metric #{expected_metric} not emitted")
+      assert_includes(metric.tags, "foo:bar", "Metric #{expected_metric} did not have custom tags")
     end
   end
 
@@ -129,10 +129,10 @@ class SerialDeployTest < Krane::IntegrationTest
       Krane.all_resources.duration
     ).each do |expected_metric|
       metric = metrics.find { |m| m.name == expected_metric }
-      refute_nil metric, "Metric #{expected_metric} not emitted"
-      assert_includes metric.tags, "namespace:#{@namespace}", "#{metric.name} is missing namespace tag"
-      assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}", "#{metric.name} is missing context tag"
-      assert_includes metric.tags, "sha:test-sha", "#{metric.name} is missing sha tag"
+      refute_nil(metric, "Metric #{expected_metric} not emitted")
+      assert_includes(metric.tags, "namespace:#{@namespace}", "#{metric.name} is missing namespace tag")
+      assert_includes(metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}", "#{metric.name} is missing context tag")
+      assert_includes(metric.tags, "sha:test-sha", "#{metric.name} is missing sha tag")
     end
   end
 
@@ -155,8 +155,8 @@ class SerialDeployTest < Krane::IntegrationTest
       Krane.all_resources.duration
     ).each do |expected_metric|
       metric = metrics.find { |m| m.name == expected_metric }
-      refute_nil metric, "Metric #{expected_metric} not emitted"
-      assert_includes metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}", "#{metric.name} is missing context tag"
+      refute_nil(metric, "Metric #{expected_metric} not emitted")
+      assert_includes(metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}", "#{metric.name} is missing context tag")
     end
   end
 

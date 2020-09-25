@@ -37,10 +37,10 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
 
     assert_equal(kinds.length, 12)
     %w(PriorityClass StorageClass).each do |expected_kind|
-      assert kinds.one? { |k| k.include?(expected_kind) }
+      assert(kinds.one? { |k| k.include?(expected_kind) })
     end
     %w(node namespace).each do |black_lised_kind|
-      assert_empty kinds.select { |k| k.downcase.include?(black_lised_kind) }
+      assert_empty(kinds.select { |k| k.downcase.include?(black_lised_kind) })
     end
   end
 
@@ -52,7 +52,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
 
     assert_equal(kinds.length, 25)
     %w(ConfigMap CronJob Deployment).each do |expected_kind|
-      assert kinds.one? { |k| k.include?(expected_kind) }
+      assert(kinds.one? { |k| k.include?(expected_kind) })
     end
   end
 
@@ -63,7 +63,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
     kinds = crd.prunable_resources(namespaced: true)
 
     %w(batch/v1/Job extensions/v1beta1/Ingress).each do |expected_kind|
-      assert kinds.one? { |k| k.include?(expected_kind) }
+      assert(kinds.one? { |k| k.include?(expected_kind) })
     end
   end
 end

@@ -49,10 +49,10 @@ class ServiceTest < Krane::TestCase
     all_services.each { |svc| svc.sync(cache) }
 
     all_services.each do |svc|
-      refute svc.exists?, "#{svc.name} should not have existed"
-      refute svc.deploy_succeeded?, "#{svc.name} should not have succeeded"
-      refute svc.deploy_failed?, "#{svc.name} should not have failed"
-      assert_equal "Not found", svc.status, "#{svc.name} had wrong status"
+      refute(svc.exists?, "#{svc.name} should not have existed")
+      refute(svc.deploy_succeeded?, "#{svc.name} should not have succeeded")
+      refute(svc.deploy_failed?, "#{svc.name} should not have failed")
+      assert_equal("Not found", svc.status, "#{svc.name} had wrong status")
     end
   end
 

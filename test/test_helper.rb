@@ -114,8 +114,8 @@ module Krane
       assert_equal(false, result, "Deploy succeeded when it was expected to fail.#{logs_message_if_captured}")
       logging_assertion do |logs|
         cause_string = cause == :timed_out ? "TIMED OUT" : "FAILURE"
-        assert_match Regexp.new("Result: #{cause_string}"), logs,
-          "'Result: #{cause_string}' not found in the following logs:\n#{logs}"
+        assert_match(Regexp.new("Result: #{cause_string}"), logs,
+          "'Result: #{cause_string}' not found in the following logs:\n#{logs}")
       end
     end
     alias_method :assert_restart_failure, :assert_deploy_failure
@@ -124,7 +124,7 @@ module Krane
     def assert_deploy_success(result)
       assert_equal(true, result, "Deploy failed when it was expected to succeed.#{logs_message_if_captured}")
       logging_assertion do |logs|
-        assert_match Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}"
+        assert_match(Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}")
       end
     end
     alias_method :assert_restart_success, :assert_deploy_success
@@ -139,7 +139,7 @@ module Krane
 
         count = logs.scan(regexp).count
         fail_msg = "Expected #{regexp} to appear #{times} time(s) in the log, but it appeared #{count} times"
-        assert_equal times, count, fail_msg
+        assert_equal(times, count, fail_msg)
       end
     end
 
@@ -161,7 +161,7 @@ module Krane
     def refute_logs_match(regexp)
       logging_assertion do |logs|
         regexp = regexp.is_a?(Regexp) ? regexp : Regexp.new(Regexp.escape(regexp))
-        refute regexp =~ logs, "Expected '#{regexp}' not to appear in the following logs:\n#{logs}"
+        refute(regexp =~ logs, "Expected '#{regexp}' not to appear in the following logs:\n#{logs}")
       end
     end
 

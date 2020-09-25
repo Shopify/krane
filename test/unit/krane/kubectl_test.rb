@@ -111,7 +111,7 @@ class KubectlTest < Krane::TestCase
 
     metrics = capture_statsd_calls(client: Krane::StatsD.client) do
       _out, _err, st = kubectl.run("get", "pods", attempts: 5)
-      refute_predicate st, :success?
+      refute_predicate(st, :success?)
     end
     assert_equal(5, metrics.length)
     assert_equal(["Krane.kubectl.error"], metrics.map(&:name).uniq)
@@ -339,13 +339,13 @@ class KubectlTest < Krane::TestCase
     ktl = build_kubectl
     max_delay_range = ((Krane::Kubectl::MAX_RETRY_DELAY - 0.5)..Krane::Kubectl::MAX_RETRY_DELAY)
     1000.times do
-      assert_includes 0.5..1, ktl.retry_delay(1)
-      assert_includes 1.5..2, ktl.retry_delay(2)
-      assert_includes 3.5..4, ktl.retry_delay(3)
-      assert_includes 7.5..8, ktl.retry_delay(4)
-      assert_includes max_delay_range, ktl.retry_delay(5)
-      assert_includes max_delay_range, ktl.retry_delay(6)
-      assert_includes max_delay_range, ktl.retry_delay(100)
+      assert_includes(0.5..1, ktl.retry_delay(1))
+      assert_includes(1.5..2, ktl.retry_delay(2))
+      assert_includes(3.5..4, ktl.retry_delay(3))
+      assert_includes(7.5..8, ktl.retry_delay(4))
+      assert_includes(max_delay_range, ktl.retry_delay(5))
+      assert_includes(max_delay_range, ktl.retry_delay(6))
+      assert_includes(max_delay_range, ktl.retry_delay(100))
     end
   end
 
