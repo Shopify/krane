@@ -85,6 +85,10 @@ module Krane
       kubectl.server_version
     end
 
+    attr_reader :task_config
+
+    delegate :kubeclient_builder, to: :task_config
+
     # Initializes the deploy task
     #
     # @param namespace [String] Kubernetes namespace (*required*)
@@ -101,10 +105,10 @@ module Krane
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha: nil, logger: nil, kubectl_instance: nil, bindings: {},
       global_timeout: nil, selector: nil, filenames: [], protected_namespaces: nil,
-      render_erb: false)
+      render_erb: false, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
-      @task_config = Krane::TaskConfig.new(context, namespace, @logger)
+      @task_config = Krane::TaskConfig.new(context, namespace, @logger, kubeconfig)
       @bindings = bindings
       @namespace = namespace
       @namespace_tags = []
@@ -188,10 +192,6 @@ module Krane
       @resource_deployer ||= Krane::ResourceDeployer.new(task_config: @task_config,
         prune_whitelist: prune_whitelist, global_timeout: @global_timeout,
         selector: @selector, statsd_tags: statsd_tags, current_sha: @current_sha)
-    end
-
-    def kubeclient_builder
-      @kubeclient_builder ||= KubeclientBuilder.new
     end
 
     def cluster_resource_discoverer

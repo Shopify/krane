@@ -4,12 +4,13 @@ require 'krane/cluster_resource_discovery'
 
 module Krane
   class TaskConfig
-    attr_reader :context, :namespace, :logger
+    attr_reader :context, :namespace, :logger, :kubeconfig
 
-    def initialize(context, namespace, logger = nil)
+    def initialize(context, namespace, logger = nil, kubeconfig = nil)
       @context = context
       @namespace = namespace
       @logger = logger || FormattedLogger.build(@namespace, @context)
+      @kubeconfig = kubeconfig || ENV['KUBECONFIG']
     end
 
     def global_kinds
@@ -17,6 +18,10 @@ module Krane
         cluster_resource_discoverer = ClusterResourceDiscovery.new(task_config: self)
         cluster_resource_discoverer.fetch_resources(namespaced: false).map { |g| g["kind"] }
       end
+    end
+
+    def kubeclient_builder
+      @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: kubeconfig)
     end
   end
 end

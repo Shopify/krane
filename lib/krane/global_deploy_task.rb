@@ -25,7 +25,8 @@ module Krane
   class GlobalDeployTask
     extend Krane::StatsD::MeasureMethods
     include TemplateReporting
-    delegate :context, :logger, :global_kinds, to: :@task_config
+    delegate :context, :logger, :global_kinds, :kubeclient_builder, to: :@task_config
+    attr_reader :task_config
 
     # Initializes the deploy task
     #
@@ -33,10 +34,10 @@ module Krane
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector (*required*)
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
-    def initialize(context:, global_timeout: nil, selector: nil, filenames: [], logger: nil)
+    def initialize(context:, global_timeout: nil, selector: nil, filenames: [], logger: nil, kubeconfig: nil)
       template_paths = filenames.map { |path| File.expand_path(path) }
 
-      @task_config = TaskConfig.new(context, nil, logger)
+      @task_config = TaskConfig.new(context, nil, logger, kubeconfig)
       @template_sets = TemplateSets.from_dirs_and_files(paths: template_paths,
         logger: @task_config.logger, render_erb: false)
       @global_timeout = global_timeout
@@ -187,10 +188,6 @@ module Krane
 
     def kubectl
       @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
-    end
-
-    def kubeclient_builder
-      @kubeclient_builder ||= KubeclientBuilder.new
     end
 
     def prune_whitelist
