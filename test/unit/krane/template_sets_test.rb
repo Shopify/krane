@@ -58,7 +58,7 @@ class TemplateSetsTest < Krane::TestCase
     template_sets = template_sets_from_paths(path)
 
     template_sets.with_resource_definitions_and_filename(raw: true) do |rendered, _|
-      assert_match 'kind: ResourceQuota', rendered
+      assert_match('kind: ResourceQuota', rendered)
     end
   end
 
@@ -71,7 +71,7 @@ class TemplateSetsTest < Krane::TestCase
     file_names = []
     template_sets.with_resource_definitions_and_filename(bindings: { data: "1" }) do |rendered_content, filename|
       file_names << filename
-      refute_empty rendered_content
+      refute_empty(rendered_content)
     end
     assert_equal(paths.map { |f| File.basename(f) }.sort, file_names.sort)
 
@@ -79,7 +79,7 @@ class TemplateSetsTest < Krane::TestCase
     assert_raises(Krane::InvalidTemplateError) do
       template_sets.with_resource_definitions_and_filename(bindings: {}) do |rendered_content, filename|
         file_names << filename
-        refute_empty rendered_content
+        refute_empty(rendered_content)
       end
     end
     assert_equal(file_names.count, 1)

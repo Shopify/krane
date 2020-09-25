@@ -103,7 +103,7 @@ class RunnerTaskTest < Krane::IntegrationTest
             retry
           end
         end
-        sleep 0.1
+        sleep(0.1)
       end
     end
     deleter_thread.abort_on_exception = true
@@ -131,14 +131,14 @@ class RunnerTaskTest < Krane::IntegrationTest
 
       first_num_printed = nums_printed[0].to_i
       # The first time we fetch logs, we grab at most 250 lines, so we likely won't print the first few hundred
-      assert first_num_printed < 1500, "Unexpected number of initial logs skipped (started with #{first_num_printed})"
+      assert(first_num_printed < 1500, "Unexpected number of initial logs skipped (started with #{first_num_printed})")
 
       expected_nums = (first_num_printed..5_000).map(&:to_s)
       missing_nums = expected_nums - nums_printed.uniq
-      assert missing_nums.empty?, "Some lines were not streamed: #{missing_nums}"
+      assert(missing_nums.empty?, "Some lines were not streamed: #{missing_nums}")
 
       num_lines_duplicated = nums_printed.length - nums_printed.uniq.length
-      assert num_lines_duplicated.zero?, "#{num_lines_duplicated} lines were duplicated"
+      assert(num_lines_duplicated.zero?, "#{num_lines_duplicated} lines were duplicated")
     end
   end
 

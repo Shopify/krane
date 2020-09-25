@@ -13,7 +13,7 @@ class RenderTaskTest < Krane::TestCase
     assert_render_success(render.run(stream: mock_output_stream))
 
     stdout_assertion do |output|
-      assert_equal output, <<~RENDERED
+      assert_equal(output, <<~RENDERED)
         ---
         apiVersion: v1
         kind: ConfigMap
@@ -77,7 +77,7 @@ class RenderTaskTest < Krane::TestCase
                     name: hello-cloud-configmap-data
                     key: datapoint2
       RENDERED
-      assert_equal expected, output
+      assert_equal(expected, output)
     end
   end
 
@@ -160,7 +160,7 @@ class RenderTaskTest < Krane::TestCase
           supports_partials: "yep"
 
       RENDERED
-      assert_equal expected, output
+      assert_equal(expected, output)
     end
   end
 
@@ -261,9 +261,9 @@ class RenderTaskTest < Krane::TestCase
       render = build_render_task(
         File.join(fixture_path('hello-cloud'), basename)
       )
-      assert_render_success render.run(stream: mock_output_stream)
+      assert_render_success(render.run(stream: mock_output_stream))
       stdout_assertion do |output|
-        assert !output.empty?
+        assert(!output.empty?)
       end
     end
   end
@@ -277,7 +277,7 @@ class RenderTaskTest < Krane::TestCase
 
     assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
-      assert_equal "#{expected}#{expected}", output
+      assert_equal("#{expected}#{expected}", output)
     end
 
     mock_output_stream.rewind
@@ -298,7 +298,7 @@ class RenderTaskTest < Krane::TestCase
 
     assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
-      assert_equal expected, output
+      assert_equal(expected, output)
     end
   end
 
@@ -310,7 +310,7 @@ class RenderTaskTest < Krane::TestCase
 
     assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
-      assert_equal expected, output
+      assert_equal(expected, output)
     end
   end
 
@@ -320,7 +320,7 @@ class RenderTaskTest < Krane::TestCase
     )
     assert_render_success(render.run(stream: mock_output_stream))
     stdout_assertion do |output|
-      assert_equal "", output.strip
+      assert_equal("", output.strip)
     end
     assert_logs_match("Rendered effectively_empty.yml.erb successfully, but the result was blank")
   end
@@ -345,7 +345,7 @@ class RenderTaskTest < Krane::TestCase
     assert_render_success(render.run(stream: mock_output_stream))
 
     stdout_assertion do |output|
-      assert_equal output, <<~RENDERED
+      assert_equal(output, <<~RENDERED)
         ---
         apiVersion: apps/v1
         kind: Deployment
@@ -402,14 +402,14 @@ class RenderTaskTest < Krane::TestCase
   def assert_render_success(result)
     assert_equal(true, result, "Render failed when it was expected to succeed.#{logs_message_if_captured}")
     logging_assertion do |logs|
-      assert_match Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}"
+      assert_match(Regexp.new("Result: SUCCESS"), logs, "'Result: SUCCESS' not found in the following logs:\n#{logs}")
     end
   end
 
   def assert_render_failure(result)
     assert_equal(false, result, "Render succeeded when it was expected to fail.#{logs_message_if_captured}")
     logging_assertion do |logs|
-      assert_match Regexp.new("Result: FAILURE"), logs, "'Result: FAILURE' not found in the following logs:\n#{logs}"
+      assert_match(Regexp.new("Result: FAILURE"), logs, "'Result: FAILURE' not found in the following logs:\n#{logs}")
     end
   end
 end

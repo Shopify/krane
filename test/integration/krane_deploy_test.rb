@@ -555,7 +555,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     by_revision = pods.group_by { |pod| pod.spec.containers.first.env.find { |var| var.name == "GITHUB_REV" }.value }
     by_revision.each do |rev, rev_pods|
       statuses = rev_pods.map { |pod| pod.status.to_h }
-      assert_equal 2, rev_pods.length, "#{rev} had #{rev_pods.length} pods (wanted 2). Statuses:\n#{statuses}"
+      assert_equal(2, rev_pods.length, "#{rev} had #{rev_pods.length} pods (wanted 2). Statuses:\n#{statuses}")
     end
     assert_logs_match(%r{Service/multi-replica\s+Selects at least 1 pod})
   end

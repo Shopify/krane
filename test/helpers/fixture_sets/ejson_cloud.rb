@@ -1,4 +1,6 @@
 # frozen_string_literal: true
+# rubocop:disable Lint/MissingSuper
+
 module FixtureSetAssertions
   class EjsonCloud < FixtureSet
     def initialize(namespace)

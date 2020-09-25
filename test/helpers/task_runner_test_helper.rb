@@ -8,7 +8,7 @@ module TaskRunnerTestHelper
         yield fixtures if block_given?
       end
       logging_assertion do |logs|
-        assert_equal true, result, "Deploy failed when it was expected to succeed: \n#{logs}"
+        assert_equal(true, result, "Deploy failed when it was expected to succeed: \n#{logs}")
       end
     end
     reset_logger

@@ -49,12 +49,12 @@ class KubernetesResourceTest < Krane::TestCase
     cm.deploy_started_at = Time.now.utc
 
     Timecop.freeze(Time.now.utc + 60) do
-      assert cm.deploy_timed_out?
+      assert(cm.deploy_timed_out?)
       expected = <<~STRING
         It is very unusual for this resource type to fail to deploy. Please try the deploy again.
         If that new deploy also fails, contact your cluster administrator.
       STRING
-      assert_equal expected, cm.timeout_message
+      assert_equal(expected, cm.timeout_message)
     end
   end
 
@@ -212,28 +212,28 @@ class KubernetesResourceTest < Krane::TestCase
   def test_deploy_timed_out_respects_hardcoded_timeouts
     Timecop.freeze do
       dummy = DummyResource.new
-      refute dummy.deploy_timed_out?
-      assert_equal 300, dummy.timeout
+      refute(dummy.deploy_timed_out?)
+      assert_equal(300, dummy.timeout)
 
       dummy.deploy_started_at = Time.now.utc - 300
-      refute dummy.deploy_timed_out?
+      refute(dummy.deploy_timed_out?)
 
       dummy.deploy_started_at = Time.now.utc - 301
-      assert dummy.deploy_timed_out?
+      assert(dummy.deploy_timed_out?)
     end
   end
 
   def test_deploy_timed_out_respects_annotation_based_timeouts
     Timecop.freeze do
       custom_dummy = DummyResource.new(definition_extras: build_timeout_metadata("3s"))
-      refute custom_dummy.deploy_timed_out?
-      assert_equal 3, custom_dummy.timeout
+      refute(custom_dummy.deploy_timed_out?)
+      assert_equal(3, custom_dummy.timeout)
 
       custom_dummy.deploy_started_at = Time.now.utc - 3
-      refute custom_dummy.deploy_timed_out?
+      refute(custom_dummy.deploy_timed_out?)
 
       custom_dummy.deploy_started_at = Time.now.utc - 4
-      assert custom_dummy.deploy_timed_out?
+      assert(custom_dummy.deploy_timed_out?)
     end
   end
 
@@ -243,8 +243,8 @@ class KubernetesResourceTest < Krane::TestCase
       dummy.expects(:fetch_debug_logs).never
       dummy.deploy_failed = true
 
-      assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
-      assert_includes dummy.debug_message, Krane::KubernetesResource::DISABLED_LOG_INFO_MESSAGE
+      assert_includes(dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n")
+      assert_includes(dummy.debug_message, Krane::KubernetesResource::DISABLED_LOG_INFO_MESSAGE)
     end
   end
 
@@ -254,8 +254,8 @@ class KubernetesResourceTest < Krane::TestCase
       dummy.expects(:fetch_events).never
       dummy.deploy_failed = true
 
-      assert_includes dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n"
-      assert_includes dummy.debug_message, Krane::KubernetesResource::DISABLED_EVENT_INFO_MESSAGE
+      assert_includes(dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n")
+      assert_includes(dummy.debug_message, Krane::KubernetesResource::DISABLED_EVENT_INFO_MESSAGE)
     end
   end
 

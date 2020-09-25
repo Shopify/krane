@@ -268,12 +268,12 @@ class DeploymentTest < Krane::TestCase
       )
 
       deploy.deploy_started_at = Time.now.utc - Krane::Deployment::TIMEOUT
-      refute deploy.deploy_timed_out?
+      refute(deploy.deploy_timed_out?)
 
       deploy.deploy_started_at = Time.now.utc - Krane::Deployment::TIMEOUT - 1
-      assert deploy.deploy_timed_out?
-      assert_equal "Timeout reason: hard deadline for Deployment\nLatest ReplicaSet: web-1",
-        deploy.timeout_message.strip
+      assert(deploy.deploy_timed_out?)
+      assert_equal("Timeout reason: hard deadline for Deployment\nLatest ReplicaSet: web-1",
+        deploy.timeout_message.strip)
     end
   end
 
@@ -293,11 +293,11 @@ class DeploymentTest < Krane::TestCase
         template: build_deployment_template(status: deployment_status),
         replica_sets: [build_rs_template(status: { "replica" => 1 })]
       )
-      refute deploy.deploy_timed_out?, "Deploy not started shouldn't have timed out"
+      refute(deploy.deploy_timed_out?, "Deploy not started shouldn't have timed out")
 
       deploy.deploy_started_at = Time.now.utc - 3.minutes
-      assert deploy.deploy_timed_out?
-      assert_equal "Timeout reason: ProgressDeadlineExceeded\nLatest ReplicaSet: web-1", deploy.timeout_message.strip
+      assert(deploy.deploy_timed_out?)
+      assert_equal("Timeout reason: ProgressDeadlineExceeded\nLatest ReplicaSet: web-1", deploy.timeout_message.strip)
     end
   end
 
@@ -352,7 +352,7 @@ class DeploymentTest < Krane::TestCase
       )
 
       deploy.deploy_started_at = Time.now.utc - 20.seconds
-      refute deploy.deploy_timed_out?
+      refute(deploy.deploy_timed_out?)
     end
   end
 
