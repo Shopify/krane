@@ -63,6 +63,7 @@ module Krane
       attr_reader :name
 
       def initialize(definition)
+        super(definition: definition, namespace: nil, context: nil, logger: nil)
         @definition = definition
         @name = definition.dig("metadata", "name").to_s
       end
