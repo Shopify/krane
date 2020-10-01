@@ -35,6 +35,8 @@ module Krane
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
 
+    ALLOWED_DEPLOY_METHOD_OVERRIDES = %w(create replace replace-force)
+    DEPLOY_METHOD_OVERRIDE_ANNOTATION = "alpha/deploy-method-override"
     TIMEOUT_OVERRIDE_ANNOTATION = "timeout-override"
     LAST_APPLIED_ANNOTATION = "kubectl.kubernetes.io/last-applied-configuration"
     SENSITIVE_TEMPLATE_CONTENT = false
@@ -237,8 +239,18 @@ module Krane
       if @definition.dig("metadata", "name").blank? && uses_generate_name?
         :create
       else
-        :apply
+        deploy_method_override || :apply
       end
+    end
+
+    def deploy_method_override
+      override = krane_annotation_value(DEPLOY_METHOD_OVERRIDE_ANNOTATION)
+      return unless override
+      unless ALLOWED_DEPLOY_METHOD_OVERRIDES.include?(override)
+        raise InvalidTemplateError, "unknown deploy override method: #{override}." \
+          "Accepted values are #{ALLOWED_DEPLOY_METHOD_OVERRIDES.join(', ')}"
+      end
+      override.to_sym
     end
 
     def sync_debug_info(kubectl)
