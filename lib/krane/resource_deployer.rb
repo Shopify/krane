@@ -95,11 +95,10 @@ module Krane
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
       # Prunable resources should also applied so that they can  be pruned
       pruneable_types = @prune_whitelist.map { |t| t.split("/").last }
-      applyables += individuals.select { |r| pruneable_types.include?(r.type) }
+      applyables += individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
 
       individuals.each do |individual_resource|
         individual_resource.deploy_started_at = Time.now.utc
-
         case individual_resource.deploy_method
         when :create
           err, status = create_resource(individual_resource)
