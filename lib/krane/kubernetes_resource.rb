@@ -36,7 +36,7 @@ module Krane
       MSG
 
     ALLOWED_DEPLOY_METHOD_OVERRIDES = %w(apply create replace replace-force)
-    DEPLOY_METHOD_OVERRIDE_ANNOTATION = "alpha/deploy-method-override"
+    DEPLOY_METHOD_OVERRIDE_ANNOTATION = "deploy-method-override"
     TIMEOUT_OVERRIDE_ANNOTATION = "timeout-override"
     LAST_APPLIED_ANNOTATION = "kubectl.kubernetes.io/last-applied-configuration"
     SENSITIVE_TEMPLATE_CONTENT = false
