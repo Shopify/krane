@@ -363,6 +363,21 @@ class KubernetesResourceTest < Krane::TestCase
     assert_equal(resource.class, Krane::KubernetesResource)
   end
 
+  def test_deploy_override_method_annotation
+    Krane::KubernetesResource::ALLOWED_DEPLOY_METHOD_OVERRIDES.each do |method|
+      spec = { "kind" => "ConfigMap",
+        "metadata" => {
+          "name" => "foo",
+          "annotations" => {
+            deploy_method_override_annotation_key => method
+          }
+        }
+      }
+      cm = Krane::ConfigMap.new(namespace: 'foo', context: 'none', definition: spec, logger: logger)
+      assert_equal(cm.deploy_method, method.to_sym)
+    end
+  end
+
   private
 
   def kubectl
@@ -462,5 +477,9 @@ class KubernetesResourceTest < Krane::TestCase
 
   def rollout_conditions_annotation_key
     Krane::Annotation.for(Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
+  end
+
+  def deploy_method_override_annotation_key
+    Krane::Annotation.for(Krane::KubernetesResource::DEPLOY_METHOD_OVERRIDE_ANNOTATION)
   end
 end
