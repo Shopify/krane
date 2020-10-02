@@ -245,9 +245,7 @@ module Krane
     end
 
     def deploy_method_override
-      override = krane_annotation_value(DEPLOY_METHOD_OVERRIDE_ANNOTATION)
-      return unless override
-      override.to_sym
+      krane_annotation_value(DEPLOY_METHOD_OVERRIDE_ANNOTATION)&.to_sym
     end
 
     def sync_debug_info(kubectl)
