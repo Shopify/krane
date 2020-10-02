@@ -545,7 +545,7 @@ module Krane
     def validate_with_server_side_dry_run(kubectl)
       command = ["apply", "-f", file_path, "--server-dry-run", "--output=name"]
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
-        retry_whitelist: [:client_timeout, :empty], attempts: 3)
+        retry_whitelist: [:client_timeout, :empty, :context_deadline], attempts: 3)
     end
 
     # Local dry run is supported on only create and apply
@@ -555,7 +555,7 @@ module Krane
       verb = deploy_method == :apply ? "apply" : "create"
       command = [verb, "-f", file_path, "--dry-run", "--output=name"]
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
-        retry_whitelist: [:client_timeout, :empty], attempts: 3, use_namespace: !global?)
+        retry_whitelist: [:client_timeout, :empty, :context_deadline], attempts: 3, use_namespace: !global?)
     end
 
     def labels
