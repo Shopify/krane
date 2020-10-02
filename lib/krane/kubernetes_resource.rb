@@ -35,7 +35,7 @@ module Krane
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
 
-    ALLOWED_DEPLOY_METHOD_OVERRIDES = %w(apply create replace replace-force)
+    ALLOWED_DEPLOY_METHOD_OVERRIDES = %w(create replace replace-force)
     DEPLOY_METHOD_OVERRIDE_ANNOTATION = "deploy-method-override"
     TIMEOUT_OVERRIDE_ANNOTATION = "timeout-override"
     LAST_APPLIED_ANNOTATION = "kubectl.kubernetes.io/last-applied-configuration"
@@ -138,6 +138,7 @@ module Krane
       @validation_errors = []
       validate_selector(selector) if selector
       validate_timeout_annotation
+      validate_deploy_method_override_annotation
       validate_spec_with_kubectl(kubectl)
       @validation_errors.present?
     end
@@ -246,10 +247,6 @@ module Krane
     def deploy_method_override
       override = krane_annotation_value(DEPLOY_METHOD_OVERRIDE_ANNOTATION)
       return unless override
-      unless ALLOWED_DEPLOY_METHOD_OVERRIDES.include?(override)
-        raise InvalidTemplateError, "unknown deploy override method: #{override}." \
-          "Accepted values are #{ALLOWED_DEPLOY_METHOD_OVERRIDES.join(', ')}"
-      end
       override.to_sym
     end
 
@@ -514,6 +511,16 @@ module Krane
       end
     rescue DurationParser::ParsingError => e
       @validation_errors << "#{timeout_annotation_key} annotation is invalid: #{e}"
+    end
+
+    def validate_deploy_method_override_annotation
+      deploy_method_override_value = krane_annotation_value(DEPLOY_METHOD_OVERRIDE_ANNOTATION)
+      deploy_method_override_annotation_key = Annotation.for(DEPLOY_METHOD_OVERRIDE_ANNOTATION)
+      return unless deploy_method_override_value
+      unless ALLOWED_DEPLOY_METHOD_OVERRIDES.include?(deploy_method_override_value)
+        @validation_errors << "#{deploy_method_override_annotation_key} is invalid: Accepted values are: " \
+          "#{ALLOWED_DEPLOY_METHOD_OVERRIDES.join(', ')} but got #{deploy_method_override_value}"
+      end
     end
 
     def krane_annotation_value(suffix)
