@@ -7,6 +7,7 @@ module Krane
       not_found: /NotFound/,
       client_timeout: /Client\.Timeout exceeded while awaiting headers/,
       empty: /\A\z/,
+      context_deadline: /context deadline exceeded/,
     }
     DEFAULT_TIMEOUT = 15
     MAX_RETRY_DELAY = 16
