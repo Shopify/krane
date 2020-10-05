@@ -1,5 +1,10 @@
 ## next
 
+## 2.0.1
+
+*Enhancements*
+- Allow optionally specification of the Kubeconfig per task. [#746](https://github.com/Shopify/krane/pull/746)
+
 ## 2.0.0
 
 *Breaking Changes*
