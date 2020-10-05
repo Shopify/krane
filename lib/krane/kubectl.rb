@@ -63,7 +63,8 @@ module Krane
         else
           logger.debug("Kubectl err: #{output_is_sensitive ? '<suppressed sensitive output>' : err}")
         end
-        StatsD.client.increment('kubectl.error', 1, tags: { context: context, namespace: namespace, cmd: cmd[1] })
+        StatsD.client.increment('kubectl.error', 1, tags: { context: context, namespace: namespace, cmd: cmd[1],
+                                                            max_attempt: attempts, current_attempt: current_attempt })
 
         break unless retriable_err?(err, retry_whitelist) && current_attempt < attempts
         sleep(retry_delay(current_attempt))
@@ -80,7 +81,7 @@ module Krane
     def version_info
       @version_info ||=
         begin
-          response, _, status = run("version", use_namespace: false, log_failure: true)
+          response, _, status = run("version", use_namespace: false, log_failure: true, attempts: 2)
           raise KubectlError, "Could not retrieve kubectl version info" unless status.success?
           extract_version_info_from_kubectl_response(response)
         end

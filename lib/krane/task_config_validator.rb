@@ -45,7 +45,7 @@ module Krane
       end
 
       _, err, st = @kubectl.run("config", "get-contexts", context, "-o", "name",
-        use_namespace: false, use_context: false, log_failure: false)
+        use_namespace: false, use_context: false, log_failure: false, attempts: 2)
 
       unless st.success?
         @errors << if err.match("error: context #{context} not found")
@@ -58,7 +58,7 @@ module Krane
 
     def validate_context_reachable
       _, err, st = @kubectl.run("get", "namespaces", "-o", "name",
-        use_namespace: false, log_failure: false)
+        use_namespace: false, log_failure: false, attempts: 2)
 
       unless st.success?
         @errors << "Something went wrong connecting to #{context}. #{err} "
@@ -71,7 +71,7 @@ module Krane
       end
 
       _, err, st = @kubectl.run("get", "namespace", "-o", "name", namespace,
-        use_namespace: false, log_failure: false)
+        use_namespace: false, log_failure: false, attempts: 3)
 
       unless st.success?
         @errors << if err.match("Error from server [(]NotFound[)]: namespace")

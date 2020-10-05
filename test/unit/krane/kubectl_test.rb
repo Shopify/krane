@@ -185,7 +185,7 @@ class KubectlTest < Krane::TestCase
     stub_open3(
       %W(kubectl version --context=testc --request-timeout=#{timeout}),
       resp: '', err: 'bad', success: false
-    )
+    ).times(2)
     assert_raises_message(Krane::KubectlError, "Could not retrieve kubectl version info") do
       build_kubectl.version_info
     end
