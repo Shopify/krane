@@ -3,8 +3,9 @@ require 'test_helper'
 
 class EjsonSecretProvisionerTest < Krane::TestCase
   def test_resources_based_on_ejson_file_existence
-    stub_server_dry_run_version_request
+    stub_server_dry_run_version_request(attempts: 2)
     stub_server_dry_run_validation_request.times(3) # there are three secrets in the ejson
+
     assert_empty(build_provisioner(fixture_path('hello-cloud')).resources)
     refute_empty(build_provisioner(fixture_path('ejson-cloud')).resources)
   end
@@ -18,11 +19,10 @@ class EjsonSecretProvisionerTest < Krane::TestCase
   end
 
   def test_resource_is_built_correctly
-    stub_server_dry_run_version_request
+    stub_server_dry_run_version_request(attempts: 2)
     stub_server_dry_run_validation_request.times(3) # there are three secrets in the ejson
     resources = build_provisioner(fixture_path('ejson-cloud')).resources
     refute_empty(resources)
-
     secret = resources.find { |s| s.name == 'monitoring-token' }
     refute_nil(secret, "Expected secret not found")
     assert_equal(secret.class, Krane::Secret)
@@ -72,7 +72,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
 
     Open3.expects(:capture3).with(regexp_matches(/ejson decrypt/))
       .returns([valid_response, "Permissions warning!", stub(success?: true)])
-    stub_server_dry_run_version_request
+    stub_server_dry_run_version_request(attempts: 2)
     stub_server_dry_run_validation_request
 
     resources = build_provisioner(fixture_path('ejson-cloud')).resources
@@ -110,7 +110,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
   end
 
   def test_proactively_validates_resulting_resources_and_raises_without_logging
-    stub_server_dry_run_version_request
+    stub_server_dry_run_version_request(attempts: 2)
     stub_server_dry_run_validation_request
     Krane::Secret.any_instance.expects(:validation_failed?).returns(true)
     msg = "Generation of Kubernetes secrets from ejson failed: Resulting resource Secret/catphotoscom failed validation"
@@ -121,7 +121,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
   end
 
   def test_run_with_selector_does_not_raise_exception
-    stub_server_dry_run_version_request
+    stub_server_dry_run_version_request(attempts: 2)
     stub_server_dry_run_validation_request.times(3) # there are three secrets in the ejson
     provisioner = build_provisioner(
       fixture_path('ejson-cloud'),
@@ -132,7 +132,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
 
   private
 
-  def stub_server_dry_run_validation_request
+  def stub_server_dry_run_validation_request(attempts: 3)
     stub_kubectl_response("apply", "-f", anything, "--server-dry-run", "--output=name",
       resp: dummy_secret_hash, json: false,
       kwargs: {
@@ -143,12 +143,13 @@ class EjsonSecretProvisionerTest < Krane::TestCase
       })
   end
 
-  def stub_server_dry_run_version_request
+  def stub_server_dry_run_version_request(attempts: 1)
     stub_kubectl_response("version",
       resp: dummy_version, json: false,
         kwargs: {
           use_namespace: false,
           log_failure: true,
+          attempts: attempts,
         })
   end
 
