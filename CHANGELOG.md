@@ -1,4 +1,7 @@
 ## next
+- Increased the number of attempts on kubectl commands during Initializing deploy phase [#749](https://github.com/Shopify/krane/pull/749)
+- Increased attempts on kubectl apply command during deploy [#751](https://github.com/Shopify/krane/pull/751)
+- Whitelist context deadline error during kubctl dry run [#754](https://github.com/Shopify/krane/pull/754)
 
 ## 2.0.0
 
