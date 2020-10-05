@@ -1,4 +1,9 @@
 ## next
+
+*Features*
+- _(experimental)_ Override deploy method via annotation. This feature is considered alpha and should not be considered stable [#753](https://github.com/Shopify/krane/pull/753)
+
+*Enhancements*
 - Increased the number of attempts on kubectl commands during Initializing deploy phase [#749](https://github.com/Shopify/krane/pull/749)
 - Increased attempts on kubectl apply command during deploy [#751](https://github.com/Shopify/krane/pull/751)
 - Whitelist context deadline error during kubctl dry run [#754](https://github.com/Shopify/krane/pull/754)
