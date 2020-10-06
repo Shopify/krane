@@ -127,6 +127,22 @@ class KubernetesResourceTest < Krane::TestCase
     refute(basic_resource.validation_failed?)
   end
 
+  def test_deploy_method_override_annotation_fails_validation_for_invalid_entry
+    customized_resource = DummyResource.new(definition_extras: build_deploy_method_override_metadata('bad'))
+    assert_equal(:bad, customized_resource.deploy_method_override)
+    customized_resource.validate_definition(kubectl)
+    assert(customized_resource.validation_failed?)
+  end
+
+  def test_deploy_method_override_annotation_validates_for_valid_entries
+    Krane::KubernetesResource::ALLOWED_DEPLOY_METHOD_OVERRIDES.each do |method|
+      customized_resource = DummyResource.new(definition_extras: build_deploy_method_override_metadata(method))
+      assert_equal(method.to_sym, customized_resource.deploy_method_override)
+      customized_resource.validate_definition(kubectl)
+      refute(customized_resource.validation_failed?)
+    end
+  end
+
   def test_timeout_override_lower_bound_validation
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("-1S"))
     customized_resource.validate_definition(kubectl)
@@ -382,6 +398,15 @@ class KubernetesResourceTest < Krane::TestCase
     }
   end
 
+  def build_deploy_method_override_metadata(value)
+    {
+      "metadata" => {
+        "name" => "customized",
+        "annotations" => { deploy_method_override_annotation_key => value },
+      },
+    }
+  end
+
   def assert_includes_dummy_events(events, first:, second:)
     unless first || second
       assert_operator(events, :empty?)
@@ -462,5 +487,9 @@ class KubernetesResourceTest < Krane::TestCase
 
   def rollout_conditions_annotation_key
     Krane::Annotation.for(Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
+  end
+
+  def deploy_method_override_annotation_key
+    Krane::Annotation.for(Krane::KubernetesResource::DEPLOY_METHOD_OVERRIDE_ANNOTATION)
   end
 end
