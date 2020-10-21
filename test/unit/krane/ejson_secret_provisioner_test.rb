@@ -50,7 +50,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
 
   def test_decryption_failure_with_error_on_stdout_reports_error
     # ejson < 1.2 prints errors on stdout
-    Open3.expects(:capture3).with(regexp_matches(/ejson decrypt/))
+    Open3.expects(:capture3).with(instance_of(Hash), 'ejson', 'decrypt', instance_of(String))
       .returns(["Some error from ejson", "", stub(success?: false)])
     msg = "Generation of Kubernetes secrets from ejson failed: Some error from ejson"
     assert_raises_message(Krane::EjsonSecretError, msg) do
@@ -70,7 +70,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
         },
     }.to_json
 
-    Open3.expects(:capture3).with(regexp_matches(/ejson decrypt/))
+    Open3.expects(:capture3).with(instance_of(Hash), 'ejson', 'decrypt', instance_of(String))
       .returns([valid_response, "Permissions warning!", stub(success?: true)])
     stub_server_dry_run_version_request(attempts: 2)
     stub_server_dry_run_validation_request
