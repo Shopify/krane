@@ -133,7 +133,7 @@ module Krane
     end
 
     def decrypt_ejson(key_dir)
-      out, err, st = Open3.capture3("EJSON_KEYDIR=#{key_dir} ejson decrypt #{@ejson_file}")
+      out, err, st = Open3.capture3({ 'EJSON_KEYDIR' => key_dir.to_s }, 'ejson', 'decrypt', @ejson_file.to_s)
       unless st.success?
         # older ejson versions dump some errors to STDOUT
         msg = err.presence || out
