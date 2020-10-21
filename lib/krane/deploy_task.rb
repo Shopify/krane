@@ -127,7 +127,7 @@ module Krane
     def run(**args)
       run!(**args)
       true
-    rescue FatalDeploymentError
+    rescue FatalDeploymentError, DeploymentTimeoutError
       false
     end
 
