@@ -1,5 +1,10 @@
 ## next
 
+## 2.1.1
+
+*Bug Fixes*
+- Fix the way environment variables are passed into the EJSON decryption invocation [#759](https://github.com/Shopify/krane/pull/759)
+
 ## 2.1.0
 
 *Features*
