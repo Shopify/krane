@@ -1,5 +1,9 @@
 ## next
 
+## 2.1.2
+
+- Add version exception for FrontendConfig (GKE resource) [#761](https://github.com/Shopify/krane/pull/761)
+
 ## 2.1.1
 
 *Bug Fixes*
