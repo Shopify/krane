@@ -91,9 +91,11 @@ module Krane
       return false if deploy_failed?
       return super if timeout_override
 
-      if deploy_failing_to_progress?
-        @logger.info("Deploy failing to progress")
-    
+      if progress_condition.present?
+        StatsD.client.increment('kubectl.error', 1, tags: { context: context, namespace: namespace,
+                                                            progress_condition: deploy_failing_to_progress? })
+      end
+
       # Do not use the hard timeout if progress deadline is set
       progress_condition.present? ? deploy_failing_to_progress? : super
     end
