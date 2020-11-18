@@ -294,7 +294,8 @@ class DeploymentTest < Krane::TestCase
         replica_sets: [build_rs_template(status: { "replica" => 1 })]
       )
       refute(deploy.deploy_timed_out?, "Deploy not started shouldn't have timed out")
-
+      deploy.deploy_started_at = Time.now.utc
+      refute(deploy.deploy_timed_out?, "Deploy should not fail until after progress deadline seconds passed")
       deploy.deploy_started_at = Time.now.utc - 3.minutes
       assert(deploy.deploy_timed_out?)
       assert_equal("Timeout reason: ProgressDeadlineExceeded\nLatest ReplicaSet: web-1", deploy.timeout_message.strip)
@@ -327,7 +328,7 @@ class DeploymentTest < Krane::TestCase
       deploy.deploy_started_at = Time.now.utc - 11.seconds
       refute(deploy.deploy_timed_out?, "Deploy should not timeout based on progressDeadlineSeconds")
       deploy.deploy_started_at = Time.now.utc - 16.seconds
-      assert(deploy.deploy_timed_out?, "Deploy should timeout according to timoeout override")
+      assert(deploy.deploy_timed_out?, "Deploy should timeout according to timeout override")
       assert_equal(Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE + "\nLatest ReplicaSet: web-1",
         deploy.timeout_message.strip)
       assert_equal(deploy.pretty_timeout_type, "timeout override: 15s")
