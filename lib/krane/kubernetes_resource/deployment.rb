@@ -214,8 +214,8 @@ module Krane
     end
 
     def statsd_tags
-      %W(context:#{context} namespace:#{namespace} type:#{type} progress_status: #{deploy_failing_to_progress?}
-         progress_deadline: #{progress_deadline})
+      %W(context:#{context} namespace:#{namespace} type:#{type} failing_to_progress: #{deploy_failing_to_progress?}
+         progress_deadline: #{progress_deadline.present? ? progress_deadline : nil})
     end
   end
 end
