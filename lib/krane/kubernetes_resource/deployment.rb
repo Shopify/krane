@@ -92,8 +92,7 @@ module Krane
       return super if timeout_override
 
       if progress_condition.present?
-        StatsD.client.increment('kubectl.error', 1, tags: { context: context, namespace: namespace,
-                                                            progress_condition: deploy_failing_to_progress? })
+        StatsD.client.increment('kubectl.error', 1, tags: statsd_tags)
       end
 
       # Do not use the hard timeout if progress deadline is set
@@ -212,6 +211,10 @@ module Krane
 
     def percent?(value)
       value =~ /\d+%/
+    end
+
+    def statsd_tags
+      %W(context:#{context} namespace:#{namespace} type:#{type} progress_status: #{deploy_failing_to_progress?})
     end
   end
 end
