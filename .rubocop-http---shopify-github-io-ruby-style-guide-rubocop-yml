@@ -195,7 +195,6 @@ Style/FrozenStringLiteralComment:
   SupportedStyles:
     - always
     - never
-  SafeAutoCorrect: true
 
 Style/GlobalVars:
   AllowedVariables: []
