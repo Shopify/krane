@@ -92,7 +92,7 @@ module Krane
       return super if timeout_override
 
       if progress_condition.present?
-        StatsD.client.increment('fail_fast', 1, tags: statsd_tags)
+        StatsD.client.increment('kubectl.fail_fast', 1, tags: statsd_tags)
       end
 
       # Do not use the hard timeout if progress deadline is set
