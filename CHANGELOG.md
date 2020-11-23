@@ -1,5 +1,7 @@
 ## next
 
+- Kubernetes 1.14 and lower is no longer officially supported as of this version ([#766](https://github.com/Shopify/krane/pull/766))
+
 ## 2.1.2
 
 - Add version exception for FrontendConfig (GKE resource) [#761](https://github.com/Shopify/krane/pull/761)
