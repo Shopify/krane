@@ -17,7 +17,7 @@ module Krane
     end
 
     def prunable_resources(namespaced:)
-      black_list = %w(Namespace Node ControllerRevision)
+      black_list = %w(Namespace Node ControllerRevision ServiceNetworkEndpointGroup)
       api_versions = fetch_api_versions
 
       fetch_resources(namespaced: namespaced).uniq { |r| r['kind'] }.map do |resource|
