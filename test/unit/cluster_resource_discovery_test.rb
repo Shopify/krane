@@ -50,7 +50,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
     crd = mocked_cluster_resource_discovery(api_resources_namespaced_full_response, namespaced: true)
     kinds = crd.prunable_resources(namespaced: true)
 
-    assert_equal(kinds.length, 26)
+    assert_equal(kinds.length, 25)
     %w(ConfigMap CronJob Deployment).each do |expected_kind|
       assert(kinds.one? { |k| k.include?(expected_kind) })
     end
