@@ -1,6 +1,9 @@
 ## next
 
+## 2.1.3
+
 - Kubernetes 1.14 and lower is no longer officially supported as of this version ([#766](https://github.com/Shopify/krane/pull/766))
+- Add version exception for ServiceNetworkEndpointGroup (GKE resource) [#768](https://github.com/Shopify/krane/pull/768)
 
 ## 2.1.2
 
