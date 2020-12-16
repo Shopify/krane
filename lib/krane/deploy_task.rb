@@ -57,7 +57,7 @@ module Krane
     )
 
     def predeploy_sequence
-      default_group = { skip_groups: [] }
+      default_group = { groups: [], skip_groups: [] }
       before_crs = %w(
         ResourceQuota
         NetworkPolicy
@@ -71,10 +71,14 @@ module Krane
 
       after_crs = %w(
         Pod
-      ).map { |r| [r, default_group] }
+      )
 
-      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, default_group] }
-      predeploy_hash = Hash[before_crs + crs + after_crs]
+      predeploy_hash = Hash[before_crs]
+      cluster_resource_discoverer.crds.select(&:predeployed?).each do |cr|
+        predeploy_hash[cr.kind] ||= { groups: [cr.group], skip_groups: [] }
+      end
+
+      after_crs.each { |cr| predeploy_hash[cr] = default_group }
 
       cluster_resource_discoverer.crds.reject(&:predeployed?).each do |cr|
         predeploy_hash[cr.kind][:skip_groups] << cr.group if predeploy_hash[cr.kind]
@@ -222,7 +226,7 @@ module Krane
     def deploy_has_priority_resources?(resources)
       resources.any? do |r|
         next unless (pr = predeploy_sequence[r.type])
-        !pr[:skip_groups].include?(r.group)
+        (pr[:groups].empty? || pr[:groups].include?(r.group)) && !pr[:skip_groups].include?(r.group)
       end
     end
 
