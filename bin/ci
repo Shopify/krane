@@ -12,7 +12,6 @@ docker run --rm \
     -v "$PWD":/usr/src/app \
     -v "/usr/bin/kubectl":"/usr/bin/kubectl" \
     -e CI=1 \
-    -e CODECOV_TOKEN=$CODECOV_TOKEN \
     -e COVERAGE=1 \
     -e VERBOSE=1 \
     -e PARALLELISM=$PARALLELISM \
