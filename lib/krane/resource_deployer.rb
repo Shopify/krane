@@ -48,8 +48,7 @@ module Krane
 
       predeploy_sequence.each do |resource_type, attributes|
         matching_resources = resource_list.select do |r|
-          r.type == resource_type &&
-          (!attributes[:group] || r.group == attributes[:group])
+          r.type == resource_type && !attributes[:skip_groups].include?(r.group)
         end
         StatsD.client.gauge('priority_resources.count', matching_resources.size, tags: statsd_tags)
 

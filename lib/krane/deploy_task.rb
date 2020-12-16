@@ -57,24 +57,30 @@ module Krane
     )
 
     def predeploy_sequence
-      default_group = { groups: nil }
-      before_crs = {
-        'ResourceQuota' => default_group,
-        'NetworkPolicy' => { groups: %w(extensions networking.k8s.io) },
-        'ConfigMap' => default_group,
-        'PersistentVolumeClaim' => default_group,
-        'ServiceAccount' => default_group,
-        'Role' => default_group,
-        'RoleBinding' => default_group,
-        'Secret' => default_group,
-      }
+      default_group = { skip_groups: [] }
+      before_crs = %w(
+        ResourceQuota
+        NetworkPolicy
+        ConfigMap
+        PersistentVolumeClaim
+        ServiceAccount
+        Role
+        RoleBinding
+        Secret
+      ).map { |r| [r, default_group] }
 
-      after_crs = { 'Pod' => default_group }
+      after_crs = %w(
+        Pod
+      ).map { |r| [r, default_group] }
 
-      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, { groups: [cr.group] }] }.to_h
-      predeploy_hash = before_crs
-      predeploy_hash.merge!(crs) { |_k, old, new| { groups: old[:groups] + new[:groups] } }
-      predeploy_hash.merge(after_crs) { |_k, old, new| { groups: old[:groups] + new[:groups] } }
+      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, default_group] }
+      predeploy_hash = Hash[before_crs + crs + after_crs]
+
+      cluster_resource_discoverer.crds.reject(&:predeployed?).each do |cr|
+        predeploy_hash[cr.kind][:skip_groups] << cr.group if predeploy_hash[cr.kind]
+      end
+
+      predeploy_hash
     end
 
     def prune_whitelist
@@ -216,7 +222,7 @@ module Krane
     def deploy_has_priority_resources?(resources)
       resources.any? do |r|
         next unless (pr = predeploy_sequence[r.type])
-        !pr[:groups] || pr[:groups].include?(r.group)
+        !pr[:skip_groups].include?(r.group)
       end
     end
 
