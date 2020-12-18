@@ -103,7 +103,6 @@ class KraneDeployTest < Krane::IntegrationTest
       prune_matcher("service", "", "stateful-busybox"),
       prune_matcher("resourcequota", "", "resource-quotas"),
       prune_matcher("deployment", "apps", "web"),
-      prune_matcher("ingress", "extensions", "web"),
       prune_matcher("daemonset", "apps", "ds-app"),
       prune_matcher("statefulset", "apps", "stateful-busybox"),
       prune_matcher("job", "batch", "hello-job"),
@@ -117,6 +116,11 @@ class KraneDeployTest < Krane::IntegrationTest
       prune_matcher("rolebinding", "rbac.authorization.k8s.io", "role-binding"),
       prune_matcher("persistentvolumeclaim", "", "hello-pv-claim"),
     ] # not necessarily listed in this order
+    expected_pruned << if kube_server_version >= Gem::Version.new('1.17.0')
+      prune_matcher("ingress", "networking.k8s.io", "web")
+    else
+      prune_matcher("ingress", "extensions", "web")
+    end
     expected_msgs = [/Pruned 20 resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
@@ -1306,7 +1310,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ) do |f|
       bad_probe = f["bad_probe.yml"]["Deployment"].first
       bad_probe["spec"]["progressDeadlineSeconds"] = 5
-      f["missing_volumes.yml"]["Deployment"].first["spec"]["progressDeadlineSeconds"] = 25
+      f["missing_volumes.yml"]["Deployment"].first["spec"]["progressDeadlineSeconds"] = 30
       f["cannot_run.yml"]["Deployment"].first["spec"]["replicas"] = 1
     end
     assert_deploy_failure(result)

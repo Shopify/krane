@@ -16,7 +16,7 @@ class ResourceWatcherTest < Krane::TestCase
 
   def test_success_with_mock_resource_and_summary_recording_enabled
     stub_kind_get("MockResource")
-    mocked_cluster_resource_discovery(api_resources_namespaced_full_response)
+    mocked_cluster_resource_discovery
     resource = build_mock_resource
 
     watcher = build_watcher([resource])
@@ -32,7 +32,7 @@ class ResourceWatcherTest < Krane::TestCase
 
   def test_success_with_mock_resource_and_summary_recording_disabled
     stub_kind_get("MockResource")
-    mocked_cluster_resource_discovery(api_resources_namespaced_full_response)
+    mocked_cluster_resource_discovery
     resource = build_mock_resource
 
     watcher = build_watcher([resource])
@@ -46,7 +46,7 @@ class ResourceWatcherTest < Krane::TestCase
 
   def test_failure_with_mock_resource
     stub_kind_get("MockResource")
-    mocked_cluster_resource_discovery(api_resources_namespaced_full_response)
+    mocked_cluster_resource_discovery
     resource = build_mock_resource(final_status: "failed")
 
     watcher = build_watcher([resource])
@@ -63,7 +63,7 @@ class ResourceWatcherTest < Krane::TestCase
 
   def test_timeout_from_resource
     stub_kind_get("MockResource")
-    mocked_cluster_resource_discovery(api_resources_namespaced_full_response)
+    mocked_cluster_resource_discovery
     resource = build_mock_resource(final_status: "timeout")
 
     watcher = build_watcher([resource])
@@ -74,7 +74,7 @@ class ResourceWatcherTest < Krane::TestCase
 
   def test_wait_logging_when_resources_do_not_finish_together
     stub_kind_get("MockResource", times: 4)
-    mocked_cluster_resource_discovery(api_resources_namespaced_full_response)
+    mocked_cluster_resource_discovery
     first = build_mock_resource(final_status: "success", hits_to_complete: 1, name: "first")
     second = build_mock_resource(final_status: "timeout", hits_to_complete: 2, name: "second")
     third = build_mock_resource(final_status: "failed", hits_to_complete: 3, name: "third")
@@ -96,7 +96,7 @@ class ResourceWatcherTest < Krane::TestCase
 
   def test_reminder_logged_at_interval_even_when_nothing_happened
     stub_kind_get("MockResource", times: 9)
-    mocked_cluster_resource_discovery(api_resources_namespaced_full_response)
+    mocked_cluster_resource_discovery
     resource1 = build_mock_resource(final_status: "success", hits_to_complete: 1, name: 'first')
     resource2 = build_mock_resource(final_status: "success", hits_to_complete: 9, name: 'second')
     resource3 = build_mock_resource(final_status: "success", hits_to_complete: 9, name: 'third')
@@ -114,7 +114,7 @@ class ResourceWatcherTest < Krane::TestCase
 
   def test_timeout_allows_success
     stub_kind_get("MockResource")
-    mocked_cluster_resource_discovery(api_resources_namespaced_full_response)
+    mocked_cluster_resource_discovery
     resource = build_mock_resource(hits_to_complete: 1)
     watcher = Krane::ResourceWatcher.new(resources: [resource],
       timeout: 2, task_config: task_config(namespace: 'test'))
@@ -124,13 +124,13 @@ class ResourceWatcherTest < Krane::TestCase
   end
 
   def test_timeout_raises_after_timeout_seconds
+    mocked_cluster_resource_discovery
     stub_kind_get("MockResource", times: 3)
-    mocked_cluster_resource_discovery(api_resources_namespaced_full_response)
     resource = build_mock_resource(hits_to_complete: 10**100)
     watcher = Krane::ResourceWatcher.new(resources: [resource],
-      timeout: 0.02, task_config: task_config(namespace: 'test'))
+      timeout: 0.2, task_config: task_config(namespace: 'test'))
 
-    assert_raises(Krane::DeploymentTimeoutError) { watcher.run(delay_sync: 0.01) }
+    assert_raises(Krane::DeploymentTimeoutError) { watcher.run(delay_sync: 0.1) }
   end
 
   private
