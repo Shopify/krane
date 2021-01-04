@@ -23,9 +23,19 @@ module Krane
       fetch_resources(namespaced: namespaced).uniq { |r| r['kind'] }.map do |resource|
         next unless resource['verbs'].one? { |v| v == "delete" }
         next if black_list.include?(resource['kind'])
-        group_versions = api_versions[resource['apigroup'].to_s]
-        version = version_for_kind(group_versions, resource['kind'])
-        [resource['apigroup'], version, resource['kind']].compact.join("/")
+        group = resource['apigroup'].to_s
+        version = ''
+        if group.empty?
+          version = resource['apiversion'].to_s
+        end
+        if version.empty?
+          group_versions = api_versions[group.to_s]
+          version = version_for_kind(group_versions, resource['kind'])
+          [group, version, resource['kind']].compact.join("/")
+        else
+          version = 'core/v1' if version == 'v1'
+          [version, resource['kind']].compact.join("/")
+        end
       end.compact
     end
 
