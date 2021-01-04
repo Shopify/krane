@@ -560,7 +560,11 @@ module Krane
 
     # Server side dry run is only supported on apply
     def validate_with_server_side_dry_run(kubectl)
-      command = ["apply", "-f", file_path, "--server-dry-run", "--output=name"]
+      if kubectl.server_version >= Gem::Version.new('1.19')
+        command = ["apply", "-f", file_path, "--dry-run=server", "--output=name"]
+      else
+        command = ["apply", "-f", file_path, "--server-dry-run", "--output=name"]
+      end
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
         retry_whitelist: [:client_timeout, :empty, :context_deadline], attempts: 3)
     end
