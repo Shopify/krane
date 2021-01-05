@@ -23,12 +23,7 @@ module Krane
       fetch_resources(namespaced: namespaced).uniq { |r| r['kind'] }.map do |resource|
         next unless resource['verbs'].one? { |v| v == "delete" }
         next if black_list.include?(resource['kind'])
-        group = resource['apigroup'].to_s
-        group_versions = api_versions[group]
-        version = version_for_kind(group_versions, resource['kind'])
-
-        group = 'core' if group.empty? && version == 'v1'
-        [group, version, resource['kind']].compact.join("/")
+        get_resource_api_path(api_versions, resource)
       end.compact
     end
 
@@ -102,6 +97,20 @@ module Krane
         [match[:major].to_i, pre, match[:minor].to_i]
       end.last
       version_override.fetch(kind, latest)
+    end
+
+    def get_resource_api_path(api_versions, resource)
+      apiversion = resource['apiversion'].to_s
+      apiversion = 'core/v1' if apiversion == 'v1'
+      if apiversion.empty?
+        apigroup = resource['apigroup'].to_s
+        group_versions = api_versions[apigroup]
+
+        version = version_for_kind(group_versions, resource['kind'])
+        apigroup = 'core' if apigroup.empty? && version == 'v1'
+        apiversion = "#{apigroup}/#{version}"
+      end
+      [apiversion, resource['kind']].compact.join("/")
     end
 
     def fetch_crds
