@@ -6,11 +6,6 @@ if ENV["COVERAGE"]
   SimpleCov.start do
     add_filter 'test/'
   end
-
-  if ENV["CODECOV_TOKEN"]
-    require 'codecov'
-    SimpleCov.formatter = SimpleCov::Formatter::Codecov
-  end
 end
 
 if ENV["PROFILE"]
