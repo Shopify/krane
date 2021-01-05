@@ -206,13 +206,13 @@ class KubernetesResourceTest < Krane::TestCase
       #{Krane::KubernetesResource::SERVER_DRY_RUN_DISABLED_ERROR}")
   end
 
-  def test_validate_definition_ignores_server_dry_run_unsupported_by_webhook_response_k8s_1_18
+  def test_validate_definition_ignores_server_dry_run_unsupported_by_webhook_response_k8s_1_17
     resource = DummySensitiveResource.new
     kubectl.expects(:run)
       .with('apply', '-f', anything, '--dry-run', '--output=name', anything)
       .returns(["", "", stub(success?: true)])
 
-    kubectl.expects(:server_version).returns(Gem::Version.new('1.18'))
+    kubectl.expects(:server_version).returns(Gem::Version.new('1.17'))
 
     kubectl.expects(:run)
       .with('apply', '-f', anything, '--server-dry-run', '--output=name', anything)

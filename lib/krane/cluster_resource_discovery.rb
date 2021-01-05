@@ -24,18 +24,11 @@ module Krane
         next unless resource['verbs'].one? { |v| v == "delete" }
         next if black_list.include?(resource['kind'])
         group = resource['apigroup'].to_s
-        version = ''
-        if group.empty?
-          version = resource['apiversion'].to_s
-        end
-        if version.empty?
-          group_versions = api_versions[group.to_s]
-          version = version_for_kind(group_versions, resource['kind'])
-          [group, version, resource['kind']].compact.join("/")
-        else
-          version = 'core/v1' if version == 'v1'
-          [version, resource['kind']].compact.join("/")
-        end
+        group_versions = api_versions[group]
+        version = version_for_kind(group_versions, resource['kind'])
+
+        group = 'core' if group.empty? && version == 'v1'
+        [group, version, resource['kind']].compact.join("/")
       end.compact
     end
 
