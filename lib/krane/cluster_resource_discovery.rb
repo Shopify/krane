@@ -102,6 +102,8 @@ module Krane
     def get_resource_api_path(api_versions, resource)
       apiversion = resource['apiversion'].to_s
       apiversion = 'core/v1' if apiversion == 'v1'
+
+      ## In kubectl 1.20 APIGroups was replaced by APIVersions
       if apiversion.empty?
         apigroup = resource['apigroup'].to_s
         group_versions = api_versions[apigroup]
