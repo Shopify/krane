@@ -23,7 +23,7 @@ module Krane
       fetch_resources(namespaced: namespaced).uniq { |r| r['kind'] }.map do |resource|
         next unless resource['verbs'].one? { |v| v == "delete" }
         next if black_list.include?(resource['kind'])
-        get_resource_api_path(api_versions, resource)
+        gvk_string(api_versions, resource)
       end.compact
     end
 
@@ -99,9 +99,8 @@ module Krane
       version_override.fetch(kind, latest)
     end
 
-    def get_resource_api_path(api_versions, resource)
+    def gvk_string(api_versions, resource)
       apiversion = resource['apiversion'].to_s
-      apiversion = 'core/v1' if apiversion == 'v1'
 
       ## In kubectl 1.20 APIGroups was replaced by APIVersions
       if apiversion.empty?
@@ -109,9 +108,11 @@ module Krane
         group_versions = api_versions[apigroup]
 
         version = version_for_kind(group_versions, resource['kind'])
-        apigroup = 'core' if apigroup.empty? && version == 'v1'
+        apigroup = 'core' if apigroup.empty?
         apiversion = "#{apigroup}/#{version}"
       end
+
+      apiversion = "core/#{apiversion}" unless apiversion.include?("/")
       [apiversion, resource['kind']].compact.join("/")
     end
 
