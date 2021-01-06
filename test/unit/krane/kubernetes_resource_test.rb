@@ -175,6 +175,8 @@ class KubernetesResourceTest < Krane::TestCase
 
   def test_validate_definition_doesnt_log_raw_output_for_sensitive_resources
     resource = DummySensitiveResource.new
+    kubectl.expects(:server_version).returns(Gem::Version.new('1.20'))
+
     kubectl.expects(:run).with { |*_args, **kwargs| kwargs[:output_is_sensitive] == true }.returns([
       "Some Raw Output",
       "Error from kubectl: something went wrong and by the way here's your secret: S3CR3T",
@@ -189,6 +191,28 @@ class KubernetesResourceTest < Krane::TestCase
     kubectl.expects(:run)
       .with('apply', '-f', anything, '--dry-run', '--output=name', anything)
       .returns(["", "", stub(success?: true)])
+
+    kubectl.expects(:server_version).returns(Gem::Version.new('1.20'))
+
+    kubectl.expects(:run)
+      .with('apply', '-f', anything, '--dry-run=server', '--output=name', anything)
+      .returns([
+        "Some Raw Output",
+        "Error from kubectl: admission webhook some-webhook does not support dry run",
+        stub(success?: false),
+      ])
+    resource.validate_definition(kubectl)
+    refute(resource.validation_failed?, "Failed to ignore server dry run responses matching:
+      #{Krane::KubernetesResource::SERVER_DRY_RUN_DISABLED_ERROR}")
+  end
+
+  def test_validate_definition_ignores_server_dry_run_unsupported_by_webhook_response_k8s_1_17
+    resource = DummySensitiveResource.new
+    kubectl.expects(:run)
+      .with('apply', '-f', anything, '--dry-run', '--output=name', anything)
+      .returns(["", "", stub(success?: true)])
+
+    kubectl.expects(:server_version).returns(Gem::Version.new('1.17'))
 
     kubectl.expects(:run)
       .with('apply', '-f', anything, '--server-dry-run', '--output=name', anything)
