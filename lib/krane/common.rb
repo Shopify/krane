@@ -11,7 +11,6 @@ require 'active_support/core_ext/array/conversions'
 require 'colorized_string'
 
 require 'krane/version'
-require 'krane/oj'
 require 'krane/errors'
 require 'krane/formatted_logger'
 require 'krane/statsd'
