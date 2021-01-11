@@ -1,6 +1,6 @@
 # frozen_string_literal: true
-
 require 'krane'
+require 'krane/oj'
 require 'thor'
 require 'krane/cli/version_command'
 require 'krane/cli/restart_command'
