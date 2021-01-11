@@ -41,6 +41,7 @@ require 'krane/renderer'
 require 'krane/cluster_resource_discovery'
 require 'krane/template_sets'
 require 'krane/deploy_task_config_validator'
+require 'krane/resource_validator'
 require 'krane/resource_deployer'
 require 'krane/concerns/template_reporting'
 
@@ -144,7 +145,10 @@ module Krane
       @logger.phase_heading("Initializing deploy")
       validate_configuration(prune: prune)
       resources = discover_resources
-      validate_resources(resources)
+      validate_resources(resources, prune)
+
+      @logger.info("Done with Phase 1 in: #{Time.now.utc - start} secs")
+      exit(1) # TODO: tmp stuff, just trying to get results of phase 1 for now
 
       @logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)
@@ -190,6 +194,12 @@ module Krane
 
     def resource_deployer
       @resource_deployer ||= Krane::ResourceDeployer.new(task_config: @task_config,
+        prune_whitelist: prune_whitelist, global_timeout: @global_timeout,
+        selector: @selector, statsd_tags: statsd_tags, current_sha: @current_sha)
+    end
+
+    def resource_validator
+      @resource_validator ||= Krane::ResourceValidator.new(task_config: @task_config,
         prune_whitelist: prune_whitelist, global_timeout: @global_timeout,
         selector: @selector, statsd_tags: statsd_tags, current_sha: @current_sha)
     end
@@ -277,11 +287,14 @@ module Krane
     end
     measure_method(:validate_configuration)
 
-    def validate_resources(resources)
+    def validate_resources(resources, prune)
       validate_globals(resources)
       Krane::Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(kubectl, selector: @selector)
+        r.validate_definition(kubectl, selector: @selector, validate_with_kubectl: false)
       end
+
+      resource_validator.validate(resources, prune: prune)
+      ## TODO: need to parse output in batch apply and flag invalid resource if possible
 
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
