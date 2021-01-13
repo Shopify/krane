@@ -70,33 +70,6 @@ module Krane
         nil
       end
 
-      def validate_all(resources, task_config)
-        logger = Krane::FormattedLogger.build
-        command = %w(apply)
-        command.push("--dry-run=server") # Only works on 1.18+, need older version otherwise
-        Dir.mktmpdir do |tmp_dir|
-          resources.each { |r| FileUtils.symlink(r.file_path, tmp_dir) }
-          command.push("-f", tmp_dir)
-
-          logger.info("will execute: #{command}")
-          output_is_sensitive = resources.any?(&:sensitive_template_content?)
-          out, err, st = Kubectl.new(task_config: task_config, log_failure_by_default: true).run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
-            attempts: 2, use_namespace: true)
-
-          if st.success?
-            logger.info("looks like it worked?")
-            logger.info("out: #{out}")
-            logger.info("err: #{err}")
-          else
-            logger.info("bu. it failed. now what?")
-            logger.info("out: #{out}")
-            logger.info("err: #{err}")
-            # TODO: flag individual resources
-            raise Exception.new, "Command failed: #{Shellwords.join(command)}" # TODO: get a better exception class here
-          end
-        end
-      end
-
       def timeout
         self::TIMEOUT
       end
@@ -166,7 +139,9 @@ module Krane
       validate_selector(selector) if selector
       validate_timeout_annotation
       validate_deploy_method_override_annotation
-      validate_spec_with_kubectl(kubectl)
+      # Temporary conditional for checking kubectl, need to deal with cases where we might want to simply validate a
+      # single resource (do we _ever_ want to do that???)
+      validate_spec_with_kubectl(kubectl) if kubectl
       @validation_errors.present?
     end
 
