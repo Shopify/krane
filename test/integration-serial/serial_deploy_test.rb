@@ -236,6 +236,27 @@ class SerialDeployTest < Krane::IntegrationTest
     assert_deploy_success(result)
   end
 
+  def test_custom_resources_predeployed_correctly_with_non_unique_kinds
+    results = deploy_global_fixtures("crd", subset: %w(network_policy.yml)) do |f|
+      # revert name muning since we're explicitly testing conflicting names
+      np = f["network_policy.yml"]["CustomResourceDefinition"].first
+      np["metadata"]["name"] = "networkpolicies.stable.example.io"
+      np["spec"]["names"] = { "kind" => "NetworkPolicy", "plural" => "networkpolicies" }
+    end
+    assert_deploy_success(results)
+    reset_logger
+
+    result = deploy_fixtures("crd", subset: %w(network_policy_cr.yml))
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      /Phase 3: Predeploying priority resources/,
+      /Successfully deployed in \d.\ds: NetworkPolicy\/built-in-policy, NetworkPolicy\/cr-np/,
+      /Phase 4: Deploying all resources/,
+      /NetworkPolicy\/built-in-policy                     Created/,
+      /NetworkPolicy\/cr-np                               Exists/,
+    ], in_order: true)
+  end
+
   def test_custom_resources_predeployed
     assert_deploy_success(deploy_global_fixtures("crd", subset: %w(mail.yml things.yml widgets.yml)) do |f|
       mail = f.dig("mail.yml", "CustomResourceDefinition").first
