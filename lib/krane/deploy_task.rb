@@ -144,7 +144,8 @@ module Krane
       @logger.phase_heading("Initializing deploy")
       validate_configuration(prune: prune)
       resources = discover_resources
-      validate_resources(resources)
+
+      resource_deployer.dry_run(resources, prune)
 
       @logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)

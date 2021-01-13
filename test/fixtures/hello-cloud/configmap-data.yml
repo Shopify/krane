@@ -7,4 +7,4 @@ metadata:
     app: hello-cloud
 data:
   datapoint1: value1
-  datapoint2: value2
+  datapoint2: value3
