@@ -1,6 +1,6 @@
 containers:
   default:
-    docker: circleci/ruby:2.5.7
+    docker: circleci/ruby:2.6.6
 
 steps:
   - label: Lint
