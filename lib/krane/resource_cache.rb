@@ -15,6 +15,7 @@ module Krane
     end
 
     def get_instance(kind, resource_name, raise_if_not_found: false)
+      
       instance = use_or_populate_cache(kind).fetch(resource_name, {})
       if instance.blank? && raise_if_not_found
         raise Krane::Kubectl::ResourceNotFoundError, "Resource does not exist (used cache for kind #{kind})"
