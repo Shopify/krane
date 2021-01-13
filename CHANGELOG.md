@@ -1,5 +1,8 @@
 ## next
 
+*Other*
+- Dropped support for Ruby 2.5 since it will be EoL shortly. [#782](https://github.com/Shopify/krane/pull/782).
+
 ## 2.1.3
 
 - Add version exception for ServiceNetworkEndpointGroup (GKE resource) [#768](https://github.com/Shopify/krane/pull/768)
