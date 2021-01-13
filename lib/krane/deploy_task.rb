@@ -144,9 +144,6 @@ module Krane
       @logger.phase_heading("Initializing deploy")
       validate_configuration(prune: prune)
       resources = discover_resources
-
-      # THINK: validate_resource for static validation, just use the deployer to run dry-run and capture the logging we
-      # want in that logic (since it can raise a gatal deployment)
       validate_resources(resources, prune)
 
       @logger.phase_heading("Checking initial resource statuses")
@@ -282,8 +279,13 @@ module Krane
 
     def validate_resources(resources, prune = true)
       validate_globals(resources)
+      dry_run_success = validate_dry_run(resources, prune)
       Krane::Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(nil, selector: @selector)
+        if dry_run_success
+          r.validate_definition(nil, selector: @selector)
+        else
+          r.validate_definition(kubectl, selector: @selector)
+        end
       end
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
@@ -292,10 +294,8 @@ module Krane
           record_invalid_template(logger: @logger, err: r.validation_error_msg,
             filename: File.basename(r.file_path), content: content)
         end
-        # TODO: Change to "Static template validation failed?"
         raise FatalDeploymentError, "Template validation failed"
       end
-      validate_dry_run(resources, prune)
     end
     measure_method(:validate_resources)
 
@@ -313,7 +313,9 @@ module Krane
 
     def validate_dry_run(resources, prune)
       resource_deployer.dry_run(resources, prune)
-      # rescue FatalDeploymentError => e
+      true
+    rescue FatalDeploymentError
+      false
     end
 
     def namespace_definition
