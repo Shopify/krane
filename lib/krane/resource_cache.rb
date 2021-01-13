@@ -36,9 +36,10 @@ module Krane
       []
     end
 
+    # TODO: I've broken sync_dependencies
     def prewarm(resources)
       sync_dependencies = resources.flat_map { |r| r.class.const_get(:SYNC_DEPENDENCIES) }
-      kinds = (resources.map(&:type) + sync_dependencies).uniq
+      kinds = resources.map(&:sync_group_kind).uniq # sync_dependencies).uniq
       Krane::Concurrency.split_across_threads(kinds, max_threads: kinds.count) { |kind| get_all(kind) }
     end
 
@@ -56,8 +57,9 @@ module Krane
     end
 
     def fetch_by_kind(kind)
-      resource_class = KubernetesResource.class_for_kind(kind)
-      global_kind = @task_config.global_kinds.map(&:downcase).include?(kind.downcase)
+      kind_only = kind.split(".").first.downcase # Busted for non unique kinds...
+      resource_class = KubernetesResource.class_for_kind(kind_only)
+      global_kind = @task_config.global_kinds.map(&:downcase).include?(kind_only)
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
       raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
          output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
