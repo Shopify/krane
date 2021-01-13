@@ -138,7 +138,7 @@ module Krane
       Dir.mktmpdir do |tmp_dir|
         resources.each do |r|
           FileUtils.symlink(r.file_path, tmp_dir)
-          r.deploy_started_at = Time.now.utc
+          r.deploy_started_at = Time.now.utc unless dry_run
         end
         command.push("-f", tmp_dir)
         if prune && @prune_whitelist.present?
