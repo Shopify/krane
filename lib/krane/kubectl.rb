@@ -102,11 +102,9 @@ module Krane
 
     def dry_run_flag
       if server_version >= Gem::Version.new("1.18")
-        # TODO: FIX
         "--dry-run=server"
       else
-        "--dry-run=server"
-        # "--server-dry-run"
+        "--server-dry-run"
       end
     end
 
