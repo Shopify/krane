@@ -1,7 +1,7 @@
 ## next
 
 *Other*
-- Dropped support for Ruby 2.5 since it will be EoL shortly. [#782](https://github.com/Shopify/krane/pull/782).
+- Dropped support for Ruby 2.5 due to EoL. [#782](https://github.com/Shopify/krane/pull/782).
 
 ## 2.1.3
 
