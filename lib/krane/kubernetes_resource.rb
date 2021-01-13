@@ -167,7 +167,6 @@ module Krane
 
     def sync(cache)
       @instance_data = cache.get_instance(kubectl_resource_type, name, raise_if_not_found: true)
-      @disappeared = false
     rescue Krane::Kubectl::ResourceNotFoundError
       @disappeared = true if deploy_started?
       @instance_data = {}
