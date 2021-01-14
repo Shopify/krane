@@ -1,7 +1,7 @@
 ---
 name: krane
 up:
-  - ruby: 2.5.7 # Matches gemspec
+  - ruby: 2.6.6 # Matches gemspec
   - bundler
   - homebrew:
     - homebrew/cask/minikube

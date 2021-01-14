@@ -1,6 +1,6 @@
 containers:
   default:
-    docker: circleci/ruby:2.5.7
+    docker: circleci/ruby:2.6.6
 
 steps:
   - label: Lint
@@ -8,21 +8,22 @@ steps:
     run:
       - bundle: ~
       - bundle exec rubocop
-  - label: 'Run Test Suite (:kubernetes: 1.20-latest :ruby: 2.7)'
+  - label: 'Run Test Suite (:kubernetes: 1.20-latest :ruby: 3.0)'
     command: bin/ci
     agents:
       queue: k8s-ci
     env:
       LOGGING_LEVEL: "4"
       KUBERNETES_VERSION: v1.20-latest
-      RUBY_VERSION: "2.7"
-  - label: 'Run Test Suite (:kubernetes: 1.19-latest)'
+      RUBY_VERSION: "3.0"
+  - label: 'Run Test Suite (:kubernetes: 1.19-latest :ruby: 2.7)'
     command: bin/ci
     agents:
       queue: k8s-ci
     env:
       LOGGING_LEVEL: "4"
       KUBERNETES_VERSION: v1.19-latest
+      RUBY_VERSION: "2.7"
   - label: 'Run Test Suite (:kubernetes: 1.18-latest)'
     command: bin/ci
     agents:

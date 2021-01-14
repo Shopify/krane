@@ -177,11 +177,16 @@ class KubernetesResourceTest < Krane::TestCase
     resource = DummySensitiveResource.new
     kubectl.expects(:server_version).returns(Gem::Version.new('1.20'))
 
-    kubectl.expects(:run).with { |*_args, **kwargs| kwargs[:output_is_sensitive] == true }.returns([
-      "Some Raw Output",
-      "Error from kubectl: something went wrong and by the way here's your secret: S3CR3T",
-      stub(success?: false),
-    ])
+    kubectl.expects(:run)
+      .with('apply', '-f', "/tmp/foo/bar", "--dry-run=server", '--output=name', {
+        log_failure: false, output_is_sensitive: true,
+        retry_whitelist: [:client_timeout, :empty, :context_deadline], attempts: 3
+      })
+      .returns([
+        "Some Raw Output",
+        "Error from kubectl: something went wrong and by the way here's your secret: S3CR3T",
+        stub(success?: false),
+      ])
     resource.validate_definition(kubectl)
     refute_includes(resource.validation_error_msg, 'S3CR3T')
   end

@@ -44,7 +44,8 @@ module FixtureSetAssertions
       token_data = { "api-token" => "this-is-the-api-token", "service" => "Datadog" } # Impt: it isn't _service: Datadog
       assert_secret_present("monitoring-token", token_data)
 
-      assert_secret_present("unused-secret", "this-is-for-testing-deletion" => "true")
+      token_data = { "this-is-for-testing-deletion" => "true" }
+      assert_secret_present("unused-secret", token_data)
     end
 
     def assert_web_resources_up
