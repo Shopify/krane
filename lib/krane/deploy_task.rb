@@ -144,7 +144,7 @@ module Krane
       @logger.phase_heading("Initializing deploy")
       validate_configuration(prune: prune)
       resources = discover_resources
-      validate_resources(resources, prune)
+      validate_resources(resources, prune: prune)
 
       @logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)
@@ -277,7 +277,7 @@ module Krane
     end
     measure_method(:validate_configuration)
 
-    def validate_resources(resources, prune = true)
+    def validate_resources(resources, prune: false)
       validate_globals(resources)
       dry_run_success = validate_dry_run(resources, prune)
       Krane::Concurrency.split_across_threads(resources) do |r|
