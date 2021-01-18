@@ -118,7 +118,7 @@ module Krane
     end
 
     def validate_pod(pod)
-      pod.validate_definition(kubectl)
+      pod.validate_definition(kubectl: kubectl)
     end
 
     def watch_pod(pod)

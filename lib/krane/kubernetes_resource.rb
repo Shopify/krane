@@ -134,7 +134,7 @@ module Krane
       Kubeclient::Resource.new(@definition)
     end
 
-    def validate_definition(kubectl, selector: nil)
+    def validate_definition(kubectl:, selector: nil)
       @validation_errors = []
       validate_selector(selector) if selector
       validate_timeout_annotation

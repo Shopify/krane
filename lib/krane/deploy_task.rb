@@ -282,9 +282,9 @@ module Krane
       dry_run_success = validate_dry_run(resources, prune)
       Krane::Concurrency.split_across_threads(resources) do |r|
         if dry_run_success
-          r.validate_definition(nil, selector: @selector)
+          r.validate_definition(kubectl: nil, selector: @selector)
         else
-          r.validate_definition(kubectl, selector: @selector)
+          r.validate_definition(kubectl: kubectl, selector: @selector)
         end
       end
       failed_resources = resources.select(&:validation_failed?)

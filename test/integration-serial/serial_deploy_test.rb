@@ -515,7 +515,9 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_batch_dry_run_apply_failure_falls_back_to_individual_resource_dry_run_validation
-    Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |k, _| k.is_a?(Krane::Kubectl) }
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).with do |kwargs|
+      kwargs[:kubectl].is_a?(Krane::Kubectl)
+    end
     deploy_fixtures("hello-cloud", subset: %w(secret.yml)) do |fixtures|
       secret = fixtures["secret.yml"]["Secret"].first
       secret["bad_field"] = "bad_key"
@@ -523,7 +525,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_batch_dry_run_apply_success_precludes_individual_resource_dry_run_validation
-    Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |k, _| k.nil? }
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |kwargs| kwargs[:kubectl].nil? }
     deploy_fixtures("hello-cloud", subset: %w(secret.yml))
   end
 

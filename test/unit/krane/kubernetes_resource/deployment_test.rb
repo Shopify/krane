@@ -175,7 +175,7 @@ class DeploymentTest < Krane::TestCase
   def test_validation_fails_with_invalid_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: 'bad'), replica_sets: [])
     stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
-    refute(deploy.validate_definition(kubectl))
+    refute(deploy.validate_definition(kubectl: kubectl))
 
     expected = <<~STRING.strip
       super failed
@@ -187,7 +187,7 @@ class DeploymentTest < Krane::TestCase
   def test_validation_with_percent_rollout_annotation
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10%'), replica_sets: [])
     stub_validation_dry_run
-    assert(deploy.validate_definition(kubectl))
+    assert(deploy.validate_definition(kubectl: kubectl))
     assert_empty(deploy.validation_error_msg)
   end
 
@@ -195,7 +195,7 @@ class DeploymentTest < Krane::TestCase
     deploy = build_synced_deployment(template: build_deployment_template(rollout: '10'), replica_sets: [])
     stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
 
-    refute(deploy.validate_definition(kubectl))
+    refute(deploy.validate_definition(kubectl: kubectl))
     expected = <<~STRING.strip
       super failed
       '#{rollout_annotation_key}: 10' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
@@ -209,7 +209,7 @@ class DeploymentTest < Krane::TestCase
       replica_sets: [build_rs_template]
     )
     stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
-    refute(deploy.validate_definition(kubectl))
+    refute(deploy.validate_definition(kubectl: kubectl))
 
     expected = <<~STRING.strip
       super failed
@@ -224,7 +224,7 @@ class DeploymentTest < Krane::TestCase
       replica_sets: [build_rs_template]
     )
     stub_validation_dry_run
-    assert(deploy.validate_definition(kubectl))
+    assert(deploy.validate_definition(kubectl: kubectl))
   end
 
   def test_deploy_succeeded_not_fooled_by_stale_status_data
