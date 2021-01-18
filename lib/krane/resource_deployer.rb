@@ -138,7 +138,7 @@ module Krane
     def apply_all(resources, prune, dry_run: false)
       return unless resources.present?
       start = Time.now.utc
-      tags = statsd_tags + (dry_run ? ['dry_run:true'] : ['dry_run:false'])
+
       command = %w(apply)
       Dir.mktmpdir do |tmp_dir|
         resources.each do |r|
@@ -162,6 +162,7 @@ module Krane
         out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
           attempts: 2, use_namespace: !global_mode)
 
+        tags = statsd_tags + (dry_run ? ['dry_run:true'] : ['dry_run:false'])
         Krane::StatsD.client.distribution('apply_all.duration', Krane::StatsD.duration(start), tags: tags)
         if st.success?
           log_pruning(out) if prune
@@ -171,7 +172,6 @@ module Krane
         end
       end
     end
-    measure_method(:apply_all)
 
     def log_pruning(kubectl_output)
       pruned = kubectl_output.scan(/^(.*) pruned$/)
