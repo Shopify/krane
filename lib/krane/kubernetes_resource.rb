@@ -139,7 +139,6 @@ module Krane
       validate_selector(selector) if selector
       validate_timeout_annotation
       validate_deploy_method_override_annotation
-      # We may have validated by batch applying, so we don't always need kubectl here
       validate_spec_with_kubectl(kubectl) if kubectl
       @validation_errors.present?
     end

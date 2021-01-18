@@ -281,6 +281,7 @@ module Krane
       validate_globals(resources)
       dry_run_success = validate_dry_run(resources)
       Krane::Concurrency.split_across_threads(resources) do |r|
+        # No need to pass in kubectl (and do per-resource dry run apply) if batch dry run succeeded
         if dry_run_success
           r.validate_definition(kubectl: nil, selector: @selector)
         else
