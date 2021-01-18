@@ -313,9 +313,6 @@ module Krane
 
     def validate_dry_run(resources, prune)
       resource_deployer.dry_run(resources, prune)
-      true
-    rescue FatalDeploymentError
-      false
     end
 
     def namespace_definition
