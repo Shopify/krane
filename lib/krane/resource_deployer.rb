@@ -20,8 +20,8 @@ module Krane
       @statsd_tags = statsd_tags
     end
 
-    def dry_run(resources, prune)
-      apply_all(resources, prune, dry_run: true)
+    def dry_run(resources)
+      apply_all(resources, true, dry_run: true)
       true
     rescue FatalDeploymentError
       false

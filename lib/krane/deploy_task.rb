@@ -144,7 +144,7 @@ module Krane
       @logger.phase_heading("Initializing deploy")
       validate_configuration(prune: prune)
       resources = discover_resources
-      validate_resources(resources, prune: prune)
+      validate_resources(resources)
 
       @logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)
@@ -277,9 +277,9 @@ module Krane
     end
     measure_method(:validate_configuration)
 
-    def validate_resources(resources, prune: false)
+    def validate_resources(resources)
       validate_globals(resources)
-      dry_run_success = validate_dry_run(resources, prune)
+      dry_run_success = validate_dry_run(resources)
       Krane::Concurrency.split_across_threads(resources) do |r|
         if dry_run_success
           r.validate_definition(kubectl: nil, selector: @selector)
@@ -311,8 +311,8 @@ module Krane
         "Use GlobalDeployTask instead."
     end
 
-    def validate_dry_run(resources, prune)
-      resource_deployer.dry_run(resources, prune)
+    def validate_dry_run(resources)
+      resource_deployer.dry_run(resources)
     end
 
     def namespace_definition
