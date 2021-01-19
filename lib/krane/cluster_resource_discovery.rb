@@ -88,8 +88,7 @@ module Krane
                            "CSIDriver" => "v1beta1", "Ingress" => "v1beta1",
                            "CSINode" => "v1beta1", "Job" => "v1",
                            "IngressClass" => "v1beta1", "FrontendConfig" => "v1beta1",
-                           "ServiceNetworkEndpointGroup" => "v1beta1",
-                           "TCPIngress" => "v1beta1" }
+                           "ServiceNetworkEndpointGroup" => "v1beta1" }
 
       pattern = /v(?<major>\d+)(?<pre>alpha|beta)?(?<minor>\d+)?/
       latest = versions.sort_by do |version|
