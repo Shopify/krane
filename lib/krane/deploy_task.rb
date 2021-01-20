@@ -285,7 +285,7 @@ module Krane
         if batch_dry_run_success
           r.validate_definition(kubectl: nil, selector: @selector, dry_run: false)
         else
-          r.validate_definition(kubectl: kubectl, selector: @selector)
+          r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
         end
       end
       failed_resources = resources.select(&:validation_failed?)
