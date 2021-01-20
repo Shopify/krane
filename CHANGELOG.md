@@ -1,8 +1,14 @@
 ## next
 
+## 2.1.4
+
+*Enhancements*
+- Attempt to batch run server-side apply in validation phase instead of dry-running each resource individually [#781](https://github.com/Shopify/krane/pull/781).
+- Evaluate progress condition only after progress deadline seconds have passed since deploy invocation [#765](https://github.com/Shopify/krane/pull/765).
+
 *Other*
 - Dropped support for Ruby 2.5 due to EoL. [#782](https://github.com/Shopify/krane/pull/782).
-- Attempt to batch run server-side apply in validation phase instead of dry-running each resource individually [#781](https://github.com/Shopify/krane/pull/781).
+- Only patch JSON when run as CLI, not as library [#779](https://github.com/Shopify/krane/pull/779).
 
 ## 2.1.3
 
