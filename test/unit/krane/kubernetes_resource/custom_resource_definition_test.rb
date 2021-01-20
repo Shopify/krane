@@ -24,7 +24,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     }.to_json
 
     crd = build_crd(merge_rollout_annotation(rollout_conditions))
-    crd.validate_definition(kubectl)
+    crd.validate_definition(kubectl: kubectl)
     refute(crd.validation_failed?, "Valid rollout conditions failed validation")
   end
 
@@ -39,7 +39,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     }.to_json
 
     crd = build_crd(merge_rollout_annotation(rollout_conditions))
-    crd.validate_definition(kubectl)
+    crd.validate_definition(kubectl: kubectl)
     refute(crd.validation_failed?, "Valid rollout conditions failed validation")
   end
 
@@ -50,7 +50,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     }
 
     crd = build_crd(merge_rollout_annotation(missing_keys.to_json))
-    crd.validate_definition(kubectl)
+    crd.validate_definition(kubectl: kubectl)
 
     assert(crd.validation_failed?, "Missing path/value keys should fail validation")
     assert_equal(crd.validation_error_msg,
@@ -63,7 +63,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     missing_keys = { success_conditions: [] }.to_json
 
     crd = build_crd(merge_rollout_annotation(missing_keys))
-    crd.validate_definition(kubectl)
+    crd.validate_definition(kubectl: kubectl)
 
     assert(crd.validation_failed?, "success_conditions requires at least one entry")
     assert_equal(crd.validation_error_msg,
@@ -73,7 +73,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
 
   def test_rollout_conditions_fails_validation_with_invalid_json
     crd = build_crd(merge_rollout_annotation('bad string'))
-    crd.validate_definition(kubectl)
+    crd.validate_definition(kubectl: kubectl)
     assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
     assert(crd.validation_error_msg.match(
       "Annotation #{rollout_conditions_annotation_key} " \
@@ -85,7 +85,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     crd = build_crd(merge_rollout_annotation({
       success_conditions: {},
     }.to_json))
-    crd.validate_definition(kubectl)
+    crd.validate_definition(kubectl: kubectl)
     assert(crd.validation_failed?, "Invalid rollout conditions were accepted")
     assert(crd.validation_error_msg.match("success_conditions should be Array but found Hash"))
   end
@@ -98,7 +98,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
         "kind" => "UnitTest",
         "metadata" => { "name" => "test" },
       })
-    cr.validate_definition(kubectl)
+    cr.validate_definition(kubectl: kubectl)
     assert(cr.validation_error_msg.include?(
       "The CRD that specifies this resource is using invalid rollout conditions. Krane will not be " \
       "able to continue until those rollout conditions are fixed.\nRollout conditions can be found on the CRD " \
@@ -131,7 +131,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
         "kind" => "UnitTest",
         "metadata" => { "name" => "test" },
       })
-    cr.validate_definition(kubectl)
+    cr.validate_definition(kubectl: kubectl)
     refute(cr.validation_failed?)
   end
 

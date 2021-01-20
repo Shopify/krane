@@ -131,7 +131,7 @@ module Krane
       validate_globals(resources)
 
       Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(@kubectl, selector: @selector)
+        r.validate_definition(kubectl: @kubectl, selector: @selector)
       end
 
       failed_resources = resources.select(&:validation_failed?)

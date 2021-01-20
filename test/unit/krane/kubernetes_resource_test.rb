@@ -114,7 +114,7 @@ class KubernetesResourceTest < Krane::TestCase
 
   def test_blank_timeout_annotation_is_invalid
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata(""))
-    customized_resource.validate_definition(kubectl)
+    customized_resource.validate_definition(kubectl: kubectl)
     assert(customized_resource.validation_failed?, "Blank annotation was valid")
     assert_equal("#{timeout_override_err_prefix}: Invalid ISO 8601 duration: \"\" is empty duration",
       customized_resource.validation_error_msg)
@@ -123,14 +123,14 @@ class KubernetesResourceTest < Krane::TestCase
   def test_lack_of_timeout_annotation_does_not_fail_validation
     basic_resource = DummyResource.new
     assert_equal(300, basic_resource.timeout)
-    basic_resource.validate_definition(kubectl)
+    basic_resource.validate_definition(kubectl: kubectl)
     refute(basic_resource.validation_failed?)
   end
 
   def test_deploy_method_override_annotation_fails_validation_for_invalid_entry
     customized_resource = DummyResource.new(definition_extras: build_deploy_method_override_metadata('bad'))
     assert_equal(:bad, customized_resource.deploy_method_override)
-    customized_resource.validate_definition(kubectl)
+    customized_resource.validate_definition(kubectl: kubectl)
     assert(customized_resource.validation_failed?)
   end
 
@@ -138,38 +138,38 @@ class KubernetesResourceTest < Krane::TestCase
     Krane::KubernetesResource::ALLOWED_DEPLOY_METHOD_OVERRIDES.each do |method|
       customized_resource = DummyResource.new(definition_extras: build_deploy_method_override_metadata(method))
       assert_equal(method.to_sym, customized_resource.deploy_method_override)
-      customized_resource.validate_definition(kubectl)
+      customized_resource.validate_definition(kubectl: kubectl)
       refute(customized_resource.validation_failed?)
     end
   end
 
   def test_timeout_override_lower_bound_validation
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("-1S"))
-    customized_resource.validate_definition(kubectl)
+    customized_resource.validate_definition(kubectl: kubectl)
     assert(customized_resource.validation_failed?, "Annotation with '-1' was valid")
     assert_equal("#{timeout_override_err_prefix}: Value must be greater than 0",
       customized_resource.validation_error_msg)
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("0S"))
-    customized_resource.validate_definition(kubectl)
+    customized_resource.validate_definition(kubectl: kubectl)
     assert(customized_resource.validation_failed?, "Annotation with '0' was valid")
     assert_equal("#{timeout_override_err_prefix}: Value must be greater than 0",
       customized_resource.validation_error_msg)
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("1S"))
-    customized_resource.validate_definition(kubectl)
+    customized_resource.validate_definition(kubectl: kubectl)
     refute(customized_resource.validation_failed?, "Annotation with '1' was invalid")
   end
 
   def test_timeout_override_upper_bound_validation
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H1S"))
-    customized_resource.validate_definition(kubectl)
+    customized_resource.validate_definition(kubectl: kubectl)
     assert(customized_resource.validation_failed?, "Annotation with '24H1S' was valid")
     expected_message = "#{timeout_override_err_prefix}: Value must be less than 24h"
     assert_equal(expected_message, customized_resource.validation_error_msg)
 
     customized_resource = DummyResource.new(definition_extras: build_timeout_metadata("24H"))
-    customized_resource.validate_definition(kubectl)
+    customized_resource.validate_definition(kubectl: kubectl)
     refute(customized_resource.validation_failed?, "Annotation with '24H' was invalid")
   end
 
@@ -187,7 +187,7 @@ class KubernetesResourceTest < Krane::TestCase
         "Error from kubectl: something went wrong and by the way here's your secret: S3CR3T",
         stub(success?: false),
       ])
-    resource.validate_definition(kubectl)
+    resource.validate_definition(kubectl: kubectl)
     refute_includes(resource.validation_error_msg, 'S3CR3T')
   end
 
@@ -206,7 +206,7 @@ class KubernetesResourceTest < Krane::TestCase
         "Error from kubectl: admission webhook some-webhook does not support dry run",
         stub(success?: false),
       ])
-    resource.validate_definition(kubectl)
+    resource.validate_definition(kubectl: kubectl)
     refute(resource.validation_failed?, "Failed to ignore server dry run responses matching:
       #{Krane::KubernetesResource::SERVER_DRY_RUN_DISABLED_ERROR}")
   end
@@ -226,7 +226,7 @@ class KubernetesResourceTest < Krane::TestCase
         "Error from kubectl: admission webhook some-webhook does not support dry run",
         stub(success?: false),
       ])
-    resource.validate_definition(kubectl)
+    resource.validate_definition(kubectl: kubectl)
     refute(resource.validation_failed?, "Failed to ignore server dry run responses matching:
       #{Krane::KubernetesResource::SERVER_DRY_RUN_DISABLED_ERROR}")
   end
@@ -239,7 +239,7 @@ class KubernetesResourceTest < Krane::TestCase
       stub(success?: false),
     ])
 
-    customized_resource.validate_definition(kubectl)
+    customized_resource.validate_definition(kubectl: kubectl)
     assert(customized_resource.validation_failed?, "Expected resource to be invalid")
     expected = <<~STRING.strip
       #{timeout_override_err_prefix}: Invalid ISO 8601 duration: "BAD"
