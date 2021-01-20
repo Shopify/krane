@@ -89,6 +89,7 @@ module Krane
                            "CSINode" => "v1beta1", "Job" => "v1",
                            "IngressClass" => "v1beta1", "FrontendConfig" => "v1beta1",
                            "ServiceNetworkEndpointGroup" => "v1beta1",
+                           "EnvoyFilter" => "v1alpha3",
                            "TCPIngress" => "v1beta1" }
 
       pattern = /v(?<major>\d+)(?<pre>alpha|beta)?(?<minor>\d+)?/
