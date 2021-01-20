@@ -4,7 +4,7 @@ require 'krane/kubernetes_resource/pod'
 module Krane
   class Service < KubernetesResource
     TIMEOUT = 7.minutes
-    SYNC_DEPENDENCIES = %w(Pod Deployment StatefulSet)
+    SYNC_DEPENDENCIES = %w(Pod.apps Deployment.apps StatefulSet.apps)
 
     def sync(cache)
       super
