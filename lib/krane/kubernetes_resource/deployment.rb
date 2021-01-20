@@ -155,6 +155,8 @@ module Krane
 
     def deploy_failing_to_progress?
       return false unless progress_condition.present?
+      # Ensure at least progress_deadline wall clock time has passed before before examining progress_condition
+      return false if deploy_started? && Time.now.utc - @deploy_started_at < progress_deadline
 
       # This assumes that when the controller bumps the observed generation, it also updates/clears all the status
       # conditions. Specifically, it assumes the progress condition is immediately set to True if a rollout is starting.
