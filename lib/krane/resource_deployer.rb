@@ -20,6 +20,13 @@ module Krane
       @statsd_tags = statsd_tags
     end
 
+    def dry_run(resources)
+      apply_all(resources, true, dry_run: true)
+      true
+    rescue FatalDeploymentError
+      false
+    end
+
     def deploy!(resources, verify_result, prune)
       if verify_result
         deploy_all_resources(resources, prune: prune, verify: true)
@@ -128,17 +135,17 @@ module Krane
       end
     end
 
-    def apply_all(resources, prune)
+    def apply_all(resources, prune, dry_run: false)
       return unless resources.present?
-      command = %w(apply)
+      start = Time.now.utc
 
+      command = %w(apply)
       Dir.mktmpdir do |tmp_dir|
         resources.each do |r|
           FileUtils.symlink(r.file_path, tmp_dir)
-          r.deploy_started_at = Time.now.utc
+          r.deploy_started_at = Time.now.utc unless dry_run
         end
         command.push("-f", tmp_dir)
-
         if prune && @prune_whitelist.present?
           command.push("--prune")
           if @selector
@@ -149,20 +156,22 @@ module Krane
           @prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
         end
 
+        command.push(kubectl.dry_run_flag) if dry_run
         output_is_sensitive = resources.any?(&:sensitive_template_content?)
         global_mode = resources.all?(&:global?)
         out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
           attempts: 2, use_namespace: !global_mode)
 
+        tags = statsd_tags + (dry_run ? ['dry_run:true'] : ['dry_run:false'])
+        Krane::StatsD.client.distribution('apply_all.duration', Krane::StatsD.duration(start), tags: tags)
         if st.success?
           log_pruning(out) if prune
         else
-          record_apply_failure(err, resources: resources)
+          record_apply_failure(err, resources: resources) unless dry_run
           raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
         end
       end
     end
-    measure_method(:apply_all)
 
     def log_pruning(kubectl_output)
       pruned = kubectl_output.scan(/^(.*) pruned$/)

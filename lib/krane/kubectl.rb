@@ -100,6 +100,14 @@ module Krane
       server_version >= Gem::Version.new(SERVER_DRY_RUN_MIN_VERSION)
     end
 
+    def dry_run_flag
+      if server_version >= Gem::Version.new("1.18")
+        "--dry-run=server"
+      else
+        "--server-dry-run"
+      end
+    end
+
     private
 
     def build_command_from_options(args, use_namespace, use_context, output)
