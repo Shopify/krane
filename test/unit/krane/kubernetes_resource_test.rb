@@ -175,7 +175,7 @@ class KubernetesResourceTest < Krane::TestCase
 
   def test_validate_definition_doesnt_log_raw_output_for_sensitive_resources
     resource = DummySensitiveResource.new
-    kubectl.expects(:server_version).returns(Gem::Version.new('1.20'))
+    kubectl.expects(:client_version).returns(Gem::Version.new('1.20'))
 
     kubectl.expects(:run)
       .with('apply', '-f', "/tmp/foo/bar", "--dry-run=server", '--output=name', {
@@ -197,7 +197,7 @@ class KubernetesResourceTest < Krane::TestCase
       .with('apply', '-f', anything, '--dry-run', '--output=name', anything)
       .returns(["", "", stub(success?: true)])
 
-    kubectl.expects(:server_version).returns(Gem::Version.new('1.20'))
+    kubectl.expects(:client_version).returns(Gem::Version.new('1.20'))
 
     kubectl.expects(:run)
       .with('apply', '-f', anything, '--dry-run=server', '--output=name', anything)
@@ -217,7 +217,7 @@ class KubernetesResourceTest < Krane::TestCase
       .with('apply', '-f', anything, '--dry-run', '--output=name', anything)
       .returns(["", "", stub(success?: true)])
 
-    kubectl.expects(:server_version).returns(Gem::Version.new('1.17'))
+    kubectl.expects(:client_version).returns(Gem::Version.new('1.17'))
 
     kubectl.expects(:run)
       .with('apply', '-f', anything, '--server-dry-run', '--output=name', anything)

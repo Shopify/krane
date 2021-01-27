@@ -193,7 +193,9 @@ class EjsonSecretProvisionerTest < Krane::TestCase
   end
 
   def dummy_version
-    'Server: version.Info{Major:"1", Minor:"13", GitVersion:"v1.13.6", GitCommit:"a6a8ec"}'
+    'Server: version.Info{Major:"1", Minor:"13", GitVersion:"v1.13.6", GitCommit:"a6a8ec"}' \
+      "\n" \
+      'Client:: version.Info{Major:"1", Minor:"13", GitVersion:"v1.13.6", GitCommit:"70132b"'
   end
 
   def build_provisioner(dir = nil, selector: nil, ejson_keys_secret: dummy_ejson_secret)
