@@ -1,5 +1,9 @@
 ## next
 
+## 2.1.5
+
+- Fix bug where the wrong dry-run flag is used for kubectl if client version is below 1.18 AND server version is 1.18+ [#793](https://github.com/Shopify/krane/pull/793).
+
 ## 2.1.4
 
 *Enhancements*
