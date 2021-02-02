@@ -537,13 +537,14 @@ class SerialDeployTest < Krane::IntegrationTest
     end
     Krane::Ingress.any_instance.expects(:validate_definition)
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb), render_erb: true)
+    assert_deploy_success(result)
   end
 
   def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
     resp = JSON.parse(File.read(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json")))["items"]
     Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
     Krane::KubernetesResource.any_instance.expects(:validate_definition).times(1) # Only secret should call this
-    deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml), render_erb: true) do |fixtures|
+    result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml), render_erb: true) do |fixtures|
       container = fixtures['web.yml.erb']['Deployment'][0]['spec']['template']['spec']
       container['volumes'] = [{
         'name' => 'secret',
@@ -552,6 +553,7 @@ class SerialDeployTest < Krane::IntegrationTest
         },
       }]
     end
+    assert_deploy_success(result)
   end
 
   private

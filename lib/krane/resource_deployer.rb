@@ -161,6 +161,7 @@ module Krane
         global_mode = resources.all?(&:global?)
         out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
           attempts: 2, use_namespace: !global_mode)
+
         tags = statsd_tags + (dry_run ? ['dry_run:true'] : ['dry_run:false'])
         Krane::StatsD.client.distribution('apply_all.duration', Krane::StatsD.duration(start), tags: tags)
         if st.success?
