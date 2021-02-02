@@ -8,7 +8,7 @@ module Krane
     end
 
     def status
-      exists? "Available" : "Not Found"
+      exists ? "Available" : "Not Found"
     end
 
     def deploy_failed?
