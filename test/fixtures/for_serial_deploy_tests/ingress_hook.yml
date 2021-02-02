@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+items:
+- apiVersion: admissionregistration.k8s.io/v1
+  kind: MutatingWebhookConfiguration
+  metadata:
+    creationTimestamp: '2020-08-04T19:49:44Z'
+    generation: 2
+    name: oauthboss-webhook-configuration
+    resourceVersion: '3115431'
+    selfLink: "/apis/admissionregistration.k8s.io/v1/mutatingwebhookconfigurations/oauthboss-webhook-configuration"
+    uid: 7afce875-5175-430d-95aa-de8ec97f15b0
+  webhooks:
+  - admissionReviewVersions:
+    - v1beta1
+    clientConfig:
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMwakNDQWJxZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFhTVJnd0ZnWURWUVFERXc5M1pXSm8KYjI5ckxXTmxjblF0WTJFd0hoY05NakF3T0RBME1UazBPVFExV2hjTk16QXdPREF5TVRrME9UUTFXakFhTVJndwpGZ1lEVlFRREV3OTNaV0pvYjI5ckxXTmxjblF0WTJFd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQUE0SUJEd0F3CmdnRUtBb0lCQVFDOGs1MjNobEFsald4RitITk8wWk9qQTZ4MGNSa1RQVHdkZm9nK3JGOXZ3Y21XRTBFT3kyYlUKZ3BNRU5SQzVpVzRxS1pCYUJ6MEU1bXcvbWNjcGNrbXR1V05pODVML0hzUjVlbWR2aWdUamJYb0RMeWxEdjNMLwpRSlVWOVRIYWFhaXh5cmFMNWhIRUw4bTBhTFNZcWc5MktxODJnWXB0aTB5azBnU1BqdjhUTHBFazhvdWp2L01YCnVJZWtQQzZOTWFDaU1BY1FBTVRyc1NiSmZqL0x0WGpwWk9FM2xCNWpTazNDUW1sT0t5Mm8zaDd6WTZ1RFNtN28KY3orMkhiUXhybCt1SkcrY1B4WVdoWXZReXpLWGViWU11ajd5Wm5FRmI2WFc3dC9ROVo2VmFzMi9DS1Z4Yll4LwppdXEvbU1xZk4xZnNvUitJTmVXVlJ3YlJ0dUJ5VkljRkFnTUJBQUdqSXpBaE1BNEdBMVVkRHdFQi93UUVBd0lDCnBEQVBCZ05WSFJNQkFmOEVCVEFEQVFIL01BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQXc4VWQwOWRYR09kQkwKYnQ5M3JuYk41VzBkMkJUZk43OXJ6SVpadHlmMjREQVQ1SGc1QVV2Qmc4QjJNaFRqdU50VlN6dzN4bGV3TDk3aQo0Wk9JWGJPL3hZTWp3OXRibldDY2o0MlVKRnJUOEN2eVZEekExeS9VVE1lMFpyU3lOUGpWTlBaMmUrb3IvRFdkCmRtbmg0THZ6c3VNbVBPZk96NmUwZmljMzdtLzZjL3JZV0l6aTJYWWRwSllHa1J1eW51UlVUbDZpUjBOa0xXaGYKc25aNll6TnFXT2YvNi9xdHduNkhVckttYWN3L2Q3blBNSDRpQTFId1MyZFh6WkxVR3NVZkZIREFkU2FVSWR3cApsZDFUUjErQjVyMnhiUW95eVo4YnhuTk5Ud04rU2dFZGc5MjJKUFlaRkZFWldDL1NXOWVYcUZnTWM3RlQyMHh4ClE1NW1qdHRICi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+      service:
+        name: oauthboss
+        namespace: cloudbosses
+        path: "/oauthboss"
+        port: 443
+    failurePolicy: Ignore
+    matchPolicy: Exact
+    name: oauthboss.cloudbosses.admission.online.shopify.com
+    namespaceSelector:
+      matchExpressions:
+      - key: control-plane
+        operator: DoesNotExist
+    objectSelector: {}
+    reinvocationPolicy: Never
+    rules:
+    - apiGroups:
+      - extensions
+      apiVersions:
+      - v1beta1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - ingresses
+      scope: "*"
+    sideEffects: Unknown
+    timeoutSeconds: 30
+kind: List
+metadata:
+  resourceVersion: ''
+  selfLink: ''

@@ -298,7 +298,7 @@ module Krane
                   individuals += resources.select do |r|
                     (r.group == group || group == '*' || match_policy == "Equivalent") &&
                       (r.version == version || version == '*' || match_policy == "Equivalent") &&
-                      (r.type.downcase == kind.downcase )
+                      (r.type.downcase == kind.downcase)
                   end
                   resources -= individuals
                 end
