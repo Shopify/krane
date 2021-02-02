@@ -539,18 +539,18 @@ class SerialDeployTest < Krane::IntegrationTest
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb), render_erb: true)
   end
 
-  def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_fail_batch_running
+  def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
     resp = JSON.parse(File.read(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json")))["items"]
     Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
-    Krane::KubernetesResource.any_instance.expects(:validate_definition).times(4) # resources we expect to have to individually validate
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).times(1) # Only secret should call this
     deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml), render_erb: true) do |fixtures|
-      container = fixtures['web.yml.erb']['Deployment'][0]['spec']['template']['spec']['containers'][0]
-      container['volumes'] = [
-        name: 'secret',
-        secret: {
-          secretName: fixtures['secret.yml']["Secret"][0]['metadata']['name'],
+      container = fixtures['web.yml.erb']['Deployment'][0]['spec']['template']['spec']
+      container['volumes'] = [{
+        'name' => 'secret',
+        'secret' => {
+          'secretName' => fixtures['secret.yml']["Secret"][0]['metadata']['name'],
         },
-      ]
+      }]
     end
   end
 
