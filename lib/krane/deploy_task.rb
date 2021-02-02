@@ -277,16 +277,46 @@ module Krane
     end
     measure_method(:validate_configuration)
 
+    def partition_dry_run_resources(resources)
+      individuals = []
+      out, err, st = kubectl.run("get", "mutatingwebhookconfigurations", "-ojson",
+        use_namespace: false, raise_if_not_found: true)
+      raise FatalDeploymentError, "error retrieving mutatingwebhookconfigurations: #{err.message}" unless st.success?
+
+      mutating_webhooks = JSON.parse(out).dig("items")
+      mutating_webhooks.each do |spec|
+        spec.dig('webhooks').each do |webhook|
+          match_policy = webhook.dig('matchPolicy')
+          webhook.dig('rules').each do |rule|
+            next if %w(None NoneOnDryRun).include?(rule.dig('sideEffects'))
+            groups = rule.dig('apiGroups')
+            versions = rule.dig('apiVersions')
+            kinds = rule.dig('resources').map(&:singularize)
+            groups.each do |group|
+              versions.each do |version|
+                kinds.each do |kind|
+                  individuals += resources.select do |r|
+                    (r.group == group || group == '*' || match_policy == "Equivalent") &&
+                      (r.version == version || version == '*' || match_policy == "Equivalent") &&
+                      (r.type.downcase == kind.downcase )
+                  end
+                  resources -= individuals
+                end
+              end
+            end
+          end
+        end
+      end
+      [resources, individuals]
+    end
+
     def validate_resources(resources)
       validate_globals(resources)
-      batch_dry_run_success = kubectl.server_dry_run_enabled? && validate_dry_run(resources)
-      Krane::Concurrency.split_across_threads(resources) do |r|
-        # No need to pass in kubectl (and do per-resource dry run apply) if batch dry run succeeded
-        if batch_dry_run_success
-          r.validate_definition(kubectl: nil, selector: @selector, dry_run: false)
-        else
-          r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
-        end
+      batchable_resources, individuals = partition_dry_run_resources(resources)
+      batch_dry_run_success = kubectl.server_dry_run_enabled? && validate_dry_run(batchable_resources)
+      individuals += batchable_resources unless batch_dry_run_success
+      Krane::Concurrency.split_across_threads(individuals) do |r|
+        r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
       end
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
