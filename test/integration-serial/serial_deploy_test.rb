@@ -3,9 +3,9 @@ require 'integration_test_helper'
 
 class SerialDeployTest < Krane::IntegrationTest
   include StatsD::Instrument::Assertions
-  ## GLOBAL CONTEXT MANIPULATION TESTS
-  # This can be run in parallel if we allow passing the config file path to DeployTask.new
-  # See https://github.com/Shopify/krane/pull/428#pullrequestreview-209720675
+  # GLOBAL CONTEXT MANIPULATION TESTS
+  This can be run in parallel if we allow passing the config file path to DeployTask.new
+  See https://github.com/Shopify/krane/pull/428#pullrequestreview-209720675
   def test_unreachable_context
     old_config = ENV['KUBECONFIG']
     begin
@@ -514,7 +514,6 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
-
   def test_batch_dry_run_apply_failure_falls_back_to_individual_resource_dry_run_validation
     Krane::KubernetesResource.any_instance.expects(:validate_definition).with do |kwargs|
       kwargs[:kubectl].is_a?(Krane::Kubectl) && kwargs[:dry_run]
@@ -529,6 +528,30 @@ class SerialDeployTest < Krane::IntegrationTest
     Krane::KubernetesResource.any_instance.expects(:validate_definition).times(0)
     deploy_fixtures("hello-cloud", subset: %w(secret.yml))
   end
+
+  def test_resources_with_side_effect_inducing_webhooks_are_not_batched_server_side_dry_run
+    resp = JSON.parse(File.read(File.join(fixture_path("for_serial_deploy_tests"), "ingress_hook.json")))["items"]
+    Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
+    Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
+      params.length == 2 && (params.map(&:type) - ["Deployment", "Service"]).empty?
+    end
+    Krane::Ingress.any_instance.expects(:validate_definition)
+    result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb), render_erb: true)
+  end
+
+  def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_fail_batch_running
+    resp = JSON.parse(File.read(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json")))["items"]
+    Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).times(4) # resources we expect to have to individually validate
+    deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml), render_erb: true) do |fixtures|
+      container = fixtures['web.yml.erb']['Deployment'][0]['spec']['template']['spec']['containers'][0]
+      container['volumes'] = [
+        name: 'secret',
+        secret: {
+          secretName: fixtures['secret.yml']["Secret"][0]['metadata']['name'],
+        },
+      ]
+    end
   end
 
   private

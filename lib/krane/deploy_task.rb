@@ -279,11 +279,7 @@ module Krane
 
     def partition_dry_run_resources(resources)
       individuals = []
-      out, err, st = kubectl.run("get", "mutatingwebhookconfigurations", "-ojson",
-        use_namespace: false, raise_if_not_found: true)
-      raise FatalDeploymentError, "error retrieving mutatingwebhookconfigurations: #{err.message}" unless st.success?
-
-      mutating_webhooks = JSON.parse(out).dig("items")
+      mutating_webhooks = cluster_resource_discoverer.fetch_mutating_webhook_configurations
       mutating_webhooks.each do |spec|
         spec.dig('webhooks').each do |webhook|
           match_policy = webhook.dig('matchPolicy')
@@ -297,8 +293,8 @@ module Krane
                 kinds.each do |kind|
                   individuals += resources.select do |r|
                     (r.group == group || group == '*' || match_policy == "Equivalent") &&
-                      (r.version == version || version == '*' || match_policy == "Equivalent") &&
-                      (r.type.downcase == kind.downcase)
+                    (r.version == version || version == '*' || match_policy == "Equivalent") &&
+                    (r.type.downcase == kind.downcase)
                   end
                   resources -= individuals
                 end

@@ -61,6 +61,16 @@ module Krane
       end
     end
 
+    def fetch_mutating_webhook_configurations
+      command = %w(get mutatingwebhookconfigurations)
+      raw_json, err, st = kubectl.run(*command, output: "json", attempts: 5, use_namespace: false)
+      if st.success?
+        JSON.parse(raw_json)["items"]
+      else
+        raise FatalKubeAPIError, "Error retrieving mutatingwebhookconfigurations: #{err}"
+      end
+    end
+
     private
 
     # kubectl api-versions returns a list of group/version strings e.g. autoscaling/v2beta2
