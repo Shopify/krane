@@ -308,7 +308,7 @@ module Krane
 
     def validate_resources(resources)
       validate_globals(resources)
-      batchable_resources, individuals = partition_dry_run_resources(resources)
+      batchable_resources, individuals = partition_dry_run_resources(resources.dup)
       batch_dry_run_success = kubectl.server_dry_run_enabled? && validate_dry_run(batchable_resources)
       individuals += batchable_resources unless batch_dry_run_success
       Krane::Concurrency.split_across_threads(individuals) do |r|
