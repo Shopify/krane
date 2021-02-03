@@ -525,7 +525,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_batch_dry_run_apply_success_precludes_individual_resource_dry_run_validation
-    Krane::KubernetesResource.any_instance.expects(:validate_definition).times(0)
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |params| params[:dry_run] == false }
     result = deploy_fixtures("hello-cloud", subset: %w(secret.yml))
     assert_deploy_success(result)
     assert_logs_match_all([
@@ -552,7 +552,11 @@ class SerialDeployTest < Krane::IntegrationTest
   def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
     resp = mutating_webhook_fixture(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json"))
     Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
-    Krane::KubernetesResource.any_instance.expects(:validate_definition).times(1) # Only secret should call this
+    expected_dry_runs = 0
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).with do |params|
+      expected_dry_runs += 1 if params[:dry_run]
+      true
+    end.times(5)
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml configmap-data.yml),
       render_erb: true) do |fixtures|
       container = fixtures['web.yml.erb']['Deployment'][0]['spec']['template']['spec']
@@ -564,6 +568,7 @@ class SerialDeployTest < Krane::IntegrationTest
       }]
     end
     assert_deploy_success(result)
+    assert_equal(expected_dry_runs, 1)
     assert_logs_match_all([
       "Result: SUCCESS",
       "Successfully deployed 5 resources",
