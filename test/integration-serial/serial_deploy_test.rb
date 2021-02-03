@@ -526,25 +526,35 @@ class SerialDeployTest < Krane::IntegrationTest
 
   def test_batch_dry_run_apply_success_precludes_individual_resource_dry_run_validation
     Krane::KubernetesResource.any_instance.expects(:validate_definition).times(0)
-    deploy_fixtures("hello-cloud", subset: %w(secret.yml))
+    result = deploy_fixtures("hello-cloud", subset: %w(secret.yml))
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Successfully deployed 1 resource",
+    ], in_order: true)
   end
 
   def test_resources_with_side_effect_inducing_webhooks_are_not_batched_server_side_dry_run
     resp = JSON.parse(File.read(File.join(fixture_path("for_serial_deploy_tests"), "ingress_hook.json")))["items"]
     Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
     Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
-      params.length == 2 && (params.map(&:type) - ["Deployment", "Service"]).empty?
+      params.length == 3 && (params.map(&:type) - ["Deployment", "Service", "ConfigMap"]).empty?
     end
     Krane::Ingress.any_instance.expects(:validate_definition)
-    result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb), render_erb: true)
+    result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb configmap-data.yml), render_erb: true)
     assert_deploy_success(result)
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Successfully deployed 4 resources",
+    ], in_order: true)
   end
 
   def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
     resp = JSON.parse(File.read(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json")))["items"]
     Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
     Krane::KubernetesResource.any_instance.expects(:validate_definition).times(1) # Only secret should call this
-    result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml), render_erb: true) do |fixtures|
+    result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml configmap-data.yml),
+      render_erb: true) do |fixtures|
       container = fixtures['web.yml.erb']['Deployment'][0]['spec']['template']['spec']
       container['volumes'] = [{
         'name' => 'secret',
@@ -554,6 +564,10 @@ class SerialDeployTest < Krane::IntegrationTest
       }]
     end
     assert_deploy_success(result)
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Successfully deployed 5 resources",
+    ], in_order: true)
   end
 
   private
