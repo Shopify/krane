@@ -535,7 +535,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_resources_with_side_effect_inducing_webhooks_are_not_batched_server_side_dry_run
-    resp = JSON.parse(File.read(File.join(fixture_path("for_serial_deploy_tests"), "ingress_hook.json")))["items"]
+    resp = mutating_webhook_fixture(File.join(fixture_path("for_serial_deploy_tests"), "ingress_hook.json"))
     Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
     Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
       params.length == 3 && (params.map(&:type) - ["Deployment", "Service", "ConfigMap"]).empty?
@@ -550,7 +550,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
-    resp = JSON.parse(File.read(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json")))["items"]
+    resp = mutating_webhook_fixture(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json"))
     Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
     Krane::KubernetesResource.any_instance.expects(:validate_definition).times(1) # Only secret should call this
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml configmap-data.yml),
@@ -574,5 +574,12 @@ class SerialDeployTest < Krane::IntegrationTest
 
   def rollout_conditions_annotation_key
     Krane::Annotation.for(Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
+  end
+
+  def mutating_webhook_fixture(path)
+    JSON.parse(File.read(path))['items'].map do |definition|
+      Krane::MutatingWebhookConfiguration.new(namespace: @namespace, context: @context, logger: @logger,
+        definition: definition, statsd_tags: @namespace_tags)
+    end
   end
 end

@@ -30,6 +30,7 @@ require 'krane/kubernetes_resource'
   custom_resource_definition
   horizontal_pod_autoscaler
   secret
+  mutating_webhook_configuration
 ).each do |subresource|
   require "krane/kubernetes_resource/#{subresource}"
 end
@@ -280,27 +281,10 @@ module Krane
     def partition_dry_run_resources(resources)
       individuals = []
       mutating_webhooks = cluster_resource_discoverer.fetch_mutating_webhook_configurations
-      mutating_webhooks.each do |spec|
-        spec.dig('webhooks').each do |webhook|
-          match_policy = webhook.dig('matchPolicy')
-          webhook.dig('rules').each do |rule|
-            next if %w(None NoneOnDryRun).include?(rule.dig('sideEffects'))
-            groups = rule.dig('apiGroups')
-            versions = rule.dig('apiVersions')
-            kinds = rule.dig('resources').map(&:singularize)
-            groups.each do |group|
-              versions.each do |version|
-                kinds.each do |kind|
-                  individuals += resources.select do |r|
-                    (r.group == group || group == '*' || match_policy == "Equivalent") &&
-                    (r.version == version || version == '*' || match_policy == "Equivalent") &&
-                    (r.type.downcase == kind.downcase)
-                  end
-                  resources -= individuals
-                end
-              end
-            end
-          end
+      mutating_webhooks.each do |mutating_webhook|
+        mutating_webhook.webhooks.each do |webhook|
+          individuals = resources.select { |resource| webhook.matches_resource?(resource) }
+          resources -= individuals
         end
       end
       [resources, individuals]

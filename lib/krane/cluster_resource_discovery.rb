@@ -65,7 +65,10 @@ module Krane
       command = %w(get mutatingwebhookconfigurations)
       raw_json, err, st = kubectl.run(*command, output: "json", attempts: 5, use_namespace: false)
       if st.success?
-        JSON.parse(raw_json)["items"]
+        JSON.parse(raw_json)["items"].map do |definition|
+          KubernetesResource::MutatingWebhookConfiguration.new(namespace: namespace, context: context, logger: logger,
+            definition: definition, statsd_tags: @namespace_tags)
+        end
       else
         raise FatalKubeAPIError, "Error retrieving mutatingwebhookconfigurations: #{err}"
       end
