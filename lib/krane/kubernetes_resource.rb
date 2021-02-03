@@ -228,7 +228,7 @@ module Krane
 
     def version
       prefix, version = @definition.dig("apiVersion").split("/")
-      version ? version : prefix
+      version || prefix
     end
 
     def kubectl_resource_type
