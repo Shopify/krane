@@ -21,13 +21,13 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     raw_rule = definition.dig('webhooks', 0, 'rules', 0)
     rule = webhook.rules.first
     assert_equal(raw_rule.dig('apiGroups'), ['core'])
-    assert_equal(rule.dig('apiGroups'), ['core'])
+    assert_equal(rule.groups, ['core'])
 
-    assert_equal(rule.dig('apiVersions'), ['v1'])
     assert_equal(raw_rule.dig('apiVersions'), ['v1'])
+    assert_equal(rule.versions, ['v1'])
 
     assert_equal(raw_rule.dig('resources'), ['secrets'])
-    assert_equal(rule.dig('resources'), ['secrets'])
+    assert_equal(rule.resources, ['secrets'])
   end
 
   def test_webhook_configuration_matches_when_side_effects
