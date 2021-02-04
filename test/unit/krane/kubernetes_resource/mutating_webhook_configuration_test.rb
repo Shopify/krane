@@ -4,7 +4,7 @@ require 'test_helper'
 class MutatingWebhookConfigurationTest < Krane::TestCase
   def test_load_from_json
     definition = JSON.parse(
-      File.read(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json"))
+      File.read(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
     )["items"][0]
     webhook_configuration = Krane::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
@@ -36,7 +36,7 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
       logger: @logger, statsd_tags: nil)
 
     definition = JSON.parse(
-      File.read(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json"))
+      File.read(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
     )["items"][0]
     webhook_configuration = Krane::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
@@ -55,7 +55,7 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
       logger: @logger, statsd_tags: nil)
 
     definition = JSON.parse(
-      File.read(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json"))
+      File.read(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
     )["items"][0]
     webhook_configuration = Krane::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
@@ -66,5 +66,29 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     refute(webhook.matches_resource?(secret))
     refute(webhook.matches_resource?(secret, skip_rule_if_side_effect_none: true))
     assert(webhook.matches_resource?(secret, skip_rule_if_side_effect_none: false))
+  end
+
+  def test_no_match_when_policy_is_exact_and_resource_doesnt_match
+    secret_def = YAML.load_file(File.join(fixture_path('hello-cloud'), 'secret.yml'))
+    secret = Krane::Secret.new(namespace: 'test', context: 'nope', definition: secret_def,
+      logger: @logger, statsd_tags: nil)
+
+    definition = JSON.parse(
+      File.read(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
+    )["items"][0]
+    webhook_configuration = Krane::MutatingWebhookConfiguration.new(
+      namespace: 'test', context: 'nope', definition: definition,
+      logger: @logger, statsd_tags: nil
+    )
+
+    webhook = webhook_configuration.webhooks.first
+    assert(webhook.matches_resource?(secret))
+    webhook.expects(:match_policy).returns(Krane::MutatingWebhookConfiguration::Webhook::EXACT).at_least(1)
+    assert(webhook.matches_resource?(secret))
+    secret.expects(:group).returns('fake').once
+    refute(webhook.matches_resource?(secret))
+    secret.unstub(:group)
+    secret.expects(:type).returns('fake').once
+    refute(webhook.matches_resource?(secret))
   end
 end

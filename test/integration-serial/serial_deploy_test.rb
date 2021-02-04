@@ -535,7 +535,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_resources_with_side_effect_inducing_webhooks_are_not_batched_server_side_dry_run
-    resp = mutating_webhook_fixture(File.join(fixture_path("for_serial_deploy_tests"), "ingress_hook.json"))
+    resp = mutating_webhook_fixture(File.join(fixture_path("mutating_webhook_configurations"), "ingress_hook.json"))
     Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
     Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
       params.length == 3 && (params.map(&:type) - ["Deployment", "Service", "ConfigMap"]).empty?
@@ -550,7 +550,7 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
-    resp = mutating_webhook_fixture(File.join(fixture_path("for_serial_deploy_tests"), "secret_hook.json"))
+    resp = mutating_webhook_fixture(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
     Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
     expected_dry_runs = 0
     Krane::KubernetesResource.any_instance.expects(:validate_definition).with do |params|
