@@ -280,9 +280,9 @@ module Krane
 
     def partition_dry_run_resources(resources)
       individuals = []
-      mutating_webhooks = cluster_resource_discoverer.fetch_mutating_webhook_configurations
-      mutating_webhooks.each do |mutating_webhook|
-        mutating_webhook.webhooks.each do |webhook|
+      mutating_webhook_configurations = cluster_resource_discoverer.fetch_mutating_webhook_configurations
+      mutating_webhook_configurations.each do |mutating_webhook_configuration|
+        mutating_webhook_configuration.webhooks.each do |webhook|
           individuals = resources.select { |resource| webhook.matches_resource?(resource) }
           resources -= individuals
         end
