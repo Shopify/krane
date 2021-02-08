@@ -535,12 +535,14 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_resources_with_side_effect_inducing_webhooks_are_not_batched_server_side_dry_run
-    resp = mutating_webhook_fixture(File.join(fixture_path("mutating_webhook_configurations"), "ingress_hook.json"))
-    Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
+    result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(ingress_hook.yaml))
+    assert_deploy_success(result)
+
     Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
-      params.length == 3 && (params.map(&:type) - ["Deployment", "Service", "ConfigMap"]).empty?
+      # We expect the ingress field to not be called by the batch runner
+      params.length == 3 && (params.map(&:type).sort == ["ConfigMap", "Deployment", "Service"])
     end
-    Krane::Ingress.any_instance.expects(:validate_definition)
+    Krane::Ingress.any_instance.expects(:validate_definition).with { |params| params[:dry_run] }
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb configmap-data.yml), render_erb: true)
     assert_deploy_success(result)
     assert_logs_match_all([
@@ -550,11 +552,12 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
-    resp = mutating_webhook_fixture(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
-    Krane::ClusterResourceDiscovery.any_instance.expects(:fetch_mutating_webhook_configurations).returns(resp)
-    expected_dry_runs = 0
+    result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(secret_hook.yaml))
+    assert_deploy_success(result)
+
+    actual_dry_runs = 0
     Krane::KubernetesResource.any_instance.expects(:validate_definition).with do |params|
-      expected_dry_runs += 1 if params[:dry_run]
+      actual_dry_runs += 1 if params[:dry_run]
       true
     end.times(5)
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml configmap-data.yml),
@@ -568,7 +571,7 @@ class SerialDeployTest < Krane::IntegrationTest
       }]
     end
     assert_deploy_success(result)
-    assert_equal(expected_dry_runs, 1)
+    assert_equal(actual_dry_runs, 1)
     assert_logs_match_all([
       "Result: SUCCESS",
       "Successfully deployed 5 resources",

@@ -3,9 +3,7 @@ require 'test_helper'
 
 class MutatingWebhookConfigurationTest < Krane::TestCase
   def test_load_from_json
-    definition = JSON.parse(
-      File.read(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
-    )["items"][0]
+    definition = YAML.load_file(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.yaml"))
     webhook_configuration = Krane::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
       logger: @logger, statsd_tags: nil
@@ -35,9 +33,7 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     secret = Krane::Secret.new(namespace: 'test', context: 'nope', definition: secret_def,
       logger: @logger, statsd_tags: nil)
 
-    definition = JSON.parse(
-      File.read(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
-    )["items"][0]
+    definition = YAML.load_file(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.yaml"))
     webhook_configuration = Krane::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
       logger: @logger, statsd_tags: nil
@@ -54,9 +50,7 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     secret = Krane::Secret.new(namespace: 'test', context: 'nope', definition: secret_def,
       logger: @logger, statsd_tags: nil)
 
-    definition = JSON.parse(
-      File.read(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
-    )["items"][0]
+    definition = YAML.load_file(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.yaml"))
     webhook_configuration = Krane::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
       logger: @logger, statsd_tags: nil
@@ -73,9 +67,7 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     secret = Krane::Secret.new(namespace: 'test', context: 'nope', definition: secret_def,
       logger: @logger, statsd_tags: nil)
 
-    definition = JSON.parse(
-      File.read(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.json"))
-    )["items"][0]
+    definition = YAML.load_file(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.yaml"))
     webhook_configuration = Krane::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
       logger: @logger, statsd_tags: nil

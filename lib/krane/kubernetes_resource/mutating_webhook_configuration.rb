@@ -2,9 +2,12 @@
 
 module Krane
   class MutatingWebhookConfiguration < KubernetesResource
+    GLOBAL = true
+
     class Webhook
       EQUIVALENT = 'Equivalent'
       EXACT = 'Exact'
+
 
       class Rule
         def initialize(definition)
