@@ -17,7 +17,7 @@ module Krane
               resources.each do |kind|
                 return true if (resource.group == group || group == '*' || accept_equivalent) &&
                   (resource.version == version || version == '*' || accept_equivalent) &&
-                  (resource.type.downcase == kind.downcase.singularize)
+                  (resource.type.downcase == kind.downcase.singularize || kind == "*")
               end
             end
           end
