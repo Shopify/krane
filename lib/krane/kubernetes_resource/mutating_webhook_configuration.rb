@@ -61,7 +61,7 @@ module Krane
       end
 
       def rules
-        (@definition.dig('rules') || []).map { |rule| Rule.new(rule) }
+        @definition.fetch('rules', []).map { |rule| Rule.new(rule) }
       end
     end
 
@@ -78,7 +78,7 @@ module Krane
     end
 
     def webhooks
-      (@definition.dig('webhooks') || []).map { |webhook| Webhook.new(webhook) }
+      @definition.fetch('webhooks', []).map { |webhook| Webhook.new(webhook) }
     end
   end
 end
