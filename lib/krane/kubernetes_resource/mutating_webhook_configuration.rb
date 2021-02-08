@@ -8,7 +8,6 @@ module Krane
       EQUIVALENT = 'Equivalent'
       EXACT = 'Exact'
 
-
       class Rule
         def initialize(definition)
           @definition = definition
