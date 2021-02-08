@@ -539,6 +539,7 @@ class SerialDeployTest < Krane::IntegrationTest
     assert_deploy_success(result)
 
     Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
+      # We expect the ingress to not be included in the batch run
       params.length == 3 && (params.map(&:type).sort == ["ConfigMap", "Deployment", "Service"])
     end.returns(true)
 
