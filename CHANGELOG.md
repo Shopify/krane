@@ -1,5 +1,8 @@
 ## next
 
+*Other*
+- Increases the number of container logs printed for failures from 25 to 100. [#800](https://github.com/Shopify/krane/pull/800)
+
 ## 2.1.5
 
 - Fix bug where the wrong dry-run flag is used for kubectl if client version is below 1.18 AND server version is 1.18+ [#793](https://github.com/Shopify/krane/pull/793).

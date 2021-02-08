@@ -3,7 +3,7 @@ module Krane
   class ContainerLogs
     attr_reader :lines, :container_name
 
-    DEFAULT_LINE_LIMIT = 25
+    DEFAULT_LINE_LIMIT = 100
 
     def initialize(parent_id:, container_name:, namespace:, context:, logger:)
       @parent_id = parent_id
