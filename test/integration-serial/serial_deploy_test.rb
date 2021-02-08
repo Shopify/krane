@@ -539,8 +539,11 @@ class SerialDeployTest < Krane::IntegrationTest
     assert_deploy_success(result)
 
     Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
-      # We expect the ingress field to not be called by the batch runner
       params.length == 3 && (params.map(&:type).sort == ["ConfigMap", "Deployment", "Service"])
+    end.returns(true)
+
+    [Krane::ConfigMap, Krane::Deployment, Krane::Service].each do |r|
+      r.any_instance.expects(:validate_definition).with { |params| params[:dry_run] == false }
     end
     Krane::Ingress.any_instance.expects(:validate_definition).with { |params| params[:dry_run] }
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb configmap-data.yml), render_erb: true)
