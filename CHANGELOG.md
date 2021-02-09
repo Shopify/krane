@@ -1,5 +1,7 @@
 ## next
 
+- Remove resources that are targeted by side-effect-inducing mutating admission webhooks from the serverside dry run batch [#798](https://github.com/Shopify/krane/pull/798)
+
 ## 2.1.5
 
 - Fix bug where the wrong dry-run flag is used for kubectl if client version is below 1.18 AND server version is 1.18+ [#793](https://github.com/Shopify/krane/pull/793).
