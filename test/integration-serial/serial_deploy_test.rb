@@ -525,15 +525,73 @@ class SerialDeployTest < Krane::IntegrationTest
   end
 
   def test_batch_dry_run_apply_success_precludes_individual_resource_dry_run_validation
-    Krane::KubernetesResource.any_instance.expects(:validate_definition).with do |kwargs|
-      kwargs[:kubectl].nil? && !kwargs[:dry_run]
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |params| params[:dry_run] == false }
+    result = deploy_fixtures("hello-cloud", subset: %w(secret.yml))
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Successfully deployed 1 resource",
+    ], in_order: true)
+  end
+
+  def test_resources_with_side_effect_inducing_webhooks_are_not_batched_server_side_dry_run
+    result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(ingress_hook.yaml))
+    assert_deploy_success(result)
+
+    Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
+      # We expect the ingress to not be included in the batch run
+      params.length == 3 && (params.map(&:type).sort == ["ConfigMap", "Deployment", "Service"])
+    end.returns(true)
+
+    [Krane::ConfigMap, Krane::Deployment, Krane::Service].each do |r|
+      r.any_instance.expects(:validate_definition).with { |params| params[:dry_run] == false }
     end
-    deploy_fixtures("hello-cloud", subset: %w(secret.yml))
+    Krane::Ingress.any_instance.expects(:validate_definition).with { |params| params[:dry_run] }
+    result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb configmap-data.yml), render_erb: true)
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Successfully deployed 4 resources",
+    ], in_order: true)
+  end
+
+  def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
+    result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(secret_hook.yaml))
+    assert_deploy_success(result)
+
+    actual_dry_runs = 0
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).with do |params|
+      actual_dry_runs += 1 if params[:dry_run]
+      true
+    end.times(5)
+    result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml configmap-data.yml),
+      render_erb: true) do |fixtures|
+      container = fixtures['web.yml.erb']['Deployment'][0]['spec']['template']['spec']
+      container['volumes'] = [{
+        'name' => 'secret',
+        'secret' => {
+          'secretName' => fixtures['secret.yml']["Secret"][0]['metadata']['name'],
+        },
+      }]
+    end
+    assert_deploy_success(result)
+    assert_equal(actual_dry_runs, 1)
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Successfully deployed 5 resources",
+    ], in_order: true)
   end
 
   private
 
   def rollout_conditions_annotation_key
     Krane::Annotation.for(Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
+  end
+
+  def mutating_webhook_fixture(path)
+    JSON.parse(File.read(path))['items'].map do |definition|
+      Krane::MutatingWebhookConfiguration.new(namespace: @namespace, context: @context, logger: @logger,
+        definition: definition, statsd_tags: @namespace_tags)
+    end
   end
 end
