@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'concurrent'
 
 module Krane
   class ClusterResourceDiscovery
@@ -7,6 +8,7 @@ module Krane
     def initialize(task_config:, namespace_tags: [])
       @task_config = task_config
       @namespace_tags = namespace_tags
+      @api_path_cache = {}
     end
 
     def crds
@@ -18,47 +20,21 @@ module Krane
 
     def prunable_resources(namespaced:)
       black_list = %w(Namespace Node ControllerRevision)
-      api_versions = fetch_api_versions
-
-      fetch_resources(namespaced: namespaced).uniq { |r| r['kind'] }.map do |resource|
-        next unless resource['verbs'].one? { |v| v == "delete" }
-        next if black_list.include?(resource['kind'])
-        gvk_string(api_versions, resource)
+      fetch_resources(namespaced: namespaced).map do |resource|
+        next unless resource["verbs"].one? { |v| v == "delete" }
+        next if black_list.include?(resource["kind"])
+        [resource["apigroup"], resource["version"], resource["kind"]].compact.join("/")
       end.compact
     end
 
-    # kubectl api-resources -o wide returns 5 columns
-    # NAME SHORTNAMES APIGROUP NAMESPACED KIND VERBS
-    # SHORTNAMES and APIGROUP may be blank
-    # VERBS is an array
-    # serviceaccounts sa <blank> true ServiceAccount [create delete deletecollection get list patch update watch]
     def fetch_resources(namespaced: false)
-      command = %w(api-resources)
-      command << "--namespaced=#{namespaced}"
-      raw, err, st = kubectl.run(*command, output: "wide", attempts: 5,
-        use_namespace: false)
-      if st.success?
-        rows = raw.split("\n")
-        header = rows[0]
-        resources = rows[1..-1]
-        full_width_field_names = header.downcase.scan(/[a-z]+[\W]*/)
-        cursor = 0
-        fields = full_width_field_names.each_with_object({}) do |name, hash|
-          start = cursor
-          cursor = start + name.length
-          # Last field should consume the remainder of the line
-          cursor = 0 if full_width_field_names.last == name.strip
-          hash[name.strip] = [start, cursor - 1]
-        end
-        resources.map do |resource|
-          resource = fields.map { |k, (s, e)| [k.strip, resource[s..e].strip] }.to_h
-          # Manually parse verbs: "[get list]" into %w(get list)
-          resource["verbs"] = resource["verbs"][1..-2].split
-          resource
-        end
-      else
-        raise FatalKubeAPIError, "Error retrieving api-resources: #{err}"
+      responses = Concurrent::Hash.new
+      Krane::Concurrency.split_across_threads(api_paths) do |path|
+        responses[path] = fetch_api_path(path)["resources"] || []
       end
+      responses.flat_map do |path, resources|
+        resources.map { |r| resource_hash(path, namespaced, r) }
+      end.compact.uniq { |r| r["kind"] }
     end
 
     def fetch_mutating_webhook_configurations
@@ -76,42 +52,42 @@ module Krane
 
     private
 
-    # kubectl api-versions returns a list of group/version strings e.g. autoscaling/v2beta2
-    # A kind may not exist in all versions of the group.
-    def fetch_api_versions
-      raw, err, st = kubectl.run("api-versions", attempts: 5, use_namespace: false)
-      # The "core" group is represented by an empty string
-      versions = { "" => %w(v1) }
-      if st.success?
-        rows = raw.split("\n")
-        rows.each do |group_version|
-          group, version = group_version.split("/")
-          versions[group] ||= []
-          versions[group] << version
+    def api_paths
+      @api_path_cache["/"] ||= begin
+        raw_json, err, st = kubectl.run("get", "--raw", "/", attempts: 5, use_namespace: false)
+        paths = if st.success?
+          JSON.parse(raw_json)["paths"]
+        else
+          raise FatalKubeAPIError, "Error retrieving raw path /: #{err}"
         end
-      else
-        raise FatalKubeAPIError, "Error retrieving api-versions: #{err}"
+        paths.select { |path| %r{^\/api.*\/v.*$}.match(path) }
       end
-      versions
     end
 
-    def version_for_kind(versions, kind)
-      # Override list for kinds that don't appear in the lastest version of a group
-      version_override = { "CronJob" => "v1beta1", "VolumeAttachment" => "v1beta1",
-                           "CSIDriver" => "v1beta1", "Ingress" => "v1beta1",
-                           "CSINode" => "v1beta1", "Job" => "v1",
-                           "IngressClass" => "v1beta1", "FrontendConfig" => "v1beta1",
-                           "ServiceNetworkEndpointGroup" => "v1beta1",
-                           "EnvoyFilter" => "v1alpha3",
-                           "TCPIngress" => "v1beta1" }
+    def fetch_api_path(path)
+      @api_path_cache[path] ||= begin
+        raw_json, err, st = kubectl.run("get", "--raw", path, attempts: 1, use_namespace: false)
+        if st.success?
+          JSON.parse(raw_json)
+        else
+          logger.warn("Error retrieving api path: #{err}")
+          {}
+        end
+      end
+    end
 
-      pattern = /v(?<major>\d+)(?<pre>alpha|beta)?(?<minor>\d+)?/
-      latest = versions.sort_by do |version|
-        match = version.match(pattern)
-        pre = { "alpha" => 0, "beta" => 1, nil => 2 }.fetch(match[:pre])
-        [match[:major].to_i, pre, match[:minor].to_i]
-      end.last
-      version_override.fetch(kind, latest)
+    def resource_hash(path, namespaced, blob)
+      return unless blob["namespaced"] == namespaced
+      # skip sub-resources
+      return if blob["name"].include?("/")
+      path_regex = %r{(/apis?/)(?<group>[^/]*)/?(?<version>v.+)}
+      match = path.match(path_regex)
+      {
+        "verbs" => blob["verbs"],
+        "kind" => blob["kind"],
+        "apigroup" => match[:group],
+        "version" => match[:version],
+      }
     end
 
     def gvk_string(api_versions, resource)
@@ -142,7 +118,7 @@ module Krane
     end
 
     def kubectl
-      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
+      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true, default_timeout: 1)
     end
   end
 end
