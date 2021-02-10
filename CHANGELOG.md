@@ -1,5 +1,9 @@
 ## next
 
+*Enhancements*
+- Remove the need for a hard coded GVK overide list via improvements to cluster discovery [#778](https://github.com/Shopify/krane/pull/778)
+
+*Bug Fixes*
 - Remove resources that are targeted by side-effect-inducing mutating admission webhooks from the serverside dry run batch [#798](https://github.com/Shopify/krane/pull/798)
 
 ## 2.1.5
