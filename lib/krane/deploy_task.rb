@@ -283,7 +283,7 @@ module Krane
       mutating_webhook_configurations = cluster_resource_discoverer.fetch_mutating_webhook_configurations
       mutating_webhook_configurations.each do |mutating_webhook_configuration|
         mutating_webhook_configuration.webhooks.each do |webhook|
-          individuals = resources.select { |resource| webhook.matches_resource?(resource) }
+          individuals = (individuals + resources.select { |resource| webhook.matches_resource?(resource) }).uniq
           resources -= individuals
         end
       end

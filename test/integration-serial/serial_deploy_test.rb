@@ -582,6 +582,17 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  def test_multiple_resources_with_side_effect_inducing_webhooks_are_properly_partitioned
+    result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(secret_hook.yaml ingress_hook.yaml))
+    assert_deploy_success(result)
+
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |p| p[:dry_run] }.times(2)
+    result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml), render_erb: true) do |fixtures|
+      fixtures["web.yml.erb"] = fixtures["web.yml.erb"].keep_if { |key| key == "Ingress" }
+    end
+    assert_deploy_success(result)
+  end
+
   private
 
   def rollout_conditions_annotation_key
