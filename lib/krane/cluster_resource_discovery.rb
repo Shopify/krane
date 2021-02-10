@@ -90,23 +90,6 @@ module Krane
       }
     end
 
-    def gvk_string(api_versions, resource)
-      apiversion = resource['apiversion'].to_s
-
-      ## In kubectl 1.20 APIGroups was replaced by APIVersions
-      if apiversion.empty?
-        apigroup = resource['apigroup'].to_s
-        group_versions = api_versions[apigroup]
-
-        version = version_for_kind(group_versions, resource['kind'])
-        apigroup = 'core' if apigroup.empty?
-        apiversion = "#{apigroup}/#{version}"
-      end
-
-      apiversion = "core/#{apiversion}" unless apiversion.include?("/")
-      [apiversion, resource['kind']].compact.join("/")
-    end
-
     def fetch_crds
       raw_json, err, st = kubectl.run("get", "CustomResourceDefinition", output: "json", attempts: 5,
         use_namespace: false)
