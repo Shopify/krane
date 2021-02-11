@@ -1,6 +1,11 @@
 ## next
 
 *Enhancements*
+- ENV["KRANE_LOG_LINE_LIMIT"] allows the number of container logs printed for failures to be configurable from the 25 line default [#803](https://github.com/Shopify/krane/pull/803).
+
+## 2.1.6
+
+*Enhancements*
 - Remove the need for a hard coded GVK overide list via improvements to cluster discovery [#778](https://github.com/Shopify/krane/pull/778)
 
 *Bug Fixes*
