@@ -1,5 +1,7 @@
 ## next
 
+## 2.1.7
+
 *Enhancements*
 - ENV["KRANE_LOG_LINE_LIMIT"] allows the number of container logs printed for failures to be configurable from the 25 line default [#803](https://github.com/Shopify/krane/pull/803).
 
