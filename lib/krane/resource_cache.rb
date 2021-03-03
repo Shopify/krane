@@ -47,7 +47,7 @@ module Krane
           tags: %W(kind:#{kind} namespace:#{namespace} context:#{context}))
       end
       StatsD.client.distribution('prewarm.duration', StatsD.duration(prewarm_start),
-        tag: %W(namespace:#{namespace} context:#{context}))
+        tags: %W(namespace:#{namespace} context:#{context}))
     end
 
     private
