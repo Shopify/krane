@@ -39,7 +39,15 @@ module Krane
     def prewarm(resources)
       sync_dependencies = resources.flat_map { |r| r.class.const_get(:SYNC_DEPENDENCIES) }
       kinds = (resources.map(&:type) + sync_dependencies).uniq
-      Krane::Concurrency.split_across_threads(kinds, max_threads: kinds.count) { |kind| get_all(kind) }
+      prewarm_start = Time.now.utc
+      Krane::Concurrency.split_across_threads(kinds, max_threads: kinds.count) do |kind|
+        start = Time.now.utc
+        get_all(kind)
+        StatsD.client.distribution('get_all.duration', StatsD.duration(start),
+          tags: %W(kind:#{kind} namespace:#{namespace} context:#{context}))
+      end
+      StatsD.client.distribution('prewarm.duration', StatsD.duration(prewarm_start),
+        tag: %W(namespace:#{namespace} context:#{context}))
     end
 
     private
@@ -59,8 +67,13 @@ module Krane
       resource_class = KubernetesResource.class_for_kind(kind)
       global_kind = @task_config.global_kinds.map(&:downcase).include?(kind.downcase)
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
+
+      start = Time.now.utc
       raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
-         output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
+        output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
+      StatsD.client.distribution('fetch_by_kind.duration', StatsD.duration(start),
+        tags: %W(kind:#{kind} namespace:#{namespace} context:#{context}))
+
       raise KubectlError unless st.success?
 
       instances = {}

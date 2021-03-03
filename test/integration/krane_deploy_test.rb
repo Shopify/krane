@@ -1681,7 +1681,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     storage_class_name = nil
 
     result = deploy_global_fixtures("pvc",
-    subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
+      subset: ["wait_for_first_consumer_storage_class.yml"]) do |fixtures|
       sc = fixtures["wait_for_first_consumer_storage_class.yml"]["StorageClass"].first
       storage_class_name = sc["metadata"]["name"] # will be made unique by the test helper
     end
