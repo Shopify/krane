@@ -73,7 +73,7 @@ module Krane
 
     def fetch_api_path(path)
       @api_path_cache[path] ||= begin
-        raw_json, err, st = kubectl.run("get", "--raw", cluster_url, attempts: 2, use_namespace: false)
+        raw_json, err, st = kubectl.run("get", "--raw", "#{cluster_url}/#{path}, attempts: 2, use_namespace: false)
         if st.success?
           JSON.parse(raw_json)
         else
