@@ -55,7 +55,6 @@ module Krane
     def cluster_url()
       @cluster_url ||= begin
         url, err, st = kubectl.run("config", "view", "--minify", "--output", "jsonpath={.clusters[*].cluster.server}", attempts: 5, use_namespace: false)
-        puts url
         if url == nil
           raise FatalKubeAPIError, "Error retrieving cluster url : #{err}"
         else
