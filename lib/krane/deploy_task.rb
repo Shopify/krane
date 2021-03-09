@@ -141,50 +141,50 @@ module Krane
     def run!(verify_result: true, prune: true)
       start = Time.now.utc
       @logger.reset
-
+      @logger.info("TEST")
       @logger.phase_heading("Initializing deploy")
-      validate_configuration(prune: prune)
+      # validate_configuration(prune: prune)
       resources = discover_resources
-      validate_resources(resources)
+      # validate_resources(resources)
 
       @logger.phase_heading("Checking initial resource statuses")
       check_initial_status(resources)
 
-      if deploy_has_priority_resources?(resources)
-        @logger.phase_heading("Predeploying priority resources")
-        resource_deployer.predeploy_priority_resources(resources, predeploy_sequence)
-      end
+    #   if deploy_has_priority_resources?(resources)
+    #     @logger.phase_heading("Predeploying priority resources")
+    #     resource_deployer.predeploy_priority_resources(resources, predeploy_sequence)
+    #   end
 
-      @logger.phase_heading("Deploying all resources")
-      if @protected_namespaces.include?(@namespace) && prune
-        raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
-      end
+    #   @logger.phase_heading("Deploying all resources")
+    #   if @protected_namespaces.include?(@namespace) && prune
+    #     raise FatalDeploymentError, "Refusing to deploy to protected namespace '#{@namespace}' with pruning enabled"
+    #   end
 
-      resource_deployer.deploy!(resources, verify_result, prune)
+    #   resource_deployer.deploy!(resources, verify_result, prune)
 
-      StatsD.client.event("Deployment of #{@namespace} succeeded",
-        "Successfully deployed all #{@namespace} resources to #{@context}",
-        alert_type: "success", tags: statsd_tags + %w(status:success))
-      StatsD.client.distribution('all_resources.duration', StatsD.duration(start),
-        tags: statsd_tags + %w(status:success))
-      @logger.print_summary(:success)
-    rescue DeploymentTimeoutError
-      @logger.print_summary(:timed_out)
-      StatsD.client.event("Deployment of #{@namespace} timed out",
-        "One or more #{@namespace} resources failed to deploy to #{@context} in time",
-        alert_type: "error", tags: statsd_tags + %w(status:timeout))
-      StatsD.client.distribution('all_resources.duration', StatsD.duration(start),
-        tags: statsd_tags + %w(status:timeout))
-      raise
-    rescue FatalDeploymentError => error
-      @logger.summary.add_action(error.message) if error.message != error.class.to_s
-      @logger.print_summary(:failure)
-      StatsD.client.event("Deployment of #{@namespace} failed",
-        "One or more #{@namespace} resources failed to deploy to #{@context}",
-        alert_type: "error", tags: statsd_tags + %w(status:failed))
-      StatsD.client.distribution('all_resources.duration', StatsD.duration(start),
-        tags: statsd_tags + %w(status:failed))
-      raise
+    #   StatsD.client.event("Deployment of #{@namespace} succeeded",
+    #     "Successfully deployed all #{@namespace} resources to #{@context}",
+    #     alert_type: "success", tags: statsd_tags + %w(status:success))
+    #   StatsD.client.distribution('all_resources.duration', StatsD.duration(start),
+    #     tags: statsd_tags + %w(status:success))
+    #   @logger.print_summary(:success)
+    # rescue DeploymentTimeoutError
+    #   @logger.print_summary(:timed_out)
+    #   StatsD.client.event("Deployment of #{@namespace} timed out",
+    #     "One or more #{@namespace} resources failed to deploy to #{@context} in time",
+    #     alert_type: "error", tags: statsd_tags + %w(status:timeout))
+    #   StatsD.client.distribution('all_resources.duration', StatsD.duration(start),
+    #     tags: statsd_tags + %w(status:timeout))
+    #   raise
+    # rescue FatalDeploymentError => error
+    #   @logger.summary.add_action(error.message) if error.message != error.class.to_s
+    #   @logger.print_summary(:failure)
+    #   StatsD.client.event("Deployment of #{@namespace} failed",
+    #     "One or more #{@namespace} resources failed to deploy to #{@context}",
+    #     alert_type: "error", tags: statsd_tags + %w(status:failed))
+    #   StatsD.client.distribution('all_resources.duration', StatsD.duration(start),
+    #     tags: statsd_tags + %w(status:failed))
+    #   raise
     end
 
     private

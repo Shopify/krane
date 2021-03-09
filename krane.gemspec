@@ -52,8 +52,8 @@ Gem::Specification.new do |spec|
 
   # Debugging and analysis
   spec.add_development_dependency("pry")
-  spec.add_development_dependency("pry-byebug")
-  spec.add_development_dependency("byebug")
+  spec.add_dependency("pry-byebug")
+  spec.add_dependency("byebug")
   spec.add_development_dependency("ruby-prof")
   spec.add_development_dependency("ruby-prof-flamegraph")
   spec.add_development_dependency("rubocop", "~> 0.89.1")

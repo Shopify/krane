@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+
+require_relative File.expand_path('../../lib/krane.rb', __FILE__)
+require 'byebug'
+
+CONTEXTS = %w(
+  core-us-central1-28
+  core-us-central1-29
+  core-us-central1-30
+  core-us-central1-31
+  core-us-central1-32
+  core-us-central1-33
+  core-us-central1-34
+  core-us-central1-35
+  core-us-east1-28
+  core-us-east1-29
+  core-us-east1-30
+  core-us-east1-31
+  core-us-east1-33
+  core-us-east1-34
+  core-us-east1-35
+  core-us-east1-36
+  core-na-ne1-1
+  core-na-ne1-2
+).freeze
+
+NAMESPACE = 'shopify-core'
+
+deploy_targets = CONTEXTS.each_with_object([]) do |context, acc|
+  acc << Krane::TaskConfig.new(context, NAMESPACE)
+end
+
+start = Time.now
+Krane::Concurrency.split_across_threads(deploy_targets) do |config|
+  deploy_task = Krane::DeployTask.new(namespace: config.namespace, context: config.context,
+    filenames: [File.expand_path('../../rendered.yaml', __FILE__), Krane::FormattedLogger.build(NAMESPACE, config.context)]
+  )
+  resources = deploy_task.discover_resources
+  cache = Krane::ResourceCache.new(config)
+  cache.prewarm(resources)
+end
+puts "TOOK #{(Time.now - start).seconds}"

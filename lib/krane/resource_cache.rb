@@ -39,10 +39,12 @@ module Krane
     def prewarm(resources)
       sync_dependencies = resources.flat_map { |r| r.class.const_get(:SYNC_DEPENDENCIES) }
       kinds = (resources.map(&:type) + sync_dependencies).uniq
-      Krane::Concurrency.split_across_threads(kinds, max_threads: kinds.count) { |kind| get_all(kind) }
+      
+      Krane::Concurrency.split_across_threads(kinds, max_threads: 1) do |kind|
+        start = Time.now
+        get_all(kind)
+        logger.info("get_all(#{kind}) took #{(Time.now - start).seconds}")
     end
-
-    private
 
     def statsd_tags
       { namespace: namespace, context: context }
@@ -55,18 +57,37 @@ module Krane
       end
     end
 
-    def fetch_by_kind(kind)
-      resource_class = KubernetesResource.class_for_kind(kind)
-      global_kind = @task_config.global_kinds.map(&:downcase).include?(kind.downcase)
-      output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
-      raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
-         output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
-      raise KubectlError unless st.success?
+    def kubeclient_builder
+      @kubeclient_builder ||= KubeclientBuilder.new
+    end
 
+    def fetch_by_kind(kind)
+      override_classes = [Deployment, ReplicaSet, Pod]
+      resource_class = KubernetesResource.class_for_kind(kind)
       instances = {}
-      JSON.parse(raw_json)["items"].each do |resource|
-        resource_name = resource.dig("metadata", "name")
-        instances[resource_name] = resource
+      if override_classes.include?(resource_class)
+        start = Time.now
+        context = @task_config.context
+        logger.info("#{resource_class} : #{kind}")
+        client = resource_class == Krane::Pod ? kubeclient_builder.build_v1_kubeclient(context) : kubeclient_builder.build_apps_v1_kubeclient(context)
+        client.discover
+        resources = client.public_send("get_#{kind.pluralize.underscore}".to_sym)
+        logger.warn("Using kubeclient to get #{kind}s took: #{(Time.now - start).seconds}")
+        resources.each do |resource|
+          instances[resource.metadata.name] = resource.to_h.deep_stringify_keys
+        end
+      else
+        global_kind = @task_config.global_kinds.map(&:downcase).include?(kind.downcase)
+        output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
+        raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
+          output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
+        raise KubectlError unless st.success?
+        
+        JSON.parse(raw_json)["items"].each do |resource|
+          resource_name = resource.dig("metadata", "name")
+          instances[resource_name] = resource
+        end
+        instances
       end
       instances
     end

@@ -9,7 +9,7 @@ module Krane
     def initialize(context, namespace, logger = nil, kubeconfig = nil)
       @context = context
       @namespace = namespace
-      @logger = logger || FormattedLogger.build(@namespace, @context)
+      @logger = FormattedLogger.build(@namespace, @context)
       @kubeconfig = kubeconfig || ENV['KUBECONFIG']
     end
 
