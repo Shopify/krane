@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'open3'
 require 'krane/delayed_exceptions'
 require 'krane/ejson_secret_provisioner'
 
@@ -80,15 +81,31 @@ module Krane
         YAML.load_stream(rendered_content, "<rendered> #{filename}") do |doc|
           next if doc.blank?
           unless doc.is_a?(Hash)
-            raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest",
-              filename: filename, content: doc)
+            raise InvalidTemplateError.new("Template is not a valid Kubernetes manifest", filename: filename, content: doc)
           end
+
+          # If the YAML document is encrypted with SOPS, it will contain this `sops` key, which we can use to decrypt using the
+          # `sops` binary installed on the system, with the expectation that it is installed and configured
+          if doc["sops"].present?
+           stdout, stderr, status = Open3.capture3("sops --input-type yaml --output-type yaml --decrypt /dev/stdin", stdin_data: doc.to_yaml)
+            if status.success?
+              @logger.summary.add_paragraph("Decrypted contents of #{filename} with SOPS")
+              doc = YAML.safe_load(stdout)
+            else
+              raise InvalidTemplateError.new("Failed to decrypt contents of #{filename} with SOPS; ensure SOPS is installed and configured properly", filename: filename, content: doc)
+            end
+          end
+
           yield doc unless raw
         end
         yield rendered_content if raw
       rescue InvalidTemplateError => err
         err.filename ||= filename
         raise err
+      rescue SystemCallError => err
+        # Most common error here will be Errno::ENOENT (which can occur when SOPS is not installed)
+        # Errors running the SOPS command are captured above using Open3
+        raise InvalidTemplateError.new("Failed to decrypt contents of #{filename} with SOPS; ensure SOPS is installed and configured properly", filename: filename, content: doc)
       rescue Psych::SyntaxError => err
         raise InvalidTemplateError.new(err.message, filename: filename, content: rendered_content)
       end

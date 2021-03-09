@@ -137,6 +137,8 @@ If you need to share a namespace with resources which are managed by other tools
 All templates must be YAML formatted.
 We recommended storing each app's templates in a single directory, `{app root}/config/deploy/{env}`. However, you may use multiple directories.
 
+Templates may be encrypted YAML produced from [Mozilla SOPS](https://github.com/mozilla/sops). To use these templates, ensure that SOPS is installed and configured with the appropriate decryption keys before running `krane deploy` or SOPS-encrypted templates will throw an invalid template error.
+
 If you want dynamic templates, you may render ERB with `krane render` and then pipe that result to `krane deploy -f -`.
 
 ### Customizing behaviour with annotations
