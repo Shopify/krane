@@ -33,7 +33,7 @@ end
 start = Time.now
 Krane::Concurrency.split_across_threads(deploy_targets) do |config|
   deploy_task = Krane::DeployTask.new(namespace: config.namespace, context: config.context,
-    filenames: [File.expand_path('../../rendered.yaml', __FILE__), Krane::FormattedLogger.build(NAMESPACE, config.context)]
+    filenames: [File.expand_path('../../rendered.yaml', __FILE__)], logger: Krane::FormattedLogger.build(NAMESPACE, config.context)
   )
   resources = deploy_task.discover_resources
   cache = Krane::ResourceCache.new(config)
