@@ -101,7 +101,7 @@ module Krane
     end
 
     def kubectl
-      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true, default_timeout: 2)
+      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
     end
   end
 end
