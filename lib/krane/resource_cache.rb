@@ -44,6 +44,7 @@ module Krane
         start = Time.now
         get_all(kind)
         logger.info("get_all(#{kind}) took #{(Time.now - start).seconds}")
+      end
     end
 
     def statsd_tags
