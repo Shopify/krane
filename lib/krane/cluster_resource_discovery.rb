@@ -59,7 +59,7 @@ module Krane
           if URI(raw_response).path == ( nil || "/" )
             URI(raw_response).path
           else
-            raw_response.to_s
+            URI(raw_response).to_s
           end
         else
           raise FatalKubeAPIError, "Error retrieving cluster url : #{err}"
