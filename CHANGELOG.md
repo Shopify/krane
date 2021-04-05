@@ -5,6 +5,9 @@
 *Enhancements*
 - ENV["KRANE_LOG_LINE_LIMIT"] allows the number of container logs printed for failures to be configurable from the 25 line default [#803](https://github.com/Shopify/krane/pull/803).
 
+*Other*
+- Remove the overly tight timeout on cluster resource discovery, which was causing too many timeouts in high latency environments [#813](https://github.com/Shopify/krane/pull/813)
+
 ## 2.1.6
 
 *Enhancements*
