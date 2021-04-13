@@ -1,5 +1,7 @@
 ## next
 
+## 2.1.8
+
 *Other*
 
 - Change `statsd-instrument` dependency constraint to `< 4` [#815](https://github.com/Shopify/krane/pull/815)
