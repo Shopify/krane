@@ -4,7 +4,7 @@ up:
   - ruby: 2.6.6 # Matches gemspec
   - bundler
   - homebrew:
-    - homebrew/cask/minikube
+    - minikube
     - hyperkit
   - custom:
       name: Install the minikube fork of driver-hyperkit
