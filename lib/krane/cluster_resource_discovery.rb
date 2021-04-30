@@ -53,26 +53,22 @@ module Krane
     private
 
     def api_paths
-      @api_path_cache["/"] ||= begin
-        raw_json, err, st = kubectl.run("get", "--raw", "/", attempts: 5, use_namespace: false)
-        paths = if st.success?
-          JSON.parse(raw_json)["paths"]
-        else
-          raise FatalKubeAPIError, "Error retrieving raw path /: #{err}"
-        end
-        paths.select { |path| %r{^\/api.*\/v.*$}.match(path) }
+      raw_json, err, st = kubectl.run("get", "--raw", "/", attempts: 5, use_namespace: false)
+      paths = if st.success?
+        JSON.parse(raw_json)["paths"]
+      else
+        raise FatalKubeAPIError, "Error retrieving raw path /: #{err}"
       end
+      paths.select { |path| %r{^\/api.*\/v.*$}.match(path) }
     end
 
     def fetch_api_path(path)
-      @api_path_cache[path] ||= begin
-        raw_json, err, st = kubectl.run("get", "--raw", path, attempts: 2, use_namespace: false)
-        if st.success?
-          JSON.parse(raw_json)
-        else
-          logger.warn("Error retrieving api path: #{err}")
-          {}
-        end
+      raw_json, err, st = kubectl.run("get", "--raw", path, attempts: 2, use_namespace: false)
+      if st.success?
+        JSON.parse(raw_json)
+      else
+        logger.warn("Error retrieving api path: #{err}")
+        {}
       end
     end
 
