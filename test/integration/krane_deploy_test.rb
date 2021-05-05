@@ -15,7 +15,7 @@ class KraneDeployTest < Krane::IntegrationTest
       %r{- Pod/unmanaged-pod-2-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
       "Hello from the command runner!", # unmanaged pod logs
       "Result: SUCCESS",
-      "Successfully deployed 26 resources",
+      /Successfully deployed 26 resources/i,
     ], in_order: true)
     refute_logs_match(/Using resource selector/)
 
@@ -121,7 +121,7 @@ class KraneDeployTest < Krane::IntegrationTest
     else
       prune_matcher("ingress", "extensions", "web")
     end
-    expected_msgs = [/Pruned 20 resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 2[01] resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
@@ -341,7 +341,7 @@ class KraneDeployTest < Krane::IntegrationTest
       /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
       "> Error message:",
       "error validating data: ValidationError(ConfigMap.metadata): \
-unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
+  unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "> Template content:",
       "      myKey: uhOh",
     ], in_order: true)
