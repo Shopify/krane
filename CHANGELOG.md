@@ -1,5 +1,11 @@
 ## next
 
+## 2.1.9
+
+*Other*
+
+- Don't package screenshots in the built gem to reduce size [#817](https://github.com/Shopify/krane/pull/817)
+
 ## 2.1.8
 
 *Other*
