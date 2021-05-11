@@ -13,7 +13,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
 
   def test_fetch_resources_not_namespaced
     crd = mocked_cluster_resource_discovery
-    kinds = crd.fetch_resources(namespaced: false).map { |r| r['kind'] }
+    kinds = crd.fetch_resources(namespaced: false).map { |r| r['kind'] }.uniq
     assert_equal(kinds.length, 22)
     %w(MutatingWebhookConfiguration ComponentStatus CustomResourceDefinition).each do |kind|
       assert_includes(kinds, kind)
@@ -22,7 +22,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
 
   def test_fetch_resources_namespaced
     crd = mocked_cluster_resource_discovery
-    kinds = crd.fetch_resources(namespaced: true).map { |r| r['kind'] }
+    kinds = crd.fetch_resources(namespaced: true).map { |r| r['kind'] }.uniq
     assert_equal(kinds.length, 29)
     %w(ConfigMap CronJob Deployment).each do |kind|
       assert_includes(kinds, kind)
@@ -31,7 +31,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
 
   def test_prunable_global_resources
     crd = mocked_cluster_resource_discovery
-    kinds = crd.prunable_resources(namespaced: false)
+    kinds = crd.prunable_resources(namespaced: false).uniq { r['kind'] }
     assert_equal(kinds.length, 15)
     %w(PriorityClass StorageClass).each do |expected_kind|
       assert(kinds.one? { |k| k.include?(expected_kind) })
@@ -43,7 +43,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
 
   def test_prunable_namespaced_resources
     crd = mocked_cluster_resource_discovery
-    kinds = crd.prunable_resources(namespaced: true)
+    kinds = crd.prunable_resources(namespaced: true).uniq { r['kind'] }
 
     assert_equal(kinds.length, 25)
     %w(ConfigMap CronJob Deployment).each do |expected_kind|

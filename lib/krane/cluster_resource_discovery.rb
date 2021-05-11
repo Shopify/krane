@@ -34,7 +34,7 @@ module Krane
       end
       responses.flat_map do |path, resources|
         resources.map { |r| resource_hash(path, namespaced, r) }
-      end.compact.uniq { |r| r["kind"] }
+      end.compact.uniq { |r| "#{r['group']}/#{r['version']}#{r['kind']} }" }
     end
 
     def fetch_mutating_webhook_configurations
