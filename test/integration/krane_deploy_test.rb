@@ -121,7 +121,7 @@ class KraneDeployTest < Krane::IntegrationTest
     else
       prune_matcher("ingress", "extensions", "web")
     end
-    expected_msgs = [/Pruned 2[01] resources and successfully deployed 6 resources/]
+    expected_msgs = [/Pruned 2[03] resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/
     end
