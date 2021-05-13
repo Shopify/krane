@@ -15,7 +15,6 @@ module ClusterResourceDiscoveryHelper
   end
 
   def stub_raw_apis(success:)
-
     Krane::Kubectl.any_instance.stubs(:run).with("config", "view", "--minify", "--output", "jsonpath={.clusters[*].cluster.server}", attempts: 5, use_namespace: false)
       .returns(["", "", stub(success?: success)])
 
