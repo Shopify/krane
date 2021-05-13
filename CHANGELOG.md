@@ -1,5 +1,8 @@
 ## next
 
+*Bug Fixes*
+- Don't gather prunable resources by calling uniq only on `kind`: use `group` as well. Otherwise certain resources may not be added to the prune whitelist [#825](https://github.com/Shopify/krane/pull/825)
+
 ## 2.1.9
 
 *Other*
