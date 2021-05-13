@@ -52,9 +52,18 @@ module Krane
 
     private
 
+    def cluster_url()
+      @cluster_url ||= begin
+        raw_response, err, st = kubectl.run("config", "view", "--minify", "--output", "jsonpath={.clusters[*].cluster.server}", attempts: 5, use_namespace: false)
+        raise FatalKubeAPIError, "Error retrieving cluster url: #{err}" unless st.success?
+
+        URI(raw_response).path.blank? ? "/" : URI(raw_response).to_s
+      end
+    end
+
     def api_paths
       @api_path_cache["/"] ||= begin
-        raw_json, err, st = kubectl.run("get", "--raw", "/", attempts: 5, use_namespace: false)
+        raw_json, err, st = kubectl.run("get", "--raw", cluster_url, attempts: 5, use_namespace: false)
         paths = if st.success?
           JSON.parse(raw_json)["paths"]
         else
@@ -66,7 +75,7 @@ module Krane
 
     def fetch_api_path(path)
       @api_path_cache[path] ||= begin
-        raw_json, err, st = kubectl.run("get", "--raw", path, attempts: 2, use_namespace: false)
+        raw_json, err, st = kubectl.run("get", "--raw", File.join(cluster_url, path), attempts: 2, use_namespace: false)
         if st.success?
           JSON.parse(raw_json)
         else
@@ -101,7 +110,7 @@ module Krane
     end
 
     def kubectl
-      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
+      @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true, default_timeout: 2)
     end
   end
 end

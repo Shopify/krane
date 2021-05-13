@@ -15,10 +15,15 @@ module ClusterResourceDiscoveryHelper
   end
 
   def stub_raw_apis(success:)
+
+    Krane::Kubectl.any_instance.stubs(:run).with("config", "view", "--minify", "--output", "jsonpath={.clusters[*].cluster.server}", attempts: 5, use_namespace: false)
+      .returns(["", "", stub(success?: success)])
+
+    return unless success
+
     Krane::Kubectl.any_instance.stubs(:run).with("get", "--raw", "/", attempts: 5, use_namespace: false)
       .returns([api_raw_full_response, "", stub(success?: success)])
 
-    return unless success
     paths = JSON.parse(api_raw_full_response)['paths'].select { |p| %r{^\/api.*\/v.*$}.match(p) }
     paths.each do |path|
       Krane::Kubectl.any_instance.stubs(:run).with("get", "--raw", path, attempts: 2, use_namespace: false)
