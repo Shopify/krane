@@ -11,6 +11,9 @@
 
 - Fix ERB deprecation of positional arguments [#828](https://github.com/Shopify/krane/pull/828)
 
+*Other*
+- Drop CI support for 1.15 [#826](https://github.com/Shopify/krane/pull/826)
+
 ## 2.1.9
 
 *Other*
