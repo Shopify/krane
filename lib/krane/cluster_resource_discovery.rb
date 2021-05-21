@@ -52,8 +52,9 @@ module Krane
 
     private
 
-    def cluster_url
-      @cluster_url ||= begin
+    # During discovery, the api paths may not actually be at the root, so we must programatically find it.
+    def base_api_path
+      @base_api_path ||= begin
         raw_response, err, st = kubectl.run("config", "view", "--minify", "--output",
           "jsonpath={.clusters[*].cluster.server}", attempts: 5, use_namespace: false)
         raise FatalKubeAPIError, "Error retrieving cluster url: #{err}" unless st.success?
@@ -64,7 +65,7 @@ module Krane
 
     def api_paths
       @api_path_cache["/"] ||= begin
-        raw_json, err, st = kubectl.run("get", "--raw", cluster_url, attempts: 5, use_namespace: false)
+        raw_json, err, st = kubectl.run("get", "--raw", base_api_path, attempts: 5, use_namespace: false)
         paths = if st.success?
           JSON.parse(raw_json)["paths"]
         else
