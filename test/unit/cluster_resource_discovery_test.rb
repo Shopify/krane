@@ -6,7 +6,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
 
   def test_fetch_resources_failure
     crd = mocked_cluster_resource_discovery(success: false)
-    assert_raises_message(Krane::FatalKubeAPIError, "Error retrieving raw path /:") do
+    assert_raises_message(Krane::FatalKubeAPIError, "Error retrieving cluster url:") do
       crd.fetch_resources
     end
   end
