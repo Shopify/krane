@@ -39,7 +39,7 @@ module Krane
       erb_binding = TemplateContext.new(self).template_binding
       bind_template_variables(erb_binding, template_variables)
 
-      ERB.new(raw_template, nil, '-').result(erb_binding)
+      ERB.new(raw_template, trim_mode: '-').result(erb_binding)
     rescue InvalidPartialError => err
       err.parents = err.parents.dup.unshift(filename)
       err.filename = "#{err.filename} (partial included from: #{err.parents.join(' -> ')})"
@@ -56,7 +56,7 @@ module Krane
 
       partial_path = find_partial(partial)
       template = File.read(partial_path)
-      expanded_template = ERB.new(template, nil, '-').result(erb_binding)
+      expanded_template = ERB.new(template, trim_mode: '-').result(erb_binding)
 
       docs = Psych.parse_stream(expanded_template, partial_path)
       # If the partial contains multiple documents or has an explicit document header,
