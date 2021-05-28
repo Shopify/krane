@@ -1,7 +1,15 @@
 ## next
 
+## 2.1.10
+
 *Bug Fixes*
-- Don't gather prunable resources by calling uniq only on `kind`: use `group` as well. Otherwise certain resources may not be added to the prune whitelist [#825](https://github.com/Shopify/krane/pull/825)
+
+- Don't gather prunable resources by calling uniq only on `kind`: use `group` as well. Otherwise certain resources may not be added to the prune whitelist if the same kind exists across multiple groups [#825](https://github.com/Shopify/krane/pull/825)
+- Fix resource discovery failures when API paths are not located at the root of the API server (this occurs, for example, when using Rancher proxy) [#827](https://github.com/Shopify/krane/pull/827)
+
+*Other*
+
+- Fix ERB deprecation of positional arguments [#828](https://github.com/Shopify/krane/pull/828)
 
 ## 2.1.9
 
