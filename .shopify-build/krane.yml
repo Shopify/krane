@@ -8,6 +8,14 @@ steps:
     run:
       - bundle: ~
       - bundle exec rubocop
+  - label: 'Run Test Suite (:kubernetes: 1.21-latest :ruby: 3.0)'
+    command: bin/ci
+    agents:
+      queue: k8s-ci
+    env:
+      LOGGING_LEVEL: "4"
+      KUBERNETES_VERSION: v1.21-latest
+      RUBY_VERSION: "3.0"
   - label: 'Run Test Suite (:kubernetes: 1.20-latest :ruby: 3.0)'
     command: bin/ci
     agents:
@@ -38,17 +46,3 @@ steps:
     env:
       LOGGING_LEVEL: "4"
       KUBERNETES_VERSION: v1.17-latest
-  - label: 'Run Test Suite (:kubernetes: 1.16-latest)'
-    command: bin/ci
-    agents:
-      queue: k8s-ci
-    env:
-      LOGGING_LEVEL: "4"
-      KUBERNETES_VERSION: v1.16-latest
-  - label: 'Run Test Suite (:kubernetes: 1.15-latest)'
-    command: bin/ci
-    agents:
-      queue: k8s-ci
-    env:
-      LOGGING_LEVEL: "4"
-      KUBERNETES_VERSION: v1.15-latest
