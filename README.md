@@ -117,6 +117,7 @@ Refer to `krane help` for the authoritative set of options.
 - `--global-timeout=duration`: Raise a timeout error if it takes longer than _duration_ for any
 resource to deploy.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
+- `--select-any`: Instructs krane to deploy resources which match the specified labels in `--selector` even if not all resources are selected. If the option is not present, all resource templates must be selected, otherwise, validation fails.
 - `--no-verify-result`: Skip verification that workloads correctly deployed.
 - `--protected-namespaces=default kube-system kube-public`: Fail validation if a deploy is targeted at a protected namespace.
 - `--verbose-log-prefix`: Add [context][namespace] to the log prefix
@@ -441,6 +442,7 @@ Refer to `krane global-deploy help` for the authoritative set of options.
 - `--filenames / -f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed. Use `-` to specify STDIN.
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. By using this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
+- `--select-any`: Instructs krane to deploy resources which match the specified labels in `--selector` even if not all resources are selected. If the option is not present, all resource templates must be selected, otherwise, validation fails.
 - `--global-timeout=duration`: Raise a timeout error if it takes longer than _duration_ for any
 resource to deploy.
 - `--no-verify-result`: Skip verification that resources correctly deployed.
