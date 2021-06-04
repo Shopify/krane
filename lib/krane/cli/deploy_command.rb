@@ -25,6 +25,9 @@ module Krane
                      default: true },
         "selector" => { type: :string, banner: "'label=value'",
                         desc: "Select workloads by selector(s)" },
+        "select-any" => { type: :boolean,
+                          desc: "Enable selecting a subset of resources to deploy without validation failure",
+                          default: false },
         "verbose-log-prefix" => { type: :boolean, desc: "Add [context][namespace] to the log prefix",
                                   default: false },
         "verify-result" => { type: :boolean, default: true,
@@ -37,6 +40,7 @@ module Krane
         require 'krane/label_selector'
 
         selector = ::Krane::LabelSelector.parse(options[:selector]) if options[:selector]
+        select_any = options['select-any']
 
         logger = ::Krane::FormattedLogger.build(namespace, context,
           verbose_prefix: options['verbose-log-prefix'])
@@ -60,6 +64,7 @@ module Krane
             logger: logger,
             global_timeout: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
             selector: selector,
+            select_any: select_any,
             protected_namespaces: protected_namespaces,
           )
 

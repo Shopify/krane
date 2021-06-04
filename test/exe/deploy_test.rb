@@ -140,6 +140,7 @@ class DeployTest < Krane::TestCase
         logger: logger,
         global_timeout: 300,
         selector: nil,
+        select_any: false,
         protected_namespaces: ["default", "kube-system", "kube-public"],
       }.merge(new_args),
       run_args: {

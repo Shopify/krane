@@ -166,6 +166,40 @@ class KraneDeployTest < Krane::IntegrationTest
     assert_equal("master", deployments.first.metadata.labels.branch)
   end
 
+  def test_select_any
+    # Deploy only the resource matching the selector without valiation error
+    assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
+      selector: Krane::LabelSelector.parse("branch=master"),
+      select_any: true))
+    assert_logs_match_all([
+      "Using resource selector branch=master",
+      "Can select any resource",
+    ], in_order: true)
+    # Ensure only the selected resource is deployed
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
+    assert_equal(1, deployments.size)
+    assert_equal("master", deployments.first.metadata.labels.branch)
+
+    # Deploy another resource with a different selector
+    assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
+      selector: Krane::LabelSelector.parse("branch=staging"),
+      select_any: true))
+    assert_logs_match_all([
+      "Using resource selector branch=staging",
+      "Can select any resource",
+    ], in_order: true)
+    # Ensure the not selected resource is not pruned
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
+    assert_equal(2, deployments.size)
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=master")
+    assert_equal(1, deployments.size)
+    assert_equal("master", deployments.first.metadata.labels.branch)
+    # Ensure the selected resource is deployed
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=staging")
+    assert_equal(1, deployments.size)
+    assert_equal("staging", deployments.first.metadata.labels.branch)
+  end
+
   def test_mismatched_selector
     assert_deploy_failure(deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml),
       selector: Krane::LabelSelector.parse("branch=staging")))

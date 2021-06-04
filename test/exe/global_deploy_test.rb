@@ -120,6 +120,7 @@ class GlobalDeployTest < Krane::TestCase
         filenames: ['/tmp'],
         global_timeout: 300,
         selector: 'name=web',
+        select_any: false,
       }.merge(new_args),
       run_args: {
         verify_result: true,

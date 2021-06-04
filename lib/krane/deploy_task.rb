@@ -100,12 +100,13 @@ module Krane
     # @param bindings [Hash] Bindings parsed by Krane::BindingsParser
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
+    # @param select_any [Boolean] Allow selecting a subset of Kubernetes resource templates to deploy
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
     # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults
     #   to Krane::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha: nil, logger: nil, kubectl_instance: nil, bindings: {},
-      global_timeout: nil, selector: nil, filenames: [], protected_namespaces: nil,
+      global_timeout: nil, selector: nil, select_any: false, filenames: [], protected_namespaces: nil,
       render_erb: false, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
@@ -118,6 +119,7 @@ module Krane
       @kubectl = kubectl_instance
       @global_timeout = global_timeout
       @selector = selector
+      @select_any = select_any
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
       @render_erb = render_erb
     end
@@ -273,6 +275,7 @@ module Krane
 
       confirm_ejson_keys_not_prunable if prune
       @logger.info("Using resource selector #{@selector}") if @selector
+      @logger.info("Can select any resource") if @selector && @select_any
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
     end
@@ -296,7 +299,8 @@ module Krane
       batch_dry_run_success = kubectl.server_dry_run_enabled? && validate_dry_run(batchable_resources)
       individuals += batchable_resources unless batch_dry_run_success
       Krane::Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: individuals.include?(r))
+        r.validate_definition(kubectl: kubectl, selector: @selector, select_any: @select_any,
+          dry_run: individuals.include?(r))
       end
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
@@ -307,6 +311,7 @@ module Krane
         end
         raise FatalDeploymentError, "Template validation failed"
       end
+      resources.select! { |r| r.selected?(@selector) }
     end
     measure_method(:validate_resources)
 

@@ -33,8 +33,10 @@ module Krane
     # @param context [String] Kubernetes context (*required*)
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector (*required*)
+    # @param select_any [Boolean] Allow selecting a subset of Kubernetes resource templates to deploy
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
-    def initialize(context:, global_timeout: nil, selector: nil, filenames: [], logger: nil, kubeconfig: nil)
+    def initialize(context:, global_timeout: nil, selector: nil, select_any: false,
+      filenames: [], logger: nil, kubeconfig: nil)
       template_paths = filenames.map { |path| File.expand_path(path) }
 
       @task_config = TaskConfig.new(context, nil, logger, kubeconfig)
@@ -42,6 +44,7 @@ module Krane
         logger: @task_config.logger, render_erb: false)
       @global_timeout = global_timeout
       @selector = selector
+      @select_any = select_any
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -131,7 +134,7 @@ module Krane
       validate_globals(resources)
 
       Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(kubectl: @kubectl, selector: @selector)
+        r.validate_definition(kubectl: @kubectl, selector: @selector, select_any: @select_any)
       end
 
       failed_resources = resources.select(&:validation_failed?)
@@ -143,6 +146,8 @@ module Krane
         end
         raise FatalDeploymentError, "Template validation failed"
       end
+
+      resources.select! { |r| r.selected?(@selector) }
     end
     measure_method(:validate_resources)
 

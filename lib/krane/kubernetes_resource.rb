@@ -134,9 +134,9 @@ module Krane
       Kubeclient::Resource.new(@definition)
     end
 
-    def validate_definition(kubectl:, selector: nil, dry_run: true)
+    def validate_definition(kubectl:, selector: nil, select_any: false, dry_run: true)
       @validation_errors = []
-      validate_selector(selector) if selector
+      validate_selector(selector, select_any) if selector
       validate_timeout_annotation
       validate_deploy_method_override_annotation
       validate_spec_with_kubectl(kubectl) if dry_run
@@ -499,6 +499,10 @@ module Krane
       @global || self.class::GLOBAL
     end
 
+    def selected?(selector)
+      selector.nil? || selector.to_h <= labels
+    end
+
     private
 
     def validate_timeout_annotation
@@ -530,7 +534,9 @@ module Krane
       @definition.dig("metadata", "annotations", Annotation.for(suffix))
     end
 
-    def validate_selector(selector)
+    def validate_selector(selector, select_any)
+      return if select_any
+      # If not select any, we have to ensure all kubernetes resource templates contain the selector labels.
       if labels.nil?
         @validation_errors << "selector #{selector} passed in, but no labels were defined"
         return
