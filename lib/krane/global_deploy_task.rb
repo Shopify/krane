@@ -33,9 +33,9 @@ module Krane
     # @param context [String] Kubernetes context (*required*)
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector (*required*)
-    # @param select_any [Boolean] Allow selecting a subset of Kubernetes resource templates to deploy
+    # @param selector_as_filter [Boolean] Allow selecting a subset of Kubernetes resource templates to deploy
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
-    def initialize(context:, global_timeout: nil, selector: nil, select_any: false,
+    def initialize(context:, global_timeout: nil, selector: nil, selector_as_filter: false,
       filenames: [], logger: nil, kubeconfig: nil)
       template_paths = filenames.map { |path| File.expand_path(path) }
 
@@ -44,7 +44,7 @@ module Krane
         logger: @task_config.logger, render_erb: false)
       @global_timeout = global_timeout
       @selector = selector
-      @select_any = select_any
+      @selector_as_filter = selector_as_filter
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -134,7 +134,7 @@ module Krane
       validate_globals(resources)
 
       Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(kubectl: @kubectl, selector: @selector, select_any: @select_any)
+        r.validate_definition(kubectl: @kubectl, selector: @selector, selector_as_filter: @selector_as_filter)
       end
 
       failed_resources = resources.select(&:validation_failed?)

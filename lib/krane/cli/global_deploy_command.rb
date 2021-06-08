@@ -16,9 +16,9 @@ module Krane
                              desc: "Verify workloads correctly deployed" },
         "selector" => { type: :string, banner: "'label=value'", required: true,
                         desc: "Select workloads owned by selector(s)" },
-        "select-any" => { type: :boolean,
-                          desc: "Enable selecting a subset of resources to deploy without validation failure",
-                          default: false },
+        "selector-as-filter" => { type: :boolean,
+                                  desc: "Use --selector as a label filter to select a subset of resources to deploy",
+                                  default: false },
         "prune" => { type: :boolean, desc: "Enable deletion of resources that match"\
                      " the provided selector and do not appear in the provided templates",
                      default: true },
@@ -31,7 +31,7 @@ module Krane
         require 'krane/duration_parser'
 
         selector = ::Krane::LabelSelector.parse(options[:selector])
-        select_any = options['select-any']
+        selector_as_filter = options['selector-as-filter']
 
         filenames = options[:filenames].dup
         filenames << "-" if options[:stdin]
@@ -45,7 +45,7 @@ module Krane
             filenames: paths,
             global_timeout: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
             selector: selector,
-            select_any: select_any,
+            selector_as_filter: selector_as_filter,
           )
 
           deploy.run!(

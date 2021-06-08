@@ -170,10 +170,10 @@ class KraneDeployTest < Krane::IntegrationTest
     # Deploy only the resource matching the selector without valiation error
     assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
       selector: Krane::LabelSelector.parse("branch=master"),
-      select_any: true))
+      selector_as_filter: true))
     assert_logs_match_all([
       "Using resource selector branch=master",
-      "Can select any resource",
+      "Can deploy a subset of resources",
     ], in_order: true)
     # Ensure only the selected resource is deployed
     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
@@ -183,10 +183,10 @@ class KraneDeployTest < Krane::IntegrationTest
     # Deploy another resource with a different selector
     assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
       selector: Krane::LabelSelector.parse("branch=staging"),
-      select_any: true))
+      selector_as_filter: true))
     assert_logs_match_all([
       "Using resource selector branch=staging",
-      "Can select any resource",
+      "Can deploy a subset of resources",
     ], in_order: true)
     # Ensure the not selected resource is not pruned
     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)

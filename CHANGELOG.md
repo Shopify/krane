@@ -4,7 +4,7 @@
 
 *Enhancements*
 
-- Add a new option `--select-any` to command `krane deploy` and `krane global-deploy` [#831](https://github.com/Shopify/krane/pull/831)
+- Add a new option `--selector-as-filter` to command `krane deploy` and `krane global-deploy` [#831](https://github.com/Shopify/krane/pull/831)
 
 ## 2.1.10
 
