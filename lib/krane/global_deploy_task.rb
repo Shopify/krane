@@ -133,8 +133,9 @@ module Krane
     def validate_resources(resources)
       validate_globals(resources)
 
+      resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
       Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(kubectl: @kubectl, selector: @selector, selector_as_filter: @selector_as_filter)
+        r.validate_definition(kubectl: @kubectl, selector: @selector)
       end
 
       failed_resources = resources.select(&:validation_failed?)
@@ -146,8 +147,6 @@ module Krane
         end
         raise FatalDeploymentError, "Template validation failed"
       end
-
-      resources.select! { |r| r.selected?(@selector) }
     end
     measure_method(:validate_resources)
 

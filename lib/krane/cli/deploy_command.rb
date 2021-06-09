@@ -43,7 +43,7 @@ module Krane
         selector = ::Krane::LabelSelector.parse(options[:selector]) if options[:selector]
         selector_as_filter = options['selector-as-filter']
 
-        if selector_as_filter && selector.to_s.empty?
+        if selector_as_filter && !selector
           raise(Thor::RequiredArgumentMissingError, '--selector must be set when --selector-as-filter is set')
         end
 

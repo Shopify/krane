@@ -298,9 +298,9 @@ module Krane
       batchable_resources, individuals = partition_dry_run_resources(resources.dup)
       batch_dry_run_success = kubectl.server_dry_run_enabled? && validate_dry_run(batchable_resources)
       individuals += batchable_resources unless batch_dry_run_success
+      resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
       Krane::Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(kubectl: kubectl, selector: @selector, selector_as_filter: @selector_as_filter,
-          dry_run: individuals.include?(r))
+        r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: individuals.include?(r))
       end
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
@@ -311,7 +311,6 @@ module Krane
         end
         raise FatalDeploymentError, "Template validation failed"
       end
-      resources.select! { |r| r.selected?(@selector) }
     end
     measure_method(:validate_resources)
 
