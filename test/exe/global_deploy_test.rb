@@ -88,7 +88,7 @@ class GlobalDeployTest < Krane::TestCase
       selector: "key=value",
       selector_as_filter: true,
     })
-    flags = '-f /my/file/path --selector key:value --selector_as_filter'
+    flags = '-f /my/file/path --selector key:value --selector-as-filter'
     krane_global_deploy!(flags: flags)
 
     flags = '-f /my/file/path --selector-as-filter'
