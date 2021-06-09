@@ -173,7 +173,7 @@ class KraneDeployTest < Krane::IntegrationTest
       selector_as_filter: true))
     assert_logs_match_all([
       "Using resource selector branch=master",
-      "Can deploy a subset of resources",
+      "Only deploying resources filtered by labels in selector",
     ], in_order: true)
     # Ensure only the selected resource is deployed
     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
@@ -186,7 +186,7 @@ class KraneDeployTest < Krane::IntegrationTest
       selector_as_filter: true))
     assert_logs_match_all([
       "Using resource selector branch=staging",
-      "Can deploy a subset of resources",
+      "Only deploying resources filtered by labels in selector",
     ], in_order: true)
     # Ensure the not selected resource is not pruned
     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)

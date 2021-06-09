@@ -275,7 +275,7 @@ module Krane
 
       confirm_ejson_keys_not_prunable if prune
       @logger.info("Using resource selector #{@selector}") if @selector
-      @logger.info("Can deploy a subset of resources") if @selector && @selector_as_filter
+      @logger.info("Only deploying resources filtered by labels in selector") if @selector && @selector_as_filter
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
     end
