@@ -499,6 +499,10 @@ module Krane
       @global || self.class::GLOBAL
     end
 
+    def selected?(selector)
+      selector.nil? || selector.to_h <= labels
+    end
+
     private
 
     def validate_timeout_annotation

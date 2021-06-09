@@ -1,5 +1,11 @@
 ## next
 
+## 2.1.11
+
+*Enhancements*
+
+- Add a new option `--selector-as-filter` to command `krane deploy` and `krane global-deploy` [#831](https://github.com/Shopify/krane/pull/831)
+
 ## 2.1.10
 
 *Bug Fixes*

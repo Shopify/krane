@@ -25,6 +25,10 @@ module Krane
                      default: true },
         "selector" => { type: :string, banner: "'label=value'",
                         desc: "Select workloads by selector(s)" },
+        "selector-as-filter" => { type: :boolean,
+                                  desc: "Use --selector as a label filter to deploy only a subset "\
+                                    "of the provided resources",
+                                  default: false },
         "verbose-log-prefix" => { type: :boolean, desc: "Add [context][namespace] to the log prefix",
                                   default: false },
         "verify-result" => { type: :boolean, default: true,
@@ -37,6 +41,11 @@ module Krane
         require 'krane/label_selector'
 
         selector = ::Krane::LabelSelector.parse(options[:selector]) if options[:selector]
+        selector_as_filter = options['selector-as-filter']
+
+        if selector_as_filter && !selector
+          raise(Thor::RequiredArgumentMissingError, '--selector must be set when --selector-as-filter is set')
+        end
 
         logger = ::Krane::FormattedLogger.build(namespace, context,
           verbose_prefix: options['verbose-log-prefix'])
@@ -60,6 +69,7 @@ module Krane
             logger: logger,
             global_timeout: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
             selector: selector,
+            selector_as_filter: selector_as_filter,
             protected_namespaces: protected_namespaces,
           )
 

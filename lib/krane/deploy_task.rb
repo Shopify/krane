@@ -100,12 +100,13 @@ module Krane
     # @param bindings [Hash] Bindings parsed by Krane::BindingsParser
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
+    # @param selector_as_filter [Boolean] Allow selecting a subset of Kubernetes resource templates to deploy
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
     # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults
     #   to Krane::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha: nil, logger: nil, kubectl_instance: nil, bindings: {},
-      global_timeout: nil, selector: nil, filenames: [], protected_namespaces: nil,
+      global_timeout: nil, selector: nil, selector_as_filter: false, filenames: [], protected_namespaces: nil,
       render_erb: false, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
@@ -118,6 +119,7 @@ module Krane
       @kubectl = kubectl_instance
       @global_timeout = global_timeout
       @selector = selector
+      @selector_as_filter = selector_as_filter
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
       @render_erb = render_erb
     end
@@ -273,6 +275,7 @@ module Krane
 
       confirm_ejson_keys_not_prunable if prune
       @logger.info("Using resource selector #{@selector}") if @selector
+      @logger.info("Only deploying resources filtered by labels in selector") if @selector && @selector_as_filter
       @namespace_tags |= tags_from_namespace_labels
       @logger.info("All required parameters and files are present")
     end
@@ -295,6 +298,7 @@ module Krane
       batchable_resources, individuals = partition_dry_run_resources(resources.dup)
       batch_dry_run_success = kubectl.server_dry_run_enabled? && validate_dry_run(batchable_resources)
       individuals += batchable_resources unless batch_dry_run_success
+      resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
       Krane::Concurrency.split_across_threads(resources) do |r|
         r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: individuals.include?(r))
       end

@@ -166,6 +166,40 @@ class KraneDeployTest < Krane::IntegrationTest
     assert_equal("master", deployments.first.metadata.labels.branch)
   end
 
+  def test_selector_as_filter
+    # Deploy only the resource matching the selector without validation error
+    assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
+      selector: Krane::LabelSelector.parse("branch=master"),
+      selector_as_filter: true))
+    assert_logs_match_all([
+      "Using resource selector branch=master",
+      "Only deploying resources filtered by labels in selector",
+    ], in_order: true)
+    # Ensure only the selected resource is deployed
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
+    assert_equal(1, deployments.size)
+    assert_equal("master", deployments.first.metadata.labels.branch)
+
+    # Deploy another resource with a different selector
+    assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
+      selector: Krane::LabelSelector.parse("branch=staging"),
+      selector_as_filter: true))
+    assert_logs_match_all([
+      "Using resource selector branch=staging",
+      "Only deploying resources filtered by labels in selector",
+    ], in_order: true)
+    # Ensure the not selected resource is not pruned
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
+    assert_equal(2, deployments.size)
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=master")
+    assert_equal(1, deployments.size)
+    assert_equal("master", deployments.first.metadata.labels.branch)
+    # Ensure the selected resource is deployed
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=staging")
+    assert_equal(1, deployments.size)
+    assert_equal("staging", deployments.first.metadata.labels.branch)
+  end
+
   def test_mismatched_selector
     assert_deploy_failure(deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml),
       selector: Krane::LabelSelector.parse("branch=staging")))

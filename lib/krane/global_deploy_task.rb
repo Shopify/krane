@@ -33,8 +33,10 @@ module Krane
     # @param context [String] Kubernetes context (*required*)
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector (*required*)
+    # @param selector_as_filter [Boolean] Allow selecting a subset of Kubernetes resource templates to deploy
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
-    def initialize(context:, global_timeout: nil, selector: nil, filenames: [], logger: nil, kubeconfig: nil)
+    def initialize(context:, global_timeout: nil, selector: nil, selector_as_filter: false,
+      filenames: [], logger: nil, kubeconfig: nil)
       template_paths = filenames.map { |path| File.expand_path(path) }
 
       @task_config = TaskConfig.new(context, nil, logger, kubeconfig)
@@ -42,6 +44,7 @@ module Krane
         logger: @task_config.logger, render_erb: false)
       @global_timeout = global_timeout
       @selector = selector
+      @selector_as_filter = selector_as_filter
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -130,6 +133,7 @@ module Krane
     def validate_resources(resources)
       validate_globals(resources)
 
+      resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
       Concurrency.split_across_threads(resources) do |r|
         r.validate_definition(kubectl: @kubectl, selector: @selector)
       end
