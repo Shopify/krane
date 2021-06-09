@@ -117,7 +117,7 @@ Refer to `krane help` for the authoritative set of options.
 - `--global-timeout=duration`: Raise a timeout error if it takes longer than _duration_ for any
 resource to deploy.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. If you use this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
-- `--selector-as-filter`: Instructs krane to only deploy resources that are filtered by the specified labels in `--selector`. The deploy will not fail if not all resources match the labels.
+- `--selector-as-filter`: Instructs krane to only deploy resources that are filtered by the specified labels in `--selector`. The deploy will not fail if not all resources match the labels. This is useful if you only want to deploy a subset of resources within a given YAML file. See [Sharing a namespace](#sharing-a-namespace) below.
 - `--no-verify-result`: Skip verification that workloads correctly deployed.
 - `--protected-namespaces=default kube-system kube-public`: Fail validation if a deploy is targeted at a protected namespace.
 - `--verbose-log-prefix`: Add [context][namespace] to the log prefix
@@ -132,6 +132,8 @@ By default, krane will prune any resources in the target namespace which have th
 If you need to, you may specify `--no-prune` to disable all pruning behaviour, but this is not recommended.
 
 If you need to share a namespace with resources which are managed by other tools or indeed other krane deployments, you can supply the `--selector` option, such that only resources with labels matching the selector are considered for pruning.
+
+If you need to share a namespace with different set of resources using the same YAML file, you can supply the `--selector` and `--selector-as-filter` options, such that only the resources that match with the labels will be deployed. In each run of deploy, you can use different labels in `--selector` to deploy a different set of resources. Only the deployed resources in each run are considered for pruning.
 
 ### Using templates
 
@@ -442,7 +444,7 @@ Refer to `krane global-deploy help` for the authoritative set of options.
 - `--filenames / -f [PATHS]`: Accepts a list of directories and/or filenames to specify the set of directories/files that will be deployed. Use `-` to specify STDIN.
 - `--no-prune`: Skips pruning of resources that are no longer in your Kubernetes template set. Not recommended, as it allows your namespace to accumulate cruft that is not reflected in your deploy directory.
 - `--selector`: Instructs krane to only prune resources which match the specified label selector, such as `environment=staging`. By using this option, all resource templates must specify matching labels. See [Sharing a namespace](#sharing-a-namespace) below.
-- `--selector-as-filter`: Instructs krane to only deploy resources that are filtered by the specified labels in `--selector`. The deploy will not fail if not all resources match the labels.
+- `--selector-as-filter`: Instructs krane to only deploy resources that are filtered by the specified labels in `--selector`. The deploy will not fail if not all resources match the labels. This is useful if you only want to deploy a subset of resources within a given YAML file. See [Sharing a namespace](#sharing-a-namespace) below.
 - `--global-timeout=duration`: Raise a timeout error if it takes longer than _duration_ for any
 resource to deploy.
 - `--no-verify-result`: Skip verification that resources correctly deployed.

@@ -95,6 +95,28 @@ class DeployTest < Krane::TestCase
     end
   end
 
+  def test_deploy_fails_with_selector_as_filter_but_without_selector
+    selector = Krane::LabelSelector.new('key' => 'value')
+    Krane::LabelSelector.expects(:parse).returns(selector)
+    set_krane_deploy_expectations(new_args: {
+      filenames: ['/my/file/path'],
+      selector: selector,
+      selector_as_filter: true,
+    })
+    flags = '-f /my/file/path --selector key:value --selector_as_filter'
+    krane_deploy!(flags: flags)
+
+    flags = '-f /my/file/path --selector-as-filter'
+    krane = Krane::CLI::Krane.new(
+      [deploy_task_config.namespace, deploy_task_config.context],
+      flags.split
+    )
+    assert_raises_message(Thor::RequiredArgumentMissingError,
+      "--selector must be set when --selector-as-filter is set") do
+      krane.invoke("deploy")
+    end
+  end
+
   def test_stdin_flag_deduped_if_specified_multiple_times
     Dir.mktmpdir do |tmp_path|
       $stdin.expects("read").returns("").times(2)

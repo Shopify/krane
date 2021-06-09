@@ -80,6 +80,28 @@ class GlobalDeployTest < Krane::TestCase
     end
   end
 
+  def test_deploy_fails_selector_required
+    selector = Krane::LabelSelector.new('key' => 'value')
+    Krane::LabelSelector.expects(:parse).returns(selector)
+    set_krane_global_deploy_expectations!(new_args: {
+      filenames: ['/my/file/path'],
+      selector: "key=value",
+      selector_as_filter: true,
+    })
+    flags = '-f /my/file/path --selector key:value --selector_as_filter'
+    krane_global_deploy!(flags: flags)
+
+    flags = '-f /my/file/path --selector-as-filter'
+    krane = Krane::CLI::Krane.new(
+      [task_config.context],
+      flags.split
+    )
+    assert_raises_message(Thor::RequiredArgumentMissingError,
+      "No value provided for required options '--selector'") do
+      krane.invoke("global_deploy")
+    end
+  end
+
   def test_deploy_parses_selector
     selector = 'name=web'
     set_krane_global_deploy_expectations!(new_args: { selector: selector })

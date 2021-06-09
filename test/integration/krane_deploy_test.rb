@@ -167,7 +167,7 @@ class KraneDeployTest < Krane::IntegrationTest
   end
 
   def test_select_any
-    # Deploy only the resource matching the selector without valiation error
+    # Deploy only the resource matching the selector without validation error
     assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
       selector: Krane::LabelSelector.parse("branch=master"),
       selector_as_filter: true))

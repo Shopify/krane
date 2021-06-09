@@ -17,7 +17,8 @@ module Krane
         "selector" => { type: :string, banner: "'label=value'", required: true,
                         desc: "Select workloads owned by selector(s)" },
         "selector-as-filter" => { type: :boolean,
-                                  desc: "Use --selector as a label filter to select a subset of resources to deploy",
+                                  desc: "Use --selector as a label filter to deploy only a subset "\
+                                    "of the provided resources",
                                   default: false },
         "prune" => { type: :boolean, desc: "Enable deletion of resources that match"\
                      " the provided selector and do not appear in the provided templates",
@@ -32,6 +33,10 @@ module Krane
 
         selector = ::Krane::LabelSelector.parse(options[:selector])
         selector_as_filter = options['selector-as-filter']
+
+        if selector_as_filter && selector.to_s.empty?
+          raise(Thor::RequiredArgumentMissingError, '--selector must be set when --selector-as-filter is set')
+        end
 
         filenames = options[:filenames].dup
         filenames << "-" if options[:stdin]
