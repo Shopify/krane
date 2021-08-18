@@ -34,7 +34,7 @@ module Krane
         "verify-result" => { type: :boolean, default: true,
                              desc: "Verify workloads correctly deployed" },
         "fail-on-image-pull" => { type: :boolean, default: true,
-                                  desc: "When false, 404s on image pulls will not fail Pod resources" }
+                                  desc: "When false, 404s on image pulls will not fail Pod resources" },
       }
 
       def self.from_options(namespace, context, options)

@@ -16,12 +16,16 @@ module Krane
       @parent = parent
       @deploy_started_at = deploy_started_at
 
-      @containers = definition.fetch("spec", {}).fetch("containers", []).map { |c| Container.new(c) }
+      @containers = definition.fetch("spec", {}).fetch("containers", []).do |c|
+        Container.new(c, fail_on_image_pull: fail_on_image_pull)
+      end
       unless @containers.present?
         logger.summary.add_paragraph("Rendered template content:\n#{definition.to_yaml}")
         raise FatalDeploymentError, "Template is missing required field spec.containers"
       end
-      @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
+      @containers += definition["spec"].fetch("initContainers", []).map do |c|
+        Container.new(c, init_container: true), fail_on_image_pull: fail_on_image_pull)
+      end
       @stream_logs = stream_logs
       super(namespace: namespace, context: context, definition: definition,
             logger: logger, statsd_tags: statsd_tags)
@@ -103,6 +107,10 @@ module Krane
 
     def node_name
       @instance_data.dig('spec', 'nodeName')
+    end
+
+    def fail_on_image_pull=(val)
+      @containers.each { |c| c.fail_on_image_pull = val }
     end
 
     private
@@ -208,6 +216,7 @@ module Krane
         @image = definition["image"]
         @http_probe_location = definition.dig("readinessProbe", "httpGet", "path")
         @exec_probe_command = definition.dig("readinessProbe", "exec", "command")
+        @fail_on_image_pull = false
         @status = {}
       end
 
@@ -222,7 +231,7 @@ module Krane
         if limbo_reason == "CrashLoopBackOff"
           exit_code = @status.dig('lastState', 'terminated', 'exitCode')
           "Crashing repeatedly (exit #{exit_code}). See logs for more information."
-        elsif limbo_reason == "ErrImagePull" && (fail_on_image_pull && limbo_message.match(/not found/i))
+        elsif limbo_reason == "ErrImagePull" && (@fail_on_image_pull && limbo_message.match(/not found/i))
           "Failed to pull image #{@image}. "\
           "Did you wait for it to be built and pushed to the registry before deploying?"
         elsif limbo_reason == "CreateContainerConfigError"
@@ -267,6 +276,10 @@ module Krane
 
       def reset_status
         @status = {}
+      end
+
+      def fail_on_image_pull=(val)
+        @fail_on_image_pull = val
       end
     end
   end
