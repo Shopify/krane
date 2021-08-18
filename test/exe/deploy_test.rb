@@ -163,6 +163,7 @@ class DeployTest < Krane::TestCase
         global_timeout: 300,
         selector: nil,
         selector_as_filter: false,
+        fail_on_image_pull: true,
         protected_namespaces: ["default", "kube-system", "kube-public"],
       }.merge(new_args),
       run_args: {
