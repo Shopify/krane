@@ -32,7 +32,7 @@ module Krane
         "verbose-log-prefix" => { type: :boolean, desc: "Add [context][namespace] to the log prefix",
                                   default: false },
         "verify-result" => { type: :boolean, default: true,
-                             desc: "Verify workloads correctly deployed" }
+                             desc: "Verify workloads correctly deployed" },
         "fail-on-image-pull" => { type: :boolean, default: true,
                                   desc: "When false, 404s on image pulls will not fail Pod resources" }
       }
