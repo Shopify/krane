@@ -213,7 +213,7 @@ module Krane
         @image = definition["image"]
         @http_probe_location = definition.dig("readinessProbe", "httpGet", "path")
         @exec_probe_command = definition.dig("readinessProbe", "exec", "command")
-        @fail_on_image_pull = false
+        @fail_on_image_pull = true
         @status = {}
       end
 
