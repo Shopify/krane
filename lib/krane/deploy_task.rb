@@ -106,7 +106,7 @@ module Krane
     #   to Krane::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha: nil, logger: nil, kubectl_instance: nil, bindings: {},
-      global_timeout: nil, selector: nil, selector_as_filter: false, fail_on_image_pull: true, filenames: [],
+      global_timeout: nil, selector: nil, selector_as_filter: false, fail_on_image_pull_not_found: true, filenames: [],
       protected_namespaces: nil, render_erb: false, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
@@ -120,7 +120,7 @@ module Krane
       @global_timeout = global_timeout
       @selector = selector
       @selector_as_filter = selector_as_filter
-      @fail_on_image_pull = fail_on_image_pull
+      @fail_on_image_pull_not_found = fail_on_image_pull_not_found
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
       @render_erb = render_erb
     end
@@ -244,7 +244,7 @@ module Krane
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
           statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
-        r.fail_on_image_pull = @fail_on_image_pull if r.is_a?(Krane::Pod)
+        r.fail_on_image_pull_not_found = @fail_on_image_pull_not_found if r.is_a?(Krane::Pod)
         resources << r
         @logger.info("  - #{r.id}")
       end

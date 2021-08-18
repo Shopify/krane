@@ -33,8 +33,8 @@ module Krane
                                   default: false },
         "verify-result" => { type: :boolean, default: true,
                              desc: "Verify workloads correctly deployed" },
-        "fail-on-image-pull" => { type: :boolean, default: true,
-                                  desc: "When false, 404s on image pulls will not fail Pod resources" },
+        "fail-on-image-pull-not-found" => { type: :boolean, default: true,
+                                            desc: "When false, 404s on image pulls will not fail Pod resources" },
       }
 
       def self.from_options(namespace, context, options)
@@ -49,7 +49,7 @@ module Krane
           raise(Thor::RequiredArgumentMissingError, '--selector must be set when --selector-as-filter is set')
         end
 
-        fail_on_image_pull = options['fail-on-image-pull']
+        fail_on_image_pull_not_found = options['fail-on-image-pull-not-found']
 
         logger = ::Krane::FormattedLogger.build(namespace, context,
           verbose_prefix: options['verbose-log-prefix'])
@@ -75,7 +75,7 @@ module Krane
             selector: selector,
             selector_as_filter: selector_as_filter,
             protected_namespaces: protected_namespaces,
-            fail_on_image_pull: fail_on_image_pull
+            fail_on_image_pull_not_found: fail_on_image_pull_not_found
           )
 
           deploy.run!(

@@ -105,8 +105,8 @@ module Krane
       @instance_data.dig('spec', 'nodeName')
     end
 
-    def fail_on_image_pull=(val)
-      @containers.each { |c| c.fail_on_image_pull = val }
+    def fail_on_image_pull_not_found=(val)
+      @containers.each { |c| c.fail_on_image_pull_not_found = val }
     end
 
     private
@@ -205,7 +205,7 @@ module Krane
 
     class Container
       attr_reader :name
-      attr_accessor :fail_on_image_pull
+      attr_accessor :fail_on_image_pull_not_found
 
       def initialize(definition, init_container: false)
         @init_container = init_container
@@ -213,7 +213,7 @@ module Krane
         @image = definition["image"]
         @http_probe_location = definition.dig("readinessProbe", "httpGet", "path")
         @exec_probe_command = definition.dig("readinessProbe", "exec", "command")
-        @fail_on_image_pull = true
+        @fail_on_image_pull_not_found = true
         @status = {}
       end
 
@@ -228,7 +228,7 @@ module Krane
         if limbo_reason == "CrashLoopBackOff"
           exit_code = @status.dig('lastState', 'terminated', 'exitCode')
           "Crashing repeatedly (exit #{exit_code}). See logs for more information."
-        elsif limbo_reason == "ErrImagePull" && (fail_on_image_pull && limbo_message.match(/not found/i))
+        elsif limbo_reason == "ErrImagePull" && (fail_on_image_pull_not_found && limbo_message.match(/not found/i))
           "Failed to pull image #{@image}. "\
           "Did you wait for it to be built and pushed to the registry before deploying?"
         elsif limbo_reason == "CreateContainerConfigError"

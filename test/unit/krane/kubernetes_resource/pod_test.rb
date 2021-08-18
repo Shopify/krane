@@ -23,7 +23,7 @@ class PodTest < Krane::TestCase
     assert_equal(expected_msg.strip, pod.failure_message)
   end
 
-  def test_deploy_failed_is_false_for_missing_image_error_and_fail_on_image_pull_set_to_false
+  def test_deploy_failed_is_false_for_missing_image_error_and_fail_on_image_pull_not_found_set_to_false
     container_state = {
       "state" => {
         "waiting" => {
@@ -32,7 +32,7 @@ class PodTest < Krane::TestCase
         },
       },
     }
-    Krane::Pod::Container.any_instance.expects(:fail_on_image_pull).returns(false)
+    Krane::Pod::Container.any_instance.expects(:fail_on_image_pull_not_found).returns(false)
     pod = build_synced_pod(build_pod_template(container_state: container_state))
     refute(pod.deploy_failed?)
   end

@@ -117,21 +117,21 @@ class DeployTest < Krane::TestCase
     end
   end
 
-  def test_deploy_defaults_fail_on_image_pull_to_true
+  def test_deploy_defaults_fail_on_image_pull_not_found_to_true
     set_krane_deploy_expectations(new_args: {
       filenames: ['/my/file/path'],
-      fail_on_image_pull: true,
+      fail_on_image_pull_not_found: true,
     },)
     flags = '-f /my/file/path'
     krane_deploy!(flags: flags)
   end
 
-  def test_deploy_fail_on_image_pull_to_true_flag_set_to_false
+  def test_deploy_fail_on_image_pull_not_found_to_true_flag_set_to_false
     set_krane_deploy_expectations(new_args: {
       filenames: ['/my/file/path'],
-      fail_on_image_pull: false,
+      fail_on_image_pull_not_found: false,
     },)
-    flags = '-f /my/file/path --fail-on-image-pull=false'
+    flags = '-f /my/file/path --fail-on-image-pull-not-found=false'
     krane_deploy!(flags: flags)
   end
 
@@ -181,7 +181,7 @@ class DeployTest < Krane::TestCase
         global_timeout: 300,
         selector: nil,
         selector_as_filter: false,
-        fail_on_image_pull: true,
+        fail_on_image_pull_not_found: true,
         protected_namespaces: ["default", "kube-system", "kube-public"],
       }.merge(new_args),
       run_args: {
