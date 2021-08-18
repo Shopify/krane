@@ -106,7 +106,7 @@ module Krane
     #   to Krane::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha: nil, logger: nil, kubectl_instance: nil, bindings: {},
-      global_timeout: nil, selector: nil, selector_as_filter: false, fail_on_image_pull: false, filenames: [],
+      global_timeout: nil, selector: nil, selector_as_filter: false, fail_on_image_pull: true, filenames: [],
       protected_namespaces: nil, render_erb: false, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
