@@ -16,7 +16,7 @@ module Krane
       @parent = parent
       @deploy_started_at = deploy_started_at
 
-      @containers = definition.fetch("spec", {}).fetch("containers", []).do |c|
+      @containers = definition.fetch("spec", {}).fetch("containers", []).map do |c|
         Container.new(c, fail_on_image_pull: fail_on_image_pull)
       end
       unless @containers.present?
@@ -24,7 +24,7 @@ module Krane
         raise FatalDeploymentError, "Template is missing required field spec.containers"
       end
       @containers += definition["spec"].fetch("initContainers", []).map do |c|
-        Container.new(c, init_container: true), fail_on_image_pull: fail_on_image_pull)
+        Container.new(c, init_container: true, fail_on_image_pull: fail_on_image_pull)
       end
       @stream_logs = stream_logs
       super(namespace: namespace, context: context, definition: definition,
