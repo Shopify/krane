@@ -244,7 +244,7 @@ module Krane
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
           statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
-        r.fail_on_image_pull = @fail_on_image_pull if r.is_a?(KubernetesResource::Pod)
+        r.fail_on_image_pull = @fail_on_image_pull if r.is_a?(Krane::Pod)
         resources << r
         @logger.info("  - #{r.id}")
       end
