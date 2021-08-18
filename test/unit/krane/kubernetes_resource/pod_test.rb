@@ -32,8 +32,8 @@ class PodTest < Krane::TestCase
         },
       },
     }
-    Krane::Pod::Container.any_instance.expects(:fail_on_image_pull_not_found).returns(false)
     pod = build_synced_pod(build_pod_template(container_state: container_state))
+    pod.fail_on_image_pull_not_found = false
     refute(pod.deploy_failed?)
   end
 
