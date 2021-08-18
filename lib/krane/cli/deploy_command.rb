@@ -32,7 +32,9 @@ module Krane
         "verbose-log-prefix" => { type: :boolean, desc: "Add [context][namespace] to the log prefix",
                                   default: false },
         "verify-result" => { type: :boolean, default: true,
-                             desc: "Verify workloads correctly deployed" },
+                             desc: "Verify workloads correctly deployed" }
+        "fail-on-image-pull" => { type: :boolean, default: true,
+                                  desc: "When false, 404s on image pulls will not fail Pod resources" }
       }
 
       def self.from_options(namespace, context, options)
@@ -46,6 +48,8 @@ module Krane
         if selector_as_filter && !selector
           raise(Thor::RequiredArgumentMissingError, '--selector must be set when --selector-as-filter is set')
         end
+
+        fail_on_image_pull = options['fail-on-image-pull']
 
         logger = ::Krane::FormattedLogger.build(namespace, context,
           verbose_prefix: options['verbose-log-prefix'])
@@ -71,6 +75,7 @@ module Krane
             selector: selector,
             selector_as_filter: selector_as_filter,
             protected_namespaces: protected_namespaces,
+            fail_on_image_pull: fail_on_image_pull
           )
 
           deploy.run!(
