@@ -205,7 +205,7 @@ module Krane
 
     class Container
       attr_reader :name
-      attr_writer :fail_on_image_pull
+      attr_accessor :fail_on_image_pull
 
       def initialize(definition, init_container: false)
         @init_container = init_container
@@ -228,7 +228,7 @@ module Krane
         if limbo_reason == "CrashLoopBackOff"
           exit_code = @status.dig('lastState', 'terminated', 'exitCode')
           "Crashing repeatedly (exit #{exit_code}). See logs for more information."
-        elsif limbo_reason == "ErrImagePull" && (@fail_on_image_pull && limbo_message.match(/not found/i))
+        elsif limbo_reason == "ErrImagePull" && (fail_on_image_pull && limbo_message.match(/not found/i))
           "Failed to pull image #{@image}. "\
           "Did you wait for it to be built and pushed to the registry before deploying?"
         elsif limbo_reason == "CreateContainerConfigError"

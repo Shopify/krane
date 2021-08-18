@@ -23,6 +23,20 @@ class PodTest < Krane::TestCase
     assert_equal(expected_msg.strip, pod.failure_message)
   end
 
+  def test_deploy_failed_is_false_for_missing_image_error_and_fail_on_image_pull_set_to_false
+    container_state = {
+      "state" => {
+        "waiting" => {
+          "message" => "rpc error: code = 2 desc = Error: image library/some-invalid-image not found",
+          "reason" => "ErrImagePull",
+        },
+      },
+    }
+    Krane::Pod::Container.any_instance.expects(:fail_on_image_pull).returns(false)
+    pod = build_synced_pod(build_pod_template(container_state: container_state))
+    refute(pod.deploy_failed?)
+  end
+
   def test_deploy_failed_is_true_for_missing_tag_error
     message = "rpc error: code = 2 desc = Tag thisImageIsBad not found in repository docker.io/library/hello-world"
     container_state = {

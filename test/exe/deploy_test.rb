@@ -117,6 +117,24 @@ class DeployTest < Krane::TestCase
     end
   end
 
+  def test_deploy_defaults_fail_on_image_pull_to_true
+    set_krane_deploy_expectations(new_args: {
+      filenames: ['/my/file/path'],
+      fail_on_image_pull: true,
+    },)
+    flags = '-f /my/file/path'
+    krane_deploy!(flags: flags)
+  end
+
+  def test_deploy_fail_on_image_pull_to_true_flag_set_to_false
+    set_krane_deploy_expectations(new_args: {
+      filenames: ['/my/file/path'],
+      fail_on_image_pull: false,
+    },)
+    flags = '-f /my/file/path --fail-on-image-pull=false'
+    krane_deploy!(flags: flags)
+  end
+
   def test_stdin_flag_deduped_if_specified_multiple_times
     Dir.mktmpdir do |tmp_path|
       $stdin.expects("read").returns("").times(2)
