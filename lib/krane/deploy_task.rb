@@ -322,7 +322,7 @@ module Krane
       global_names = FormattedLogger.indent_four(global_names.join("\n"))
 
       @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
-      raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources. "\
+      raise FatalDeploymentError, "Change toThis command is namespaced and cannot be used to deploy global resources. "\
         "Use GlobalDeployTask instead."
     end
 

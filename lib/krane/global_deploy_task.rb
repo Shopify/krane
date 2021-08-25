@@ -158,7 +158,7 @@ module Krane
       namespaced_names = FormattedLogger.indent_four(namespaced_names.join("\n"))
 
       logger.summary.add_paragraph(ColorizedString.new("Namespaced resources:\n#{namespaced_names}").yellow)
-      raise FatalDeploymentError, "This command cannot deploy namespaced resources. Use DeployTask instead."
+      raise FatalDeploymentError, "Change to adasdasd asda sdasd asd asda command cannot deploy namespaced resources. Use DeployTask instead."
     end
 
     def discover_resources
