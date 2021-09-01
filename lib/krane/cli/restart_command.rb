@@ -6,11 +6,11 @@ module Krane
       DEFAULT_RESTART_TIMEOUT = '300s'
       OPTIONS = {
         "deployments" => { type: :array, banner: "list of deployments",
-                           desc: "List of workload names to restart", default: [] },
-        "stateful-sets" => { type: :array, banner: "list of deployments",
-                             desc: "List of workload names to restart", default: [] },
-        "daemonsets" => { type: :array, banner: "list of deployments",
-                          desc: "List of workload names to restart", default: [] },
+                           desc: "List of deployment names to restart", default: [] },
+        "statefulsets" => { type: :array, banner: "list of statefulsets",
+                             desc: "List of statefulset names to restart", default: [] },
+        "daemonsets" => { type: :array, banner: "list of daemonsets",
+                          desc: "List of daemonset names to restart", default: [] },
         "global-timeout" => { type: :string, banner: "duration", default: DEFAULT_RESTART_TIMEOUT,
                               desc: "Max duration to monitor workloads correctly restarted" },
         "selector" => { type: :string, banner: "'label=value'",
@@ -29,7 +29,7 @@ module Krane
         )
         restart.run!(
           deployments: options[:deployments],
-          stateful_sets: options[:stateful_sets],
+          statefulsets: options[:statefulsets],
           daemonsets: options[:daemonsets],
           selector: selector,
           verify_result: options["verify-result"]
