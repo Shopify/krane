@@ -58,13 +58,14 @@ module Krane
     # @param verify_result [Boolean] Wait for completion and verify success
     #
     # @return [nil]
-    def run!(deployments: nil, selector: nil, verify_result: true)
+    def run!(deployments: [], statefulsets: [], daemonsets: [], selector: nil, verify_result: true)
       start = Time.now.utc
       @logger.reset
 
       @logger.phase_heading("Initializing restart")
       verify_config!
-      deployments = identify_target_deployments(deployments, selector: selector)
+      # TODO: change deployments varname to workloads
+      deployments = identify_target_workloads(deployments, statefulsets, daemonsets, selector: selector)
 
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
@@ -97,38 +98,83 @@ module Krane
       %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
     end
 
-    def identify_target_deployments(deployment_names, selector: nil)
-      if deployment_names.nil?
-        deployments = if selector.nil?
-          @logger.info("Configured to restart all deployments with the `#{ANNOTATION}` annotation")
-          apps_v1_kubeclient.get_deployments(namespace: @namespace)
-        else
-          selector_string = selector.to_s
-          @logger.info(
-            "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
-          )
-          apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: selector_string)
-        end
-        deployments.select! { |d| d.metadata.annotations[ANNOTATION] }
+    def identify_target_workloads(deployment_names, statefulset_names, daemonset_names, selector: nil)
+      if deployment_names.blank? && statefulset_names.blank? && daemonset_names.blank?
+        @logger.info("Configured to restart all workloads with the `#{ANNOTATION}` annotation") if selector.nil?
+        deployments = identify_target_deployments(deployment_names, selector: selector)
+        statefulsets = identify_target_statefulsets(statefulset_names, selector: selector)
+        daemonsets = identify_target_daemonsets(daemonset_names, selector: selector)
 
-        if deployments.none?
-          raise FatalRestartError, "no deployments with the `#{ANNOTATION}` annotation found in namespace #{@namespace}"
+        if deployments.none? && statefulsets.none? && daemonsets.none?
+          raise FatalRestartError, "no deployments, statefulsets, or daemonsets, with the `#{ANNOTATION}`" \
+            "annotation found in namespace #{@namespace}"
         end
-      elsif deployment_names.empty?
-        raise FatalRestartError, "Configured to restart deployments by name, but list of names was blank"
+      elsif deployment_names.empty?**statefulset_names.empty? && daemonset_names.empty?
+        raise FatalRestartError, "Configured to restart workloads by name, but list of names was blank"
       elsif !selector.nil?
-        raise FatalRestartError, "Can't specify deployment names and selector at the same time"
+        raise FatalRestartError, "Can't specify workload names and selector at the same time"
       else
-        deployment_names = deployment_names.uniq
-        list = deployment_names.join(', ')
-        @logger.info("Configured to restart deployments by name: #{list}")
-
-        deployments = fetch_deployments(deployment_names)
-        if deployments.none?
-          raise FatalRestartError, "no deployments with names #{list} found in namespace #{@namespace}"
+        deployments, statefulsets, daemonsets = identify_target_workloads_by_name(deployment_names,
+            statefulset_names, daemonset_names)
+        if deployments.none? && statefulsets.none? && daemonsets.none?
+          error_msgs = []
+          error_msgs << "no deployments with names #{list} found in namespace #{@namespace}" if deployment_names
+          error_msgs << "no statefulsets with names #{list} found in namespace #{@namespace}" if statefulset_names
+          error_msgs << "no daemonsets with names #{list} found in namespace #{@namespace}" if daemonset_names
+          raise FatalRestartError, error_msgs.join(', ')
         end
       end
-      deployments
+      [deployments, statefulsets, daemonsets]
+    end
+
+    def identify_target_workloads_by_name(deployment_names, statefulset_names, daemonset_names)
+      deployment_list = deployment_names.uniq.join(', ')
+      statefulset_list = statefulset_names.uniq.join(', ')
+      daemonset_list = daemonset_names.uniq.join(', ')
+      @logger.info("Configured to restart deployments by name: #{deployment_list}") if deployment_list.present?
+      @logger.info("Configured to restart statefulsets by name: #{statefulset_list}") if statefulset_list.present?
+      @logger.info("Configured to restart daemonsets by name: #{daemonset_list}") if daemonset_list.present?
+
+      [fetch_deployments(deployment_names), fetch_statefulsets(statefulset_names), fetch_daemonsets(daemonset_names)]
+    end
+
+    def identify_target_deployments(selector: nil)
+      if selector.nil?
+        apps_v1_kubeclient.get_deployments(namespace: @namespace)
+      else
+        selector_string = selector.to_s
+        @logger.info(
+          "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
+        )
+        apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: selector_string)
+      end
+      deployments.select! { |d| d.metadata.annotations[ANNOTATION] }
+    end
+
+    def identify_target_statefulsets(selector: nil)
+      if selector.nil?
+        apps_v1_kubeclient.get_statefulsets(namespace: @namespace)
+      else
+        selector_string = selector.to_s
+        @logger.info(
+          "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
+        )
+        apps_v1_kubeclient.get_statefulsets(namespace: @namespace, label_selector: selector_string)
+      end
+      deployments.select! { |d| d.metadata.annotations[ANNOTATION] }
+    end
+
+    def identify_target_daemonsets(selector: nil)
+      if selector.nil?
+        apps_v1_kubeclient.get_daemonsets(namespace: @namespace)
+      else
+        selector_string = selector.to_s
+        @logger.info(
+          "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
+        )
+        apps_v1_kubeclient.get_daemonsets(namespace: @namespace, label_selector: selector_string)
+      end
+      deployments.select! { |d| d.metadata.annotations[ANNOTATION] }
     end
 
     def build_watchables(kubeclient_resources, started)
