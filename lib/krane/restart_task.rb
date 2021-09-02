@@ -289,17 +289,17 @@ module Krane
       end
     end
 
-    def build_patch_payload(deployment)
+    def build_patch_payload(_deployment)
       {
         spec: {
           template: {
             metadata: {
               annotations: {
-                RESTART_TRIGGER_ANNOTATION => Time.now.utc.to_datetime.rfc3339
-              }
-            }
-          }
-        }
+                RESTART_TRIGGER_ANNOTATION => Time.now.utc.to_datetime.rfc3339,
+              },
+            },
+          },
+        },
       }
     end
 
