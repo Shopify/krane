@@ -64,8 +64,8 @@ module Krane
 
       @logger.phase_heading("Initializing restart")
       verify_config!
-      # TODO: change deployments varname to workloads
-      deployments = identify_target_workloads(deployments, statefulsets, daemonsets, selector: selector)
+      deployments, statefulsets, daemonsets = identify_target_workloads(deployments, statefulsets,
+                                                daemonsets, selector: selector)
 
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
@@ -100,16 +100,22 @@ module Krane
 
     def identify_target_workloads(deployment_names, statefulset_names, daemonset_names, selector: nil)
       if deployment_names.blank? && statefulset_names.blank? && daemonset_names.blank?
-        @logger.info("Configured to restart all workloads with the `#{ANNOTATION}` annotation") if selector.nil?
-        deployments = identify_target_deployments(deployment_names, selector: selector)
-        statefulsets = identify_target_statefulsets(statefulset_names, selector: selector)
-        daemonsets = identify_target_daemonsets(daemonset_names, selector: selector)
+        if selector.nil?
+          @logger.info("Configured to restart all workloads with the `#{ANNOTATION}` annotation")
+        else
+          @logger.info(
+            "Configured to restart all workloads with the `#{ANNOTATION}` annotation and #{selector} selector"
+          )
+        end
+        deployments = identify_target_deployments(selector: selector)
+        statefulsets = identify_target_statefulsets(selector: selector)
+        daemonsets = identify_target_daemonsets(selector: selector)
 
         if deployments.none? && statefulsets.none? && daemonsets.none?
-          raise FatalRestartError, "no deployments, statefulsets, or daemonsets, with the `#{ANNOTATION}`" \
+          raise FatalRestartError, "no deployments, statefulsets, or daemonsets, with the `#{ANNOTATION}` " \
             "annotation found in namespace #{@namespace}"
         end
-      elsif deployment_names.empty?**statefulset_names.empty? && daemonset_names.empty?
+      elsif deployment_names.empty? && statefulset_names.empty? && daemonset_names.empty?
         raise FatalRestartError, "Configured to restart workloads by name, but list of names was blank"
       elsif !selector.nil?
         raise FatalRestartError, "Can't specify workload names and selector at the same time"
@@ -128,53 +134,47 @@ module Krane
     end
 
     def identify_target_workloads_by_name(deployment_names, statefulset_names, daemonset_names)
-      deployment_list = deployment_names.uniq.join(', ')
-      statefulset_list = statefulset_names.uniq.join(', ')
-      daemonset_list = daemonset_names.uniq.join(', ')
-      @logger.info("Configured to restart deployments by name: #{deployment_list}") if deployment_list.present?
-      @logger.info("Configured to restart statefulsets by name: #{statefulset_list}") if statefulset_list.present?
-      @logger.info("Configured to restart daemonsets by name: #{daemonset_list}") if daemonset_list.present?
+      deployment_names = deployment_names.uniq
+      statefulset_names = statefulset_names.uniq
+      daemonset_names = daemonset_names.uniq
+      @logger.info("Configured to restart deployments by name: #{deployment_names.join(', ')}") if deployment_names.present?
+      @logger.info("Configured to restart statefulsets by name: #{statefulset_names.join(', ')}") if statefulset_names.present?
+      @logger.info("Configured to restart daemonsets by name: #{daemonset_names.join(', ')}") if daemonset_names.present?
 
       [fetch_deployments(deployment_names), fetch_statefulsets(statefulset_names), fetch_daemonsets(daemonset_names)]
     end
 
     def identify_target_deployments(selector: nil)
-      if selector.nil?
+      deployments = if selector.nil?
         apps_v1_kubeclient.get_deployments(namespace: @namespace)
       else
         selector_string = selector.to_s
-        @logger.info(
-          "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
-        )
         apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: selector_string)
       end
-      deployments.select! { |d| d.metadata.annotations[ANNOTATION] }
+      deployments.each { |d| d.kind = "Deployment" }
+      deployments.select { |d| d.metadata.annotations[ANNOTATION] }
     end
 
     def identify_target_statefulsets(selector: nil)
-      if selector.nil?
-        apps_v1_kubeclient.get_statefulsets(namespace: @namespace)
+      statefulsets = if selector.nil?
+        apps_v1_kubeclient.get_stateful_sets(namespace: @namespace)
       else
         selector_string = selector.to_s
-        @logger.info(
-          "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
-        )
-        apps_v1_kubeclient.get_statefulsets(namespace: @namespace, label_selector: selector_string)
+        apps_v1_kubeclient.get_stateful_sets(namespace: @namespace, label_selector: selector_string)
       end
-      deployments.select! { |d| d.metadata.annotations[ANNOTATION] }
+      statefulsets.each { |d| d.kind = "StatefulSet" }
+      statefulsets.select { |d| d.metadata.annotations[ANNOTATION] }
     end
 
     def identify_target_daemonsets(selector: nil)
-      if selector.nil?
-        apps_v1_kubeclient.get_daemonsets(namespace: @namespace)
+      daemonsets = if selector.nil?
+        apps_v1_kubeclient.get_daemon_sets(namespace: @namespace)
       else
         selector_string = selector.to_s
-        @logger.info(
-          "Configured to restart all deployments with the `#{ANNOTATION}` annotation and #{selector_string} selector"
-        )
-        apps_v1_kubeclient.get_daemonsets(namespace: @namespace, label_selector: selector_string)
+        apps_v1_kubeclient.get_daemon_sets(namespace: @namespace, label_selector: selector_string)
       end
-      deployments.select! { |d| d.metadata.annotations[ANNOTATION] }
+      daemonsets.each { |d| d.kind = "DaemonSet" }
+      daemonsets.select { |d| d.metadata.annotations[ANNOTATION] }
     end
 
     def build_watchables(kubeclient_resources, started)
@@ -198,7 +198,7 @@ module Krane
       deployments.each do |record|
         begin
           patch_deployment_with_restart(record)
-          @logger.info("Triggered `#{record.metadata.name}` restart")
+          @logger.info("Triggered `#{record.kind}/#{record.metadata.name}` restart")
         rescue Kubeclient::HttpError => e
           raise RestartAPIError.new(record.metadata.name, e.message)
         end
@@ -212,6 +212,30 @@ module Krane
           record = apps_v1_kubeclient.get_deployment(name, @namespace)
         rescue Kubeclient::ResourceNotFoundError
           raise FatalRestartError, "Deployment `#{name}` not found in namespace `#{@namespace}`"
+        end
+        record
+      end
+    end
+
+    def fetch_statefulsets(list)
+      list.map do |name|
+        record = nil
+        begin
+          record = apps_v1_kubeclient.get_stateful_sets(name, @namespace)
+        rescue Kubeclient::ResourceNotFoundError
+          raise FatalRestartError, "StatefulSet `#{name}` not found in namespace `#{@namespace}`"
+        end
+        record
+      end
+    end
+
+    def fetch_daemonsets(list)
+      list.map do |name|
+        record = nil
+        begin
+          record = apps_v1_kubeclient.get_daemon_sets(name, @namespace)
+        rescue Kubeclient::ResourceNotFoundError
+          raise FatalRestartError, "DaemonSet `#{name}` not found in namespace `#{@namespace}`"
         end
         record
       end
