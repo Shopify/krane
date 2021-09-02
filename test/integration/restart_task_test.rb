@@ -66,7 +66,8 @@ class RestartTaskTest < Krane::IntegrationTest
     assert_logs_match_all([
       "Configured to restart all workloads with the `shipit.shopify.io/restart` annotation",
       "Result: FAILURE",
-      %r{No deployments, statefulsets, or daemonsets, with the `shipit\.shopify\.io/restart` annotation found in namespace},
+      %r{No deployments, statefulsets, or daemonsets, with the `shipit\.shopify\.io/restart`
+        annotation found in namespace},
     ],
       in_order: true)
   end
@@ -295,7 +296,8 @@ class RestartTaskTest < Krane::IntegrationTest
     assert_logs_match_all([
       "Configured to restart all workloads with the `shipit.shopify.io/restart` annotation",
       "Result: FAILURE",
-      %r{No deployments, statefulsets, or daemonsets, with the `shipit\.shopify\.io/restart` annotation found in namespace},
+      %r{No deployments, statefulsets, or daemonsets, with the `shipit\.shopify\.io/restart`
+        annotation found in namespace},
     ],
       in_order: true)
   end

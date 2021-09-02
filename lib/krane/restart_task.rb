@@ -22,6 +22,8 @@ module Krane
     HTTP_OK_RANGE = 200..299
     ANNOTATION = "shipit.shopify.io/restart"
 
+    RESTART_TRIGGER_ANNOTATION = "kubectl.kubernetes.io/restartedAt"
+
     attr_reader :task_config
 
     delegate :kubeclient_builder, to: :task_config
@@ -69,10 +71,14 @@ module Krane
 
       @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
       patch_kubeclient_deployments(deployments)
+      patch_kubeclient_statefulsets(statefulsets)
+      patch_kubeclient_daemonsets(daemonsets)
 
       if verify_result
         @logger.phase_heading("Waiting for rollout")
-        resources = build_watchables(deployments, start)
+        resources = build_watchables(deployments, start, Deployment)
+        resources += build_watchables(statefulsets, start, StatefulSet)
+        resources += build_watchables(daemonsets, start, DaemonSet)
         verify_restart(resources)
       else
         warning = "Result verification is disabled for this task"
@@ -137,9 +143,16 @@ module Krane
       deployment_names = deployment_names.uniq
       statefulset_names = statefulset_names.uniq
       daemonset_names = daemonset_names.uniq
-      @logger.info("Configured to restart deployments by name: #{deployment_names.join(', ')}") if deployment_names.present?
-      @logger.info("Configured to restart statefulsets by name: #{statefulset_names.join(', ')}") if statefulset_names.present?
-      @logger.info("Configured to restart daemonsets by name: #{daemonset_names.join(', ')}") if daemonset_names.present?
+
+      if deployment_names.present?
+        @logger.info("Configured to restart deployments by name: #{deployment_names.join(', ')}")
+      end
+      if statefulset_names.present?
+        @logger.info("Configured to restart statefulsets by name: #{statefulset_names.join(', ')}")
+      end
+      if daemonset_names.present?
+        @logger.info("Configured to restart daemonsets by name: #{daemonset_names.join(', ')}")
+      end
 
       [fetch_deployments(deployment_names), fetch_statefulsets(statefulset_names), fetch_daemonsets(daemonset_names)]
     end
@@ -151,7 +164,6 @@ module Krane
         selector_string = selector.to_s
         apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: selector_string)
       end
-      deployments.each { |d| d.kind = "Deployment" }
       deployments.select { |d| d.metadata.annotations[ANNOTATION] }
     end
 
@@ -162,7 +174,6 @@ module Krane
         selector_string = selector.to_s
         apps_v1_kubeclient.get_stateful_sets(namespace: @namespace, label_selector: selector_string)
       end
-      statefulsets.each { |d| d.kind = "StatefulSet" }
       statefulsets.select { |d| d.metadata.annotations[ANNOTATION] }
     end
 
@@ -173,14 +184,13 @@ module Krane
         selector_string = selector.to_s
         apps_v1_kubeclient.get_daemon_sets(namespace: @namespace, label_selector: selector_string)
       end
-      daemonsets.each { |d| d.kind = "DaemonSet" }
       daemonsets.select { |d| d.metadata.annotations[ANNOTATION] }
     end
 
-    def build_watchables(kubeclient_resources, started)
+    def build_watchables(kubeclient_resources, started, klass)
       kubeclient_resources.map do |d|
         definition = d.to_h.deep_stringify_keys
-        r = Deployment.new(namespace: @namespace, context: @context, definition: definition, logger: @logger)
+        r = klass.new(namespace: @namespace, context: @context, definition: definition, logger: @logger)
         r.deploy_started_at = started # we don't care what happened to the resource before the restart cmd ran
         r
       end
@@ -194,11 +204,49 @@ module Krane
       )
     end
 
+    def patch_statefulset_with_restart(record)
+      apps_v1_kubeclient.patch_stateful_set(
+        record.metadata.name,
+        build_patch_payload(record),
+        @namespace
+      )
+    end
+
+    def patch_daemonset_with_restart(record)
+      apps_v1_kubeclient.patch_daemon_set(
+        record.metadata.name,
+        build_patch_payload(record),
+        @namespace
+      )
+    end
+
     def patch_kubeclient_deployments(deployments)
       deployments.each do |record|
         begin
           patch_deployment_with_restart(record)
-          @logger.info("Triggered `#{record.kind}/#{record.metadata.name}` restart")
+          @logger.info("Triggered `Deployment/#{record.metadata.name}` restart")
+        rescue Kubeclient::HttpError => e
+          raise RestartAPIError.new(record.metadata.name, e.message)
+        end
+      end
+    end
+
+    def patch_kubeclient_statefulsets(statefulsets)
+      statefulsets.each do |record|
+        begin
+          patch_statefulset_with_restart(record)
+          @logger.info("Triggered `StatefulSet/#{record.metadata.name}` restart")
+        rescue Kubeclient::HttpError => e
+          raise RestartAPIError.new(record.metadata.name, e.message)
+        end
+      end
+    end
+
+    def patch_kubeclient_daemonsets(daemonsets)
+      daemonsets.each do |record|
+        begin
+          patch_daemonset_with_restart(record)
+          @logger.info("Triggered `DaemonSet/#{record.metadata.name}` restart")
         rescue Kubeclient::HttpError => e
           raise RestartAPIError.new(record.metadata.name, e.message)
         end
@@ -221,7 +269,7 @@ module Krane
       list.map do |name|
         record = nil
         begin
-          record = apps_v1_kubeclient.get_stateful_sets(name, @namespace)
+          record = apps_v1_kubeclient.get_stateful_set(name, @namespace)
         rescue Kubeclient::ResourceNotFoundError
           raise FatalRestartError, "StatefulSet `#{name}` not found in namespace `#{@namespace}`"
         end
@@ -233,7 +281,7 @@ module Krane
       list.map do |name|
         record = nil
         begin
-          record = apps_v1_kubeclient.get_daemon_sets(name, @namespace)
+          record = apps_v1_kubeclient.get_daemon_set(name, @namespace)
         rescue Kubeclient::ResourceNotFoundError
           raise FatalRestartError, "DaemonSet `#{name}` not found in namespace `#{@namespace}`"
         end
@@ -242,20 +290,16 @@ module Krane
     end
 
     def build_patch_payload(deployment)
-      containers = deployment.spec.template.spec.containers
       {
         spec: {
           template: {
-            spec: {
-              containers: containers.map do |container|
-                {
-                  name: container.name,
-                  env: [{ name: "RESTARTED_AT", value: Time.now.to_i.to_s }],
-                }
-              end,
-            },
-          },
-        },
+            metadata: {
+              annotations: {
+                RESTART_TRIGGER_ANNOTATION => Time.now.utc.to_datetime.rfc3339
+              }
+            }
+          }
+        }
       }
     end
 
