@@ -66,8 +66,7 @@ class RestartTaskTest < Krane::IntegrationTest
     assert_logs_match_all([
       "Configured to restart all workloads with the `shipit.shopify.io/restart` annotation",
       "Result: FAILURE",
-      %r{No deployments, statefulsets, or daemonsets, with the `shipit\.shopify\.io/restart`
-        annotation found in namespace},
+      %r{No deployments, statefulsets, or daemonsets, with the `shipit\.shopify\.io/restart` annotation found},
     ],
       in_order: true)
   end
@@ -101,7 +100,7 @@ class RestartTaskTest < Krane::IntegrationTest
 
     second_restarted_at = fetch_restarted_at("web")
     assert(second_restarted_at, "RESTARTED_AT is present after second restart")
-    refute_equal(first_restarted_at.value, second_restarted_at.value)
+    refute_equal(first_restarted_at, second_restarted_at)
   end
 
   def test_restart_with_same_resource_twice
@@ -200,44 +199,6 @@ class RestartTaskTest < Krane::IntegrationTest
       in_order: true)
   end
 
-  def test_restart_failure
-    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
-      render_erb: true) do |fixtures|
-      deployment = fixtures["web.yml.erb"]["Deployment"].first
-      deployment["spec"]["progressDeadlineSeconds"] = 30
-      container = deployment["spec"]["template"]["spec"]["containers"].first
-      container["readinessProbe"] = {
-        "failureThreshold" => 1,
-        "periodSeconds" => 1,
-        "initialDelaySeconds" => 0,
-        "exec" => {
-          "command" => [
-            "/bin/sh",
-            "-c",
-            "test $(env | grep -s RESTARTED_AT -c) -eq 0",
-          ],
-        },
-      }
-    end
-    assert_deploy_success(success)
-
-    restart = build_restart_task
-    assert_raises(Krane::DeploymentTimeoutError) { restart.perform!(deployments: %w(web)) }
-
-    assert_logs_match_all([
-      "Triggered `Deployment/web` restart",
-      "Deployment/web rollout timed out",
-      "Result: TIMED OUT",
-      "Timed out waiting for 1 resource to restart",
-      "Deployment/web: TIMED OUT",
-      "The following containers have not passed their readiness probes",
-      "app must exit 0 from the following command",
-      "Final status: 2 replicas, 1 updatedReplica, 1 availableReplica, 1 unavailableReplica",
-      "Unhealthy: Readiness probe failed",
-    ],
-      in_order: true)
-  end
-
   def test_restart_successful_with_partial_availability
     result = deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml)) do |fixtures|
       web = fixtures["web-deploy-1.yml"]["Deployment"].first
@@ -255,7 +216,7 @@ class RestartTaskTest < Krane::IntegrationTest
 
     pods = kubeclient.get_pods(namespace: @namespace, label_selector: 'name=web,app=slow-cloud')
     new_pods = pods.select do |pod|
-      pod.spec.containers.any? { |c| c["name"] == "app" && c.env&.find { |n| n.name == "RESTARTED_AT" } }
+      pod.metadata.annotations&.dig(Krane::RestartTask::RESTART_TRIGGER_ANNOTATION)
     end
     assert(new_pods.length >= 1, "Expected at least one new pod, saw #{new_pods.length}")
 
@@ -296,8 +257,7 @@ class RestartTaskTest < Krane::IntegrationTest
     assert_logs_match_all([
       "Configured to restart all workloads with the `shipit.shopify.io/restart` annotation",
       "Result: FAILURE",
-      %r{No deployments, statefulsets, or daemonsets, with the `shipit\.shopify\.io/restart`
-        annotation found in namespace},
+      %r{No deployments, statefulsets, or daemonsets, with the `shipit\.shopify\.io/restart` annotation found},
     ],
       in_order: true)
   end
@@ -344,10 +304,15 @@ class RestartTaskTest < Krane::IntegrationTest
     )
   end
 
-  def fetch_restarted_at(deployment_name)
-    deployment = apps_v1_kubeclient.get_deployment(deployment_name, @namespace)
-    containers = deployment.spec.template.spec.containers
-    app_container = containers.find { |c| c["name"] == "app" }
-    app_container&.env&.find { |n| n.name == "RESTARTED_AT" }
+  def fetch_restarted_at(name, kind: :deployment)
+    resource = case kind
+    when :deployment
+      apps_v1_kubeclient.get_deployment(name, @namespace)
+    when :statefulset
+      apps_v1_kubeclient.get_stateful_set(name, @namespace)
+    when :daemonset
+      apps_v1_kubeclient.get_daemonset_set(name, @namespace)
+    end
+    resource.spec.template.metadata.annotations&.dig(Krane::RestartTask::RESTART_TRIGGER_ANNOTATION)
   end
 end
