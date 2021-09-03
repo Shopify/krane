@@ -69,7 +69,7 @@ module Krane
       deployments, statefulsets, daemonsets = identify_target_workloads(deployments, statefulsets,
                                                 daemonsets, selector: selector)
 
-      @logger.phase_heading("Triggering restart by touching ENV[RESTARTED_AT]")
+      @logger.phase_heading("Triggering restart by annotating pod template #{RESTART_TRIGGER_ANNOTATION} annotation")
       patch_kubeclient_deployments(deployments)
       patch_kubeclient_statefulsets(statefulsets)
       patch_kubeclient_daemonsets(daemonsets)
@@ -121,8 +121,6 @@ module Krane
           raise FatalRestartError, "no deployments, statefulsets, or daemonsets, with the `#{ANNOTATION}` " \
             "annotation found in namespace #{@namespace}"
         end
-      elsif deployment_names.empty? && statefulset_names.empty? && daemonset_names.empty?
-        raise FatalRestartError, "Configured to restart workloads by name, but list of names was blank"
       elsif !selector.nil?
         raise FatalRestartError, "Can't specify workload names and selector at the same time"
       else
@@ -197,27 +195,15 @@ module Krane
     end
 
     def patch_deployment_with_restart(record)
-      apps_v1_kubeclient.patch_deployment(
-        record.metadata.name,
-        build_patch_payload(record),
-        @namespace
-      )
+      apps_v1_kubeclient.patch_deployment(record.metadata.name, build_patch_payload(record), @namespace)
     end
 
     def patch_statefulset_with_restart(record)
-      apps_v1_kubeclient.patch_stateful_set(
-        record.metadata.name,
-        build_patch_payload(record),
-        @namespace
-      )
+      apps_v1_kubeclient.patch_stateful_set(record.metadata.name, build_patch_payload(record), @namespace)
     end
 
     def patch_daemonset_with_restart(record)
-      apps_v1_kubeclient.patch_daemon_set(
-        record.metadata.name,
-        build_patch_payload(record),
-        @namespace
-      )
+      apps_v1_kubeclient.patch_daemon_set(record.metadata.name, build_patch_payload(record), @namespace)
     end
 
     def patch_kubeclient_deployments(deployments)

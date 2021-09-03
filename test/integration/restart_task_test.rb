@@ -150,17 +150,6 @@ class RestartTaskTest < Krane::IntegrationTest
       in_order: true)
   end
 
-  # TODO: [] is now the default empty value, does this break anything???
-  # def test_restart_none
-  #   restart = build_restart_task
-  #   assert_restart_failure(restart.perform(deployments: []))
-  #   assert_logs_match_all([
-  #     "Result: FAILURE",
-  #     "Configured to restart deployments by name, but list of names was blank",
-  #   ],
-  #     in_order: true)
-  # end
-
   def test_restart_deployments_and_selector
     restart = build_restart_task
     assert_restart_failure(restart.perform(deployments: %w(web), selector: Krane::LabelSelector.parse("app=web")))
@@ -263,7 +252,8 @@ class RestartTaskTest < Krane::IntegrationTest
   end
 
   def test_verify_result_false_succeeds_quickly_when_verification_would_timeout
-    success = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
+    success = deploy_fixtures("hello-cloud",
+      subset: ["configmap-data.yml", "web.yml.erb", "daemon_set.yml", "stateful_set.yml"],
       render_erb: true) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
       deployment["spec"]["progressDeadlineSeconds"] = 30
@@ -284,10 +274,13 @@ class RestartTaskTest < Krane::IntegrationTest
     assert_deploy_success(success)
 
     restart = build_restart_task
-    restart.perform!(deployments: %w(web), verify_result: false)
+    restart.perform!(deployments: %w(web), statefulsets: %w(stateful-busybox), daemonsets: %w(ds-app),
+      verify_result: false)
 
     assert_logs_match_all([
       "Triggered `Deployment/web` restart",
+      "Triggered `StatefulSet/stateful-busybox` restart",
+      "Triggered `DaemonSet/ds-app` restart",
       "Result: SUCCESS",
       "Result verification is disabled for this task",
     ],
