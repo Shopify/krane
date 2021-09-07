@@ -141,12 +141,12 @@ class KraneDeployTest < Krane::IntegrationTest
 
   def test_selector
     # Deploy the same thing twice with a different selector
-    assert_deploy_success(deploy_fixtures("branched",
+    assert_deploy_success(deploy_fixtures("branched", subset: ["web.yml.erb"]
       bindings: { "branch" => "master" },
       selector: Krane::LabelSelector.parse("branch=master"),
       render_erb: true))
     assert_logs_match("Using resource selector branch=master")
-    assert_deploy_success(deploy_fixtures("branched",
+    assert_deploy_success(deploy_fixtures("branched", subset: ["web.yml.erb"]
       bindings: { "branch" => "staging" },
       selector: Krane::LabelSelector.parse("branch=staging"),
       render_erb: true))

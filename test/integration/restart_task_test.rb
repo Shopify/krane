@@ -4,10 +4,13 @@ require 'krane/restart_task'
 
 class RestartTaskTest < Krane::IntegrationTest
   def test_restart_by_annotation
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"],
+    assert_deploy_success(deploy_fixtures("hello-cloud",
+      subset: ["configmap-data.yml", "web.yml.erb", "redis.yml", "stateful_set.yml", "daemon_set.yml"],
       render_erb: true))
 
     refute(fetch_restarted_at("web"), "no restart annotation on fresh deployment")
+    refute(fetch_restarted_at("stateful-busybox", kind: :statefulset), "no restart annotation on fresh stateful set")
+    refute(fetch_restarted_at("ds-app", kind: :daemonset), "no restart annotation on fresh daemon set")
     refute(fetch_restarted_at("redis"), "no restart annotation on fresh deployment")
 
     restart = build_restart_task
@@ -19,13 +22,15 @@ class RestartTaskTest < Krane::IntegrationTest
       "Waiting for rollout",
       %r{Successfully restarted in \d+\.\d+s: Deployment/web},
       "Result: SUCCESS",
-      "Successfully restarted 1 resource",
+      "Successfully restarted 3 resources",
       %r{Deployment/web.*1 availableReplica},
     ],
       in_order: true)
 
-    assert(fetch_restarted_at("web"), "RESTARTED_AT is present after the restart")
-    refute(fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment")
+    assert(fetch_restarted_at("web"), "restart annotation is present after the restart")
+    assert(fetch_restarted_at("stateful-busybox", kind: :statefulset), "no restart annotation on fresh stateful set")
+    assert(fetch_restarted_at("ds-app", kind: :daemonset), "no restart annotation on fresh daemon set")
+    refute(fetch_restarted_at("redis"), "no restart annotation env on fresh deployment")
   end
 
   def test_restart_by_selector
@@ -38,26 +43,40 @@ class RestartTaskTest < Krane::IntegrationTest
       selector: Krane::LabelSelector.parse("branch=staging"),
       render_erb: true))
 
-    refute(fetch_restarted_at("master-web"), "no RESTARTED_AT env on fresh deployment")
-    refute(fetch_restarted_at("staging-web"), "no RESTARTED_AT env on fresh deployment")
+    refute(fetch_restarted_at("master-web"), "no restart annotation on fresh deployment")
+    refute(fetch_restarted_at("staging-web"), "no restart annotation on fresh deployment")
+    refute(fetch_restarted_at("master-stateful-busybox", kind: :statefulset),
+      "no restart annotation on fresh stateful set")
+    refute(fetch_restarted_at("staging-stateful-busybox", kind: :statefulset),
+      "no restart annotation on fresh stateful set")
+    refute(fetch_restarted_at("master-ds-app", kind: :daemonset), "no restart annotation on fresh daemon set")
+    refute(fetch_restarted_at("staging-ds-app", kind: :daemonset), "no restart annotation on fresh daemon set")
 
     restart = build_restart_task
-    assert_restart_success(restart.perform(selector: Krane::LabelSelector.parse("name=web,branch=staging")))
+    assert_restart_success(restart.perform(selector: Krane::LabelSelector.parse("branch=staging")))
 
     assert_logs_match_all([
       "Configured to restart all workloads with the `shipit.shopify.io/restart` annotation " \
-      "and name=web,branch=staging selector",
+      "and branch=staging selector",
       "Triggered `Deployment/staging-web` restart",
+      "Triggered `StatefulSet/staging-stateful-busybox` restart",
+      "Triggered `DaemonSet/staging-ds-app` restart",
       "Waiting for rollout",
       %r{Successfully restarted in \d+\.\ds: Deployment/staging-web},
       "Result: SUCCESS",
-      "Successfully restarted 1 resource",
+      "Successfully restarted 3 resources",
       %r{Deployment/staging-web.*1 availableReplica},
     ],
       in_order: true)
 
-    assert(fetch_restarted_at("staging-web"), "RESTARTED_AT is present after the restart")
-    refute(fetch_restarted_at("master-web"), "no RESTARTED_AT env on fresh deployment")
+    assert(fetch_restarted_at("staging-web"), "restart annotation is present after the restart")
+    refute(fetch_restarted_at("master-web"), "no restart annotation on fresh deployment")
+    assert(fetch_restarted_at("staging-stateful-busybox", kind: :statefulset),
+      "restart annotation is present after the restart")
+    refute(fetch_restarted_at("master-stateful-busybox", kind: :statefulset),
+      "no restart annotation on fresh stateful set")
+    assert(fetch_restarted_at("staging-ds-app", kind: :daemonset), "restart annotation is present after the restart")
+    refute(fetch_restarted_at("master-ds-app", kind: :daemonset), "no restart annotation on fresh daemon set")
   end
 
   def test_restart_by_annotation_none_found
@@ -71,57 +90,80 @@ class RestartTaskTest < Krane::IntegrationTest
       in_order: true)
   end
 
-  def test_restart_named_deployments_twice
-    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
+  def test_restart_named_workloads_twice
+    assert_deploy_success(deploy_fixtures("hello-cloud",
+      subset: ["configmap-data.yml", "web.yml.erb", "stateful_set.yml", "daemon_set.yml"],
       render_erb: true))
 
-    refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
+    refute(fetch_restarted_at("web"), "no restart annotation on fresh deployment")
 
     restart = build_restart_task
-    assert_restart_success(restart.perform(deployments: %w(web)))
+    assert_restart_success(
+      restart.perform(deployments: %w(web), statefulsets: %w(stateful-busybox), daemonsets: %w(ds-app))
+    )
 
     assert_logs_match_all([
       "Configured to restart deployments by name: web",
+      "Configured to restart statefulsets by name: stateful-busybox",
+      "Configured to restart daemonsets by name: ds-app",
       "Triggered `Deployment/web` restart",
+      "Triggered `StatefulSet/stateful-busybox` restart",
+      "Triggered `DaemonSet/ds-app` restart",
       "Waiting for rollout",
       %r{Successfully restarted in \d+\.\d+s: Deployment/web},
       "Result: SUCCESS",
-      "Successfully restarted 1 resource",
+      "Successfully restarted 3 resources",
       %r{Deployment/web.*1 availableReplica},
     ],
       in_order: true)
 
-    first_restarted_at = fetch_restarted_at("web")
-    assert(first_restarted_at, "RESTARTED_AT is present after first restart")
+    first_restarted_at_deploy = fetch_restarted_at("web")
+    first_restarted_at_statefulset = fetch_restarted_at("stateful-busybox", kind: :statefulset)
+    first_restarted_at_daemonset = fetch_restarted_at("ds-app", kind: :daemonset)
+    assert(first_restarted_at_deploy, "restart annotation is present after first restart")
+    assert(first_restarted_at_statefulset, "restart annotation is present after first restart")
+    assert(first_restarted_at_daemonset, "restart annotation is present after first restart")
 
     Timecop.freeze(1.second.from_now) do
-      assert_restart_success(restart.perform(deployments: %w(web)))
+      assert_restart_success(
+        restart.perform(deployments: %w(web), statefulsets: %w(stateful-busybox), daemonsets: %w(ds-app))
+      )
     end
 
-    second_restarted_at = fetch_restarted_at("web")
-    assert(second_restarted_at, "RESTARTED_AT is present after second restart")
-    refute_equal(first_restarted_at, second_restarted_at)
+    second_restarted_at_deploy = fetch_restarted_at("web")
+    second_restarted_at_statefulset = fetch_restarted_at("stateful-busybox", kind: :statefulset)
+    second_restarted_at_daemonset = fetch_restarted_at("ds-app", kind: :daemonset)
+    assert(second_restarted_at_deploy, "restart annotation is present after second restart")
+    assert(second_restarted_at_statefulset, "restart annotation is present after second restart")
+    assert(second_restarted_at_daemonset, "restart annotation is present after second restart")
+    refute_equal(first_restarted_at_deploy, second_restarted_at_deploy)
+    refute_equal(first_restarted_at_statefulset, second_restarted_at_statefulset)
+    refute_equal(first_restarted_at_daemonset, second_restarted_at_daemonset)
   end
 
   def test_restart_with_same_resource_twice
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"],
       render_erb: true))
 
-    refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
+    refute(fetch_restarted_at("web"), "no restart annotation on fresh deployment")
 
     restart = build_restart_task
     assert_restart_success(restart.perform(deployments: %w(web web)))
 
     assert_logs_match_all([
       "Configured to restart deployments by name: web",
+      "Configured to restart statefulsets by name: stateful-busybox",
+      "Configured to restart daemonsets by name: ds-app",
       "Triggered `Deployment/web` restart",
+      "Triggered `StatefulSet/stateful-busybox` restart",
+      "Triggered `DaemonSet/ds-app` restart",
       "Result: SUCCESS",
-      "Successfully restarted 1 resource",
+      "Successfully restarted 3 resources",
       %r{Deployment/web.*1 availableReplica},
     ],
       in_order: true)
 
-    assert(fetch_restarted_at("web"), "RESTARTED_AT is present after the restart")
+    assert(fetch_restarted_at("web"), "restart annotation is present after the restart")
   end
 
   def test_restart_not_existing_deployment
@@ -141,7 +183,7 @@ class RestartTaskTest < Krane::IntegrationTest
     restart = build_restart_task
     assert_restart_failure(restart.perform(deployments: %w(walrus web)))
 
-    refute(fetch_restarted_at("web"), "no RESTARTED_AT env after failed restart task")
+    refute(fetch_restarted_at("web"), "no restart annotation after failed restart task")
     assert_logs_match_all([
       "Configured to restart deployments by name: walrus, web",
       "Result: FAILURE",
@@ -253,15 +295,15 @@ class RestartTaskTest < Krane::IntegrationTest
     end
     assert_equal(1, new_ready_pods.length, "Expected exactly one new pod to be ready, saw #{new_ready_pods.length}")
 
-    assert(fetch_restarted_at("web"), "RESTARTED_AT is present after the restart")
+    assert(fetch_restarted_at("web"), "restart annotation is present after the restart")
   end
 
   def test_verify_result_false_succeeds
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"],
       render_erb: true))
 
-    refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
-    refute(fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment")
+    refute(fetch_restarted_at("web"), "no restart annotation on fresh deployment")
+    refute(fetch_restarted_at("redis"), "no restart annotation on fresh deployment")
 
     restart = build_restart_task
     assert_restart_success(restart.perform(verify_result: false))
@@ -274,8 +316,8 @@ class RestartTaskTest < Krane::IntegrationTest
     ],
       in_order: true)
 
-    assert(fetch_restarted_at("web"), "RESTARTED_AT is present after the restart")
-    refute(fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment")
+    assert(fetch_restarted_at("web"), "restart annotation is present after the restart")
+    refute(fetch_restarted_at("redis"), "no restart annotation on fresh deployment")
   end
 
   def test_verify_result_false_fails_on_config_checks
@@ -304,7 +346,7 @@ class RestartTaskTest < Krane::IntegrationTest
           "command" => [
             "/bin/sh",
             "-c",
-            "test $(env | grep -s RESTARTED_AT -c) -eq 0",
+            "test $(env | grep -s restart annotation -c) -eq 0",
           ],
         },
       }
@@ -342,7 +384,7 @@ class RestartTaskTest < Krane::IntegrationTest
     when :statefulset
       apps_v1_kubeclient.get_stateful_set(name, @namespace)
     when :daemonset
-      apps_v1_kubeclient.get_daemonset_set(name, @namespace)
+      apps_v1_kubeclient.get_daemon_set(name, @namespace)
     end
     resource.spec.template.metadata.annotations&.dig(Krane::RestartTask::RESTART_TRIGGER_ANNOTATION)
   end

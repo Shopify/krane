@@ -1,21 +1,24 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: ds-app
+  name: <%= branch %>-ds-app
   labels:
-    app: hello-cloud
+    app: branched
+    branch: <%= branch %>
     name: ds-app
   annotations:
     shipit.shopify.io/restart: "true"
 spec:
   selector:
     matchLabels:
-      app: hello-cloud
+      app: branched
+      branch: <%= branch %>
       name: ds-app
   template:
     metadata:
       labels:
-        app: hello-cloud
+        app: branched
+        branch: <%= branch %>
         name: ds-app
     spec:
       containers:
