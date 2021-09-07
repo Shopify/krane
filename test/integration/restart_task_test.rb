@@ -7,8 +7,8 @@ class RestartTaskTest < Krane::IntegrationTest
     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb", "redis.yml"],
       render_erb: true))
 
-    refute(fetch_restarted_at("web"), "no RESTARTED_AT env on fresh deployment")
-    refute(fetch_restarted_at("redis"), "no RESTARTED_AT env on fresh deployment")
+    refute(fetch_restarted_at("web"), "no restart annotation on fresh deployment")
+    refute(fetch_restarted_at("redis"), "no restart annotation on fresh deployment")
 
     restart = build_restart_task
     assert_restart_success(restart.perform)
