@@ -451,7 +451,7 @@ resource to deploy.
 
 # krane restart
 
-`krane restart` is a tool for restarting all of the pods in one or more deployments. It triggers the restart by touching the `RESTARTED_AT` environment variable in the deployment's podSpec. The rollout strategy defined for each deployment will be respected by the restart.
+`krane restart` is a tool for restarting all of the pods in one or more deployments, statefuls sets, and/or daemon sets. It triggers the restart by patching template metadata with the `kubectl.kubernetes.io/restartedAt` annotation (with the value being an RFC 3339 representation of the current time). Note this is the manner in which `kubectl rollout restart` itself triggers restarts.
 
 ## Usage
 
