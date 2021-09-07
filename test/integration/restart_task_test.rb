@@ -188,6 +188,44 @@ class RestartTaskTest < Krane::IntegrationTest
       in_order: true)
   end
 
+  def test_restart_failure
+    success = deploy_fixtures("downward_api", subset: ["configmap-data.yml", "web.yml.erb"],
+      render_erb: true) do |fixtures|
+      deployment = fixtures["web.yml.erb"]["Deployment"].first
+      deployment["spec"]["progressDeadlineSeconds"] = 30
+      container = deployment["spec"]["template"]["spec"]["containers"].first
+      container["readinessProbe"] = {
+        "failureThreshold" => 1,
+        "periodSeconds" => 1,
+        "initialDelaySeconds" => 0,
+        "exec" => {
+          "command" => [
+            "/bin/sh",
+            "-c",
+            "test $(cat /etc/podinfo/annotations | grep -s kubectl.kubernetes.io/restartedAt -c) -eq 0",
+          ],
+        },
+      }
+    end
+    assert_deploy_success(success)
+
+    restart = build_restart_task
+    assert_raises(Krane::DeploymentTimeoutError) { restart.perform!(deployments: %w(web)) }
+
+    assert_logs_match_all([
+      "Triggered `Deployment/web` restart",
+      "Deployment/web rollout timed out",
+      "Result: TIMED OUT",
+      "Timed out waiting for 1 resource to restart",
+      "Deployment/web: TIMED OUT",
+      "The following containers have not passed their readiness probes",
+      "app must exit 0 from the following command",
+      "Final status: 2 replicas, 1 updatedReplica, 1 availableReplica, 1 unavailableReplica",
+      "Unhealthy: Readiness probe failed",
+    ],
+      in_order: true)
+  end
+
   def test_restart_successful_with_partial_availability
     result = deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml)) do |fixtures|
       web = fixtures["web-deploy-1.yml"]["Deployment"].first
