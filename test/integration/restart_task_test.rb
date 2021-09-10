@@ -157,8 +157,6 @@ class RestartTaskTest < Krane::IntegrationTest
       "Configured to restart statefulsets by name: stateful-busybox",
       "Configured to restart daemonsets by name: ds-app",
       "Triggered `Deployment/web` restart",
-      "Triggered `StatefulSet/stateful-busybox` restart",
-      "Triggered `DaemonSet/ds-app` restart",
       "Result: SUCCESS",
       "Successfully restarted 3 resources",
       %r{Deployment/web.*1 availableReplica},
@@ -334,7 +332,7 @@ class RestartTaskTest < Krane::IntegrationTest
   end
 
   def test_verify_result_false_succeeds_quickly_when_verification_would_timeout
-    success = deploy_fixtures("hello-cloud",
+    success = deploy_fixtures("downward_api",
       subset: ["configmap-data.yml", "web.yml.erb", "daemon_set.yml", "stateful_set.yml"],
       render_erb: true) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
@@ -348,7 +346,7 @@ class RestartTaskTest < Krane::IntegrationTest
           "command" => [
             "/bin/sh",
             "-c",
-            "test $(env | grep -s restart annotation -c) -eq 0",
+            "test $(cat /etc/podinfo/annotations | grep -s kubectl.kubernetes.io/restartedAt -c) -eq 0",
           ],
         },
       }
