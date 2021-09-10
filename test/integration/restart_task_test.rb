@@ -24,12 +24,14 @@ class RestartTaskTest < Krane::IntegrationTest
       "Result: SUCCESS",
       "Successfully restarted 3 resources",
       %r{Deployment/web.*1 availableReplica},
+      %r{StatefulSet/stateful-busybox.* 2 replicas},
+      %r{DaemonSet/ds-app.* 1 updatedNumberScheduled},
     ],
       in_order: true)
 
     assert(fetch_restarted_at("web"), "restart annotation is present after the restart")
-    assert(fetch_restarted_at("stateful-busybox", kind: :statefulset), "no restart annotation on fresh stateful set")
-    assert(fetch_restarted_at("ds-app", kind: :daemonset), "no restart annotation on fresh daemon set")
+    assert(fetch_restarted_at("stateful-busybox", kind: :statefulset), "restart annotation on fresh stateful set")
+    assert(fetch_restarted_at("ds-app", kind: :daemonset), "restart annotation on fresh daemon set")
     refute(fetch_restarted_at("redis"), "no restart annotation env on fresh deployment")
   end
 
