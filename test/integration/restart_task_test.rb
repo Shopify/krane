@@ -154,11 +154,9 @@ class RestartTaskTest < Krane::IntegrationTest
 
     assert_logs_match_all([
       "Configured to restart deployments by name: web",
-      "Configured to restart statefulsets by name: stateful-busybox",
-      "Configured to restart daemonsets by name: ds-app",
       "Triggered `Deployment/web` restart",
       "Result: SUCCESS",
-      "Successfully restarted 3 resources",
+      "Successfully restarted 1 resource",
       %r{Deployment/web.*1 availableReplica},
     ],
       in_order: true)
