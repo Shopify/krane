@@ -84,14 +84,17 @@ module Krane
         warning = "Result verification is disabled for this task"
         @logger.summary.add_paragraph(ColorizedString.new(warning).yellow)
       end
-      StatsD.client.distribution('restart.duration', StatsD.duration(start), tags: tags('success', deployments))
+      StatsD.client.distribution('restart.duration', StatsD.duration(start),
+        tags: tags('success', deployments, statefulsets, daemonsets))
       @logger.print_summary(:success)
     rescue DeploymentTimeoutError
-      StatsD.client.distribution('restart.duration', StatsD.duration(start), tags: tags('timeout', deployments))
+      StatsD.client.distribution('restart.duration', StatsD.duration(start),
+        tags: tags('timeout', deployments, statefulsets, daemonsets))
       @logger.print_summary(:timed_out)
       raise
     rescue FatalDeploymentError => error
-      StatsD.client.distribution('restart.duration', StatsD.duration(start), tags: tags('failure', deployments))
+      StatsD.client.distribution('restart.duration', StatsD.duration(start),
+        tags: tags('failure', deployments, statefulsets, daemonsets))
       @logger.summary.add_action(error.message) if error.message != error.class.to_s
       @logger.print_summary(:failure)
       raise
@@ -101,7 +104,8 @@ module Krane
     private
 
     def tags(status, deployments)
-      %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}})
+      %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}
+         statefulsets:#{statefulsets.to_a.length} daemonsets:#{daemonsets.to_a.length}})
     end
 
     def identify_target_workloads(deployment_names, statefulset_names, daemonset_names, selector: nil)
