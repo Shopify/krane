@@ -103,7 +103,7 @@ module Krane
 
     private
 
-    def tags(status, deployments)
+    def tags(status, deployments, statefulsets, daemonsets)
       %W(namespace:#{@namespace} context:#{@context} status:#{status} deployments:#{deployments.to_a.length}
          statefulsets:#{statefulsets.to_a.length} daemonsets:#{daemonsets.to_a.length}})
     end
