@@ -1,27 +1,11 @@
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: stateful-busybox
-  labels:
-    name: stateful-busybox
-    app: hello-cloud
-spec:
-  ports:
-  - port: 80
-    name: http
-    targetPort: http
-  selector:
-    name: stateful-busybox
-    app: hello-cloud
----
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: stateful-busybox
+  name: <%= branch %>-stateful-busybox
   labels:
     name: stateful-busybox
-    app: hello-cloud
+    app: branched
+    branch: <%= branch %>
   annotations:
     shipit.shopify.io/restart: "true"
 spec:
@@ -29,12 +13,14 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      app: hello-cloud
+      app: branched
+      branch: <%= branch %>
       name: stateful-busybox
   template:
     metadata:
       labels:
-        app: hello-cloud
+        app: branched
+        branch: <%= branch %>
         name: stateful-busybox
     spec:
       terminationGracePeriodSeconds: 0

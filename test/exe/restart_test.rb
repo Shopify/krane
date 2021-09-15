@@ -22,6 +22,27 @@ class RestartTest < Krane::TestCase
     krane_restart!(flags: '--deployments web jobs')
   end
 
+  def test_restart_passes_statefulsets_transparently
+    set_krane_restart_expectations(run_args: { statefulsets: ['ss'] })
+    krane_restart!(flags: '--statefulsets ss')
+    set_krane_restart_expectations(run_args: { statefulsets: ['ss', 'ss-2'] })
+    krane_restart!(flags: '--statefulsets ss ss-2')
+  end
+
+  def test_restart_passes_daemonsets_transparently
+    set_krane_restart_expectations(run_args: { daemonsets: ['ds'] })
+    krane_restart!(flags: '--daemonsets ds')
+    set_krane_restart_expectations(run_args: { daemonsets: ['ds', 'ds-2'] })
+    krane_restart!(flags: '--daemonsets ds ds-2')
+  end
+
+  def test_restart_passes_multiple_workload_types_transparently
+    set_krane_restart_expectations(
+      run_args: { deployments: ['web', 'jobs'], statefulsets: ['ss', 'ss-2'], daemonsets: ['ds', 'ds-2'] }
+    )
+    krane_restart!(flags: '--deployments web jobs --statefulsets ss ss-2 --daemonsets ds ds-2')
+  end
+
   def test_restart_parses_selector
     options = default_options
     response = mock('RestartTask')
@@ -74,7 +95,9 @@ class RestartTest < Krane::TestCase
         global_timeout: 300,
       }.merge(new_args),
       run_args: {
-        deployments: nil,
+        deployments: [],
+        statefulsets: [],
+        daemonsets: [],
         selector: nil,
         verify_result: true,
       }.merge(run_args),

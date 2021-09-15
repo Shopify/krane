@@ -25,3 +25,10 @@ spec:
         command: ["tail", "-f", "/dev/null"]
         ports:
         - containerPort: 80
+      volumes:
+      - name: podinfo
+        downwardAPI:
+          items:
+          - path: "annotations"
+            fieldRef:
+              fieldPath: metadata.annotations
