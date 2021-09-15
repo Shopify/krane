@@ -1,5 +1,9 @@
 ## next
 
+## 2.3.0
+
+- Restart tasks now support restarting StatefulSets and DaemonSets, in addition to Deployments [#836](https://github.com/Shopify/krane/pull/836)
+
 ## 2.2.0
 
 *Enhancements*
