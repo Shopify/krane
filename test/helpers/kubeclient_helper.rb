@@ -6,7 +6,7 @@ module KubeclientHelper
   if File.exist?(LOCAL_CONTEXT_OVERRIDE_PATH)
     TEST_CONTEXT = File.read(LOCAL_CONTEXT_OVERRIDE_PATH).split.first
   end
-  TEST_CONTEXT ||= "minikube"
+  TEST_CONTEXT ||= ENV.key?('CI') ? ENV['KUBECONTEXT'] : "minikube"
 
   def kubeclient
     kubeclient_builder.build_v1_kubeclient(TEST_CONTEXT)
