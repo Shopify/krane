@@ -39,7 +39,7 @@ class KubeClientBuilderTest < Krane::TestCase
   end
 
   def test_multiple_valid_configuration_files
-    default_config = "#{Dir.home}/.kube/config"
+    default_config = default_kube_config_path
     extra_config = File.join(__dir__, '../../fixtures/kube-config/dummy_config.yml')
     builder = Krane::KubeclientBuilder.new(kubeconfig: "#{default_config}:#{extra_config}")
     assert_empty(builder.validate_config_files)
@@ -47,7 +47,7 @@ class KubeClientBuilderTest < Krane::TestCase
 
   def test_build_client_from_multiple_config_files
     Kubeclient::Client.any_instance.stubs(:discover)
-    default_config = "#{Dir.home}/.kube/config"
+    default_config = default_kube_config_path
     dummy_config = File.join(__dir__, '../../fixtures/kube-config/dummy_config.yml')
 
     kubeclient_builder = Krane::KubeclientBuilder.new(kubeconfig: "#{default_config}:#{dummy_config}")
@@ -63,5 +63,15 @@ class KubeClientBuilderTest < Krane::TestCase
     client = kubeclient_builder.build_v1_kubeclient(context_name)
     assert(!client.nil?, "Expected Kubeclient is built for context " \
       "#{context_name} with success.")
+  end
+
+  private
+
+  def default_kube_config_path
+    if ENV['CI']
+      ENV['KUBECONFIG']
+    else
+      "#{Dir.home}/.kube/config"
+    end
   end
 end
