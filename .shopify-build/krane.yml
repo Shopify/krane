@@ -1,6 +1,12 @@
 containers:
   default:
     docker: circleci/ruby:2.6.6
+  ruby30:
+    docker: ruby:3.0
+  ruby27:
+    docker: ruby:2.7
+  ruby26:
+    docker: ruby:2.6.6
 
 steps:
   - label: Lint
@@ -8,41 +14,43 @@ steps:
     run:
       - bundle: ~
       - bundle exec rubocop
+
   - label: 'Run Test Suite (:kubernetes: 1.21-latest :ruby: 3.0)'
-    command: bin/ci
-    agents:
-      queue: k8s-ci
-    env:
-      LOGGING_LEVEL: "4"
-      KUBERNETES_VERSION: v1.21-latest
-      RUBY_VERSION: "3.0"
+    run:
+    - bundle: ~
+    - bin/test
+    container: ruby30
+    kubernetes:
+      version: "1.21.5"
+
   - label: 'Run Test Suite (:kubernetes: 1.20-latest :ruby: 3.0)'
-    command: bin/ci
-    agents:
-      queue: k8s-ci
-    env:
-      LOGGING_LEVEL: "4"
-      KUBERNETES_VERSION: v1.20-latest
-      RUBY_VERSION: "3.0"
+    run:
+    - bundle: ~
+    - bin/test
+    container: ruby30
+    kubernetes:
+      version: "1.20.11"
+
   - label: 'Run Test Suite (:kubernetes: 1.19-latest :ruby: 2.7)'
-    command: bin/ci
-    agents:
-      queue: k8s-ci
-    env:
-      LOGGING_LEVEL: "4"
-      KUBERNETES_VERSION: v1.19-latest
-      RUBY_VERSION: "2.7"
+    run:
+    - bundle: ~
+    - bin/test
+    container: ruby27
+    kubernetes:
+      version: "1.19.15"
+
   - label: 'Run Test Suite (:kubernetes: 1.18-latest)'
-    command: bin/ci
-    agents:
-      queue: k8s-ci
-    env:
-      LOGGING_LEVEL: "4"
-      KUBERNETES_VERSION: v1.18-latest
+    run:
+    - bundle: ~
+    - bin/test
+    container: ruby26
+    kubernetes:
+      version: "1.18.19"
+
   - label: 'Run Test Suite (:kubernetes: 1.17-latest)'
-    command: bin/ci
-    agents:
-      queue: k8s-ci
-    env:
-      LOGGING_LEVEL: "4"
-      KUBERNETES_VERSION: v1.17-latest
+    run:
+    - bundle: ~
+    - bin/test
+    container: ruby26
+    kubernetes:
+      version: "1.17.17"

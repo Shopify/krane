@@ -27,11 +27,6 @@ if [[ ${PARALLELISM:=0} -lt 1 ]]; then
   fi
 fi
 
-if [[ ${CI:="0"} == "1" ]]; then
-  echo "--- :ruby: Bundle Install"
-  bundle install --jobs 4
-fi
-
 print_header "Run CLI Tests"
 bundle exec rake cli_test
 
