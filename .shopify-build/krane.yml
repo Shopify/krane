@@ -21,7 +21,9 @@ steps:
     - bin/test
     container: ruby30
     kubernetes:
-      version: "1.21.5"
+      version: "1.21.2"
+    git:
+      history: true
 
   - label: 'Run Test Suite (:kubernetes: 1.20-latest :ruby: 3.0)'
     run:
@@ -29,7 +31,9 @@ steps:
     - bin/test
     container: ruby30
     kubernetes:
-      version: "1.20.11"
+      version: "1.20.7"
+    git:
+      history: true
 
   - label: 'Run Test Suite (:kubernetes: 1.19-latest :ruby: 2.7)'
     run:
@@ -37,7 +41,9 @@ steps:
     - bin/test
     container: ruby27
     kubernetes:
-      version: "1.19.15"
+      version: "1.19.11"
+    git:
+      history: true
 
   - label: 'Run Test Suite (:kubernetes: 1.18-latest)'
     run:
@@ -46,6 +52,8 @@ steps:
     container: ruby26
     kubernetes:
       version: "1.18.19"
+    git:
+      history: true
 
   - label: 'Run Test Suite (:kubernetes: 1.17-latest)'
     run:
@@ -54,3 +62,5 @@ steps:
     container: ruby26
     kubernetes:
       version: "1.17.17"
+    git:
+      history: true
