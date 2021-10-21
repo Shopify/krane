@@ -27,6 +27,12 @@ if [[ ${PARALLELISM:=0} -lt 1 ]]; then
   fi
 fi
 
+if [[ "${CI}" == "1" ]]; then
+  echo "Linking kubeconfig"
+  mkdir -p ~/.kube
+  ln -s "${KUBECONFIG}" ~/.kube/config
+fi
+
 print_header "Run CLI Tests"
 bundle exec rake cli_test
 
