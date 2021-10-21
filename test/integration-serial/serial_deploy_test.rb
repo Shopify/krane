@@ -6,6 +6,9 @@ class SerialDeployTest < Krane::IntegrationTest
   ## GLOBAL CONTEXT MANIPULATION TESTS
   # This can be run in parallel if we allow passing the config file path to DeployTask.new
   # See https://github.com/Shopify/krane/pull/428#pullrequestreview-209720675
+
+  TEST_CONTEXT = 'minikube' # As set in fixtures
+
   def test_unreachable_context
     old_config = ENV['KUBECONFIG']
     begin
