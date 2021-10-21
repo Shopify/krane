@@ -451,8 +451,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      "Pod status: Failed. The following containers encountered errors:",
-      "> hello-cloud: Failed to start (exit 127):",
+      "Pod status: Failed.",
+      "no such file or directory",
     ], in_order: true)
   end
 
@@ -507,7 +507,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Failed to deploy 1 resource",
       "Deployment/cannot-run: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
-      %r{container-cannot-run: Failed to start \(exit 127\): .*/some/bad/path},
+      "Crashing repeatedly",
       "Logs from container 'successful-init'",
       "Log from successful init container",
     ], in_order: true)
