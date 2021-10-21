@@ -6,16 +6,19 @@ class SerialDeployTest < Krane::IntegrationTest
   ## GLOBAL CONTEXT MANIPULATION TESTS
   # This can be run in parallel if we allow passing the config file path to DeployTask.new
   # See https://github.com/Shopify/krane/pull/428#pullrequestreview-209720675
+
+  FIXTURE_CONTEXT = 'minikube'
+
   def test_unreachable_context
     old_config = ENV['KUBECONFIG']
     begin
       ENV['KUBECONFIG'] = File.join(__dir__, '../fixtures/kube-config/dummy_config.yml')
       kubectl_instance = build_kubectl(timeout: '0.1s')
-      result = deploy_fixtures('hello-cloud', kubectl_instance: kubectl_instance)
+      result = deploy_fixtures('hello-cloud', kubectl_instance: kubectl_instance, context: FIXTURE_CONTEXT)
       assert_deploy_failure(result)
       assert_logs_match_all([
         'Result: FAILURE',
-        "Something went wrong connecting to #{TEST_CONTEXT}",
+        "Something went wrong connecting to #{FIXTURE_CONTEXT}", # minikube context is hardcoded in fixtures
       ], in_order: true)
     ensure
       ENV['KUBECONFIG'] = old_config

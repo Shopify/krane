@@ -1581,7 +1581,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_task_run_failure(task_runner.run(**run_params))
 
     assert_logs_match_all([
-      "Could not find Namespace: unknown in Context: minikube",
+      "Could not find Namespace: unknown in Context: #{KubeclientHelper::TEST_CONTEXT}",
     ], in_order: true)
   end
 

@@ -91,13 +91,13 @@ module FixtureDeployHelper
   def deploy_dirs_without_profiling(dirs, wait: true, prune: true, bindings: {},
     sha: "k#{SecureRandom.hex(6)}", kubectl_instance: nil, global_timeout: nil,
     selector: nil, selector_as_filter: false,
-    protected_namespaces: nil, render_erb: false)
+    protected_namespaces: nil, render_erb: false, context: KubeclientHelper::TEST_CONTEXT)
     kubectl_instance = build_kubectl
 
     deploy = Krane::DeployTask.new(
       namespace: @namespace,
       current_sha: sha,
-      context: KubeclientHelper::TEST_CONTEXT,
+      context: context,
       filenames: dirs,
       logger: logger,
       kubectl_instance: kubectl_instance,
