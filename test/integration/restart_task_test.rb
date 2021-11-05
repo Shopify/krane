@@ -48,7 +48,7 @@ class RestartTaskTest < Krane::IntegrationTest
     assert_logs_match_all([
       "Configured to restart all workloads with the `shipit.shopify.io/restart` annotation",
       "Triggered `StatefulSet/stateful-busybox` restart",
-      "`StatefulSet/stateful-busybox` has updateStrategy: OnDelete,Restarting by forcefully deleting child pods",
+      "`StatefulSet/stateful-busybox` has updateStrategy: OnDelete, Restarting by forcefully deleting child pods",
       "Waiting for rollout",
       "Result: SUCCESS",
       "Successfully restarted 3 resources",
