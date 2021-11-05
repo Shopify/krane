@@ -51,7 +51,7 @@ class RestartTaskTest < Krane::IntegrationTest
       "`StatefulSet/stateful-busybox` has updateStrategy: OnDelete, Restarting by forcefully deleting child pods",
       "Waiting for rollout",
       "Result: SUCCESS",
-      "Successfully restarted 3 resources",
+      "Successfully restarted 1 resource",
       %r{StatefulSet/stateful-busybox.* 2 replicas},
     ],
       in_order: true)
