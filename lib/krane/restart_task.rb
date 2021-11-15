@@ -166,7 +166,7 @@ module Krane
         selector_string = selector.to_s
         apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: selector_string)
       end
-      deployments.select { |d| d.metadata.annotations[ANNOTATION] }
+      deployments.select { |d| d.dig(:metadata, :annotations, ANNOTATION) }
     end
 
     def identify_target_statefulsets(selector: nil)
@@ -176,7 +176,7 @@ module Krane
         selector_string = selector.to_s
         apps_v1_kubeclient.get_stateful_sets(namespace: @namespace, label_selector: selector_string)
       end
-      statefulsets.select { |d| d.metadata.annotations[ANNOTATION] }
+      statefulsets.select { |ss| ss.dig(:metadata, :annotations, ANNOTATION) }
     end
 
     def identify_target_daemonsets(selector: nil)
@@ -186,7 +186,7 @@ module Krane
         selector_string = selector.to_s
         apps_v1_kubeclient.get_daemon_sets(namespace: @namespace, label_selector: selector_string)
       end
-      daemonsets.select { |d| d.metadata.annotations[ANNOTATION] }
+      daemonsets.select { |ds| ds.dig(:metadata, :annotations, ANNOTATION) }
     end
 
     def build_watchables(kubeclient_resources, started, klass)
