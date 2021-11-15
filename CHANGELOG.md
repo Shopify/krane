@@ -1,5 +1,9 @@
 ## next
 
+## 2.3.1
+
+- Fix a bug in RestartTask where a NoMethodError is thrown if any of the target resources do not have annotations [#841](https://github.com/Shopify/krane/pull/841)
+
 ## 2.3.0
 
 - Restart tasks now support restarting StatefulSets and DaemonSets, in addition to Deployments [#836](https://github.com/Shopify/krane/pull/836)
