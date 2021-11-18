@@ -1,5 +1,9 @@
 ## next
 
+## 2.3.2
+
+- Fix compatibility with Psych 4.0 [#843](https://github.com/Shopify/krane/pull/843)
+
 ## 2.3.1
 
 - Fix a bug in RestartTask where a NoMethodError is thrown if any of the target resources do not have annotations [#841](https://github.com/Shopify/krane/pull/841)
