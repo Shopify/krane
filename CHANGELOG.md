@@ -1,5 +1,9 @@
 ## next
 
+## 2.3.3
+
+- Another Psych 4.0 compatibility fix [#844](https://github.com/Shopify/krane/pull/844)
+
 ## 2.3.2
 
 - Fix compatibility with Psych 4.0 [#843](https://github.com/Shopify/krane/pull/843)
