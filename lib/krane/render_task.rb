@@ -73,7 +73,7 @@ module Krane
       file_basename = File.basename(filename)
       @logger.info("Rendering #{file_basename}...")
       implicit = []
-      YAML.parse_stream(rendered_content, "<rendered> #{filename}") { |d| implicit << d.implicit }
+      YAML.parse_stream(rendered_content, filename: "<rendered> #{filename}") { |d| implicit << d.implicit }
       if rendered_content.present?
         stream.puts "---\n" if implicit.first
         stream.puts rendered_content
