@@ -28,15 +28,16 @@ class RunnerTaskTest < Krane::IntegrationTest
 
   def test_run_global_timeout_with_global_timeout
     deploy_task_template
+    timeout = 5 # seconds
 
-    task_runner = build_task_runner(global_timeout: 5)
-    result = task_runner.run(**run_params(log_lines: 8, log_interval: 1))
+    task_runner = build_task_runner(global_timeout: timeout)
+    result = task_runner.run(**run_params(log_lines: timeout * 4, log_interval: 1))
     assert_task_run_failure(result, :timed_out)
 
     assert_logs_match_all([
       "Result: TIMED OUT",
       "Timed out waiting for 1 resource to run",
-      %r{Pod/task-runner-\w+: GLOBAL WATCH TIMEOUT \(5 seconds\)},
+      %r{Pod/task-runner-\w+: GLOBAL WATCH TIMEOUT \(#{timeout} seconds\)},
       /Final status\: (Pending|Running)/,
     ], in_order: true)
   end
