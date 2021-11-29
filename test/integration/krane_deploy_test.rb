@@ -1673,7 +1673,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Successfully deployed 2 resource",
       "Successful resources",
       %r{PersistentVolumeClaim/with-storage-class\s+Pending},
-      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+      # Don't make assumptions about the default storage class `volumeBindingMode` - e.g. minikube and kind differ.
+      # We can trust the success assertion above to make the correct judgement about this value.
+      %r{PersistentVolumeClaim/without-storage-class\s+(Bound|Pending)},
     ], in_order: true)
 
   ensure
@@ -1705,7 +1707,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Successfully deployed 2 resource",
       "Successful resources",
       %r{PersistentVolumeClaim/with-storage-class\s+Bound},
-      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+      # Don't make assumptions about the default storage class `volumeBindingMode` - e.g. minikube and kind differ.
+      # We can trust the success assertion above to make the correct judgement about this value.
+      %r{PersistentVolumeClaim/without-storage-class\s+(Bound|Pending)},
     ], in_order: true)
 
   ensure
