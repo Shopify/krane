@@ -117,7 +117,7 @@ class KraneDeployTest < Krane::IntegrationTest
       prune_matcher("persistentvolumeclaim", "", "hello-pv-claim"),
     ] # not necessarily listed in this order
     # 1.21 appears to list the ingress as belonging to extensions, not networking.k8s.io
-    if kube_server_version >= Gem::Version.new("1.17.0") && kube_server_version <= Gem::Version.new("1.21.0")
+    if kube_server_version >= Gem::Version.new("1.18.0") && kube_server_version < Gem::Version.new("1.21.0")
       expected_pruned << prune_matcher("ingress", "networking.k8s.io", "web")
     else
       expected_pruned << prune_matcher("ingress", "extensions", "web")
@@ -451,8 +451,8 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
-      "Pod status: Failed. The following containers encountered errors:",
-      "> hello-cloud: Failed to start (exit 127):",
+      "Pod status: Failed.",
+      "no such file or directory",
     ], in_order: true)
   end
 
@@ -507,7 +507,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Failed to deploy 1 resource",
       "Deployment/cannot-run: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
-      %r{container-cannot-run: Failed to start \(exit 127\): .*/some/bad/path},
+      "Crashing repeatedly",
       "Logs from container 'successful-init'",
       "Log from successful init container",
     ], in_order: true)
@@ -1581,7 +1581,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_task_run_failure(task_runner.run(**run_params))
 
     assert_logs_match_all([
-      "Could not find Namespace: unknown in Context: minikube",
+      "Could not find Namespace: unknown in Context: #{KubeclientHelper::TEST_CONTEXT}",
     ], in_order: true)
   end
 
@@ -1673,7 +1673,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Successfully deployed 2 resource",
       "Successful resources",
       %r{PersistentVolumeClaim/with-storage-class\s+Pending},
-      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+      # Don't make assumptions about the default storage class `volumeBindingMode` - e.g. minikube and kind differ.
+      # We can trust the success assertion above to make the correct judgement about this value.
+      %r{PersistentVolumeClaim/without-storage-class\s+(Bound|Pending)},
     ], in_order: true)
 
   ensure
@@ -1705,7 +1707,9 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       "Successfully deployed 2 resource",
       "Successful resources",
       %r{PersistentVolumeClaim/with-storage-class\s+Bound},
-      %r{PersistentVolumeClaim/without-storage-class\s+Bound},
+      # Don't make assumptions about the default storage class `volumeBindingMode` - e.g. minikube and kind differ.
+      # We can trust the success assertion above to make the correct judgement about this value.
+      %r{PersistentVolumeClaim/without-storage-class\s+(Bound|Pending)},
     ], in_order: true)
 
   ensure

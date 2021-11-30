@@ -7,6 +7,7 @@ Rake::TestTask.new(:integration_test) do |t|
   t.libs << "test"
   t.libs << "lib"
   t.test_files = FileList['test/integration/**/*_test.rb']
+  t.warning = !ENV.key?('CI')
 end
 
 desc("Run integration tests that CANNOT be run in parallel")
@@ -14,6 +15,7 @@ Rake::TestTask.new(:serial_integration_test) do |t|
   t.libs << "test"
   t.libs << "lib"
   t.test_files = FileList['test/integration-serial/**/*_test.rb']
+  t.warning = !ENV.key?('CI')
 end
 
 desc("Run unit tests")
@@ -21,6 +23,7 @@ Rake::TestTask.new(:unit_test) do |t|
   t.libs << "test"
   t.libs << "lib"
   t.test_files = FileList['test/unit/**/*_test.rb']
+  t.warning = !ENV.key?('CI')
 end
 
 desc("Run cli tests")
@@ -28,6 +31,7 @@ Rake::TestTask.new(:cli_test) do |t|
   t.libs << "test"
   t.libs << "lib"
   t.test_files = FileList['test/exe/**/*_test.rb']
+  t.warning = !ENV.key?('CI')
 end
 
 desc("Run all tests")
