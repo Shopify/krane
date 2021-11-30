@@ -3,20 +3,20 @@ name: krane
 up:
   - ruby: 2.6.6 # Matches gemspec
   - bundler
-  - homebrew:
-    - minikube
-    - hyperkit
   - custom:
-      name: Install the minikube fork of driver-hyperkit
-      met?: command -v docker-machine-driver-hyperkit
-      meet: curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit && sudo install -o root -g wheel -m 4755 docker-machine-driver-hyperkit /usr/local/bin/ && rm ./docker-machine-driver-hyperkit
+      name: Install Kubernetes in Docker (KinD)
+      met?: bin/kind version 2>&1 | grep -q v0.11.1
+      meet: |
+        mkdir -p bin
+        curl -sLo bin/kind "https://github.com/kubernetes-sigs/kind/releases/download/v0.11.1/kind-darwin-amd64"
+        chmod +x bin/kind
   - custom:
-      name: Minikube Cluster
-      met?: test $(minikube status | grep Running | wc -l) -ge 2 && $(minikube status | grep -q 'Configured')
-      meet: minikube start --kubernetes-version=v1.18.18 --vm-driver=hyperkit
-      down: minikube stop
+      name: Create KinD Cluster
+      met?: bin/kind get clusters | grep -q krane
+      meet: bin/kind create cluster --name krane
+      down: |
+        ((bin/kind get clusters | grep -q krane) && bin/kind delete cluster --name krane) || true
 commands:
-  reset-minikube: minikube delete && rm -rf ~/.minikube
   test:
     run: bin/test
   tophat:
