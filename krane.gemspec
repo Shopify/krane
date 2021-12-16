@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.metadata['allowed_push_host'] = "https://rubygems.org"
 
   spec.required_ruby_version = '>= 2.6.0'
-  spec.add_dependency("activesupport", ">= 5.0")
+  spec.add_dependency("activesupport", ">= 5.0", "<7.0")
   spec.add_dependency("cgi")
   spec.add_dependency("date")
   spec.add_dependency("kubeclient", "~> 4.3")
