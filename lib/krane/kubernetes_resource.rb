@@ -584,7 +584,12 @@ module Krane
     # If the resource template uses generateName, validating with apply will fail
     def validate_with_local_dry_run(kubectl)
       verb = deploy_method == :apply ? "apply" : "create"
-      command = [verb, "-f", file_path, "--dry-run", "--output=name"]
+      command = if kubectl.client_version >= Gem::Version.new('1.18')
+        [verb, "-f", file_path, "--dry-run=client" "--output=name"]
+      else
+        [verb, "-f", file_path, "--dry-run" "--output=name"]
+      end
+
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
         retry_whitelist: [:client_timeout, :empty, :context_deadline], attempts: 3, use_namespace: !global?)
     end
