@@ -361,7 +361,7 @@ class DeploymentTest < Krane::TestCase
 
   def stub_validation_dry_run(out: "", err: "", status: SystemExit.new(0))
     kubectl.expects(:run)
-      .with('apply', '-f', anything, '--dry-run', '--output=name', anything)
+      .with('apply', '-f', anything, '--dry-run=client', '--output=name', anything)
       .returns([out, err, status])
   end
 
