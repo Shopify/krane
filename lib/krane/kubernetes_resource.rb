@@ -585,9 +585,9 @@ module Krane
     def validate_with_local_dry_run(kubectl)
       verb = deploy_method == :apply ? "apply" : "create"
       command = if kubectl.client_version >= Gem::Version.new('1.18')
-        [verb, "-f", file_path, "--dry-run=client" "--output=name"]
+        [verb, "-f", file_path, "--dry-run=client", "--output=name"]
       else
-        [verb, "-f", file_path, "--dry-run" "--output=name"]
+        [verb, "-f", file_path, "--dry-run", "--output=name"]
       end
 
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
