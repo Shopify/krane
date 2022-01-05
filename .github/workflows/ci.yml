@@ -10,6 +10,8 @@ jobs:
       fail-fast: false
       matrix:
         ruby:
+        - '3.0' # With k8s 1.23
+        - '3.0' # With k8s 1.22
         - '3.0' # With k8s 1.21
         - '3.0' # With k8s 1.20
         - '2.7' # With k8s 1.19
@@ -17,6 +19,14 @@ jobs:
         - '2.6.6' # With k8s 1.17
         include:
         # Match kind images with chosen version https://github.com/kubernetes-sigs/kind/releases
+        - ruby: '3.0'
+          kind_version: 'v0.11.1'
+          kubernetes_version: '1.23.0'
+          kind_image: 'kindest/node:v1.23.0@sha256:49824ab1727c04e56a21a5d8372a402fcd32ea51ac96a2706a12af38934f81ac'
+        - ruby: '3.0'
+          kind_version: 'v0.11.1'
+          kubernetes_version: '1.22.0'
+          kind_image: 'kindest/node:v1.22.0@sha256:b8bda84bb3a190e6e028b1760d277454a72267a5454b57db34437c34a588d047'
         - ruby: '3.0'
           kind_version: 'v0.11.1'
           kubernetes_version: '1.21.1'
