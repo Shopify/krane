@@ -6,6 +6,7 @@ jobs:
   ruby-tests:
     runs-on: ubuntu-latest
 
+    name: "Tests - Ruby ${{ matrix.ruby }} with k8s ${{ matrix.kubernetes_version }}"
     strategy:
       fail-fast: false
       matrix:
