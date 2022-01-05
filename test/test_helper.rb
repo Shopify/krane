@@ -203,6 +203,10 @@ module Krane
       def obj.server_dry_run_enabled?
         true
       end
+
+      def obj.client_version
+        Gem::Version.new("1.20")
+      end
       obj
     end
 
