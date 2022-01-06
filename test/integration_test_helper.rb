@@ -36,8 +36,9 @@ module Krane
       false
     end
 
-    def prune_matcher(kind, group, name)
-      kind + '(.' + group + ')?[ \/]"?' + name + '"?'
+    def prune_matcher(kind, groups, name)
+      groups = Array(groups)
+      kind + '(.' + groups.join('|.') + ')?[ \/]"?' + name + '"?'
     end
 
     def kube_client_version
