@@ -31,7 +31,7 @@ class RunnerTaskTest < Krane::IntegrationTest
     timeout = 5 # seconds
 
     task_runner = build_task_runner(global_timeout: timeout)
-    result = task_runner.run(**run_params(log_lines: timeout * 4, log_interval: 1))
+    result = task_runner.run(**run_params(log_lines: timeout * 10, log_interval: 1))
     assert_task_run_failure(result, :timed_out)
 
     assert_logs_match_all([
