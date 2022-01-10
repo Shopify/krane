@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'active_support'
+require 'active_support/isolated_execution_state' if ActiveSupport::VERSION::MAJOR > 6
 require 'active_support/core_ext/object/blank'
 require 'active_support/core_ext/hash/reverse_merge'
 require 'active_support/core_ext/hash/slice'
