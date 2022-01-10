@@ -37,7 +37,10 @@ module Krane
 
     def group_version_kind
       group = @definition.dig("spec", "group")
-      version = @definition.dig("spec", "version")
+      # Since 1.22: spec.version is removed in v1; use spec.versions instead.
+      # New spec here: https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#create-a-customresourcedefinition
+      # This is only used in testing, so we will simply take the first version we see:
+      version = @definition.dig("spec", "versions", 0, "name")
       "#{group}/#{version}/#{kind}"
     end
 

@@ -39,6 +39,8 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
       logger: @logger, statsd_tags: nil
     )
     webhook = webhook_configuration.webhooks.first
+    # Note: We have to mock `has_side_effects?`, since this won't be possible with K8s 1.22+.
+    webhook.stubs(:has_side_effects?).returns(true).at_least_once
     assert(webhook.has_side_effects?)
     assert(webhook.matches_resource?(secret))
     assert(webhook.matches_resource?(secret, skip_rule_if_side_effect_none: true))
@@ -74,6 +76,8 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     )
 
     webhook = webhook_configuration.webhooks.first
+    # Note: We have to mock `has_side_effects?`, since this won't be possible with K8s 1.22+.
+    webhook.stubs(:has_side_effects?).returns(true).at_least_once
     assert(webhook.matches_resource?(secret))
     webhook.expects(:match_policy).returns(Krane::MutatingWebhookConfiguration::Webhook::EXACT).at_least(1)
     assert(webhook.matches_resource?(secret))

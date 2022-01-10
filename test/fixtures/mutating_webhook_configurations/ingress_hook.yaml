@@ -1,5 +1,5 @@
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: ingress-webhook-configuration
@@ -18,14 +18,14 @@ webhooks:
   reinvocationPolicy: Never
   rules:
   - apiGroups:
-    - extensions
+    - networking.k8s.io
     apiVersions:
-    - v1beta1
+    - v1
     operations:
     - CREATE
     - UPDATE
     resources:
     - ingresses
     scope: "*"
-  sideEffects: Unknown
+  sideEffects: NoneOnDryRun
   timeoutSeconds: 1
