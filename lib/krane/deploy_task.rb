@@ -254,6 +254,10 @@ module Krane
 
       StatsD.client.gauge('discover_resources.count', resources.size, tags: statsd_tags)
 
+      if resources.empty?
+        raise FatalDeploymentError, "No deployable resources were found!"
+      end
+
       resources.sort
     rescue InvalidTemplateError => e
       record_invalid_template(logger: @logger, err: e.message, filename: e.filename,
