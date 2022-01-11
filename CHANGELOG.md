@@ -1,5 +1,9 @@
 ## next
 
+## 2.3.6
+
+- Update kubeclient for better Ruby 3.1 compatibility.
+
 ## 2.3.5
 
 - Psych 4 compatibility
