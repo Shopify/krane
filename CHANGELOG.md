@@ -1,5 +1,9 @@
 ## next
 
+## 2.3.5
+
+- Psych 4 compatibility
+
 ## 2.3.4
 
 - Fix for [CVE-2021-41817](https://www.ruby-lang.org/en/news/2021/11/15/date-parsing-method-regexp-dos-cve-2021-41817/). See [ServicesDB action item here](https://services.shopify.io/action_items/definitions/isolated/59).
