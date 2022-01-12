@@ -536,6 +536,7 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  # Note: After we drop support for K8s 1.21 this test can be removed, since webhooks must be dry-run safe.
   def test_resources_with_side_effect_inducing_webhooks_are_not_batched_server_side_dry_run
     result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(ingress_hook.yaml))
     assert_deploy_success(result)
@@ -560,6 +561,7 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  # Note: After we drop support for K8s 1.21 this test can be removed, since webhooks must be dry-run safe.
   def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
     result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(secret_hook.yaml))
     assert_deploy_success(result)
@@ -590,6 +592,7 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  # Note: After we drop support for K8s 1.21 this test can be removed, since webhooks must be dry-run safe.
   def test_multiple_resources_with_side_effect_inducing_webhooks_are_properly_partitioned
     result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(secret_hook.yaml ingress_hook.yaml))
     assert_deploy_success(result)
