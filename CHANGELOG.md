@@ -1,6 +1,13 @@
 ## next
 
+## 2.4.0
+
+*Enhancements*
+
 - Ensure deploy tasks fail without at least one non-empty resource [#865](https://github.com/Shopify/krane/issues/865)
+
+*Other*
+
 - Remove Ruby 2.6 and K8s < 1.19 from the CI testing matrix. All fixtures have been updated to be compatible with K8s 1.22+.
 
 ## 2.3.7
