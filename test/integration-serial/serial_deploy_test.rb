@@ -536,9 +536,13 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  # Note: After we drop support for K8s 1.21 this test can be removed, since webhooks must be dry-run safe.
   def test_resources_with_side_effect_inducing_webhooks_are_not_batched_server_side_dry_run
     result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(ingress_hook.yaml))
     assert_deploy_success(result)
+
+    # Note: We have to mock `has_side_effects?`, since this won't be possible with K8s 1.22+.
+    Krane::MutatingWebhookConfiguration::Webhook.any_instance.stubs(:has_side_effects?).returns(true)
 
     Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
       # We expect the ingress to not be included in the batch run
@@ -557,9 +561,13 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  # Note: After we drop support for K8s 1.21 this test can be removed, since webhooks must be dry-run safe.
   def test_resources_with_side_effect_inducing_webhooks_with_transitive_dependency_does_not_fail_batch_running
     result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(secret_hook.yaml))
     assert_deploy_success(result)
+
+    # Note: We have to mock `has_side_effects?`, since this won't be possible with K8s 1.22+.
+    Krane::MutatingWebhookConfiguration::Webhook.any_instance.stubs(:has_side_effects?).returns(true)
 
     actual_dry_runs = 0
     Krane::KubernetesResource.any_instance.expects(:validate_definition).with do |params|
@@ -584,9 +592,13 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  # Note: After we drop support for K8s 1.21 this test can be removed, since webhooks must be dry-run safe.
   def test_multiple_resources_with_side_effect_inducing_webhooks_are_properly_partitioned
     result = deploy_global_fixtures("mutating_webhook_configurations", subset: %(secret_hook.yaml ingress_hook.yaml))
     assert_deploy_success(result)
+
+    # Note: We have to mock `has_side_effects?`, since this won't be possible with K8s 1.22+.
+    Krane::MutatingWebhookConfiguration::Webhook.any_instance.stubs(:has_side_effects?).returns(true)
 
     Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |p| p[:dry_run] }.times(2)
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml), render_erb: true) do |fixtures|

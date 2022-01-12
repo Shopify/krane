@@ -48,6 +48,7 @@ module Krane
       end
 
       def has_side_effects?
+        # Note: After K8s 1.22, this should ALWAYS be false.
         !%w(None NoneOnDryRun).include?(side_effects)
       end
 

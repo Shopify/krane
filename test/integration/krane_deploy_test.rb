@@ -135,13 +135,8 @@ class KraneDeployTest < Krane::IntegrationTest
       prune_matcher("role", "rbac.authorization.k8s.io", "role"),
       prune_matcher("rolebinding", "rbac.authorization.k8s.io", "role-binding"),
       prune_matcher("persistentvolumeclaim", "", "hello-pv-claim"),
+      prune_matcher("ingress", %w(networking.k8s.io extensions), "web")
     ] # not necessarily listed in this order
-    # 1.21 appears to list the ingress as belonging to extensions, not networking.k8s.io
-    if kube_server_version >= Gem::Version.new("1.18.0") && kube_server_version < Gem::Version.new("1.21.0")
-      expected_pruned << prune_matcher("ingress", "networking.k8s.io", "web")
-    else
-      expected_pruned << prune_matcher("ingress", "extensions", "web")
-    end
     expected_msgs = [/Pruned 2[013] resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
       expected_msgs << /The following resources were pruned:.*#{resource}/

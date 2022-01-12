@@ -1,1 +1,0 @@
-{"kind":"APIResourceList","apiVersion":"v1","groupVersion":"authentication.k8s.io/v1beta1","resources":[{"name":"tokenreviews","singularName":"","namespaced":false,"kind":"TokenReview","verbs":["create"]}]}

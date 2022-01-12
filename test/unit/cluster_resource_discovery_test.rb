@@ -14,7 +14,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
   def test_fetch_resources_not_namespaced
     crd = mocked_cluster_resource_discovery
     kinds = crd.fetch_resources(namespaced: false).map { |r| r['kind'] }.uniq
-    assert_equal(kinds.length, 22)
+    assert_equal(20, kinds.length)
     %w(MutatingWebhookConfiguration ComponentStatus CustomResourceDefinition).each do |kind|
       assert_includes(kinds, kind)
     end
@@ -23,7 +23,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
   def test_fetch_resources_namespaced
     crd = mocked_cluster_resource_discovery
     kinds = crd.fetch_resources(namespaced: true).map { |r| r['kind'] }.uniq
-    assert_equal(kinds.length, 29)
+    assert_equal(27, kinds.length)
     %w(ConfigMap CronJob Deployment).each do |kind|
       assert_includes(kinds, kind)
     end
@@ -32,7 +32,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
   def test_prunable_global_resources
     crd = mocked_cluster_resource_discovery
     kinds = crd.prunable_resources(namespaced: false).map { |k| k.split('/').last }.uniq
-    assert_equal(kinds.length, 15)
+    assert_equal(13, kinds.length)
     %w(PriorityClass StorageClass).each do |expected_kind|
       assert(kinds.one? { |k| k.include?(expected_kind) })
     end
@@ -45,7 +45,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
     crd = mocked_cluster_resource_discovery
     kinds = crd.prunable_resources(namespaced: true).map { |k| k.split('/').last }.uniq
 
-    assert_equal(kinds.length, 25)
+    assert_equal(24, kinds.length)
     %w(ConfigMap CronJob Deployment).each do |expected_kind|
       assert(kinds.one? { |k| k.include?(expected_kind) })
     end
@@ -57,7 +57,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
   def test_prunable_namespaced_resources_apply_group_version_kind_overrides
     crd = mocked_cluster_resource_discovery
     kinds = crd.prunable_resources(namespaced: true)
-    %w(batch/v1/Job extensions/v1beta1/Ingress).each do |expected_kind|
+    %w(batch/v1/Job networking.k8s.io/v1/NetworkPolicy).each do |expected_kind|
       assert(kinds.one? { |k| k.include?(expected_kind) })
     end
   end

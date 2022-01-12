@@ -53,7 +53,7 @@ module FixtureSetAssertions
 
     def refute_web_resources_exist
       refute_resource_exists("deployment", "web")
-      refute_resource_exists("ingress", "web", beta: true)
+      refute_resource_exists("ingress", "web")
       refute_resource_exists("service", "web")
     end
 

@@ -1,7 +1,7 @@
 ---
 name: krane
 up:
-  - ruby: 2.6.6 # Matches gemspec
+  - ruby: '3.0.3' # Matches gemspec
   - bundler
   - custom:
       name: Install Kubernetes in Docker (KinD)
@@ -13,7 +13,7 @@ up:
   - custom:
       name: Create KinD Cluster
       met?: bin/kind get clusters | grep -q krane
-      meet: bin/kind create cluster --name krane
+      meet: bin/kind create cluster --name krane --image "kindest/node:v1.22.0@sha256:b8bda84bb3a190e6e028b1760d277454a72267a5454b57db34437c34a588d047"
       down: |
         ((bin/kind get clusters | grep -q krane) && bin/kind delete cluster --name krane) || true
 commands:

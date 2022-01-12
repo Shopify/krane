@@ -27,11 +27,11 @@ module FixtureSetAssertions
       @app_name
     end
 
-    def refute_resource_exists(type, name, beta: false)
-      client = if beta
-        v1beta1_kubeclient
-      elsif %w(daemonset deployment replicaset statefulset).include?(type)
+    def refute_resource_exists(type, name)
+      client = if %w(daemonset deployment replicaset statefulset).include?(type)
         apps_v1_kubeclient
+     elsif %w(ingress networkpolicy).include?(type)
+       networking_v1_kubeclient
       else
         kubeclient
       end
@@ -96,7 +96,7 @@ module FixtureSetAssertions
     end
 
     def assert_ingress_up(ing_name)
-      ing = v1beta1_kubeclient.get_ingresses(namespace: namespace, label_selector: "name=#{ing_name},app=#{app_name}")
+      ing = networking_v1_kubeclient.get_ingresses(namespace: namespace, label_selector: "name=#{ing_name},app=#{app_name}")
       assert_equal(1, ing.size, "Expected 1 #{ing_name} ingress, got #{ing.size}")
     end
 
