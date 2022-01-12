@@ -1,5 +1,11 @@
 ## next
 
+- Ensure deploy tasks fail without at least one non-empty resource [#865](https://github.com/Shopify/krane/issues/865)
+
+## 2.3.7
+
+- isolated_execution_state active_support require for Rails 7+
+
 ## 2.3.6
 
 - Update kubeclient for better Ruby 3.1 compatibility.

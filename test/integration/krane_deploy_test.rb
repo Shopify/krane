@@ -36,6 +36,26 @@ class KraneDeployTest < Krane::IntegrationTest
     assert_logs_match(%r{ConfigMap/hello-cloud-configmap-data\s+Available}, 1)
   end
 
+  def test_deploy_fails_with_empty_yaml
+    assert_deploy_failure(deploy_raw_fixtures("empty-resources", subset: %w[empty1.yml empty2.yml]))
+
+    assert_logs_match_all([
+                            "All required parameters and files are present",
+                            "Result: FAILURE",
+                            "No deployable resources were found!",
+                          ], in_order: true)
+  end
+
+  def test_deploy_fails_with_empty_erb
+    assert_deploy_failure(deploy_raw_fixtures("empty-resources", subset: %w[empty3.yml.erb empty4.yml.erb], render_erb: true))
+
+    assert_logs_match_all([
+                            "All required parameters and files are present",
+                            "Result: FAILURE",
+                            "No deployable resources were found!",
+                          ], in_order: true)
+  end
+
   def test_service_account_predeployed_before_unmanaged_pod
     # Add a valid service account in unmanaged pod
     service_account_name = "build-robot"
