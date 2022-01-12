@@ -74,23 +74,23 @@ If you need the ability to render dynamic values in templates before deploying, 
 ## Prerequisites
 
 * Ruby 2.6+
-* Your cluster must be running Kubernetes v1.15.0 or higher<sup>1</sup>
+* Your cluster must be running Kubernetes v1.19.0 or higher<sup>1</sup>
 
 <sup>1</sup> We run integration tests against these Kubernetes versions. You can find our
 official compatibility chart below.
 
-| Kubernetes version | Last officially supported in gem version |
-| :----------------: | :-------------------: |
-|        1.5         |        0.11.2         |
-|        1.6         |        0.15.2         |
-|        1.7         |        0.20.6         |
-|        1.8         |        0.21.1         |
-|        1.9         |        0.24.0         |
-|        1.10        |        0.27.0         |
+| Kubernetes version | Currently Tested? | Last officially supported in gem version |
+|:------------------:|-------------------|:----------------------------------------:|
+|        1.18        | No                |                  2.3.7                   |
+|        1.19        | Yes               |                    --                    |
+|        1.20        | Yes               |                    --                    |
+|        1.21        | Yes               |                    --                    |
+|        1.22        | Yes               |                    --                    |
+|        1.23        | Yes               |                    --                    |
 
 ## Installation
 
-1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.15.0 or higher) and make sure it is available in your $PATH
+1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.19.0 or higher) and make sure it is available in your $PATH
 2. Set up your [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/) for access to your cluster(s).
 3. `gem install krane`
 
