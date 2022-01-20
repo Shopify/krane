@@ -334,7 +334,7 @@ class RestartTaskTest < Krane::IntegrationTest
       subset: ["configmap-data.yml", "web.yml.erb", "daemon_set.yml", "stateful_set.yml"],
       render_erb: true) do |fixtures|
       deployment = fixtures["web.yml.erb"]["Deployment"].first
-      deployment["spec"]["progressDeadlineSeconds"] = 30
+      deployment["spec"]["progressDeadlineSeconds"] = 60
       container = deployment["spec"]["template"]["spec"]["containers"].first
       container["readinessProbe"] = {
         "failureThreshold" => 1,
