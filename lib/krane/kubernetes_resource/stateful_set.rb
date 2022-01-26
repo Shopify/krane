@@ -27,13 +27,11 @@ module Krane
                        "Consider switching to rollingUpdate.")
           @success_assumption_warning_shown = true
         end
-        true
-      else
-        observed_generation == current_generation &&
-        status_data['currentRevision'] == status_data['updateRevision'] &&
-        desired_replicas == status_data['readyReplicas'].to_i &&
-        desired_replicas == status_data['currentReplicas'].to_i
       end
+      observed_generation == current_generation &&
+      status_data['currentRevision'] == status_data['updateRevision'] &&
+      desired_replicas == status_data['readyReplicas'].to_i &&
+      desired_replicas == status_data['currentReplicas'].to_i
     end
 
     def deploy_failed?
