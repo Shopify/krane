@@ -41,9 +41,16 @@ class RestartTaskTest < Krane::IntegrationTest
       statefulset["spec"]["updateStrategy"] = { "type" => "OnDelete" }
     end
     assert_deploy_success(result)
+    before_pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=stateful-busybox").map do |p|
+      p.metadata.name
+    end
 
     restart = build_restart_task
     assert_restart_success(restart.perform)
+    after_pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=stateful-busybox").map do |p|
+      p.metadata.name
+    end
+    refute_equal(before_pods.sort, after_pods.sort)
 
     assert_logs_match_all([
       "Configured to restart all workloads with the `shipit.shopify.io/restart` annotation",
