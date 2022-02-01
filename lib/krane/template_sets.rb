@@ -108,7 +108,7 @@ module Krane
         end
 
         # Filename paths
-        file_paths.each do |filename|
+        file_paths.sort.each do |filename|
           dir_name = File.dirname(filename)
           resource_templates[dir_name] ||= []
           resource_templates[dir_name] << File.basename(filename) unless resource_templates[dir_name].include?(filename)
