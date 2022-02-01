@@ -104,7 +104,7 @@ module Krane
         dir_paths.each do |template_dir|
           resource_templates[template_dir] = Dir.foreach(template_dir).select do |filename|
             filename.end_with?(*VALID_TEMPLATES) || filename == EjsonSecretProvisioner::EJSON_SECRETS_FILE
-          end
+          end.sort
         end
 
         # Filename paths
