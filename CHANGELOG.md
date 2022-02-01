@@ -1,5 +1,9 @@
 ## next
 
+*Enhancements*
+
+- Support restart task for stateful sets that use the `OnDelete` strategy [#840](https://github.com/Shopify/krane/pull/840)
+
 ## 2.4.0
 
 *Enhancements*
