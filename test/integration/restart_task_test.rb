@@ -42,13 +42,13 @@ class RestartTaskTest < Krane::IntegrationTest
     end
     assert_deploy_success(result)
     before_pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=stateful-busybox").map do |p|
-      p.metadata.name
+      p.metadata.uid
     end
 
     restart = build_restart_task
     assert_restart_success(restart.perform)
     after_pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=stateful-busybox").map do |p|
-      p.metadata.name
+      p.metadata.uid
     end
     refute_equal(before_pods.sort, after_pods.sort)
 
