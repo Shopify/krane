@@ -69,10 +69,10 @@ module Krane
       deployments, statefulsets, daemonsets = identify_target_workloads(deployments, statefulsets,
                                                 daemonsets, selector: selector)
 
-      @logger.phase_heading("Triggering restart by annotating pod template #{RESTART_TRIGGER_ANNOTATION} annotation")
-      patch_kubeclient_deployments(deployments)
-      patch_kubeclient_statefulsets(statefulsets)
-      patch_kubeclient_daemonsets(daemonsets)
+      @logger.phase_heading("Triggering restart")
+      restart_deployments!(deployments)
+      restart_statefulsets!(statefulsets)
+      restart_daemonsets!(daemonsets)
 
       if verify_result
         @logger.phase_heading("Waiting for rollout")
@@ -210,7 +210,15 @@ module Krane
       apps_v1_kubeclient.patch_daemon_set(record.metadata.name, build_patch_payload(record), @namespace)
     end
 
-    def patch_kubeclient_deployments(deployments)
+    def delete_statefulset_pods(record)
+      pods = kubeclient.get_pods(namespace: record.metadata.namespace)
+      pods.select! do |pod|
+        pod.metadata.ownerReferences.find { |ref| ref.uid == record.metadata.uid }
+      end
+      pods.each { |pod| kubeclient.delete_pod(pod.metadata.name, pod.metadata.namespace) }
+    end
+
+    def restart_deployments!(deployments)
       deployments.each do |record|
         begin
           patch_deployment_with_restart(record)
@@ -221,18 +229,23 @@ module Krane
       end
     end
 
-    def patch_kubeclient_statefulsets(statefulsets)
+    def restart_statefulsets!(statefulsets)
       statefulsets.each do |record|
-        begin
+        @logger.info("Triggered `StatefulSet/#{record.metadata.name}` restart")
+        if record.spec.updateStrategy&.type == "OnDelete"
+          @logger.info("`StatefulSet/#{record.metadata.name}` has updateStrategy: OnDelete," \
+            " Restarting by forcefully deleting child pods"
+          )
+          delete_statefulset_pods(record)
+        else
           patch_statefulset_with_restart(record)
-          @logger.info("Triggered `StatefulSet/#{record.metadata.name}` restart")
-        rescue Kubeclient::HttpError => e
-          raise RestartAPIError.new(record.metadata.name, e.message)
         end
+      rescue Kubeclient::HttpError => e
+        raise RestartAPIError.new(record.metadata.name, e.message)
       end
     end
 
-    def patch_kubeclient_daemonsets(daemonsets)
+    def restart_daemonsets!(daemonsets)
       daemonsets.each do |record|
         begin
           patch_daemonset_with_restart(record)

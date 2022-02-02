@@ -35,6 +35,35 @@ class RestartTaskTest < Krane::IntegrationTest
     refute(fetch_restarted_at("redis"), "no restart annotation env on fresh deployment")
   end
 
+  def test_restart_statefulset_on_delete_restarts_child_pods
+    result = deploy_fixtures("hello-cloud", subset: "stateful_set.yml") do |fixtures|
+      statefulset = fixtures["stateful_set.yml"]["StatefulSet"].first
+      statefulset["spec"]["updateStrategy"] = { "type" => "OnDelete" }
+    end
+    assert_deploy_success(result)
+    before_pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=stateful-busybox").map do |p|
+      p.metadata.uid
+    end
+
+    restart = build_restart_task
+    assert_restart_success(restart.perform)
+    after_pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=stateful-busybox").map do |p|
+      p.metadata.uid
+    end
+    refute_equal(before_pods.sort, after_pods.sort)
+
+    assert_logs_match_all([
+      "Configured to restart all workloads with the `shipit.shopify.io/restart` annotation",
+      "Triggered `StatefulSet/stateful-busybox` restart",
+      "`StatefulSet/stateful-busybox` has updateStrategy: OnDelete, Restarting by forcefully deleting child pods",
+      "Waiting for rollout",
+      "Result: SUCCESS",
+      "Successfully restarted 1 resource",
+      %r{StatefulSet/stateful-busybox.* 2 replicas},
+    ],
+      in_order: true)
+  end
+
   def test_restart_by_selector
     assert_deploy_success(deploy_fixtures("branched",
       bindings: { "branch" => "master" },
