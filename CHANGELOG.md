@@ -1,8 +1,15 @@
 ## next
 
+## 2.4.1
+
 *Enhancements*
 
 - Support restart task for stateful sets that use the `OnDelete` strategy [#840](https://github.com/Shopify/krane/pull/840)
+- Make `krane render` produce output in a deterministic order [#871](https://github.com/Shopify/krane/pull/871)
+
+*Other*
+
+- Remove buildkite [#869](https://github.com/Shopify/krane/pull/869)
 
 ## 2.4.0
 
