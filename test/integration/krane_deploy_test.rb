@@ -1564,7 +1564,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
       pvc["spec"]["storageClassName"] = storage_class_name
     end
-    assert_deploy_failure(result)
+    assert_deploy_failure(result, :timed_out)
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
@@ -1745,7 +1745,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       pvc = fixtures["pvc.yml"]["PersistentVolumeClaim"].first
       pvc["spec"]["storageClassName"] = storage_class_name
     end
-    assert_deploy_failure(result)
+    assert_deploy_failure(result, :timed_out)
 
     assert_logs_match_all([
       "Failed to deploy 1 priority resource",
