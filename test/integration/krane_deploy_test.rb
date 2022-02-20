@@ -1567,7 +1567,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result, :timed_out)
 
     assert_logs_match_all([
-      "Failed to deploy 1 priority resource",
       "PersistentVolumeClaim/with-storage-class: TIMED OUT (timeout: 10s)",
       "PVC specified a StorageClass of #{storage_class_name} but the resource does not exist",
     ], in_order: true)
@@ -1748,7 +1747,6 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result, :timed_out)
 
     assert_logs_match_all([
-      "Failed to deploy 1 priority resource",
       "Pod/pvc: TIMED OUT (timeout: 10s)",
       %r{Pod could not be scheduled because 0/\d+ nodes are available:},
       /\d+ node[(]s[)] didn't find available persistent volumes to bind./,
