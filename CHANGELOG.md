@@ -1,5 +1,9 @@
 ## next
 
+*Bug fixes*
+
+- Timeouts during the "predeploy priority resources" phase now raise `DeploymentTimeoutError` instead of `FatalDeploymentError` [#874](https://github.com/Shopify/krane/pull/874)
+
 ## 2.4.1
 
 *Enhancements*
