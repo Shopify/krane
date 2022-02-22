@@ -327,6 +327,16 @@ class SerialDeployTest < Krane::IntegrationTest
     ])
   end
 
+  def test_priority_resource_timeout_status_should_be_timed_out
+    assert_deploy_success(deploy_global_fixtures("crd", subset: %(with_default_conditions.yml)))
+    result = deploy_fixtures("crd", subset: ["with_default_conditions_cr.yml"]) do |resource|
+      cr = resource["with_default_conditions_cr.yml"]["Parameterized"].first
+      cr["kind"] = add_unique_prefix_for_test(cr["kind"])
+      cr["metadata"]["annotations"] = { "krane.shopify.io/timeout-override" => "0.1s" }
+    end
+    assert_deploy_failure(result, :timed_out)
+  end
+
   def test_cr_success_with_service
     filepath = "#{fixture_path('crd')}/service_cr.yml"
     out, err, st = build_kubectl.run("create", "-f", filepath, log_failure: true, use_namespace: false)

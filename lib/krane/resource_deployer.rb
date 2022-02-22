@@ -70,6 +70,7 @@ module Krane
             r.sync_debug_info(kubectl)
           end
           failed_resources.each { |r| logger.summary.add_paragraph(r.debug_message) }
+          raise DeploymentTimeoutError if failed_resources.all?(&:deploy_timed_out?)
           raise FatalDeploymentError, "Failed to deploy #{fail_count} priority #{'resource'.pluralize(fail_count)}"
         end
         logger.blank_line
