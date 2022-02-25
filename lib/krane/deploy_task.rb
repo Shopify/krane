@@ -238,9 +238,10 @@ module Krane
     def discover_resources
       @logger.info("Discovering resources:")
       resources = []
-      crds_by_kind = cluster_resource_discoverer.crds.group_by(&:kind)
+      crds_by_group_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
-        crd = crds_by_kind[r_def["kind"]]&.first
+        group = r_def.dig("apiVersion").split("/").first
+        crd = crds_by_group_kind[group + "/" + r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
           statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
         resources << r
