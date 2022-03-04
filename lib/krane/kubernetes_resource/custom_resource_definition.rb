@@ -41,12 +41,10 @@ module Krane
       # New spec here: https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#create-a-customresourcedefinition
       # This is only used in testing, so we will simply take the first version we see:
       version = @definition.dig("spec", "versions", 0, "name")
-      kind = @definition.dig("spec", "names", "kind")
       "#{group}/#{version}/#{kind}"
     end
 
     def group_kind
-      kind = @definition.dig("spec", "names", "kind")
       group = @definition.dig("spec", "group")
       "#{group}/#{kind}"
     end
