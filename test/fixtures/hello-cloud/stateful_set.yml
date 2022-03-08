@@ -27,6 +27,7 @@ metadata:
 spec:
   serviceName: "stateful-busybox"
   replicas: 2
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app: hello-cloud

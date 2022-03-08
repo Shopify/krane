@@ -38,8 +38,16 @@ class RestartTaskTest < Krane::IntegrationTest
   def test_restart_statefulset_on_delete_restarts_child_pods
     result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb",
       "stateful_set.yml"], render_erb: true) do |fixtures|
+    end
+    assert_deploy_success(result)
+
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb",
+      "stateful_set.yml"], render_erb: true, wait: false) do |fixtures|
       statefulset = fixtures["stateful_set.yml"]["StatefulSet"].first
-      statefulset["spec"]["updateStrategy"] = { "type" => "OnDelete" }
+      # https://github.com/kubernetes/kubernetes/issues/100151#issuecomment-801073848
+      statefulset["spec"]["updateStrategy"] = { "type" => "OnDelete", "rollingUpdate" => nil }
+      container = statefulset['spec']['template']['spec']['containers'].first
+      container['readinessProbe'] = { "exec" => { "command" => ['ls'] } }
     end
     assert_deploy_success(result)
     before_pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=stateful-busybox").map do |p|
@@ -47,7 +55,7 @@ class RestartTaskTest < Krane::IntegrationTest
     end
 
     restart = build_restart_task
-    assert_restart_success(restart.perform)
+    assert_restart_success(restart.perform(verify_result: false))
     after_pods = kubeclient.get_pods(namespace: @namespace, label_selector: "name=stateful-busybox").map do |p|
       p.metadata.uid
     end
