@@ -1,0 +1,10 @@
+---
+apiVersion: "with-rollout-conditions.example.io"
+kind: SameKind
+metadata:
+  name: monitored
+---
+apiVersion: "no-rollout-conditions.example.io"
+kind: SameKind
+metadata:
+  name: monitored

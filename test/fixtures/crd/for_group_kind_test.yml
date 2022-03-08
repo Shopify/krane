@@ -1,0 +1,52 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: same-kinds.with-rollout-conditions.example.io
+  labels:
+    app: krane
+  annotations:
+    krane.shopify.io/instance-rollout-conditions: "true"
+spec:
+  group: will-rollout-conditions.example.io
+  names:
+    kind: SameKind
+    listKind: SameKindList
+    plural: same-kinds
+    singular: same-kind
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: same-kinds.no-rollout-conditions.example.io
+  labels:
+    app: krane
+spec:
+  group: no-rollout-conditions.example.io
+  names:
+    kind: SameKind
+    listKind: SameKindList
+    plural: same-kinds
+    singular: same-kind
+  scope: Namespaced
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object

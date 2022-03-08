@@ -380,6 +380,50 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  # Make 2 CRDs
+  # foo.bar same-kind
+  # baz.bat same-kind
+
+  # foo.bar/same-kind has rollout-conditions
+  # baz.bat/same-kind does not
+
+  # Step 1: deploy CRDs
+  # Step 2: deploy 2 CRs, one of each group/kind
+
+  # We expect to see in the logs:
+  # Don't know how to monitor type of #{unmonitored_kind}
+
+  # We expect to NOT SEE in the logs:
+  # Don't konw how to monitor type of #{monitored_kind}
+
+  def test_cr_references_parent_crd_by_group_kind
+    assert_deploy_success(deploy_global_fixtures("crd", subset: %(for_group_kind_test.yml)))
+
+    success_conditions = {
+      "status" => {
+        "observedGeneration" => 1,
+        "conditions" => [
+          {
+            "type" => "Ready",
+            "reason" => "test",
+            "message" => "test",
+            "status" => "True",
+          },
+        ],
+      },
+    }
+
+    result = deploy_fixtures("crd", subset: %(for_group_kind_test_cr.yml)) do |resource|
+      cr = resource["for_group_kind_test_cr.yml"]["SameKind"].first
+      cr["kind"] = add_unique_prefix_for_test(cr["kind"])
+      cr.merge!(success_conditions)
+    end
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      %r{Successfully deployed   in .*: #{add_unique_prefix_for_test("SameKind")}\/monitored},
+    ])
+  end
+
   def test_cr_success_with_arbitrary_rollout_conditions
     assert_deploy_success(deploy_global_fixtures("crd", subset: %(with_custom_conditions.yml)))
 
