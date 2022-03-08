@@ -240,9 +240,7 @@ module Krane
       resources = []
       crds_by_group_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
-        grouping, version = r_def.dig("apiVersion").split("/")
-        group = version ? grouping : "core"
-        kind = r_def["kind"] ? r_def["kind"] : ""
+        group, kind = group_kind_for_r_def(r_def)
         crd = crds_by_group_kind[group + "/" + kind]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
           statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
@@ -392,5 +390,12 @@ module Krane
         retried += 1
       end
     end
+
+    def group_kind_for_r_def(r_def)
+      grouping, version = r_def.dig("apiVersion").split("/")
+      group = version ? grouping : "core"
+      kind = r_def["kind"].to_s
+      [group, kind]
+    end  
   end
 end
