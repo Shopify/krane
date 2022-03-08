@@ -36,7 +36,8 @@ class RestartTaskTest < Krane::IntegrationTest
   end
 
   def test_restart_statefulset_on_delete_restarts_child_pods
-    result = deploy_fixtures("hello-cloud", subset: ["unmanaged-pod.yml", "stateful_set.yml"]) do |fixtures|
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb",
+      "stateful_set.yml"], render_erb: true) do |fixtures|
       statefulset = fixtures["stateful_set.yml"]["StatefulSet"].first
       statefulset["spec"]["updateStrategy"] = { "type" => "OnDelete" }
     end
