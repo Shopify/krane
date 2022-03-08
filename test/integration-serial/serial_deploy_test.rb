@@ -380,25 +380,11 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
-  # Make 2 CRDs
-  # foo.bar same-kind
-  # baz.bat same-kind
-
-  # foo.bar/same-kind has rollout-conditions
-  # baz.bat/same-kind does not
-
-  # Step 1: deploy CRDs
-  # Step 2: deploy 2 CRs, one of each group/kind
-
-  # We expect to see in the logs:
-  # Don't know how to monitor type of #{unmonitored_kind}
-
-  # We expect to NOT SEE in the logs:
-  # Don't konw how to monitor type of #{monitored_kind}
-
+ 
+  # Make 2 CRDs of same kind, different group. We expect the appropriate one to be monitored and
+  # the other to be unmonitored for rollout conditions
   def test_cr_references_parent_crd_by_group_kind
     assert_deploy_success(deploy_global_fixtures("crd", subset: %(for_group_kind_test.yml)))
-
     success_conditions = {
       "status" => {
         "observedGeneration" => 1,
