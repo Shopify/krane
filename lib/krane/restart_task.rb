@@ -213,7 +213,7 @@ module Krane
     def delete_statefulset_pods(record)
       pods = kubeclient.get_pods(namespace: record.metadata.namespace)
       pods.select! do |pod|
-        pod.metadata.ownerReferences.find { |ref| ref.uid == record.metadata.uid }
+        pod.metadata&.ownerReferences&.find { |ref| ref.uid == record.metadata.uid }
       end
       pods.each { |pod| kubeclient.delete_pod(pod.metadata.name, pod.metadata.namespace) }
     end
