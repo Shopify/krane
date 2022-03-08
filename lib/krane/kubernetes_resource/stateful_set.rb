@@ -19,6 +19,9 @@ module Krane
     end
 
     def deploy_succeeded?
+      success = observed_generation == current_generation &&
+        desired_replicas == status_data['readyReplicas'].to_i &&
+        status_data['currentRevision'] == status_data['updateRevision']
       if update_strategy == ONDELETE
         # Gem cannot monitor update since it doesn't occur until delete
         unless @success_assumption_warning_shown
@@ -27,11 +30,10 @@ module Krane
                        "Consider switching to rollingUpdate.")
           @success_assumption_warning_shown = true
         end
+      else
+        success &= desired_replicas == status_data['currentReplicas'].to_i
       end
-      observed_generation == current_generation &&
-      status_data['currentRevision'] == status_data['updateRevision'] &&
-      desired_replicas == status_data['readyReplicas'].to_i &&
-      desired_replicas == status_data['currentReplicas'].to_i
+      success
     end
 
     def deploy_failed?
