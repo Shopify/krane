@@ -1,7 +1,10 @@
 ## next
 
+## 2.4.2
+
 *Bug fixes*
 
+- Resolve errors for StatefulSet restart with `updateStrategy: OnDelete` [#876](https://github.com/Shopify/krane/pull/876)
 - Timeouts during the "predeploy priority resources" phase now raise `DeploymentTimeoutError` instead of `FatalDeploymentError` [#874](https://github.com/Shopify/krane/pull/874)
 
 ## 2.4.1
