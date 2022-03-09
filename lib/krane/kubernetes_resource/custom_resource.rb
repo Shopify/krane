@@ -59,7 +59,7 @@ module Krane
     end
 
     def type
-      kind
+      group_kind
     end
 
     def validate_definition(*, **)
@@ -77,7 +77,11 @@ module Krane
     private
 
     def kind
-      @definition["kind"]
+      @crd.kind
+    end
+
+    def group_kind
+      @crd.group_kind
     end
 
     def rollout_conditions

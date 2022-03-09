@@ -44,17 +44,16 @@ module Krane
       "#{group}/#{version}/#{kind}"
     end
 
-    def group_kind
-      group = @definition.dig("spec", "group")
-      "#{group}/#{kind}"
-    end
-
     def kind
       @definition.dig("spec", "names", "kind")
     end
 
     def group
       @definition.dig("spec", "group")
+    end
+
+    def group_kind
+      "#{kind}.#{group}"
     end
 
     def prunable?
