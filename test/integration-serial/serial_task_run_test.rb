@@ -1,4 +1,3 @@
-frozen_string_literal: true
 # frozen_string_literal: true
 require 'integration_test_helper'
 
