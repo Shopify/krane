@@ -127,11 +127,58 @@ class DaemonSetTest < Krane::TestCase
     assert_predicate(ds, :deploy_succeeded?)
   end
 
+  def test_deploy_fails_with_max_unavailable_too_low
+    status = {
+      "desiredNumberScheduled": 10,
+      "updatedNumberScheduled": 5,
+      "numberAvailable": 5,
+      "numberReady": 5,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status, rollout: 'maxUnavailable')
+    pod_templates = load_fixtures(filenames: ['daemon_set_pod_not_ready.yml'])
+    node_templates = load_fixtures(filenames: ['node.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    refute(ds.deploy_succeeded?)
+  end
+
+  def test_deploy_succeed_with_max_unavailable
+    status = {
+      "desiredNumberScheduled": 10,
+      "updatedNumberScheduled": 8,
+      "numberAvailable": 8,
+      "numberReady": 8,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status, rollout: 'maxUnavailable')
+    pod_templates = load_fixtures(filenames: ['daemon_set_pod_not_ready.yml'])
+    node_templates = load_fixtures(filenames: ['node.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    assert(ds.deploy_succeeded?)
+  end
+
+  def test_deploy_succeed_with_max_unavailable_percent
+    status = {
+      "desiredNumberScheduled": 10,
+      "updatedNumberScheduled": 7,
+      "numberAvailable": 7,
+      "numberReady": 7,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status, rollout: '30%')
+    pod_templates = load_fixtures(filenames: ['daemon_set_pod_not_ready.yml'])
+    node_templates = load_fixtures(filenames: ['node.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    assert(ds.deploy_succeeded?)
+  end
+
   private
 
-  def build_ds_template(filename:, status: {})
+  def build_ds_template(filename:, status: {}, rollout: nil)
     base_ds_manifest = YAML.load_stream(File.read(File.join(fixture_path('for_unit_tests'), filename))).first
-    base_ds_manifest.deep_merge("status" => status)
+    result = base_ds_manifest.deep_merge("status" => status)
+    if rollout
+      result.deep_merge!('metadata' => { 'annotations' => { rollout_annotation_key => rollout } })
+      result.deep_merge!('spec' => { 'updateStrategy' => { 'type' => 'RollingUpdate', 'rollingUpdate' => { 'maxUnavailable' => '20%'} } })
+    end
+    result
   end
 
   def load_fixtures(filenames:)
@@ -152,5 +199,9 @@ class DaemonSetTest < Krane::TestCase
     stub_kind_get("Node", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     ds
+  end
+
+  def rollout_annotation_key
+    Krane::Annotation.for(Krane::DaemonSet::REQUIRED_ROLLOUT_ANNOTATION)
   end
 end

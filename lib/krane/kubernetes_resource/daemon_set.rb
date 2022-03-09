@@ -4,6 +4,9 @@ module Krane
   class DaemonSet < PodSetBase
     TIMEOUT = 5.minutes
     SYNC_DEPENDENCIES = %w(Pod)
+    REQUIRED_ROLLOUT_ANNOTATION = "required-rollout"
+    REQUIRED_ROLLOUT_TYPES = %w(maxUnavailable full none).freeze
+    DEFAULT_REQUIRED_ROLLOUT = 'full'
     attr_reader :pods
 
     def sync(cache)
@@ -19,9 +22,22 @@ module Krane
 
     def deploy_succeeded?
       return false unless exists?
-      current_generation == observed_generation &&
+      return false unless current_generation == observed_generation
+
+      if required_rollout == 'full'
         rollout_data["desiredNumberScheduled"].to_i == rollout_data["updatedNumberScheduled"].to_i &&
-        relevant_pods_ready?
+          relevant_pods_ready?
+      elsif required_rollout == 'none'
+        true
+      elsif required_rollout == 'maxUnavailable' || percent?(required_rollout)
+        minimum_needed = min_available_replicas
+
+        rollout_data['updatedNumberScheduled'] >= minimum_needed &&
+        rollout_data['numberReady'].to_i >= minimum_needed &&
+        rollout_data['numberAvailable'].to_i >= minimum_needed
+      else
+        raise FatalDeploymentError, rollout_annotation_err_msg
+      end
     end
 
     def deploy_failed?
@@ -36,6 +52,22 @@ module Krane
 
     def print_debug_logs?
       pods.present? # the kubectl command times out if no pods exist
+    end
+
+    def validate_definition(*, **)
+      super
+
+      unless REQUIRED_ROLLOUT_TYPES.include?(required_rollout) || percent?(required_rollout)
+        @validation_errors << rollout_annotation_err_msg
+      end
+
+      strategy = @definition.dig('spec', 'strategy', 'type').to_s
+      if required_rollout.downcase == 'maxunavailable' && strategy.present? && strategy.downcase != 'rollingupdate'
+        @validation_errors << "'#{Annotation.for(REQUIRED_ROLLOUT_ANNOTATION)}: #{required_rollout}' " \
+          "is incompatible with strategy '#{strategy}'"
+      end
+
+      @validation_errors.empty?
     end
 
     private
@@ -71,10 +103,20 @@ module Krane
       all_nodes.map { |node_data| Node.new(definition: node_data) }
     end
 
+    def rollout_annotation_err_msg
+      "'#{Annotation.for(REQUIRED_ROLLOUT_ANNOTATION)}: #{required_rollout}' is invalid. " \
+        "Acceptable values: #{REQUIRED_ROLLOUT_TYPES.join(', ')}"
+    end
+
+    def desired_replicas
+      return -1 unless exists?
+      @instance_data['status']['desiredNumberScheduled'].to_i
+    end
+
     def rollout_data
       return { "currentNumberScheduled" => 0 } unless exists?
       @instance_data["status"]
-        .slice("updatedNumberScheduled", "desiredNumberScheduled", "numberReady")
+        .slice("updatedNumberScheduled", "desiredNumberScheduled", "numberReady", "numberAvailable")
     end
 
     def parent_of_pod?(pod_data)
@@ -86,6 +128,29 @@ module Krane
 
       pod_data["metadata"]["ownerReferences"].any? { |ref| ref["uid"] == @instance_data["metadata"]["uid"] } &&
       pod_data["metadata"]["labels"]["pod-template-generation"].to_i == template_generation.to_i
+    end
+
+    def required_rollout
+      krane_annotation_value("required-rollout") || DEFAULT_REQUIRED_ROLLOUT
+    end
+
+    def percent?(value)
+      value =~ /\d+%/
+    end
+
+    def min_available_replicas
+      if percent?(required_rollout)
+        (desired_replicas * required_rollout.to_i / 100.0).ceil
+      elsif max_unavailable.is_a?(String) && max_unavailable =~ /%/
+        (desired_replicas * (100 - max_unavailable.to_i) / 100.0).ceil
+      else
+        desired_replicas - max_unavailable.to_i
+      end
+    end
+
+    def max_unavailable
+      source = exists? ? @instance_data : @definition
+      source.dig('spec', 'updateStrategy', 'rollingUpdate', 'maxUnavailable')
     end
   end
 end

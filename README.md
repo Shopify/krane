@@ -148,7 +148,7 @@ If you want dynamic templates, you may render ERB with `krane render` and then p
   - _Compatibility_: all resource types
 - `krane.shopify.io/required-rollout`: Modifies how much of the rollout needs to finish
 before the deployment is considered successful.
-  - _Compatibility_: Deployment
+  - _Compatibility_: Deployment, DaemonSet
   - `full`: The deployment is successful when all pods in the new `replicaSet` are ready.
   - `none`: The deployment is successful as soon as the new `replicaSet` is created for the deployment.
   - `maxUnavailable`: The deploy is successful when minimum availability is reached in the new `replicaSet`.
