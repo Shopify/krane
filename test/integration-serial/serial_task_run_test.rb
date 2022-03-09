@@ -82,4 +82,4 @@ class SerialTaskRunTest < Krane::IntegrationTest
     assert_includes(metric.tags, "context:#{KubeclientHelper::TEST_CONTEXT}")
     assert_includes(metric.tags, "status:timeout")
   end
-# end
+end
