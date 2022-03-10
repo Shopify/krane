@@ -30,8 +30,8 @@ module FixtureSetAssertions
     def refute_resource_exists(type, name)
       client = if %w(daemonset deployment replicaset statefulset).include?(type)
         apps_v1_kubeclient
-     elsif %w(ingress networkpolicy).include?(type)
-       networking_v1_kubeclient
+      elsif %w(ingress networkpolicy).include?(type)
+        networking_v1_kubeclient
       else
         kubeclient
       end
@@ -96,12 +96,16 @@ module FixtureSetAssertions
     end
 
     def assert_ingress_up(ing_name)
-      ing = networking_v1_kubeclient.get_ingresses(namespace: namespace, label_selector: "name=#{ing_name},app=#{app_name}")
+      ing = networking_v1_kubeclient.get_ingresses(
+        namespace: namespace, label_selector: "name=#{ing_name},app=#{app_name}"
+      )
       assert_equal(1, ing.size, "Expected 1 #{ing_name} ingress, got #{ing.size}")
     end
 
     def assert_configmap_present(cm_name, expected_data)
-      configmaps = kubeclient.get_config_maps(namespace: namespace, label_selector: "name=#{cm_name},app=#{app_name}")
+      configmaps = kubeclient.get_config_maps(
+        namespace: namespace, label_selector: "name=#{cm_name},app=#{app_name}"
+      )
       assert_equal(1, configmaps.size, "Expected 1 configmap, got #{configmaps.size}")
       assert_equal(expected_data, configmaps.first["data"].to_h)
     end

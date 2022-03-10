@@ -125,12 +125,13 @@ class ResourceCacheTest < Krane::TestCase
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
+        "apiVersion" => "stable.example.io/v1",
         "metadata" => {
           "name" => "test",
         },
       })
 
-    stub_kind_get("UnitTest", times: 1)
+    stub_kind_get("UnitTest.stable.example.io", times: 1)
     stub_kind_get("CustomResourceDefinition", times: 1)
     resources = [cr, crd]
     @cache.prewarm(resources)

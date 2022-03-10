@@ -265,9 +265,9 @@ class SerialDeployTest < Krane::IntegrationTest
     end
     assert_deploy_success(result)
 
-    mail_cr_id = "#{add_unique_prefix_for_test('Mail')}/my-first-mail"
-    thing_cr_id = "#{add_unique_prefix_for_test('Thing')}/my-first-thing"
-    widget_cr_id = "#{add_unique_prefix_for_test('Widget')}/my-first-widget"
+    mail_cr_id = "#{add_unique_prefix_for_test('Mail')}.stable.example.io/my-first-mail"
+    thing_cr_id = "#{add_unique_prefix_for_test('Thing')}.stable.example.io/my-first-thing"
+    widget_cr_id = "#{add_unique_prefix_for_test('Widget')}.stable.example.io/my-first-widget"
     assert_logs_match_all([
       /Phase 3: Predeploying priority resources/,
       /Successfully deployed in \d.\ds: #{mail_cr_id}/,
@@ -291,11 +291,11 @@ class SerialDeployTest < Krane::IntegrationTest
     end
 
     assert_deploy_success(result)
-    prefixed_kind = add_unique_prefix_for_test("Widget")
+    prefixed_kind = "#{add_unique_prefix_for_test('Widget')}.stable.example.io"
     assert_logs_match_all([
       "Don't know how to monitor resources of type #{prefixed_kind}.",
       "Assuming #{prefixed_kind}/my-first-widget deployed successfully.",
-      %r{Widget/my-first-widget\s+Exists},
+      %r{#{prefixed_kind}/my-first-widget\s+Exists},
     ])
   end
 
@@ -320,10 +320,11 @@ class SerialDeployTest < Krane::IntegrationTest
       cr.merge!(success_conditions)
       cr["kind"] = add_unique_prefix_for_test(cr["kind"])
     end
+    prefixed_name = "#{add_unique_prefix_for_test('Parameterized')}.stable.example.io"
     assert_deploy_success(result)
     assert_logs_match_all([
-      %r{Successfully deployed in .*: #{add_unique_prefix_for_test("Parameterized")}\/with-default-params},
-      %r{Parameterized/with-default-params\s+Healthy},
+      %r{Successfully deployed in .*: #{prefixed_name}\/with-default-params},
+      %r{Parameterized.stable.example.io/with-default-params\s+Healthy},
     ])
   end
 
@@ -374,15 +375,14 @@ class SerialDeployTest < Krane::IntegrationTest
     assert_deploy_failure(result)
 
     assert_logs_match_all([
-      "Parameterized/with-default-params: FAILED",
+      "Parameterized.stable.example.io/with-default-params: FAILED",
       "custom resource rollout failed",
       "Final status: Unhealthy",
     ], in_order: true)
   end
 
- 
-  # Make 2 CRDs of same kind, different group. We expect the appropriate one to be monitored and
-  # the other to be unmonitored for rollout conditions
+  # # Make 2 CRDs of same kind, different group. We expect the appropriate one to be monitored and
+  # # the other to be unmonitored for rollout conditions
   def test_cr_references_parent_crd_by_group_kind
     assert_deploy_success(deploy_global_fixtures("crd", subset: %(for_group_kind_test.yml)))
     success_conditions = {
@@ -400,13 +400,19 @@ class SerialDeployTest < Krane::IntegrationTest
     }
 
     result = deploy_fixtures("crd", subset: %(for_group_kind_test_cr.yml)) do |resource|
-      cr = resource["for_group_kind_test_cr.yml"]["SameKind"].first
-      cr["kind"] = add_unique_prefix_for_test(cr["kind"])
-      cr.merge!(success_conditions)
+      monitored = resource["for_group_kind_test_cr.yml"]["SameKind"][0]
+      monitored["kind"] = add_unique_prefix_for_test(monitored["kind"])
+      monitored.merge!(success_conditions)
+
+      unmonitored = resource["for_group_kind_test_cr.yml"]["SameKind"][1]
+      unmonitored["kind"] = add_unique_prefix_for_test(unmonitored["kind"])
     end
     assert_deploy_success(result)
+    prefixed_kind = add_unique_prefix_for_test("SameKind")
     assert_logs_match_all([
-      %r{Successfully deployed   in .*: #{add_unique_prefix_for_test("SameKind")}\/monitored},
+      /Successfully deployed in .*: /,
+      %r{#{prefixed_kind}.no-rollout-conditions.example.io/unmonitored Exists},
+      %r{#{prefixed_kind}.with-rollout-conditions.example.io/monitored Healthy},
     ])
   end
 
@@ -428,8 +434,9 @@ class SerialDeployTest < Krane::IntegrationTest
       cr.merge!(success_conditions)
     end
     assert_deploy_success(result)
+    prefixed_name = "#{add_unique_prefix_for_test('Customized')}.stable.example.io"
     assert_logs_match_all([
-      %r{Successfully deployed in .*: #{add_unique_prefix_for_test("Customized")}\/with-customized-params},
+      %r{Successfully deployed in .*: #{prefixed_name}\/with-customized-params},
     ])
   end
 
@@ -480,7 +487,7 @@ class SerialDeployTest < Krane::IntegrationTest
       end
     end
     assert_deploy_failure(result)
-    prefixed_name = add_unique_prefix_for_test("Customized-with-customized-params")
+    prefixed_name = add_unique_prefix_for_test('Customized.stable.example.io-with-customized-params').to_s
     assert_logs_match_all([
       /Invalid template: #{prefixed_name}/,
       /Rollout conditions are not valid JSON/,

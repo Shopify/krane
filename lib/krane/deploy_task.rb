@@ -74,7 +74,7 @@ module Krane
         Pod
       ).map { |r| [r, default_group] }
 
-      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, { group: cr.group }] }
+      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.group_kind, { group: cr.group }] }
       Hash[before_crs + crs + after_crs]
     end
 
@@ -241,7 +241,7 @@ module Krane
       crds_by_group_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
         group, kind = group_kind_for_r_def(r_def)
-        crd = crds_by_group_kind[group + "/" + kind]&.first
+        crd = crds_by_group_kind["#{kind}.#{group}"]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
           statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
         resources << r
@@ -396,6 +396,6 @@ module Krane
       group = version ? grouping : "core"
       kind = r_def["kind"].to_s
       [group, kind]
-    end  
+    end
   end
 end

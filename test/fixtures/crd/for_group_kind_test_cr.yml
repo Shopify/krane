@@ -1,10 +1,10 @@
 ---
-apiVersion: "with-rollout-conditions.example.io"
+apiVersion: "with-rollout-conditions.example.io/v1"
 kind: SameKind
 metadata:
   name: monitored
 ---
-apiVersion: "no-rollout-conditions.example.io"
+apiVersion: "no-rollout-conditions.example.io/v1"
 kind: SameKind
 metadata:
-  name: monitored
+  name: unmonitored

@@ -96,6 +96,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
       logger: @logger, statsd_tags: @statsd_tags, crd: crd,
       definition: {
         "kind" => "UnitTest",
+        "apiVersion" => "stable.example.io/v1",
         "metadata" => { "name" => "test" },
       })
     cr.validate_definition(kubectl: kubectl)
@@ -129,6 +130,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
+        "apiVersion" => "stable.example.io/v1",
         "metadata" => { "name" => "test" },
       })
     cr.validate_definition(kubectl: kubectl)
@@ -154,7 +156,11 @@ class CustomResourceDefinitionTest < Krane::TestCase
     ))
     cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
-      definition: { "kind" => "UnitTest", "metadata" => { "name" => "test" } })
+      definition: {
+        "kind" => "UnitTest",
+        "apiVersion" => "stable.example.io/v1",
+        "metadata" => { "name" => "test" },
+      })
     assert_equal(cr.timeout, 60)
   end
 
@@ -171,6 +177,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
+        "apiVersion" => "stable.example.io/v1",
         "metadata" => {
           "name" => "test",
         },
@@ -195,6 +202,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
         "kind" => "UnitTest",
+        "apiVersion" => "stable.example.io/v1",
         "metadata" => {
           "name" => "test",
         },
