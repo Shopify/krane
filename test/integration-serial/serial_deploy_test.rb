@@ -408,12 +408,11 @@ class SerialDeployTest < Krane::IntegrationTest
       unmonitored["kind"] = add_unique_prefix_for_test(unmonitored["kind"])
     end
     assert_deploy_success(result)
+    prefixed_kind = add_unique_prefix_for_test("SameKind")
     assert_logs_match_all([
-      %r{Successfully deployed in .*:
-        #{add_unique_prefix_for_test("SameKind")}.no-rollout-conditions.example.io/unmonitored,
-        #{add_unique_prefix_for_test("SameKind")}.with-rollout-conditions.example.io/monitored},
-      %r{#{add_unique_prefix_for_test("SameKind")}.no-rollout-conditions.example.io/unmonitored Exists},
-      %r{#{add_unique_prefix_for_test("SameKind")}.with-rollout-conditions.example.io/monitored Healthy},
+      /Successfully deployed in .*: /,
+      %r{#{prefixed_kind}.no-rollout-conditions.example.io/unmonitored Exists},
+      %r{#{prefixed_kind}.with-rollout-conditions.example.io/monitored Healthy},
     ])
   end
 
