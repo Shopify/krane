@@ -79,13 +79,12 @@ module Krane
 
     def find_nodes(cache)
       all_nodes = cache.get_all(Node.kind)
-      all_nodes = all_nodes.select { |node_data| node_data.dig('spec', 'unschedulable').to_s.downcase != 'true' }
-      all_nodes = all_nodes.select do |node_data| 
+      all_nodes.each_with_object([]) do |node_data, relevant_nodes|
+        next if node_data.dig('spec', 'unschedulable').to_s.downcase == 'true'
         cond = node_data.dig('status', 'conditions').find { |c| c['type'].downcase == 'ready' }
-        cond.nil? ? true : cond['status'].downcase == 'true' 
+        next if (!cond.nil? && cond['status'].downcase != 'true')
+        relevant_nodes << Node.new(definition: node_data)
       end
-
-      all_nodes.map { |node_data| Node.new(definition: node_data) }
     end
 
     def rollout_data

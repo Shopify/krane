@@ -94,14 +94,6 @@ class DaemonSetTest < Krane::TestCase
     ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
     refute_predicate(ds, :deploy_succeeded?)
 
-    node_added_status = {
-      "desiredNumberScheduled": 3,
-      "updatedNumberScheduled": 3,
-      "numberReady": 2,
-    }
-    ds_template = build_ds_template(filename: 'daemon_set.yml', status: node_added_status)
-    pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
-
     # node 2 Pod Ready status is False, if the node is unschedulable it should not account as blocking
     node_templates[2]['spec']['unschedulable'] = 'true'
 
@@ -124,15 +116,7 @@ class DaemonSetTest < Krane::TestCase
     ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
     refute_predicate(ds, :deploy_succeeded?)
 
-    node_added_status = {
-      "desiredNumberScheduled": 3,
-      "updatedNumberScheduled": 3,
-      "numberReady": 2,
-    }
-    ds_template = build_ds_template(filename: 'daemon_set.yml', status: node_added_status)
-    pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
-
-    # node 2 Pod Ready status is False, if the node is unschedulable it should not account as blocking
+    # node 2 Pod Ready status is False, if the node is not ready it should not account as blocking
     node_templates[2]['status']['conditions'].find { |c| c['type'].downcase == 'ready' }['status'] = 'False'
 
     stub_kind_get("DaemonSet", items: [ds_template])
