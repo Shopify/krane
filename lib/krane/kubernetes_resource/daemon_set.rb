@@ -9,7 +9,8 @@ module Krane
     def sync(cache)
       super
       @pods = exists? ? find_pods(cache) : []
-      @nodes = find_nodes(cache) if @nodes.blank?
+
+      @nodes = refresh_nodes(cache)
     end
 
     def status
@@ -66,9 +67,24 @@ module Krane
         rollout_data["numberReady"].to_i >= considered_pods.length
     end
 
+    def refresh_nodes(cache)
+      new_nodes = find_nodes(cache)
+      return new_nodes if @nodes.blank?
+
+      # Remove non-existent nodes
+      @nodes.select do |node|
+        new_nodes.find { |n| n.name == node.name } != nil
+      end
+    end
+
     def find_nodes(cache)
       all_nodes = cache.get_all(Node.kind)
-      all_nodes.map { |node_data| Node.new(definition: node_data) }
+      all_nodes.each_with_object([]) do |node_data, relevant_nodes|
+        next if node_data.dig('spec', 'unschedulable').to_s.downcase == 'true'
+        cond = node_data.dig('status', 'conditions').find { |c| c['type'].downcase == 'ready' }
+        next if (!cond.nil? && cond['status'].downcase != 'true')
+        relevant_nodes << Node.new(definition: node_data)
+      end
     end
 
     def rollout_data

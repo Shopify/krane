@@ -77,6 +77,51 @@ class DaemonSetTest < Krane::TestCase
 
     stub_kind_get("DaemonSet", items: [ds_template])
     stub_kind_get("Pod", items: pod_templates)
+    stub_kind_get("Node", items: node_templates, use_namespace: false)
+    ds.sync(build_resource_cache)
+    assert_predicate(ds, :deploy_succeeded?)
+  end
+
+  def test_deploy_passes_when_nodes_unschedulable
+    status = {
+      "desiredNumberScheduled": 3,
+      "updatedNumberScheduled": 3,
+      "numberReady": 2,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status)
+    pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
+    node_templates = load_fixtures(filenames: ['nodes.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    refute_predicate(ds, :deploy_succeeded?)
+
+    # node 2 Pod Ready status is False, if the node is unschedulable it should not account as blocking
+    node_templates[2]['spec']['unschedulable'] = 'true'
+
+    stub_kind_get("DaemonSet", items: [ds_template])
+    stub_kind_get("Pod", items: pod_templates)
+    stub_kind_get("Node", items: node_templates, use_namespace: false)
+    ds.sync(build_resource_cache)
+    assert_predicate(ds, :deploy_succeeded?)
+  end
+
+  def test_deploy_passes_when_nodes_not_ready
+    status = {
+      "desiredNumberScheduled": 3,
+      "updatedNumberScheduled": 3,
+      "numberReady": 2,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status)
+    pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
+    node_templates = load_fixtures(filenames: ['nodes.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    refute_predicate(ds, :deploy_succeeded?)
+
+    # node 2 Pod Ready status is False, if the node is not ready it should not account as blocking
+    node_templates[2]['status']['conditions'].find { |c| c['type'].downcase == 'ready' }['status'] = 'False'
+
+    stub_kind_get("DaemonSet", items: [ds_template])
+    stub_kind_get("Pod", items: pod_templates)
+    stub_kind_get("Node", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     assert_predicate(ds, :deploy_succeeded?)
   end
@@ -123,6 +168,7 @@ class DaemonSetTest < Krane::TestCase
     ds_template = build_ds_template(filename: 'daemon_set.yml', status: status)
     stub_kind_get("DaemonSet", items: [ds_template])
     stub_kind_get("Pod", items: [ready_pod_template])
+    stub_kind_get("Node", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     assert_predicate(ds, :deploy_succeeded?)
   end
