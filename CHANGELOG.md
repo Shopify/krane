@@ -1,5 +1,11 @@
 ## next
 
+## 2.4.3
+
+*Enhancements*
+
+- Improve DaemonSet rollout [#881](https://github.com/Shopify/krane/pull/881)
+
 ## 2.4.2
 
 *Bug fixes*
