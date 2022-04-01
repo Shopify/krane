@@ -105,6 +105,10 @@ module Krane
       @instance_data.dig('spec', 'nodeName')
     end
 
+    def evicted?
+      phase == "Failed" && reason == "Evicted"
+    end
+
     private
 
     def failed_schedule_reason
