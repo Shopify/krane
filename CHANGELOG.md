@@ -1,5 +1,11 @@
 ## next
 
+## 2.4.4
+
+*Enhancements*
+
+- Improve DaemonSet rollout by ignoring `Evicted` Pods [#883](https://github.com/Shopify/krane/pull/883)
+
 ## 2.4.3
 
 *Enhancements*
