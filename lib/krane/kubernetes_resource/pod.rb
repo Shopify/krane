@@ -229,7 +229,9 @@ module Krane
         elsif limbo_reason == "ErrImagePull" && limbo_message.match(/not found/i)
           "Failed to pull image #{@image}. "\
           "Did you wait for it to be built and pushed to the registry before deploying?"
-        elsif limbo_reason == "CreateContainerConfigError"
+        # Only fail fast when message doesn't include `failed to sync secret cache`.
+        # It's possible that a secret is being created and the pod could get recreated and succeed
+        elsif limbo_reason == "CreateContainerConfigError" && !limbo_message.include?("failed to sync secret cache")
           "Failed to generate container configuration: #{limbo_message}"
         elsif @status.dig("lastState", "terminated", "reason") == "ContainerCannotRun"
           # ref: https://github.com/kubernetes/kubernetes/blob/562e721ece8a16e05c7e7d6bdd6334c910733ab2/pkg/kubelet/dockershim/docker_container.go#L353
