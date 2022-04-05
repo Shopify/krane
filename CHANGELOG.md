@@ -1,10 +1,18 @@
 ## next
 
+## 2.4.6
+
+*Bug fixes*
+
+- Extend [#886](https://github.com/Shopify/krane/pull/886) to not only secrets but anything that doesn't match `failed to sync %s cache` [#886](https://github.com/Shopify/krane/pull/886)
+It seems an issue when too many pods are referencing the same secret/configmap https://github.com/kubernetes/kubernetes/pull/74755, so instead of failing fast, it'll now let the resources attempt to succeed.
+- Add missing unit test for above feature.
+
 ## 2.4.5
 
 *Bug fixes*
 
-- Revert PR that tried to fail fast when there are container initialization issues to give pods time to be recreated and possible succeed [#885](https://github.com/Shopify/krane/pull/885)
+- Do not fail fast for CreateContainerConfigError when message include issues mounting the secret, to let the pods be recreated and possible succeed [#885](https://github.com/Shopify/krane/pull/885)
 
 ## 2.4.4
 
