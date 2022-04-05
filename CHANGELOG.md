@@ -1,5 +1,11 @@
 ## next
 
+## 2.4.5
+
+*Bug fixes*
+
+- Revert PR that tried to fail fast when there are container initialization issues to give pods time to be recreated and possible succeed [#885](https://github.com/Shopify/krane/pull/885)
+
 ## 2.4.4
 
 *Enhancements*
