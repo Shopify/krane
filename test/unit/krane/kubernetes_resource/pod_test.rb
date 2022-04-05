@@ -94,6 +94,48 @@ class PodTest < Krane::TestCase
     assert_equal(expected_msg.strip, pod.failure_message)
   end
 
+  def test_deploy_failed_is_false_for_create_container_config_error_and_failed_to_sync_secret_msg
+    container_state = {
+      "state" => {
+        "waiting" => {
+          "message" => "failed to sync secret cache: timed out waiting for the condition",
+          "reason" => "CreateContainerConfigError"
+        },
+      },
+    }
+    pod = build_synced_pod(build_pod_template(container_state: container_state))
+
+    assert(!pod.deploy_failed?)
+  end
+
+  def test_deploy_failed_is_false_for_create_container_config_error_and_failed_to_sync_configmap_msg
+    container_state = {
+      "state" => {
+        "waiting" => {
+          "message" => "failed to sync configmap cache: timed out waiting for the condition",
+          "reason" => "CreateContainerConfigError"
+        },
+      },
+    }
+    pod = build_synced_pod(build_pod_template(container_state: container_state))
+
+    assert(!pod.deploy_failed?)
+  end
+
+  def test_deploy_failed_is_false_for_create_container_config_error_and_failed_to_sync_any_other_resource
+    container_state = {
+      "state" => {
+        "waiting" => {
+          "message" => "failed to sync xxx cache: timed out waiting for the condition",
+          "reason" => "CreateContainerConfigError"
+        },
+      },
+    }
+    pod = build_synced_pod(build_pod_template(container_state: container_state))
+
+    assert(!pod.deploy_failed?)
+  end
+
   def test_deploy_failed_is_true_for_crash_loop_backoffs
     container_state = {
       "lastState" => {
