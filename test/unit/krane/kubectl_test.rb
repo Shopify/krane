@@ -183,7 +183,7 @@ class KubectlTest < Krane::TestCase
 
   def test_version_info_raises_if_command_fails
     stub_open3(
-      %W(kubectl version --context=testc --request-timeout=#{timeout}),
+      %W(kubectl version --context=testc --output=json --request-timeout=#{timeout}),
       resp: '', err: 'bad', success: false
     ).times(2)
     assert_raises_message(Krane::KubectlError, "Could not retrieve kubectl version info") do
@@ -392,18 +392,23 @@ class KubectlTest < Krane::TestCase
   end
 
   def stub_version_request(client:, server:)
-    resp = <<~STRING
-      Client Version: #{client}
-      Server Version: #{server}
-    STRING
-    stub_open3(%W(kubectl version --context=testc --request-timeout=#{timeout}), resp: resp)
+    resp = { "clientVersion": client, "serverVersion": server }
+    stub_open3(%W(kubectl version --context=testc --output=json --request-timeout=#{timeout}), resp: resp.to_json)
   end
 
   def version_info(maj, min, patch, git: nil)
     git ||= "v#{maj}.#{min}.#{patch}"
-    <<~STRING
-      version.Info{Major:"#{maj}", Minor:"#{min}", GitVersion:"#{git}", GitCommit:"somecommit", GitTreeState:"clean", BuildDate:"2017-09-27T21:21:34Z", GoVersion:"go1.8.3", Compiler:"gc", Platform:"linux/amd64"}
-    STRING
+    {
+      "major": maj,
+      "minor": min,
+      "gitVersion": git,
+      "gitCommit": "86ec240af8cbd1b60bcc4c03c20da9b98005b92e",
+      "gitTreeState": "clean",
+      "buildDate": "2021-12-16T11:33:37Z",
+      "goVersion": "go1.17.5",
+      "compiler": "gc",
+      "platform": "darwin/arm64"
+    }
   end
 
   def build_kubectl(log_failure_by_default: true, kubeconfig: nil)
