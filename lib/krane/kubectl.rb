@@ -82,9 +82,17 @@ module Krane
     def version_info
       @version_info ||=
         begin
-          response, _, status = run("version", use_namespace: false, log_failure: true, attempts: 2)
+          response, _, status = run("version", output: "json", use_namespace: false, log_failure: true, attempts: 2)
           raise KubectlError, "Could not retrieve kubectl version info" unless status.success?
-          extract_version_info_from_kubectl_response(response)
+
+          version_data = JSON.parse(response)
+          client_version = platform_agnostic_version(version_data.dig("clientVersion", "gitVersion").to_s)
+          server_version = platform_agnostic_version(version_data.dig("serverVersion", "gitVersion").to_s)
+          unless client_version && server_version
+            raise KubectlError, "Received invalid kubectl version data: #{version_data}"
+          end
+
+          { client: client_version, server: server_version }
         end
     end
 
@@ -127,15 +135,10 @@ module Krane
       end
     end
 
-    def extract_version_info_from_kubectl_response(response)
-      info = {}
-      response.each_line do |l|
-        match = l.match(/^(?<kind>Client|Server).* GitVersion:"v(?<version>\d+\.\d+\.\d+)/)
-        if match
-          info[match[:kind].downcase.to_sym] = Gem::Version.new(match[:version])
-        end
+    def platform_agnostic_version(version_string)
+      if match = version_string.match(/v(?<version>\d+\.\d+\.\d+)/)
+        Gem::Version.new(match[:version])
       end
-      info
     end
   end
 end

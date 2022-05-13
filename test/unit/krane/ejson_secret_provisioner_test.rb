@@ -133,7 +133,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
   private
 
   def stub_server_dry_run_validation_request(attempts: 3)
-    stub_kubectl_response("apply", "-f", anything, "--server-dry-run", "--output=name",
+    stub_kubectl_response("apply", "-f", anything, "--dry-run=server", "--output=name",
       resp: dummy_secret_hash, json: false,
       kwargs: {
         log_failure: false,
@@ -145,7 +145,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
 
   def stub_server_dry_run_version_request(attempts: 1)
     stub_kubectl_response("version",
-      resp: dummy_version, json: false,
+      resp: dummy_version,
         kwargs: {
           use_namespace: false,
           log_failure: true,
@@ -193,9 +193,30 @@ class EjsonSecretProvisionerTest < Krane::TestCase
   end
 
   def dummy_version
-    'Server: version.Info{Major:"1", Minor:"13", GitVersion:"v1.13.6", GitCommit:"a6a8ec"}' \
-      "\n" \
-      'Client:: version.Info{Major:"1", Minor:"13", GitVersion:"v1.13.6", GitCommit:"70132b"'
+    {
+      "clientVersion": {
+        "major": "1",
+        "minor": "23",
+        "gitVersion": "v1.23.1",
+        "gitCommit": "86ec240af8cbd1b60bcc4c03c20da9b98005b92e",
+        "gitTreeState": "clean",
+        "buildDate": "2021-12-16T11:33:37Z",
+        "goVersion": "go1.17.5",
+        "compiler": "gc",
+        "platform": "darwin/arm64"
+      },
+      "serverVersion": {
+        "major": "1",
+        "minor": "23",
+        "gitVersion": "v1.23.4",
+        "gitCommit": "e6c093d87ea4cbb530a7b2ae91e54c0842d8308a",
+        "gitTreeState": "clean",
+        "buildDate": "2022-03-06T21:39:59Z",
+        "goVersion": "go1.17.7",
+        "compiler": "gc",
+        "platform": "linux/arm64"
+      }
+    }
   end
 
   def build_provisioner(dir = nil, selector: nil, ejson_keys_secret: dummy_ejson_secret)
