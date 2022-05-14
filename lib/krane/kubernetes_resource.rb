@@ -250,7 +250,7 @@ module Krane
     end
 
     def deploy_method_override
-      krane_annotation_value(DEPLOY_METHOD_OVERRIDE_ANNOTATION)&.gsub("-", "_").to_sym
+      krane_annotation_value(DEPLOY_METHOD_OVERRIDE_ANNOTATION)&.gsub("-", "_")&.to_sym
     end
 
     def sync_debug_info(kubectl)
