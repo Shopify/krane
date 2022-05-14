@@ -1,5 +1,15 @@
 ## next
 
+## 2.4.7
+
+*Bug fixes*
+
+- Fix `replace-force` deployment method override. 
+```
+/usr/local/bundle/gems/krane-2.4.6/lib/krane/resource_deployer.rb:119:in `block in deploy_resources': Unexpected deploy method! (:"replace-force") (ArgumentError)
+```
+Dash (-) must be replaced with underscore (_) before applying it as method on kubernetes resource.
+
 ## 2.4.6
 
 *Bug fixes*
