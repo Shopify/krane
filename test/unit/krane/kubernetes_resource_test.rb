@@ -137,7 +137,7 @@ class KubernetesResourceTest < Krane::TestCase
   def test_deploy_method_override_annotation_validates_for_valid_entries
     Krane::KubernetesResource::ALLOWED_DEPLOY_METHOD_OVERRIDES.each do |method|
       customized_resource = DummyResource.new(definition_extras: build_deploy_method_override_metadata(method))
-      assert_equal(method.to_sym, customized_resource.deploy_method_override)
+      assert_equal(method.gsub("-", "_").to_sym, customized_resource.deploy_method_override)
       customized_resource.validate_definition(kubectl: kubectl)
       refute(customized_resource.validation_failed?)
     end

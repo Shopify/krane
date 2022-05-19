@@ -1822,6 +1822,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match("Successful resources", 1)
   end
 
+  def test_succeeds_with_deploy_method_override
+    assert_deploy_success(deploy_fixtures("deploy-method-override"))
+  end
+
   private
 
   def build_deploy_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, global_timeout: nil)
