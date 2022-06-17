@@ -9,7 +9,8 @@ module Krane
       empty: /\A\z/,
       context_deadline: /context deadline exceeded/,
     }
-    DEFAULT_TIMEOUT = (ENV["KUBECTL_DEFAULT_REQUEST_TIMEOUT"] || 15).to_i
+    ENV_DEFAULT_TIMEOUT = ENV["KUBECTL_DEFAULT_REQUEST_TIMEOUT"]
+    DEFAULT_TIMEOUT = (ENV_DEFAULT_TIMEOUT if Integer(ENV_DEFAULT_TIMEOUT) rescue 15).to_i
     MAX_RETRY_DELAY = 16
     SERVER_DRY_RUN_MIN_VERSION = "1.13"
 
