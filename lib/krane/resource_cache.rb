@@ -34,20 +34,8 @@ module Krane
       {}
     end
 
-    def get_all_group_kind(group_kind, selector = nil)
+    def get_all(group_kind, selector = nil)
       instances = use_or_populate_cache_group_kind(group_kind).values
-      return instances unless selector
-
-      instances.select do |r|
-        labels = r.dig("metadata", "labels") || {}
-        labels >= selector
-      end
-    rescue KubectlError
-      []
-    end
-
-    def get_all(kind, selector = nil)
-      instances = use_or_populate_cache(kind).values
       return instances unless selector
 
       instances.select do |r|
@@ -77,7 +65,6 @@ module Krane
       end
     end
 
-
     def use_or_populate_cache_group_kind(group_kind)
       @kind_fetcher_locks[group_kind].synchronize do
         return @data[group_kind] if @data.key?(group_kind)
@@ -85,37 +72,12 @@ module Krane
       end
     end
 
-    def fetch_by_kind(kind)
-      resource_class = KubernetesResource.class_for_kind(kind)
-      global_kind = @task_config.global_kinds.map(&:downcase).include?(kind.downcase)
-
-      if kind.downcase == "deployment"
-        # pp kind
-        # pp global_kind
-        # exit
-      end
-
-      output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
-      raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
-         output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
-      raise KubectlError unless st.success?
-
-      instances = {}
-      JSON.parse(raw_json)["items"].each do |resource|
-        resource_name = resource.dig("metadata", "name")
-        instances[resource_name] = resource
-      end
-      instances
-    end
-
-
     def fetch_by_group_kind(group_kind)
-      kind = @task_config.group_kind_to_kind(api_kind)
-      resource_class = KubernetesResource.class_for_kind(kind)
+      resource_class = KubernetesResource.class_for_group_kind_string(group_kind)
       global_kind = @task_config.global_group_kinds.map(&:downcase).include?(group_kind.downcase)
 
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
-      raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
+      raw_json, _, st = @kubectl.run("get", group_kind, "--chunk-size=0", attempts: 5, output: "json",
          output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
       raise KubectlError unless st.success?
 

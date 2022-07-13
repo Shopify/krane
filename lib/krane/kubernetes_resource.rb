@@ -72,6 +72,15 @@ module Krane
         nil
       end
 
+      def class_for_group_kind_string(group_kind)
+        group, kind = group_kind.split(".", 2)
+
+        pp group_kind
+        pp group
+        pp kind
+        class_for_group_kind(group, kind)
+      end
+
       def class_for_group_kind(group, kind)
         if Krane.const_defined?(kind, false)
           const = Krane.const_get(kind, false)
@@ -103,6 +112,10 @@ module Krane
       def group
         const_get("GROUPS").first
         # self.class.GROUPS.first
+      end
+
+      def group_kind
+        Krane.group_kind(group, kind)
       end
 
       private

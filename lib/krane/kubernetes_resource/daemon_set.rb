@@ -46,6 +46,10 @@ module Krane
       attr_reader :name
 
       class << self
+        def group
+          ""
+        end
+
         def kind
           name.demodulize
         end
@@ -79,7 +83,7 @@ module Krane
     end
 
     def find_nodes(cache)
-      all_nodes = cache.get_all(Node.kind)
+      all_nodes = cache.get_all(Krane.group_kind(Node.group, Node.kind))
       all_nodes.each_with_object([]) do |node_data, relevant_nodes|
         next if node_data.dig('spec', 'unschedulable').to_s.downcase == 'true'
         cond = node_data.dig('status', 'conditions').find { |c| c['type'].downcase == 'ready' }

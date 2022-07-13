@@ -94,7 +94,6 @@ module Krane
       path_regex = %r{(/apis?/)(?<group>[^/]*)/?(?<version>v.+)}
       match = path.match(path_regex)
       {
-        "name" => blob["name"],
         "verbs" => blob["verbs"],
         "kind" => blob["kind"],
         "apigroup" => match[:group],

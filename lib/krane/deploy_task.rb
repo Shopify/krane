@@ -244,7 +244,7 @@ module Krane
 
         crd = crds_by_kind[Krane.group_kind(group, r_def["kind"])]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
+          statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_group_kinds)
         resources << r
         @logger.info("  - #{r.id}")
       end
