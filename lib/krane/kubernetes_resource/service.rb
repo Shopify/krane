@@ -5,7 +5,7 @@ module Krane
   class Service < KubernetesResource
     TIMEOUT = 7.minutes
     GROUP = [""]
-    SYNC_DEPENDENCIES = %w(Pod Deployment StatefulSet)
+    SYNC_DEPENDENCIES = %w(Pod. Deployment.apps StatefulSet.apps)
 
     def sync(cache)
       super

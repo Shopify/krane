@@ -5,7 +5,7 @@ module Krane
     TIMEOUT = 10.minutes
     GROUPS = ["apps"]
     ONDELETE = 'OnDelete'
-    SYNC_DEPENDENCIES = %w(Pod)
+    SYNC_DEPENDENCIES = %w(Pod.)
     attr_reader :pods
 
     def sync(cache)

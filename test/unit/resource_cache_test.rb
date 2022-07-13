@@ -196,7 +196,7 @@ class ResourceCacheTest < Krane::TestCase
   end
 
   class FakeDeployment < MockResource
-    SYNC_DEPENDENCIES = %w(FakePod)
+    SYNC_DEPENDENCIES = %w(FakePod.)
     def sync(mediator)
       super
       mediator.get_all("FakePod")

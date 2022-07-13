@@ -5,7 +5,7 @@ module Krane
   class ReplicaSet < PodSetBase
     GROUPS = ["apps"]
     TIMEOUT = 5.minutes
-    SYNC_DEPENDENCIES = %w(Pod)
+    SYNC_DEPENDENCIES = %w(Pod.)
     attr_reader :pods
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: nil,
