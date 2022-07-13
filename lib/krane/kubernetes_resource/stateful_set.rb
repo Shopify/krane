@@ -3,7 +3,7 @@ require 'krane/kubernetes_resource/pod_set_base'
 module Krane
   class StatefulSet < PodSetBase
     TIMEOUT = 10.minutes
-    GROUP = "apps"
+    GROUPS = ["apps"]
     ONDELETE = 'OnDelete'
     SYNC_DEPENDENCIES = %w(Pod)
     attr_reader :pods

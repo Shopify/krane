@@ -81,7 +81,7 @@ module Krane
     end
 
     def group
-      definition["apiVersion"].include?("/") ? definition["apiVersion"].split("/").first : ""
+      Krane.group_from_api_version(definition["apiVersion"])
     end
 
     def rollout_conditions

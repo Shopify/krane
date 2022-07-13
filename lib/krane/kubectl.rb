@@ -9,7 +9,7 @@ module Krane
       empty: /\A\z/,
       context_deadline: /context deadline exceeded/,
     }
-    DEFAULT_TIMEOUT = 30
+    DEFAULT_TIMEOUT = 15
     MAX_RETRY_DELAY = 16
     SERVER_DRY_RUN_MIN_VERSION = "1.13"
 
@@ -35,7 +35,6 @@ module Krane
 
       (1..attempts).to_a.each do |current_attempt|
         logger.debug("Running command (attempt #{current_attempt}): #{cmd.join(' ')}")
-        cmd_string = cmd.join(' ')
         env = { 'KUBECONFIG' => kubeconfig }
         out, err, st = Open3.capture3(env, *cmd)
 
@@ -44,13 +43,9 @@ module Krane
           out = out.dup.force_encoding(Encoding::UTF_8)
         end
 
-        if cmd_string.include?("kubectl get Deploy")
-          # logger.debug(out)
-        end
-
         if logger.debug? && !output_is_sensitive
           # don't do the gsub unless we're going to print this
-          # logger.debug("Kubectl out: " + out.gsub(/\s+/, ' '))
+          logger.debug("Kubectl out: " + out.gsub(/\s+/, ' '))
         end
 
         break if st.success?
