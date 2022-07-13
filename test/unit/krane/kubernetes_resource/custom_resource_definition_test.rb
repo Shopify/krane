@@ -95,6 +95,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: @statsd_tags, crd: crd,
       definition: {
+        "apiVersion" => "stable.example.io/v1",
         "kind" => "UnitTest",
         "metadata" => { "name" => "test" },
       })
@@ -128,6 +129,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
+        "apiVersion" => "stable.example.io/v1",
         "kind" => "UnitTest",
         "metadata" => { "name" => "test" },
       })
@@ -143,7 +145,9 @@ class CustomResourceDefinitionTest < Krane::TestCase
     ))
     cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
-      definition: { "kind" => "UnitTest", "metadata" => { "name" => "test" } })
+      definition: {
+        "apiVersion" => "stable.example.io/v1", "kind" => "UnitTest", "metadata" => { "name" => "test" }
+      })
     assert_equal(cr.timeout, Krane::CustomResource.timeout)
 
     crd = build_crd(crd_spec.merge(
@@ -154,7 +158,9 @@ class CustomResourceDefinitionTest < Krane::TestCase
     ))
     cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
-      definition: { "kind" => "UnitTest", "metadata" => { "name" => "test" } })
+      definition: {
+        "apiVersion" => "stable.example.io/v1", "kind" => "UnitTest", "metadata" => { "name" => "test" }
+      })
     assert_equal(cr.timeout, 60)
   end
 
@@ -170,6 +176,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
+        "apiVersion" => "stable.example.io/v1",
         "kind" => "UnitTest",
         "metadata" => {
           "name" => "test",
@@ -194,6 +201,7 @@ class CustomResourceDefinitionTest < Krane::TestCase
     cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: crd,
       definition: {
+        "apiVersion" => "stable.example.io/v1",
         "kind" => "UnitTest",
         "metadata" => {
           "name" => "test",

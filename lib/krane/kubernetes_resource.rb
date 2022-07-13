@@ -81,7 +81,7 @@ module Krane
         if Krane.const_defined?(kind, false)
           const = Krane.const_get(kind, false)
 
-          if const_defined?("GROUPS")
+          if const.const_defined?("GROUPS")
             groups = const.const_get("GROUPS")
 
             if groups.include?(group)
@@ -103,15 +103,6 @@ module Krane
 
       def kind
         name.demodulize
-      end
-
-      def group
-        const_get("GROUPS").first
-        # self.class.GROUPS.first
-      end
-
-      def group_kind
-        Krane.group_kind(group, kind)
       end
 
       private
@@ -254,7 +245,7 @@ module Krane
     end
 
     def type
-      @type || Krane.group_kind(self.class.group, self.class.kind)
+      @type || Krane.group_kind(group, self.class.kind)
     end
 
     def group

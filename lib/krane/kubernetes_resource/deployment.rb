@@ -3,6 +3,7 @@ require 'krane/kubernetes_resource/replica_set'
 
 module Krane
   class Deployment < KubernetesResource
+    GROUP_KIND = "Deployment.apps"
     TIMEOUT = 7.minutes
     SYNC_DEPENDENCIES = %w(Pod. ReplicaSet.)
     REQUIRED_ROLLOUT_ANNOTATION = "required-rollout"
@@ -167,7 +168,7 @@ module Krane
     end
 
     def find_latest_rs(cache)
-      all_rs_data = cache.get_all(ReplicaSet.group_kind, @instance_data["spec"]["selector"]["matchLabels"])
+      all_rs_data = cache.get_all(ReplicaSet::GROUP_KIND, @instance_data["spec"]["selector"]["matchLabels"])
       current_revision = @instance_data["metadata"]["annotations"]["deployment.kubernetes.io/revision"]
 
       latest_rs_data = all_rs_data.find do |rs|

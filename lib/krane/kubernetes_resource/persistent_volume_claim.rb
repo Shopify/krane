@@ -6,7 +6,7 @@ module Krane
 
     def sync(cache)
       super
-      @storage_classes = cache.get_all(StorageClass.group_kind).map { |sc| StorageClass.new(sc) }
+      @storage_classes = cache.get_all(StorageClass::GROUP_KIND).map { |sc| StorageClass.new(sc) }
     end
 
     def status
@@ -58,6 +58,7 @@ module Krane
     end
 
     class StorageClass < KubernetesResource
+      GROUP_KIND = "StorageClass.storage.k8s.io"
       DEFAULT_CLASS_ANNOTATION = "storageclass.kubernetes.io/is-default-class"
       DEFAULT_CLASS_BETA_ANNOTATION = "storageclass.beta.kubernetes.io/is-default-class"
       GROUPS= ["storage.k8s.io"]

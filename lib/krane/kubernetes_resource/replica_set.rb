@@ -3,6 +3,8 @@ require 'krane/kubernetes_resource/pod_set_base'
 
 module Krane
   class ReplicaSet < PodSetBase
+    GROUP = "apps"
+    GROUP_KIND = "ReplicaSet.apps"
     GROUPS = ["apps"]
     TIMEOUT = 5.minutes
     SYNC_DEPENDENCIES = %w(Pod.)

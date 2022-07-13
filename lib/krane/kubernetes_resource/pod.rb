@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 module Krane
   class Pod < KubernetesResource
+    GROUP_KIND = "Pod."
     GROUPS = [""]
     TIMEOUT = 10.minutes
 

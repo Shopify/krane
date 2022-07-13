@@ -52,7 +52,7 @@ module Krane
     end
 
     def find_pods(cache)
-      all_pods = cache.get_all(Pod.group_kind, @instance_data["spec"]["selector"]["matchLabels"])
+      all_pods = cache.get_all(Pod::GROUP_KIND, @instance_data["spec"]["selector"]["matchLabels"])
 
       all_pods.each_with_object([]) do |pod_data, relevant_pods|
         next unless parent_of_pod?(pod_data)
