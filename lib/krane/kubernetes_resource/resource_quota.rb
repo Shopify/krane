@@ -2,6 +2,7 @@
 module Krane
   class ResourceQuota < KubernetesResource
     TIMEOUT = 30.seconds
+    GROUPS = [""]
 
     def status
       exists? ? "In effect" : "Not Found"

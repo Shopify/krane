@@ -2,6 +2,7 @@
 module Krane
   class RoleBinding < KubernetesResource
     TIMEOUT = 30.seconds
+    GROUP = ["rbac.authorization.k8s.io"]
 
     def status
       exists? ? "Created" : "Not Found"

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 module Krane
   class PodTemplate < KubernetesResource
+    GROUPS = ""
     def status
       exists? ? "Available" : "Not Found"
     end

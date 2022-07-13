@@ -2,6 +2,7 @@
 module Krane
   class Job < KubernetesResource
     TIMEOUT = 10.minutes
+    GROUP = ["batch"]
 
     def deploy_succeeded?
       # Don't block deploys for long running jobs,

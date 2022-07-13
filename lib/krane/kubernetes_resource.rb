@@ -46,15 +46,17 @@ module Krane
     class << self
       def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [])
         validate_definition_essentials(definition)
+
+        group = Krane.group_from_api_version(definition["apiVersion"])
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
-        if (klass = class_for_kind(definition["kind"]))
+        if (klass = class_for_group_kind(group, definition["kind"]))
           return klass.new(**opts)
         end
         if crd
           CustomResource.new(crd: crd, **opts)
         else
-          type = definition["kind"]
+          type = Krane.group_kind(definition["group"], definition["kind"])
           inst = new(**opts)
           inst.type = type
           inst.global = global_names.map(&:downcase).include?(type.downcase)
@@ -70,12 +72,37 @@ module Krane
         nil
       end
 
+      def class_for_group_kind(group, kind)
+        if Krane.const_defined?(kind, false)
+          const = Krane.const_get(kind, false)
+
+          if const_defined?("GROUPS")
+            groups = const.const_get("GROUPS")
+
+            if groups.include?(group)
+              const
+            else
+              nil
+            end
+          else
+            const
+          end
+        end
+      rescue NameError
+        nil
+      end
+
       def timeout
         self::TIMEOUT
       end
 
       def kind
         name.demodulize
+      end
+
+      def group
+        const_get("GROUPS").first
+        # self.class.GROUPS.first
       end
 
       private
@@ -218,7 +245,7 @@ module Krane
     end
 
     def type
-      @type || self.class.kind
+      @type || Krane.group_kind(self.class.group, self.class.kind)
     end
 
     def group

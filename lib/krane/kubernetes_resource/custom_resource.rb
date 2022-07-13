@@ -59,7 +59,7 @@ module Krane
     end
 
     def type
-      kind
+      "#{group}.#{kind}"
     end
 
     def validate_definition(*, **)
@@ -78,6 +78,10 @@ module Krane
 
     def kind
       @definition["kind"]
+    end
+
+    def group
+      definition["apiVersion"].include?("/") ? definition["apiVersion"].split("/").first : ""
     end
 
     def rollout_conditions

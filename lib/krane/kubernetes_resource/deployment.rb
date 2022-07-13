@@ -8,6 +8,7 @@ module Krane
     REQUIRED_ROLLOUT_ANNOTATION = "required-rollout"
     REQUIRED_ROLLOUT_TYPES = %w(maxUnavailable full none).freeze
     DEFAULT_REQUIRED_ROLLOUT = 'full'
+    GROUPS = ["apps"]
 
     def sync(cache)
       super

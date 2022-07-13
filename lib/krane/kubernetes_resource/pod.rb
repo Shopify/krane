@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 module Krane
   class Pod < KubernetesResource
+    GROUPS = [""]
     TIMEOUT = 10.minutes
 
     FAILED_PHASE_NAME = "Failed"

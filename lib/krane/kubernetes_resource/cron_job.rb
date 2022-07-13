@@ -2,6 +2,7 @@
 module Krane
   class CronJob < KubernetesResource
     TIMEOUT = 30.seconds
+    GROUPS = ["batch"]
 
     def deploy_succeeded?
       exists?

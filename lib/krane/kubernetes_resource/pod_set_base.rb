@@ -3,6 +3,7 @@ require 'krane/kubernetes_resource/pod'
 
 module Krane
   class PodSetBase < KubernetesResource
+    GROUPS = ["?"] # TODO
     def failure_message
       pods.map(&:failure_message).compact.uniq.join("\n")
     end

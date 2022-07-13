@@ -21,4 +21,12 @@ require 'krane/task_config_validator'
 
 module Krane
   MIN_KUBE_VERSION = '1.15.0'
+
+  def self.group_from_api_version(input)
+    input.include?("/") ? input.split("/").first : ""
+  end
+
+  def self.group_kind(group, kind)
+    "#{kind}.#{group}"
+  end
 end
