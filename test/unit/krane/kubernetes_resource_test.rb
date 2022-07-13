@@ -5,10 +5,11 @@ class KubernetesResourceTest < Krane::TestCase
   include EnvTestHelper
 
   class DummyResource < Krane::KubernetesResource
+    GROUPS = ["test.io"]
     attr_writer :succeeded, :deploy_failed
 
     def initialize(definition_extras: {})
-      definition = { "kind" => "DummyResource", "metadata" => { "name" => "test" } }.merge(definition_extras)
+      definition = { "apiVersion" => "v1", "kind" => "DummyResource", "metadata" => { "name" => "test" } }.merge(definition_extras)
       super(namespace: 'test', context: 'test', definition: definition, logger: ::Logger.new($stderr))
       @succeeded = false
     end
@@ -44,7 +45,7 @@ class KubernetesResourceTest < Krane::TestCase
   end
 
   def test_unusual_timeout_output
-    spec = { "kind" => "ConfigMap", "metadata" => { "name" => "foo" } }
+    spec = { "apiVersion" => "test.io/v1", "kind" => "ConfigMap", "metadata" => { "name" => "foo" } }
     cm = Krane::ConfigMap.new(namespace: 'foo', context: 'none', definition: spec, logger: logger)
     cm.deploy_started_at = Time.now.utc
 
@@ -289,7 +290,7 @@ class KubernetesResourceTest < Krane::TestCase
       dummy.expects(:fetch_debug_logs).never
       dummy.deploy_failed = true
 
-      assert_includes(dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n")
+      assert_includes(dummy.debug_message, "DummyResource./test: FAILED\n  - Final status: Exists\n")
       assert_includes(dummy.debug_message, Krane::KubernetesResource::DISABLED_LOG_INFO_MESSAGE)
     end
   end
@@ -300,7 +301,7 @@ class KubernetesResourceTest < Krane::TestCase
       dummy.expects(:fetch_events).never
       dummy.deploy_failed = true
 
-      assert_includes(dummy.debug_message, "DummyResource/test: FAILED\n  - Final status: Exists\n")
+      assert_includes(dummy.debug_message, "DummyResource./test: FAILED\n  - Final status: Exists\n")
       assert_includes(dummy.debug_message, Krane::KubernetesResource::DISABLED_EVENT_INFO_MESSAGE)
     end
   end
@@ -309,7 +310,7 @@ class KubernetesResourceTest < Krane::TestCase
     dummy = DummyResource.new
     dummy.deploy_failed = true
     expected_message = <<~STRING
-      DummyResource/test: FAILED
+      DummyResource./test: FAILED
         - Final status: Exists
         - Events: None found. Please check your usual logging service (e.g. Splunk).
         - Logs: None found. Please check your usual logging service (e.g. Splunk).
@@ -319,7 +320,7 @@ class KubernetesResourceTest < Krane::TestCase
     dummy.stubs(:failure_message).returns("Something went wrong I guess")
 
     expected_message = <<~STRING
-      DummyResource/test: FAILED
+      DummyResource./test: FAILED
       Something went wrong I guess
 
         - Final status: Exists
@@ -331,7 +332,7 @@ class KubernetesResourceTest < Krane::TestCase
     dummy.stubs(:failure_message).returns("Something went wrong I guess\n> Some container: boom!\n")
 
     expected_message = <<~STRING
-      DummyResource/test: FAILED
+      DummyResource./test: FAILED
       Something went wrong I guess
       > Some container: boom!
 
@@ -358,7 +359,7 @@ class KubernetesResourceTest < Krane::TestCase
   def test_disappeared_is_false_if_resource_has_been_deployed_and_we_get_a_server_error
     dummy = DummyResource.new
     config = task_config(namespace: 'test', context: 'minikube')
-    config.stubs(:global_kinds).returns([])
+    config.stubs(:global_group_kinds).returns([])
     cache = Krane::ResourceCache.new(config)
     Krane::Kubectl.any_instance.expects(:run).returns(["", "NotFound", stub(success?: false)]).twice
 
@@ -371,7 +372,7 @@ class KubernetesResourceTest < Krane::TestCase
   end
 
   def test_lowercase_custom_resource_kind_does_not_raise
-    definition = { "kind" => "foobar", "metadata" => { "name" => "test" } }
+    definition = { "apiVersion" => "test.io/v1", "kind" => "foobar", "metadata" => { "name" => "test" } }
     Krane::KubernetesResource.build(
       namespace: 'test',
       context: 'test',
@@ -387,7 +388,7 @@ class KubernetesResourceTest < Krane::TestCase
       logger: @logger, statsd_tags: [], definition: build_crd(name: "noconfig"))
     no_config_cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: no_config_crd,
-      definition: { "kind" => "Noconfig", "metadata" => { "name" => "test" } })
+      definition: { "apiVersion" => "test.io/v1", "kind" => "Noconfig", "metadata" => { "name" => "test" } })
     assert_equal(no_config_cr.class, Krane::CustomResource)
 
     # With rollout config
@@ -395,17 +396,17 @@ class KubernetesResourceTest < Krane::TestCase
       logger: @logger, statsd_tags: [], definition: build_crd(name: "withconfig", with_config: true))
     with_config_cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: with_config_crd,
-      definition: { "kind" => "Withconfig", "metadata" => { "name" => "test" } })
+      definition: { "apiVersion" => "test.io/v1", "kind" => "Withconfig", "metadata" => { "name" => "test" } })
     assert_equal(with_config_cr.class, Krane::CustomResource)
 
     # Hardcoded resource
     svc = Krane::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      statsd_tags: [], definition: { "kind" => "Service", "metadata" => { "name" => "test" } })
+      statsd_tags: [], definition: { "apiVersion" => "v1", "kind" => "Service", "metadata" => { "name" => "test" } })
     assert_equal(svc.class, Krane::Service)
 
     # Generic resource
     resource = Krane::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      statsd_tags: [], definition: { "kind" => "Unkonwn", "metadata" => { "name" => "test" } })
+      statsd_tags: [], definition: { "apiVersion" => "test.io/v1", "kind" => "Unkonwn", "metadata" => { "name" => "test" } })
     assert_equal(resource.class, Krane::KubernetesResource)
   end
 
@@ -443,7 +444,7 @@ class KubernetesResourceTest < Krane::TestCase
       return
     end
 
-    key = "DummyResource/test"
+    key = "DummyResource./test"
     expected = { key => [] }
     first_event = "FailedSync: Error syncing pod, skipping: failed to \"StartContainer\" for \"test\" with " \
       "ErrImagePull: \"rpc error: code = 2 desc = unknown blob\" (3 events)"
@@ -494,12 +495,14 @@ class KubernetesResourceTest < Krane::TestCase
 
   def build_crd(name:, with_config: false)
     crd = {
+      "apiVersion" => "apiextensions.k8s.io/v1",
       "kind" => "CustomResourceDefinition",
       "metadata" => {
         "name" => "#{name}s.test.io",
         "annotations" => {},
       },
       "spec" => {
+        "group" => "test.io",
         "names" => {
           "kind" => name.titleize,
         },

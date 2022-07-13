@@ -248,9 +248,12 @@ module Krane
       @type || Krane.group_kind(group, self.class.kind)
     end
 
+    def kind
+      @definition.dig("kind")
+    end
+
     def group
-      grouping, version = @definition.dig("apiVersion").split("/")
-      version ? grouping : "core"
+      Krane.group_from_api_version(@definition.dig("apiVersion"))
     end
 
     def version

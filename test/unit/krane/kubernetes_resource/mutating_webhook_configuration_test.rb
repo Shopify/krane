@@ -18,8 +18,8 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     assert_equal(webhook.rules.length, 1)
     raw_rule = definition.dig('webhooks', 0, 'rules', 0)
     rule = webhook.rules.first
-    assert_equal(raw_rule.dig('apiGroups'), ['core'])
-    assert_equal(rule.groups, ['core'])
+    assert_equal(raw_rule.dig('apiGroups'), [''])
+    assert_equal(rule.groups, [''])
 
     assert_equal(raw_rule.dig('apiVersions'), ['v1'])
     assert_equal(rule.versions, ['v1'])
@@ -87,7 +87,7 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     secret.expects(:group).returns('fake').once
     refute(webhook.matches_resource?(secret))
     secret.unstub(:group)
-    secret.expects(:type).returns('fake').once
+    secret.expects(:kind).returns('fake').once
     refute(webhook.matches_resource?(secret))
   end
 end
