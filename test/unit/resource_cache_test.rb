@@ -172,17 +172,13 @@ class ResourceCacheTest < Krane::TestCase
     end
 
     def sync(mediator)
-      mediator.get_all(kubectl_resource_type)
-      mediator.get_instance(kubectl_resource_type, @name)
+      mediator.get_all(type)
+      mediator.get_instance(type, @name)
       @synced = true
     end
 
     def type
       self.class.name.demodulize
-    end
-
-    def kubectl_resource_type
-      type
     end
 
     def kubectl_response

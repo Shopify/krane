@@ -16,10 +16,6 @@ module Krane
       !scaling_active_condition.fetch("reason", "").start_with?(RECOVERABLE_CONDITION_PREFIX)
     end
 
-    def kubectl_resource_type
-      'hpa.v2beta1.autoscaling'
-    end
-
     def status
       if !exists?
         super

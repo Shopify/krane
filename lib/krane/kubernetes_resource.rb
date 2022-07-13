@@ -74,10 +74,6 @@ module Krane
 
       def class_for_group_kind_string(group_kind)
         group, kind = group_kind.split(".", 2)
-
-        pp group_kind
-        pp group
-        pp kind
         class_for_group_kind(group, kind)
       end
 
@@ -204,7 +200,7 @@ module Krane
     end
 
     def sync(cache)
-      @instance_data = cache.get_instance(kubectl_resource_type, name, raise_if_not_found: true)
+      @instance_data = cache.get_instance(type, name, raise_if_not_found: true)
     rescue Krane::Kubectl::ResourceNotFoundError
       @disappeared = true if deploy_started?
       @instance_data = {}
@@ -269,10 +265,6 @@ module Krane
     def version
       prefix, version = @definition.dig("apiVersion").split("/")
       version || prefix
-    end
-
-    def kubectl_resource_type
-      type
     end
 
     def deploy_timed_out?
