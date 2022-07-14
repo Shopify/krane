@@ -938,7 +938,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
       %r{ConfigMap./config-for-pod2\s+Available},
       %r{ConfigMap./independent-configmap\s+Available},
       %r{Deployment.apps/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-      %r{Deployment./web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Deployment.apps/web-from-partial\s+1 replica, 1 updatedReplica, 1 availableReplica},
       %r{Pod./pod1\s+Succeeded},
       %r{Pod./pod2\s+Succeeded},
     ])

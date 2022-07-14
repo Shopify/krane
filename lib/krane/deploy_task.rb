@@ -31,6 +31,7 @@ require 'krane/kubernetes_resource'
   horizontal_pod_autoscaler
   secret
   mutating_webhook_configuration
+  priority_class
 ).each do |subresource|
   require "krane/kubernetes_resource/#{subresource}"
 end
