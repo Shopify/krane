@@ -1,10 +1,14 @@
 ## next
 
+## 2.4.8
+
+- update googleauth gem version to 1.2
+- add the `ruby-lsp` gem to development group in the Gemfile
 ## 2.4.7
 
 *Bug fixes*
 
-- Fix `replace-force` deployment method override. 
+- Fix `replace-force` deployment method override.
 ```
 /usr/local/bundle/gems/krane-2.4.6/lib/krane/resource_deployer.rb:119:in `block in deploy_resources': Unexpected deploy method! (:"replace-force") (ArgumentError)
 ```

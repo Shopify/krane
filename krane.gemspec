@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = '>= 2.6.0'
   spec.add_dependency("activesupport", ">= 5.0")
   spec.add_dependency("kubeclient", "~> 4.9")
-  spec.add_dependency("googleauth", "~> 0.8")
+  spec.add_dependency("googleauth", "~> 1.2")
   spec.add_dependency("ejson", "~> 1.0")
   spec.add_dependency("colorize", "~> 0.8")
   spec.add_dependency("statsd-instrument", ['>= 2.8', "< 4"])
