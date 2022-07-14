@@ -60,18 +60,18 @@ module Krane
     def predeploy_sequence
       default_group = { group: nil }
       before_crs = %w(
-        ResourceQuota
-        NetworkPolicy
-        ConfigMap
-        PersistentVolumeClaim
-        ServiceAccount
-        Role
-        RoleBinding
-        Secret
+        ResourceQuota.
+        NetworkPolicy.networking.k8s.io
+        ConfigMap.
+        PersistentVolumeClaim.
+        ServiceAccount.
+        Role.rbac.authorization.k8s.io
+        RoleBinding.rbac.authorization.k8s.io
+        Secret.
       ).map { |r| [r, default_group] }
 
       after_crs = %w(
-        Pod
+        Pod.
       ).map { |r| [r, default_group] }
 
       crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, { group: cr.group }] }

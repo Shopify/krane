@@ -20,8 +20,8 @@ module Krane
         @deployed_global_fixture_paths = []
       end
     ensure
-      # TestProvisioner.delete_namespace(@namespace)
-      # delete_globals(@deployed_global_fixture_paths)
+      TestProvisioner.delete_namespace(@namespace)
+      delete_globals(@deployed_global_fixture_paths)
     end
 
     def delete_globals(dirs)

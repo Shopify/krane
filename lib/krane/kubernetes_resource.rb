@@ -355,8 +355,10 @@ module Krane
     # }
     def fetch_events(kubectl)
       return {} unless exists?
-      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}",
+
+      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(group, kind, name)}",
         log_failure: false, use_namespace: !global?)
+
       return {} unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
@@ -429,8 +431,12 @@ module Krane
       )
       FIELD_EMPTY_VALUE = '<no value>'
 
-      def self.go_template_for(kind, name)
+      def self.go_template_for(group, kind, name)
         and_conditions = [
+          # First check that the API version is of equal lenght or longer than the group.
+          %[(gt (len .involvedObject.apiVersion) (len \"#{group}\"))],
+          # Check that the API version starts with the group.
+          %[(eq (slice .involvedObject.apiVersion 0 (len \"#{group}\")) \"#{group}\")],
           %[(eq .involvedObject.kind "#{kind}")],
           %[(eq .involvedObject.name "#{name}")],
           '(ne .reason "Started")',
