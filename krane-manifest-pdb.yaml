@@ -1,0 +1,21 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: test
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      name: web
+      app: hello-cloud
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-cloud-configmap-data-different
+  labels:
+    name: hello-cloud-configmap-data
+    app: hello-cloud
+data:
+  datapoint1: value1
+  datapoint2: value2

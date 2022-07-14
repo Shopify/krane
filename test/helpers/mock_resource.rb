@@ -17,7 +17,7 @@ MockResource = Struct.new(:id, :hits_to_complete, :status) do
   end
 
   def type
-    "MockResource"
+    "MockResource.core"
   end
 
   def group

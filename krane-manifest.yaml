@@ -1,3 +1,4 @@
+---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -14,3 +15,20 @@ spec:
       containers:
         - name: nginx
           image: nginx
+---
+# kind: Deployment
+# apiVersion: apps/v1
+# metadata:
+#   name: nginx-deployment-2
+# spec:
+#   selector:
+#     matchLabels:
+#       deploy: example-2
+#   template:
+#     metadata:
+#       labels:
+#         deploy: example-2
+#     spec:
+#       containers:
+#         - name: nginx
+#           image: nginx

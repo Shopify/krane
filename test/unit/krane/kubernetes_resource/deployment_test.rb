@@ -228,7 +228,7 @@ class DeploymentTest < Krane::TestCase
   end
 
   def test_deploy_succeeded_not_fooled_by_stale_status_data
-    stub_kind_get("Pod")
+    stub_kind_get("Pod.")
     deployment_status = {
       "replicas" => 3,
       "updatedReplicas" => 3, # stale -- hasn't been updated since deploy
@@ -272,7 +272,7 @@ class DeploymentTest < Krane::TestCase
 
       deploy.deploy_started_at = Time.now.utc - Krane::Deployment::TIMEOUT - 1
       assert(deploy.deploy_timed_out?)
-      assert_equal("Timeout reason: hard deadline for Deployment\nLatest ReplicaSet: web-1",
+      assert_equal("Timeout reason: hard deadline for Deployment.apps\nLatest ReplicaSet: web-1",
         deploy.timeout_message.strip)
     end
   end
@@ -403,12 +403,15 @@ class DeploymentTest < Krane::TestCase
 
   def build_synced_deployment(template:, replica_sets:, expect_pod_get: nil)
     deploy = Krane::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
-    stub_kind_get("Deployment", items: [template])
-    stub_kind_get("ReplicaSet", items: replica_sets)
+    stub_kind_get("Deployment.apps", items: [template])
+    # stub_group_get("apps", items: [template])
+    stub_kind_get("ReplicaSet.apps", items: replica_sets)
+    # stub_group_get("apps", items: replica_sets)
 
     expect_pod_get = replica_sets.present? if expect_pod_get.nil?
     if expect_pod_get
-      stub_kind_get("Pod", items: [])
+      stub_kind_get("Pod.", items: [])
+      # stub_group_get("", items: [])
     end
 
     deploy.sync(build_resource_cache)

@@ -13,7 +13,7 @@ module ResourceCacheTestHelper
 
   def build_resource_cache(task_config: nil)
     task_config ||= task_config(namespace: 'test-ns').tap do |config|
-      config.stubs(:global_kinds).returns(%w(Node FakeNode))
+      config.stubs(:global_group_kinds).returns(%w(Node. FakeNode.))
     end
     Krane::ResourceCache.new(task_config)
   end

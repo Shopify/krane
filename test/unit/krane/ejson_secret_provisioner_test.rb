@@ -26,7 +26,7 @@ class EjsonSecretProvisionerTest < Krane::TestCase
     secret = resources.find { |s| s.name == 'monitoring-token' }
     refute_nil(secret, "Expected secret not found")
     assert_equal(secret.class, Krane::Secret)
-    assert_equal(secret.id, "Secret/monitoring-token")
+    assert_equal(secret.id, "Secret./monitoring-token")
   end
 
   def test_run_with_ejson_keypair_mismatch

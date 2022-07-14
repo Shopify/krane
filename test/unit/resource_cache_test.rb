@@ -11,7 +11,7 @@ class ResourceCacheTest < Krane::TestCase
 
   def test_get_instance_populates_the_cache_and_returns_instance_hash
     pods = build_fake_pods(2)
-    stub_kind_get("FakePod", items: pods.map(&:kubectl_response), times: 1)
+    stub_kind_get("FakePod.", items: pods.map(&:kubectl_response), times: 1)
     assert_equal(pods[0].kubectl_response, @cache.get_instance("FakePod", pods[0].name))
     assert_equal(pods[1].kubectl_response, @cache.get_instance("FakePod", pods[1].name))
   end
@@ -90,11 +90,11 @@ class ResourceCacheTest < Krane::TestCase
     deployments = build_fake_deployments(2) # these also get pods
     pods = build_fake_pods(2)
 
-    stub_kind_get("FakeDeployment", items: deployments.map(&:kubectl_response), times: 1)
-    stub_kind_get("FakePod", items: pods.map(&:kubectl_response), times: 1)
+    stub_kind_get("FakeDeployment.", items: deployments.map(&:kubectl_response), times: 1)
+    stub_kind_get("FakePod.", items: pods.map(&:kubectl_response), times: 1)
     @cache.prewarm(deployments) # Fetches both Deployments and Pods
-    assert_equal(2, @cache.get_all("FakeDeployment").count)
-    assert_equal(2, @cache.get_all("FakePod").count)
+    assert_equal(2, @cache.get_all("FakeDeployment.").count)
+    assert_equal(2, @cache.get_all("FakePod.").count)
   end
 
   def test_warming_the_resource_cache_means_no_more_kubectl_calls_after
@@ -160,6 +160,7 @@ class ResourceCacheTest < Krane::TestCase
 
   class MockResource
     SYNC_DEPENDENCIES = []
+    GROUPS = [""]
     attr_reader :name
 
     def initialize(name)
@@ -179,6 +180,10 @@ class ResourceCacheTest < Krane::TestCase
 
     def type
       self.class.name.demodulize
+    end
+
+    def group
+      ""
     end
 
     def kubectl_response
@@ -202,7 +207,9 @@ class ResourceCacheTest < Krane::TestCase
       mediator.get_all("FakePod")
     end
   end
-  class FakePod < MockResource; end
+  class FakePod < MockResource;
+    GROUPS = [""]
+  end
   class FakeConfigMap < MockResource; end
   class FakeNode < MockResource
     def global?

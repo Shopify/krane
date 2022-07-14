@@ -2,6 +2,7 @@
 require 'krane/kubernetes_resource/pod_set_base'
 module Krane
   class StatefulSet < PodSetBase
+    GROUP_KIND = "StatefulSet.apps"
     TIMEOUT = 10.minutes
     GROUPS = ["apps"]
     ONDELETE = 'OnDelete'

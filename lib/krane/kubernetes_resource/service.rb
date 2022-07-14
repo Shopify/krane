@@ -9,7 +9,7 @@ module Krane
 
     def sync(cache)
       super
-      @related_pods = cache.get_all(Pod::group_kind, selector)
+      @related_pods = cache.get_all(Pod::GROUP_KIND, selector)
       @related_workloads = fetch_related_workloads(cache)
     end
 
@@ -47,8 +47,8 @@ module Krane
     private
 
     def fetch_related_workloads(cache)
-      related_deployments = cache.get_all(Deployment::group_kind)
-      related_statefulsets = cache.get_all(StatefulSet::group_kind)
+      related_deployments = cache.get_all(Deployment::GROUP_KIND)
+      related_statefulsets = cache.get_all(StatefulSet::GROUP_KIND)
       (related_deployments + related_statefulsets).select do |workload|
         selector.all? { |k, v| workload['spec']['template']['metadata']['labels'][k] == v }
       end
