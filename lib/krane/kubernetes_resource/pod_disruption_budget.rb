@@ -2,7 +2,6 @@
 module Krane
   class PodDisruptionBudget < KubernetesResource
     TIMEOUT = 10.seconds
-    GROUPS = ["policy"]
 
     def status
       exists? ? "Available" : "Not Found"

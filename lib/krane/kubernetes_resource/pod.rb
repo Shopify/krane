@@ -2,7 +2,6 @@
 module Krane
   class Pod < KubernetesResource
     GROUP_KIND = "Pod."
-    GROUPS = [""]
     TIMEOUT = 10.minutes
 
     FAILED_PHASE_NAME = "Failed"

@@ -2,7 +2,6 @@
 module Krane
   class ConfigMap < KubernetesResource
     TIMEOUT = 30.seconds
-    GROUPS = [""]
 
     def deploy_succeeded?
       exists?

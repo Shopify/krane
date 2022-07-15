@@ -31,6 +31,10 @@ module Krane
       hashy["kind"]
     end
 
+    def gvk
+      cluster_resource_discoverer.fetch_gvk
+    end
+
     def kubeclient_builder
       @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: kubeconfig)
     end

@@ -2,7 +2,6 @@
 module Krane
   class PersistentVolumeClaim < KubernetesResource
     TIMEOUT = 5.minutes
-    GROUPS = [""]
 
     def sync(cache)
       super

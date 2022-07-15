@@ -2,7 +2,6 @@
 module Krane
   class NetworkPolicy < KubernetesResource
     TIMEOUT = 30.seconds
-    GROUPS= ["networking.k8s.io"]
 
     def status
       exists? ? "Created" : "Not Found"

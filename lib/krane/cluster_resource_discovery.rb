@@ -37,6 +37,13 @@ module Krane
       end.compact.uniq { |r| "#{r['apigroup']}/#{r['kind']}" }
     end
 
+    def fetch_gvk()
+      output = kubectl.run("api-resources", attempts: 2, use_namespace: false)
+
+      pp output
+      exit
+    end
+
     def fetch_mutating_webhook_configurations
       command = %w(get mutatingwebhookconfigurations)
       raw_json, err, st = kubectl.run(*command, output: "json", attempts: 5, use_namespace: false)

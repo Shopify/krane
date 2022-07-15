@@ -3,7 +3,6 @@
 module Krane
   class MutatingWebhookConfiguration < KubernetesResource
     GLOBAL = true
-    GROUPS= ["admissionregistration.k8s.io"]
 
     class Webhook
       EQUIVALENT = 'Equivalent'

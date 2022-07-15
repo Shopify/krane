@@ -3,7 +3,6 @@ module Krane
   class HorizontalPodAutoscaler < KubernetesResource
     TIMEOUT = 3.minutes
     RECOVERABLE_CONDITION_PREFIX = "FailedGet"
-    GROUPS = ["autoscaling"]
 
     def deploy_succeeded?
       scaling_active_condition["status"] == "True" || scaling_disabled?

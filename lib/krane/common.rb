@@ -29,4 +29,29 @@ module Krane
   def self.group_kind(group, kind)
     "#{kind}.#{group}"
   end
+
+  class GVK
+    def initialize(group, version, kind, ns)
+      @group = group
+      @version = version
+      @kind = kind
+      @ns = ns
+    end
+
+    def group
+      @group
+    end
+
+    def version
+      @version
+    end
+
+    def kind
+      @kind
+    end
+
+    def namespaced
+      @ns
+    end
+  end
 end
