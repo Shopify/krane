@@ -2,7 +2,6 @@
 module Krane
   class ServiceAccount < KubernetesResource
     TIMEOUT = 30.seconds
-    GROUPS = [""]
 
     def status
       exists? ? "Created" : "Not Found"

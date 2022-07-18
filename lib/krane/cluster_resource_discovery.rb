@@ -37,11 +37,31 @@ module Krane
       end.compact.uniq { |r| "#{r['apigroup']}/#{r['kind']}" }
     end
 
-    def fetch_gvk()
-      output = kubectl.run("api-resources", attempts: 2, use_namespace: false)
+    def fetch_gvk
+      output, err, st = kubectl.run("api-resources", "--no-headers=true", attempts: 2, use_namespace: false)
+      output.split("\n").map do |l|
+        matches = l.scan(/\S+/)
 
-      pp output
-      exit
+        if matches.length == 4
+          group = ::Krane.group_from_api_version(matches[1])
+          # name, api, namespaced, kind
+          {
+            "namespaced" => matches[2] == "true",
+            "group" => group,
+            "kind" => matches[3],
+            "group_kind" => ::Krane.group_kind(group, matches[3]),
+          }
+        else
+          group = ::Krane.group_from_api_version(matches[2])
+          # name, shortname, api, namespaced, kind
+          {
+            "namespaced" => matches[3] == "true",
+            "group" => group,
+            "kind" => matches[4],
+            "group_kind" => ::Krane.group_kind(group, matches[4]),
+          }
+        end
+      end
     end
 
     def fetch_mutating_webhook_configurations

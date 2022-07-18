@@ -40,7 +40,7 @@ class ResourceCacheTest < Krane::TestCase
   def test_get_all_populates_cache_and_returns_array_of_instance_hashes
     configmaps = build_fake_config_maps(6)
     stub_kind_get("Configmap", items: configmaps.map(&:kubectl_response), times: 1)
-    assert_equal(configmaps.map(&:kubectl_response), @cache.get_all("Configmap"))
+    assert_equal(configmaps.map(&:kubectl_response), @cache.get_all("Configmap."))
   end
 
   def test_if_kubectl_error_then_empty_result_returned_but_not_cached
@@ -49,24 +49,24 @@ class ResourceCacheTest < Krane::TestCase
       success: false, resp: { "items" => [] }, err: 'no', times: 4)
 
     # All of these calls should attempt the request again (see the 'times' arg above)
-    assert_equal([], @cache.get_all('FakeConfigMap'))
-    assert_equal([], @cache.get_all('FakeConfigMap', "fake" => "false", "type" => "fakeconfigmap"))
-    assert_equal({}, @cache.get_instance('FakeConfigMap', build_fake_config_maps(1).first.name))
-    assert_equal({}, @cache.get_instance('FakeConfigMap', build_fake_config_maps(1).first.name))
+    assert_equal([], @cache.get_all('FakeConfigMap.'))
+    assert_equal([], @cache.get_all('FakeConfigMap.', "fake" => "false", "group_kind" => "fakeconfigmap."))
+    assert_equal({}, @cache.get_instance('FakeConfigMap.', build_fake_config_maps(1).first.name))
+    assert_equal({}, @cache.get_instance('FakeConfigMap.', build_fake_config_maps(1).first.name))
   end
 
   def test_get_all_with_selector_populates_full_cache_and_filters_results_returned
     all_cm = build_fake_config_maps(3)
     stub_kind_get('FakeConfigMap', items: all_cm.map(&:kubectl_response), times: 1)
 
-    maps = @cache.get_all('FakeConfigMap', "name" => all_cm[2].name)
+    maps = @cache.get_all('FakeConfigMap.', "name" => all_cm[2].name)
     assert_equal(1, maps.length)
     assert_equal(all_cm[2].kubectl_response, maps.first)
 
-    maps = @cache.get_all('FakeConfigMap', "fake" => "true", "type" => "fakeconfigmap")
+    maps = @cache.get_all('FakeConfigMap.', "fake" => "true", "type" => "fakeconfigmap")
     assert_equal(3, maps.length)
 
-    maps = @cache.get_all('FakeConfigMap', "fake" => "false", "type" => "fakeconfigmap")
+    maps = @cache.get_all('FakeConfigMap.', "fake" => "false", "type" => "fakeconfigmap")
     assert_equal(0, maps.length)
   end
 
@@ -78,9 +78,9 @@ class ResourceCacheTest < Krane::TestCase
 
     # Despite being split across threads, only one resource should populate the cache for each kind
     # And the results should be available to all the others
-    stub_kind_get("FakeDeployment", items: deployments.map(&:kubectl_response), times: 1)
-    stub_kind_get("FakePod", items: pods.map(&:kubectl_response), times: 1)
-    stub_kind_get("FakeConfigMap", items: pods.map(&:kubectl_response), times: 1)
+    stub_kind_get("FakeDeployment.apps", items: deployments.map(&:kubectl_response), times: 1)
+    stub_kind_get("FakePod.", items: pods.map(&:kubectl_response), times: 1)
+    stub_kind_get("FakeConfigMap.", items: pods.map(&:kubectl_response), times: 1)
 
     Krane::Concurrency.split_across_threads(all_resources) { |r| r.sync(@cache) }
     assert(all_resources.all?(&:synced?))
@@ -90,7 +90,7 @@ class ResourceCacheTest < Krane::TestCase
     deployments = build_fake_deployments(2) # these also get pods
     pods = build_fake_pods(2)
 
-    stub_kind_get("FakeDeployment.", items: deployments.map(&:kubectl_response), times: 1)
+    stub_kind_get("FakeDeployment.apps", items: deployments.map(&:kubectl_response), times: 1)
     stub_kind_get("FakePod.", items: pods.map(&:kubectl_response), times: 1)
     @cache.prewarm(deployments) # Fetches both Deployments and Pods
     assert_equal(2, @cache.get_all("FakeDeployment.").count)
@@ -160,7 +160,6 @@ class ResourceCacheTest < Krane::TestCase
 
   class MockResource
     SYNC_DEPENDENCIES = []
-    GROUPS = [""]
     attr_reader :name
 
     def initialize(name)
@@ -201,14 +200,13 @@ class ResourceCacheTest < Krane::TestCase
   end
 
   class FakeDeployment < MockResource
-    SYNC_DEPENDENCIES = %w(FakePod.)
+    SYNC_DEPENDENCIES = [::FakePod)
     def sync(mediator)
       super
       mediator.get_all("FakePod")
     end
   end
   class FakePod < MockResource;
-    GROUPS = [""]
   end
   class FakeConfigMap < MockResource; end
   class FakeNode < MockResource

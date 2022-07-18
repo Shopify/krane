@@ -30,28 +30,27 @@ module Krane
     "#{kind}.#{group}"
   end
 
-  class GVK
-    def initialize(group, version, kind, ns)
-      @group = group
-      @version = version
-      @kind = kind
-      @ns = ns
+  def self.group_kind_to_const(group_kind)
+    kind, group = group_kind.split(".", 2)
+
+    group = group.split(".").map(&:capitalize).join("")
+
+    group_const = if group == ""
+      ::Krane
+    else
+      ::Krane.const_get(group)
     end
 
-    def group
-      @group
-    end
+    begin
+      klass = group_const.const_get(kind)
 
-    def version
-      @version
-    end
+      klass
+    rescue
+      pp(group_kind, group, kind)
+      pp(group_const)
 
-    def kind
-      @kind
-    end
 
-    def namespaced
-      @ns
+      exit
     end
   end
 end

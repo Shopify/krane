@@ -13,7 +13,7 @@ module Krane
     using PsychK8sCompatibility
 
     attr_reader :name, :namespace, :context
-    attr_writer :type, :deploy_started_at, :global
+    attr_writer :deploy_started_at, :global
 
     GLOBAL = false
     TIMEOUT = 5.minutes
@@ -44,24 +44,28 @@ module Krane
     SYNC_DEPENDENCIES = []
 
     class << self
-      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [])
+      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, gvk: [])
         validate_definition_essentials(definition)
 
         group = Krane.group_from_api_version(definition["apiVersion"])
+        kind = definition["kind"]
+        group_kind = Krane.group_kind(group, kind)
+
+        klass = ::Krane.group_kind_to_const(group_kind)
+
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
-        if (klass = class_for_group_kind(group, definition["kind"]))
-          return klass.new(**opts)
-        end
-        if crd
+
+        inst = if klass
+          klass.new(**opts)
+        elsif crd
           CustomResource.new(crd: crd, **opts)
         else
-          type = Krane.group_kind(definition["group"], definition["kind"])
-          inst = new(**opts)
-          inst.type = type
-          inst.global = global_names.map(&:downcase).include?(type.downcase)
-          inst
+          new(**opts)
         end
+
+        inst.global = !gvk.find { |v| v["group_kind"] == group_kind }["namespaced"]
+        inst
       end
 
       def class_for_kind(kind)
@@ -72,37 +76,45 @@ module Krane
         nil
       end
 
-      def class_for_group_kind_string(group_kind)
-        group, kind = group_kind.split(".", 2)
-        class_for_group_kind(group, kind)
-      end
-
-      def class_for_group_kind(group, kind)
-        if Krane.const_defined?(kind, false)
-          const = Krane.const_get(kind, false)
-
-          if const.const_defined?("GROUPS")
-            groups = const.const_get("GROUPS")
-
-            if groups.include?(group)
-              const
-            else
-              nil
-            end
-          else
-            const
-          end
-        end
-      rescue NameError
-        nil
-      end
-
       def timeout
         self::TIMEOUT
       end
 
+      def group
+        # For example pods (Krane::Pod)
+        if name.scan(/::/).length == 1
+          return ""
+        end
+
+        _, c_group, _ = name.split("::", 3)
+
+        while (l = c_group.match(/[A-Z]/))
+          char = l.to_s
+          if c_group.index(char) == 0
+            c_group.sub!(char, char.downcase)
+          else
+            c_group.sub!(char, ".#{char.downcase}")
+          end
+        end
+
+        c_group
+      end
+
       def kind
-        name.demodulize
+        if name.scan(/::/).length == 1
+          _, c_kind = name.split("::", 2)
+        else
+          _, _, c_kind = name.split("::", 3)
+        end
+
+        c_kind
+      end
+
+      def group_kind
+        pp(group)
+        pp(kind)
+
+        ::Krane.group_kind(group, kind)
       end
 
       private
@@ -142,6 +154,18 @@ module Krane
       "timeout: #{timeout}s"
     end
 
+    def kind
+      @definition["kind"]
+    end
+
+    def group
+      ::Krane.group_from_api_version(@definition["apiVersion"])
+    end
+
+    def group_kind
+      ::Krane.group_kind(group, kind)
+    end
+
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
       # subclasses must also set these if they define their own initializer
       @name = (definition.dig("metadata", "name") || definition.dig("metadata", "generateName")).to_s
@@ -179,7 +203,7 @@ module Krane
     end
 
     def id
-      "#{type}/#{name}"
+      "#{group_kind}/#{name}"
     end
 
     def <=>(other)
@@ -191,7 +215,7 @@ module Krane
     end
 
     def sync(cache)
-      @instance_data = cache.get_instance(type, name, raise_if_not_found: true)
+      @instance_data = cache.get_instance(group_kind, name, raise_if_not_found: true)
     rescue Krane::Kubectl::ResourceNotFoundError
       @disappeared = true if deploy_started?
       @instance_data = {}
@@ -242,18 +266,6 @@ module Krane
 
     def status
       exists? ? "Exists" : "Not Found"
-    end
-
-    def type
-      @type || Krane.group_kind(group, self.class.kind)
-    end
-
-    def kind
-      @definition.dig("kind")
-    end
-
-    def group
-      Krane.group_from_api_version(@definition.dig("apiVersion"))
     end
 
     def version
@@ -635,7 +647,7 @@ module Krane
     end
 
     def create_definition_tempfile
-      file = Tempfile.new(["#{type}-#{name}", ".yml"])
+      file = Tempfile.new(["#{@group_kind}-#{name}", ".yml"])
       file.write(YAML.dump(@definition))
       file
     ensure
@@ -656,7 +668,7 @@ module Krane
       else
         "unknown"
       end
-      tags = %W(context:#{context} namespace:#{namespace} type:#{type} status:#{status})
+      tags = %W(context:#{context} namespace:#{namespace} type:#{group_kind} status:#{status})
       tags | @optional_statsd_tags
     end
   end

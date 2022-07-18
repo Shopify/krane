@@ -2,7 +2,6 @@
 module Krane
   class Secret < KubernetesResource
     TIMEOUT = 30.seconds
-    GROUPS = [""]
     SENSITIVE_TEMPLATE_CONTENT = true
     SERVER_DRY_RUNNABLE = true
 

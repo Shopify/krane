@@ -5,7 +5,6 @@ class KubernetesResourceTest < Krane::TestCase
   include EnvTestHelper
 
   class DummyResource < Krane::KubernetesResource
-    GROUPS = ["test.io"]
     attr_writer :succeeded, :deploy_failed
 
     def initialize(definition_extras: {})

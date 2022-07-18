@@ -9,31 +9,7 @@ require 'krane/common'
 require 'krane/concurrency'
 require 'krane/resource_cache'
 require 'krane/kubernetes_resource'
-%w(
-  custom_resource
-  config_map
-  deployment
-  ingress
-  persistent_volume_claim
-  pod
-  network_policy
-  service
-  pod_template
-  pod_disruption_budget
-  replica_set
-  service_account
-  daemon_set
-  resource_quota
-  stateful_set
-  cron_job
-  job
-  custom_resource_definition
-  horizontal_pod_autoscaler
-  secret
-  mutating_webhook_configuration
-).each do |subresource|
-  require "krane/kubernetes_resource/#{subresource}"
-end
+Dir["#{__dir__}/kubernetes_resource/**/*.rb"].each { |f| require f }
 require 'krane/resource_watcher'
 require 'krane/kubectl'
 require 'krane/kubeclient_builder'
@@ -218,7 +194,7 @@ module Krane
 
     def deploy_has_priority_resources?(resources)
       resources.any? do |r|
-        next unless (pr = predeploy_sequence[r.type])
+        next unless (pr = predeploy_sequence[r.group_kind])
         !pr[:group] || pr[:group] == r.group
       end
     end
@@ -239,12 +215,14 @@ module Krane
       @logger.info("Discovering resources:")
       resources = []
       crds_by_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
+      gvk = cluster_resource_discoverer.fetch_gvk
+
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
         group = Krane.group_from_api_version(r_def["apiVersion"])
 
         crd = crds_by_kind[Krane.group_kind(group, r_def["kind"])]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_group_kinds)
+          statsd_tags: @namespace_tags, crd: crd, gvk: gvk)
         resources << r
         @logger.info("  - #{r.id}")
       end

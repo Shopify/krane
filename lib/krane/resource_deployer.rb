@@ -53,9 +53,9 @@ module Krane
         bare_pods.first.stream_logs = true
       end
 
-      predeploy_sequence.each do |resource_type, attributes|
+      predeploy_sequence.each do |resource_gk, attributes|
         matching_resources = resource_list.select do |r|
-          r.type == resource_type &&
+          r.group_kind == resource_gk &&
           (!attributes[:group] || r.group == attributes[:group])
         end
         StatsD.client.gauge('priority_resources.count', matching_resources.size, tags: statsd_tags)
@@ -105,9 +105,9 @@ module Krane
       pruneable_types = @prune_whitelist.map do |t|
         group, _version, kind = t.split("/")
 
-        Krane.group_kind(group, kind)
+        ::Krane.group_kind(group, kind)
       end
-      applyables += individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
+      applyables += individuals.select { |r| pruneable_types.include?(r.group_kind) && !r.deploy_method_override }
 
       individuals.each do |individual_resource|
         individual_resource.deploy_started_at = Time.now.utc

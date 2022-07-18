@@ -37,8 +37,11 @@ module Krane
     end
 
     def prewarm(resources)
-      sync_dependencies = resources.flat_map { |r| r.class.const_get(:SYNC_DEPENDENCIES) }
-      group_kinds = (resources.map(&:type) + sync_dependencies).uniq
+      sync_dependencies = resources.flat_map do |r|
+        r.class.const_get(:SYNC_DEPENDENCIES).map{ |d| d.group_kind }
+      end
+
+      group_kinds = (resources.map(&:group_kind) + sync_dependencies).uniq
 
       Krane::Concurrency.split_across_threads(group_kinds, max_threads: group_kinds.count) { |group_kind| get_all(group_kind) }
     end
@@ -57,12 +60,12 @@ module Krane
     end
 
     def fetch_by_group_kind(group_kind)
-      resource_class = KubernetesResource.class_for_group_kind_string(group_kind)
-      global_kind = @task_config.global_group_kinds.map(&:downcase).include?(group_kind.downcase)
+      gvk = @task_config.gvk.find { |g| g["group_kind"] == group_kind }
+      resource_class = ::Krane.group_kind_to_const(group_kind)
 
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
       raw_json, _, st = @kubectl.run("get", group_kind, "--chunk-size=0", attempts: 5, output: "json",
-         output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
+         output_is_sensitive: output_is_sensitive, use_namespace: gvk["namespaced"])
       raise KubectlError unless st.success?
 
       instances = {}

@@ -76,14 +76,6 @@ module Krane
 
     private
 
-    def kind
-      @definition["kind"]
-    end
-
-    def group
-      Krane.group_from_api_version(@definition["apiVersion"])
-    end
-
     def rollout_conditions
       @crd.rollout_conditions
     end

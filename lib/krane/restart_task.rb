@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 require 'krane/common'
 require 'krane/kubernetes_resource'
-require 'krane/kubernetes_resource/deployment'
+require 'krane/kubernetes_resource/apps/deployment'
 require 'krane/kubeclient_builder'
 require 'krane/resource_watcher'
 require 'krane/kubectl'
