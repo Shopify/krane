@@ -25,7 +25,7 @@ module Krane
   class GlobalDeployTask
     extend Krane::StatsD::MeasureMethods
     include TemplateReporting
-    delegate :context, :logger, :global_kinds, :kubeclient_builder, to: :@task_config
+    delegate :context, :logger, :kubeclient_builder, to: :@task_config
     attr_reader :task_config
 
     # Initializes the deploy task

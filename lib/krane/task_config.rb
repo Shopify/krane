@@ -13,18 +13,6 @@ module Krane
       @kubeconfig = kubeconfig || ENV['KUBECONFIG']
     end
 
-    def global_kinds
-      @global_kinds ||= begin
-        fetch_resources.map { |g| g["kind"] }
-      end
-    end
-
-    def global_group_kinds
-      @global_group_kinds ||= begin
-        fetch_resources.map { |g| Krane.group_kind(g["apigroup"], g["kind"]) }
-      end
-    end
-
     def group_kind_to_kind(group_kind)
       hashy = fetch_resources.find{ |x| Krane.group_kind(x["apigroup"], x["kind"]) == group_kind }
 
