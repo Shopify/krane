@@ -35,22 +35,18 @@ module Krane
 
     group = group.split(".").map(&:capitalize).join("")
 
-    group_const = if group == ""
-      ::Krane
+    if group == ""
+      group_const = ::Krane
+    elsif ::Krane.const_defined?(group)
+      group_const = ::Krane.const_get(group)
     else
-      ::Krane.const_get(group)
+      return nil
     end
 
-    begin
-      klass = group_const.const_get(kind)
-
-      klass
-    rescue
-      pp(group_kind, group, kind)
-      pp(group_const)
-
-
-      exit
+    unless group_const.const_defined?(kind)
+      return nil
     end
+
+    group_const.const_get(kind)
   end
 end

@@ -33,7 +33,7 @@ class KraneDeployTest < Krane::IntegrationTest
 
     # Verify that success section isn't duplicated for predeployed resources
     assert_logs_match("Successful resources", 1)
-    assert_logs_match(%r{ConfigMap/hello-cloud-configmap-data\s+Available}, 1)
+    assert_logs_match(%r{ConfigMap./hello-cloud-configmap-data\s+Available}, 1)
   end
 
   def test_deploy_fails_with_empty_yaml
@@ -388,7 +388,7 @@ class KraneDeployTest < Krane::IntegrationTest
 
     assert_logs_match_all([
       "Template validation failed",
-      /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
+      /Invalid template: ConfigMap.-hello-cloud-configmap-data.*yml/,
       "> Error message:",
       "error validating data: ValidationError(ConfigMap.metadata): \
 unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
@@ -407,10 +407,10 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_equal(["web-one", "web-three", "web-two"], deployments.map { |d| d.metadata.name }.sort)
   end
 
-  # The next three tests reproduce a k8s bug
-  # The dry run should catch these problems, but it does not. Instead, apply fails.
-  # https://github.com/kubernetes/kubernetes/issues/42057 shows how this manifested for a particular field,
-  # and although that particular case has been fixed, other invalid specs still aren't caught until apply.
+  The next three tests reproduce a k8s bug
+  The dry run should catch these problems, but it does not. Instead, apply fails.
+  https://github.com/kubernetes/kubernetes/issues/42057 shows how this manifested for a particular field,
+  and although that particular case has been fixed, other invalid specs still aren't caught until apply.
   def test_multiple_invalid_k8s_specs_fails_on_apply_and_prints_template
     result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true) do |fixtures|
       bad_port_name = "http_test_is_really_long_and_invalid_chars"
@@ -424,13 +424,13 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       "Command failed: apply -f",
       "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
-      /Invalid template: Deployment-web.*\.yml/,
+      /Invalid template: Deployment.apps-web.*\.yml/,
       "> Error message:",
-      /Error from server \(Invalid\): error when creating.*Deployment\.?\w* "web" is invalid/,
+      /Error from server \(Invalid\): error when creating.*Deployment.apps\.?\w* "web" is invalid/,
       "> Template content:",
       "              name: http_test_is_really_long_and_invalid_chars",
 
-      /Invalid template: Service-web.*\.yml/,
+      /Invalid template: Service.-web.*\.yml/,
       "> Error message:",
       /Error from server \(Invalid\): error when creating.*Service "web" is invalid/,
       "> Template content:",
@@ -496,7 +496,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   def test_bad_init_container_on_deployment_fails_quickly
     assert_deploy_failure(deploy_fixtures("invalid", subset: ["init_crash.yml"]))
     assert_logs_match_all([
-      "Deployment/init-crash: FAILED",
+      "Deployment.apps/init-crash: FAILED",
       "The following containers are in a state that is unlikely to be recoverable:",
       "init-crash-loop-back-off: Crashing repeatedly (exit 1). See logs for more information.",
       "this is a log from the crashing init container",
@@ -556,7 +556,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
 
     assert_logs_match_all([
       "Successfully deployed 1 resource and timed out waiting for 1 resource to deploy",
-      'Deployment/undying: TIMED OUT (progress deadline: 10s)',
+      'Deployment.apps/undying: TIMED OUT (progress deadline: 10s)',
       'Timeout reason: ProgressDeadlineExceeded',
     ])
   end
@@ -716,7 +716,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     ], in_order: true)
 
     start_bad_probe_logs = [
-      %r{Deployment/bad-probe: TIMED OUT \(progress deadline: \d+s\)},
+      %r{Deployment.apps/bad-probe: TIMED OUT \(progress deadline: \d+s\)},
       "Timeout reason: ProgressDeadlineExceeded",
     ]
     end_bad_probe_logs = ["Scaled up replica set bad-probe-"] # event
@@ -1163,14 +1163,14 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     result = deploy_fixtures("hello-cloud", subset: ["stateful_set.yml"]) do |fixtures|
       # updateStrategy changed in StatefulSet API v1 to RollingUpdate, in v1beta1 it was OnDelete
       stateful_set = fixtures['stateful_set.yml']['StatefulSet'].first
-      stateful_set['spec']['updateStrategy'] = { 'type' => Krane::StatefulSet::ONDELETE }
+      stateful_set['spec']['updateStrategy'] = { 'type' => Krane::Apps::StatefulSet::ONDELETE }
     end
 
     assert_deploy_success(result)
     assert_logs_match_all([
       "WARNING: Your StatefulSet's updateStrategy is set to OnDelete",
       "Successful resources",
-      "StatefulSet/stateful-busybox",
+      "StatefulSet.apps/stateful-busybox",
     ], in_order: true)
   end
 
@@ -1193,11 +1193,11 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result, :timed_out)
     assert_logs_match_all([
       "Predeploying priority resources",
-      "Deploying ResourceQuota/resource-quotas (timeout: 30s)",
-      "Deployment/web rollout timed out",
+      "Deploying ResourceQuota./resource-quotas (timeout: 30s)",
+      "Deployment.apps/web rollout timed out",
       "Successfully deployed 1 resource and timed out waiting for 1 resource to deploy",
       "Successful resources",
-      "ResourceQuota/resource-quotas",
+      "ResourceQuota./resource-quotas",
       %r{Deployment.apps/web: TIMED OUT \(progress deadline: \d+s\)},
       "Timeout reason: ProgressDeadlineExceeded",
       "failed quota: resource-quotas", # from an event
@@ -1365,7 +1365,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     end
     assert_deploy_failure(result)
 
-    bad_probe_timeout = "Deployment/bad-probe: TIMED OUT (progress deadline: 5s)"
+    bad_probe_timeout = "Deployment.apps/bad-probe: TIMED OUT (progress deadline: 5s)"
 
     assert_logs_match_all([
       "Successfully deployed 1 resource, timed out waiting for 2 resources to deploy, and failed to deploy 1 resource",
@@ -1459,7 +1459,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     if server_dry_run_available?
       assert_logs_match_all([
         "Template validation failed",
-        'Invalid template: Secret-hello-secret',
+        'Invalid template: Secret.-hello-secret',
         /Detailed.* is unavailable as .* may contain sensitive data./,
       ])
     else
@@ -1497,7 +1497,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: %w(secret.yml), selector: selector))
     assert_logs_match_all([
       "Template validation failed",
-      "Invalid template: Secret-hello-secret",
+      "Invalid template: Secret.-hello-secret",
       "selector branch=master passed in, but no labels were defined",
     ], in_order: true)
     refute_logs_match("password")
@@ -1567,7 +1567,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_failure(result, :timed_out)
 
     assert_logs_match_all([
-      "PersistentVolumeClaim/with-storage-class: TIMED OUT (timeout: 10s)",
+      "PersistentVolumeClaim./with-storage-class: TIMED OUT (timeout: 10s)",
       "PVC specified a StorageClass of #{storage_class_name} but the resource does not exist",
     ], in_order: true)
   end
@@ -1605,7 +1605,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_logs_match_all([
       'This command is namespaced and cannot be used to deploy global resources.',
       'Global resources:',
-      '    testing-storage-class (StorageClass) in ',
+      '    testing-storage-class (StorageClass.storage.k8s.io) in ',
     ], in_order: true)
   end
 
@@ -1795,7 +1795,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     result = deploy_fixtures("generateName", subset: "bad_secret.yml")
     assert_deploy_failure(result)
     assert_logs_match_all([
-      'Failed to replace or create resource: secret/generate-name-secret-',
+      'Failed to replace or create resource: secret./generate-name-secret-',
       "<suppressed sensitive output>",
     ], in_order: true)
 

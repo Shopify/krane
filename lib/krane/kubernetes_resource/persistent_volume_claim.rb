@@ -6,7 +6,12 @@ module Krane
     def sync(cache)
       super
       @storage_classes = cache.get_all(::Krane::StorageK8sIo::StorageClass.group_kind).map do |sc|
-        ::Krane::StorageK8sIo::StorageClass.new(sc)
+        ::Krane::StorageK8sIo::StorageClass.new(
+          namespace: namespace,
+          context: context,
+          definition: sc,
+          logger: @logger,
+        )
       end
     end
 

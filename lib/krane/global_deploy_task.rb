@@ -164,11 +164,15 @@ module Krane
     def discover_resources
       logger.info("Discovering resources:")
       resources = []
-      crds_by_kind = cluster_resource_discoverer.crds.map { |crd| [crd.name, crd] }.to_h
+      gvk = cluster_resource_discoverer.fetch_gvk
+
+      crds_by_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
       @template_sets.with_resource_definitions do |r_def|
-        crd = crds_by_kind[r_def["kind"]]&.first
+        group = Krane.group_from_api_version(r_def["apiVersion"])
+        crd = crds_by_kind[Krane.group_kind(group, r_def["kind"])]&.first
+
         r = KubernetesResource.build(context: context, logger: logger, definition: r_def,
-          crd: crd, global_names: global_kinds, statsd_tags: statsd_tags)
+          crd: crd, gvk: gvk, statsd_tags: statsd_tags)
         resources << r
         logger.info("  - #{r.id}")
       end

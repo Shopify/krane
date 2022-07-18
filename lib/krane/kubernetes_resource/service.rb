@@ -6,7 +6,6 @@ require 'krane/kubernetes_resource/apps/stateful_set'
 module Krane
   class Service < KubernetesResource
     TIMEOUT = 7.minutes
-    GROUP = [""]
     SYNC_DEPENDENCIES = [::Krane::Pod, ::Krane::Apps::Deployment, ::Krane::Apps::StatefulSet]
 
     def sync(cache)

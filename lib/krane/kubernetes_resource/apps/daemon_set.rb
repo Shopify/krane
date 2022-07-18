@@ -54,6 +54,10 @@ module Krane
           def kind
             name.demodulize
           end
+
+          def group_kind
+            "Node."
+          end
         end
 
         def initialize(definition:)
@@ -84,7 +88,7 @@ module Krane
       end
 
       def find_nodes(cache)
-        all_nodes = cache.get_all(::Krane::Node.group_kind)
+        all_nodes = cache.get_all(Node.group_kind)
         all_nodes.each_with_object([]) do |node_data, relevant_nodes|
           next if node_data.dig('spec', 'unschedulable').to_s.downcase == 'true'
           cond = node_data.dig('status', 'conditions').find { |c| c['type'].downcase == 'ready' }

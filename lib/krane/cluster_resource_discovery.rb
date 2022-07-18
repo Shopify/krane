@@ -38,7 +38,7 @@ module Krane
     end
 
     def fetch_gvk
-      output, err, st = kubectl.run("api-resources", "--no-headers=true", attempts: 2, use_namespace: false)
+      output, _, _ = kubectl.run("api-resources", "--no-headers=true", attempts: 2, use_namespace: false)
       output.split("\n").map do |l|
         matches = l.scan(/\S+/)
 

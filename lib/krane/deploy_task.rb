@@ -301,7 +301,7 @@ module Krane
     def validate_globals(resources)
       return unless (global = resources.select(&:global?).presence)
       global_names = global.map do |resource|
-        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
+        "#{resource.name} (#{resource.group_kind}) in #{File.basename(resource.file_path)}"
       end
       global_names = FormattedLogger.indent_four(global_names.join("\n"))
 
@@ -329,7 +329,7 @@ module Krane
       return unless ejson_keys_secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
 
       @logger.error("Deploy cannot proceed because protected resource " \
-        "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
+        "Secret./#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
       raise EjsonPrunableError
     rescue Kubectl::ResourceNotFoundError => e
       @logger.debug("Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} does not exist: #{e}")

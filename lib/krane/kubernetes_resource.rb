@@ -64,16 +64,11 @@ module Krane
           new(**opts)
         end
 
-        inst.global = !gvk.find { |v| v["group_kind"] == group_kind }["namespaced"]
-        inst
-      end
-
-      def class_for_kind(kind)
-        if Krane.const_defined?(kind, false)
-          Krane.const_get(kind, false)
+        inst.global = GLOBAL
+        if (entry = gvk.find{ |x| x["group_kind"] == group_kind })
+          inst.global = !entry["namespaced"]
         end
-      rescue NameError
-        nil
+        inst
       end
 
       def timeout
@@ -111,9 +106,6 @@ module Krane
       end
 
       def group_kind
-        pp(group)
-        pp(kind)
-
         ::Krane.group_kind(group, kind)
       end
 
@@ -243,7 +235,7 @@ module Krane
     def deploy_succeeded?
       return false unless deploy_started?
       unless @success_assumption_warning_shown
-        @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
+        @logger.warn("Don't know how to monitor resources of type #{group_kind}. Assuming #{id} deployed successfully.")
         @success_assumption_warning_shown = true
       end
       true
@@ -647,7 +639,7 @@ module Krane
     end
 
     def create_definition_tempfile
-      file = Tempfile.new(["#{@group_kind}-#{name}", ".yml"])
+      file = Tempfile.new(["#{group_kind}-#{name}", ".yml"])
       file.write(YAML.dump(@definition))
       file
     ensure

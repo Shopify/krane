@@ -5,14 +5,6 @@ module Krane
       DEFAULT_CLASS_ANNOTATION = "storageclass.kubernetes.io/is-default-class"
       DEFAULT_CLASS_BETA_ANNOTATION = "storageclass.beta.kubernetes.io/is-default-class"
 
-      attr_reader :name
-
-      def initialize(definition)
-        super(definition: definition, namespace: nil, context: nil, logger: nil)
-        @definition = definition
-        @name = definition.dig("metadata", "name").to_s
-      end
-
       def volume_binding_mode
         @definition.dig("volumeBindingMode")
       end
