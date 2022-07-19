@@ -14,18 +14,18 @@ module Krane
       @kubectl = Kubectl.new(task_config: @task_config, log_failure_by_default: false)
     end
 
-    def get_instance(kind, resource_name, raise_if_not_found: false)
-      instance = use_or_populate_cache(kind).fetch(resource_name, {})
+    def get_instance(group_kind, resource_name, raise_if_not_found: false)
+      instance = use_or_populate_cache(group_kind).fetch(resource_name, {})
       if instance.blank? && raise_if_not_found
-        raise Krane::Kubectl::ResourceNotFoundError, "Resource does not exist (used cache for kind #{kind})"
+        raise Krane::Kubectl::ResourceNotFoundError, "Resource does not exist (used cache for group kind #{group_kind})"
       end
       instance
     rescue KubectlError
       {}
     end
 
-    def get_all(kind, selector = nil)
-      instances = use_or_populate_cache(kind).values
+    def get_all(group_kind, selector = nil)
+      instances = use_or_populate_cache(group_kind).values
       return instances unless selector
 
       instances.select do |r|
@@ -37,9 +37,13 @@ module Krane
     end
 
     def prewarm(resources)
-      sync_dependencies = resources.flat_map { |r| r.class.const_get(:SYNC_DEPENDENCIES) }
-      kinds = (resources.map(&:type) + sync_dependencies).uniq
-      Krane::Concurrency.split_across_threads(kinds, max_threads: kinds.count) { |kind| get_all(kind) }
+      sync_dependencies = resources.flat_map do |r|
+        r.class.const_get(:SYNC_DEPENDENCIES).map{ |d| d.group_kind }
+      end
+
+      group_kinds = (resources.map(&:group_kind) + sync_dependencies).uniq
+
+      Krane::Concurrency.split_across_threads(group_kinds, max_threads: group_kinds.count) { |group_kind| get_all(group_kind) }
     end
 
     private
@@ -48,19 +52,20 @@ module Krane
       { namespace: namespace, context: context }
     end
 
-    def use_or_populate_cache(kind)
-      @kind_fetcher_locks[kind].synchronize do
-        return @data[kind] if @data.key?(kind)
-        @data[kind] = fetch_by_kind(kind)
+    def use_or_populate_cache(group_kind)
+      @kind_fetcher_locks[group_kind].synchronize do
+        return @data[group_kind] if @data.key?(group_kind)
+        @data[group_kind] = fetch_by_group_kind(group_kind)
       end
     end
 
-    def fetch_by_kind(kind)
-      resource_class = KubernetesResource.class_for_kind(kind)
-      global_kind = @task_config.global_kinds.map(&:downcase).include?(kind.downcase)
+    def fetch_by_group_kind(group_kind)
+      gvk = @task_config.gvk.find { |g| g["group_kind"] == group_kind }
+      resource_class =::Krane::KubernetesResource.group_kind_to_const(group_kind)
+
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
-      raw_json, _, st = @kubectl.run("get", kind, "--chunk-size=0", attempts: 5, output: "json",
-         output_is_sensitive: output_is_sensitive, use_namespace: !global_kind)
+      raw_json, _, st = @kubectl.run("get", group_kind, "--chunk-size=0", attempts: 5, output: "json",
+         output_is_sensitive: output_is_sensitive, use_namespace: gvk["namespaced"])
       raise KubectlError unless st.success?
 
       instances = {}

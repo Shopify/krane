@@ -83,12 +83,12 @@ module Krane
       watch_time = (Time.now.utc - @deploy_started_at).round(1)
       new_failures.each do |resource|
         resource.report_status_to_statsd(watch_time)
-        logger.error("#{resource.id} failed to #{@operation_name} after #{watch_time}s")
+        logger.error("#{resource.pretty_id} failed to #{@operation_name} after #{watch_time}s")
       end
 
       new_timeouts.each do |resource|
         resource.report_status_to_statsd(watch_time)
-        logger.error("#{resource.id} rollout timed out after #{watch_time}s")
+        logger.error("#{resource.pretty_id} rollout timed out after #{watch_time}s")
       end
 
       if new_successes.present?

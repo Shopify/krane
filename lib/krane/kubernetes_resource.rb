@@ -13,7 +13,7 @@ module Krane
     using PsychK8sCompatibility
 
     attr_reader :name, :namespace, :context
-    attr_writer :type, :deploy_started_at, :global
+    attr_writer :deploy_started_at, :global
 
     GLOBAL = false
     TIMEOUT = 5.minutes
@@ -44,38 +44,69 @@ module Krane
     SYNC_DEPENDENCIES = []
 
     class << self
-      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [])
+      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, gvk: [])
         validate_definition_essentials(definition)
+
+        group = ::Krane::KubernetesResource.group_from_api_version(definition["apiVersion"])
+        kind = definition["kind"]
+        group_kind = ::Krane::KubernetesResource.combine_group_kind(group, kind)
+
+        klass = ::Krane::KubernetesResource.group_kind_to_const(group_kind)
+
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
-        if (klass = class_for_kind(definition["kind"]))
-          return klass.new(**opts)
-        end
-        if crd
+
+        inst = if klass
+          klass.new(**opts)
+        elsif crd
           CustomResource.new(crd: crd, **opts)
         else
-          type = definition["kind"]
-          inst = new(**opts)
-          inst.type = type
-          inst.global = global_names.map(&:downcase).include?(type.downcase)
-          inst
+          new(**opts)
         end
-      end
 
-      def class_for_kind(kind)
-        if Krane.const_defined?(kind, false)
-          Krane.const_get(kind, false)
+        inst.global = GLOBAL
+        if (entry = gvk.find { |x| x["group_kind"] == group_kind })
+          inst.global = !entry["namespaced"]
         end
-      rescue NameError
-        nil
+        inst
       end
 
       def timeout
         self::TIMEOUT
       end
 
+      def group
+        # For example pods (Krane::Pod)
+        if name.scan(/::/).length == 1
+          return ""
+        end
+
+        _, c_group, _ = name.split("::", 3)
+
+        while (l = c_group.match(/[A-Z]/))
+          char = l.to_s
+          if c_group.index(char) == 0
+            c_group.sub!(char, char.downcase)
+          else
+            c_group.sub!(char, ".#{char.downcase}")
+          end
+        end
+
+        c_group
+      end
+
       def kind
-        name.demodulize
+        if name.scan(/::/).length == 1
+          _, c_kind = name.split("::", 2)
+        else
+          _, _, c_kind = name.split("::", 3)
+        end
+
+        c_kind
+      end
+
+      def group_kind
+        ::Krane::KubernetesResource.combine_group_kind(group, kind)
       end
 
       private
@@ -115,6 +146,18 @@ module Krane
       "timeout: #{timeout}s"
     end
 
+    def kind
+      @definition["kind"]
+    end
+
+    def group
+      ::Krane::KubernetesResource.group_from_api_version(@definition["apiVersion"])
+    end
+
+    def group_kind
+      ::Krane::KubernetesResource.combine_group_kind(group, kind)
+    end
+
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
       # subclasses must also set these if they define their own initializer
       @name = (definition.dig("metadata", "name") || definition.dig("metadata", "generateName")).to_s
@@ -152,7 +195,7 @@ module Krane
     end
 
     def id
-      "#{type}/#{name}"
+      "#{group_kind}/#{name}"
     end
 
     def <=>(other)
@@ -164,7 +207,7 @@ module Krane
     end
 
     def sync(cache)
-      @instance_data = cache.get_instance(kubectl_resource_type, name, raise_if_not_found: true)
+      @instance_data = cache.get_instance(group_kind, name, raise_if_not_found: true)
     rescue Krane::Kubectl::ResourceNotFoundError
       @disappeared = true if deploy_started?
       @instance_data = {}
@@ -192,7 +235,7 @@ module Krane
     def deploy_succeeded?
       return false unless deploy_started?
       unless @success_assumption_warning_shown
-        @logger.warn("Don't know how to monitor resources of type #{type}. Assuming #{id} deployed successfully.")
+        @logger.warn("Don't know how to monitor resources of type #{group_kind}. Assuming #{id} deployed successfully.")
         @success_assumption_warning_shown = true
       end
       true
@@ -217,22 +260,9 @@ module Krane
       exists? ? "Exists" : "Not Found"
     end
 
-    def type
-      @type || self.class.kind
-    end
-
-    def group
-      grouping, version = @definition.dig("apiVersion").split("/")
-      version ? grouping : "core"
-    end
-
     def version
       prefix, version = @definition.dig("apiVersion").split("/")
       version || prefix
-    end
-
-    def kubectl_resource_type
-      type
     end
 
     def deploy_timed_out?
@@ -329,8 +359,10 @@ module Krane
     # }
     def fetch_events(kubectl)
       return {} unless exists?
-      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(type, name)}",
+
+      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(group, kind, name)}",
         log_failure: false, use_namespace: !global?)
+
       return {} unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
@@ -346,9 +378,13 @@ module Krane
     def failure_message
     end
 
+    def pretty_id
+      "#{kind}/#{name}"
+    end
+
     def pretty_status
       padding = " " * [50 - id.length, 1].max
-      "#{id}#{padding}#{status}"
+      "#{pretty_id}#{padding}#{status}"
     end
 
     def report_status_to_statsd(watch_time)
@@ -403,8 +439,12 @@ module Krane
       )
       FIELD_EMPTY_VALUE = '<no value>'
 
-      def self.go_template_for(kind, name)
+      def self.go_template_for(group, kind, name)
         and_conditions = [
+          # First check that the API version is of equal lenght or longer than the group.
+          %[(gt (len .involvedObject.apiVersion) (len \"#{group}\"))],
+          # Check that the API version starts with the group.
+          %[(eq (slice .involvedObject.apiVersion 0 (len \"#{group}\")) \"#{group}\")],
           %[(eq .involvedObject.kind "#{kind}")],
           %[(eq .involvedObject.name "#{name}")],
           '(ne .reason "Started")',
@@ -501,6 +541,34 @@ module Krane
 
     def selected?(selector)
       selector.nil? || selector.to_h <= labels
+    end
+
+    def self.group_from_api_version(input)
+      input.include?("/") ? input.split("/").first : ""
+    end
+
+    def self.combine_group_kind(group, kind)
+      "#{kind}.#{group}"
+    end
+
+    def self.group_kind_to_const(group_kind)
+      kind, group = group_kind.split(".", 2)
+
+      group = group.split(".").map(&:capitalize).join("")
+
+      if group == ""
+        group_const = ::Krane
+      elsif ::Krane.const_defined?(group)
+        group_const = ::Krane.const_get(group)
+      else
+        return nil
+      end
+
+      unless group_const.const_defined?(kind)
+        return nil
+      end
+
+      group_const.const_get(kind)
     end
 
     private
@@ -603,7 +671,7 @@ module Krane
     end
 
     def create_definition_tempfile
-      file = Tempfile.new(["#{type}-#{name}", ".yml"])
+      file = Tempfile.new(["#{group_kind}-#{name}", ".yml"])
       file.write(YAML.dump(@definition))
       file
     ensure
@@ -624,7 +692,7 @@ module Krane
       else
         "unknown"
       end
-      tags = %W(context:#{context} namespace:#{namespace} type:#{type} status:#{status})
+      tags = %W(context:#{context} namespace:#{namespace} type:#{group_kind} status:#{status})
       tags | @optional_statsd_tags
     end
   end
