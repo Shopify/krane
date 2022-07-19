@@ -5,7 +5,14 @@ module Krane
 
     def sync(cache)
       super
-      @storage_classes = cache.get_all("StorageClass").map { |sc| StorageClass.new(sc) }
+      @storage_classes = cache.get_all(::Krane::StorageK8sIo::StorageClass.group_kind).map do |sc|
+        ::Krane::StorageK8sIo::StorageClass.new(
+          namespace: namespace,
+          context: context,
+          definition: sc,
+          logger: @logger,
+        )
+      end
     end
 
     def status
@@ -53,28 +60,6 @@ module Krane
       # storage_class_name = nil is an impplicit request for default storage class
       elsif storage_class_name != ""
         @storage_classes.detect(&:default?)
-      end
-    end
-
-    class StorageClass < KubernetesResource
-      DEFAULT_CLASS_ANNOTATION = "storageclass.kubernetes.io/is-default-class"
-      DEFAULT_CLASS_BETA_ANNOTATION = "storageclass.beta.kubernetes.io/is-default-class"
-
-      attr_reader :name
-
-      def initialize(definition)
-        super(definition: definition, namespace: nil, context: nil, logger: nil)
-        @definition = definition
-        @name = definition.dig("metadata", "name").to_s
-      end
-
-      def volume_binding_mode
-        @definition.dig("volumeBindingMode")
-      end
-
-      def default?
-        @definition.dig("metadata", "annotations", DEFAULT_CLASS_ANNOTATION) == "true" ||
-        @definition.dig("metadata", "annotations", DEFAULT_CLASS_BETA_ANNOTATION) == "true"
       end
     end
   end

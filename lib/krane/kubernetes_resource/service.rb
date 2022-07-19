@@ -1,14 +1,16 @@
 # frozen_string_literal: true
 require 'krane/kubernetes_resource/pod'
+require 'krane/kubernetes_resource/apps/deployment'
+require 'krane/kubernetes_resource/apps/stateful_set'
 
 module Krane
   class Service < KubernetesResource
     TIMEOUT = 7.minutes
-    SYNC_DEPENDENCIES = %w(Pod Deployment StatefulSet)
+    SYNC_DEPENDENCIES = [::Krane::Pod, ::Krane::Apps::Deployment, ::Krane::Apps::StatefulSet]
 
     def sync(cache)
       super
-      @related_pods = cache.get_all(Pod.kind, selector)
+      @related_pods = cache.get_all(::Krane::Pod.group_kind, selector)
       @related_workloads = fetch_related_workloads(cache)
     end
 
@@ -46,8 +48,8 @@ module Krane
     private
 
     def fetch_related_workloads(cache)
-      related_deployments = cache.get_all(Deployment.kind)
-      related_statefulsets = cache.get_all(StatefulSet.kind)
+      related_deployments = cache.get_all(::Krane::Apps::Deployment.group_kind)
+      related_statefulsets = cache.get_all(::Krane::Apps::StatefulSet.group_kind)
       (related_deployments + related_statefulsets).select do |workload|
         selector.all? { |k, v| workload['spec']['template']['metadata']['labels'][k] == v }
       end

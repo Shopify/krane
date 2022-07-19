@@ -52,6 +52,10 @@ module Krane
       @definition.dig("spec", "group")
     end
 
+    def group_kind
+      ::Krane::KubernetesResource.combine_group_kind(group, kind)
+    end
+
     def prunable?
       prunable = krane_annotation_value("prunable")
       prunable == "true"

@@ -51,7 +51,7 @@ module Krane
     end
 
     def find_pods(cache)
-      all_pods = cache.get_all(Pod.kind, @instance_data["spec"]["selector"]["matchLabels"])
+      all_pods = cache.get_all(::Krane::Pod.group_kind, @instance_data["spec"]["selector"]["matchLabels"])
 
       all_pods.each_with_object([]) do |pod_data, relevant_pods|
         next unless parent_of_pod?(pod_data)
@@ -60,7 +60,7 @@ module Krane
           context: context,
           definition: pod_data,
           logger: @logger,
-          parent: "#{name.capitalize} #{type}",
+          parent: "#{name.capitalize} #{group_kind}",
           deploy_started_at: @deploy_started_at
         )
         pod.sync(cache)
