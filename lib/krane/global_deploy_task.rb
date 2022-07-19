@@ -25,7 +25,7 @@ module Krane
   class GlobalDeployTask
     extend Krane::StatsD::MeasureMethods
     include TemplateReporting
-    delegate :context, :logger, :global_kinds, :kubeclient_builder, to: :@task_config
+    delegate :context, :logger, :kubeclient_builder, to: :@task_config
     attr_reader :task_config
 
     # Initializes the deploy task
@@ -164,13 +164,17 @@ module Krane
     def discover_resources
       logger.info("Discovering resources:")
       resources = []
-      crds_by_kind = cluster_resource_discoverer.crds.map { |crd| [crd.name, crd] }.to_h
+      gvk = @task_config.gvk
+
+      crds_by_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
       @template_sets.with_resource_definitions do |r_def|
-        crd = crds_by_kind[r_def["kind"]]&.first
+        group = ::Krane::KubernetesResource.group_from_api_version(r_def["apiVersion"])
+        crd = crds_by_kind[::Krane::KubernetesResource.combine_group_kind(group, r_def["kind"])]&.first
+
         r = KubernetesResource.build(context: context, logger: logger, definition: r_def,
-          crd: crd, global_names: global_kinds, statsd_tags: statsd_tags)
+          crd: crd, gvk: gvk, statsd_tags: statsd_tags)
         resources << r
-        logger.info("  - #{r.id}")
+        logger.info("  - #{r.pretty_id}")
       end
 
       StatsD.client.gauge('discover_resources.count', resources.size, tags: statsd_tags)

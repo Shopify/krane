@@ -9,31 +9,7 @@ require 'krane/common'
 require 'krane/concurrency'
 require 'krane/resource_cache'
 require 'krane/kubernetes_resource'
-%w(
-  custom_resource
-  config_map
-  deployment
-  ingress
-  persistent_volume_claim
-  pod
-  network_policy
-  service
-  pod_template
-  pod_disruption_budget
-  replica_set
-  service_account
-  daemon_set
-  resource_quota
-  stateful_set
-  cron_job
-  job
-  custom_resource_definition
-  horizontal_pod_autoscaler
-  secret
-  mutating_webhook_configuration
-).each do |subresource|
-  require "krane/kubernetes_resource/#{subresource}"
-end
+Dir["#{__dir__}/kubernetes_resource/**/*.rb"].each { |f| require f }
 require 'krane/resource_watcher'
 require 'krane/kubectl'
 require 'krane/kubeclient_builder'
@@ -60,18 +36,18 @@ module Krane
     def predeploy_sequence
       default_group = { group: nil }
       before_crs = %w(
-        ResourceQuota
-        NetworkPolicy
-        ConfigMap
-        PersistentVolumeClaim
-        ServiceAccount
-        Role
-        RoleBinding
-        Secret
+        ResourceQuota.
+        NetworkPolicy.networking.k8s.io
+        ConfigMap.
+        PersistentVolumeClaim.
+        ServiceAccount.
+        Role.rbac.authorization.k8s.io
+        RoleBinding.rbac.authorization.k8s.io
+        Secret.
       ).map { |r| [r, default_group] }
 
       after_crs = %w(
-        Pod
+        Pod.
       ).map { |r| [r, default_group] }
 
       crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, { group: cr.group }] }
@@ -218,7 +194,7 @@ module Krane
 
     def deploy_has_priority_resources?(resources)
       resources.any? do |r|
-        next unless (pr = predeploy_sequence[r.type])
+        next unless (pr = predeploy_sequence[r.group_kind])
         !pr[:group] || pr[:group] == r.group
       end
     end
@@ -238,18 +214,22 @@ module Krane
     def discover_resources
       @logger.info("Discovering resources:")
       resources = []
-      crds_by_kind = cluster_resource_discoverer.crds.group_by(&:kind)
+      crds_by_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
+      gvk = @task_config.gvk
+
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
-        crd = crds_by_kind[r_def["kind"]]&.first
+        group = ::Krane::KubernetesResource.group_from_api_version(r_def["apiVersion"])
+
+        crd = crds_by_kind[::Krane::KubernetesResource.combine_group_kind(group, r_def["kind"])]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
+          statsd_tags: @namespace_tags, crd: crd, gvk: gvk)
         resources << r
-        @logger.info("  - #{r.id}")
+        @logger.info("  - #{r.pretty_id}")
       end
 
       secrets_from_ejson.each do |secret|
         resources << secret
-        @logger.info("  - #{secret.id} (from ejson)")
+        @logger.info("  - #{secret.pretty_id} (from ejson)")
       end
 
       StatsD.client.gauge('discover_resources.count', resources.size, tags: statsd_tags)
@@ -321,7 +301,7 @@ module Krane
     def validate_globals(resources)
       return unless (global = resources.select(&:global?).presence)
       global_names = global.map do |resource|
-        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
+        "#{resource.name} (#{resource.group_kind}) in #{File.basename(resource.file_path)}"
       end
       global_names = FormattedLogger.indent_four(global_names.join("\n"))
 
@@ -349,7 +329,7 @@ module Krane
       return unless ejson_keys_secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
 
       @logger.error("Deploy cannot proceed because protected resource " \
-        "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
+        "Secret./#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
       raise EjsonPrunableError
     rescue Kubectl::ResourceNotFoundError => e
       @logger.debug("Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} does not exist: #{e}")
