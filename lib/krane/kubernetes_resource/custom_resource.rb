@@ -58,10 +58,6 @@ module Krane
       end
     end
 
-    def type
-      "#{group}.#{kind}"
-    end
-
     def validate_definition(*, **)
       super
 

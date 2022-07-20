@@ -81,8 +81,8 @@ module Krane
           return ""
         end
 
+        # Converts Krane::ApiextensionsK8sIo::CustomResourceDefinition to apiextensions.k8s.io
         _, c_group, _ = name.split("::", 3)
-
         while (l = c_group.match(/[A-Z]/))
           char = l.to_s
           if c_group.index(char) == 0
@@ -96,6 +96,7 @@ module Krane
       end
 
       def kind
+        # Converts Krane::ApiextensionsK8sIo::CustomResourceDefinition to CustomResourceDefinition
         if name.scan(/::/).length == 1
           _, c_kind = name.split("::", 2)
         else
@@ -159,7 +160,7 @@ module Krane
     end
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
-      # subclasses must also set these if they define their own initializer
+      # Subclasses must also set these if they define their own initializer
       @name = (definition.dig("metadata", "name") || definition.dig("metadata", "generateName")).to_s
       @optional_statsd_tags = statsd_tags
       @namespace = namespace
@@ -352,7 +353,7 @@ module Krane
 
     # Returns a hash in the following format:
     # {
-    #   "pod/web-1" => [
+    #   "Pod./web-1" => [
     #     "Pulling: pulling image "hello-world:latest" (1 events)",
     #     "Pulled: Successfully pulled image "hello-world:latest" (1 events)"
     #   ]
