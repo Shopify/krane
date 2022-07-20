@@ -148,6 +148,7 @@ module Krane
       @logs ||= Krane::RemoteLogs.new(
         logger: @logger,
         parent_id: id,
+        parent_pretty_id: pretty_id,
         container_names: @containers.map(&:name),
         namespace: @namespace,
         context: @context
@@ -193,14 +194,14 @@ module Krane
     def raise_predates_deploy_error
       example_color = :green
       msg = <<-STRING.strip_heredoc
-        Unmanaged pods like #{id} must have unique names on every deploy in order to work as intended.
+        Unmanaged pods like #{pretty_id} must have unique names on every deploy in order to work as intended.
         The recommended way to achieve this is to include "<%= deployment_id %>" in the pod's name, like this:
           #{ColorizedString.new('kind: Pod').colorize(example_color)}
           #{ColorizedString.new('metadata:').colorize(example_color)}
             #{ColorizedString.new("name: #{@name}-<%= deployment_id %>").colorize(example_color)}
       STRING
       @logger.summary.add_paragraph(msg)
-      raise FatalDeploymentError, "#{id} existed before the deploy started"
+      raise FatalDeploymentError, "#{pretty_id} existed before the deploy started"
     end
 
     class Container

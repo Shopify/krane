@@ -36,25 +36,16 @@ module Krane
         end
       end
 
-      def group_version_kind
-        group = @definition.dig("spec", "group")
-        # Since 1.22: spec.version is removed in v1; use spec.versions instead.
-        # New spec here: https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#create-a-customresourcedefinition
-        # This is only used in testing, so we will simply take the first version we see:
-        version = @definition.dig("spec", "versions", 0, "name")
-        "#{group}/#{version}/#{kind}"
-      end
-
-      def kind
+      def cr_kind
         @definition.dig("spec", "names", "kind")
       end
 
-      def group
+      def cr_group
         @definition.dig("spec", "group")
       end
 
-      def group_kind
-        ::Krane::KubernetesResource.combine_group_kind(group, kind)
+      def cr_group_kind
+        ::Krane::KubernetesResource.combine_group_kind(cr_group, cr_kind)
       end
 
       def prunable?

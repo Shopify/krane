@@ -44,7 +44,7 @@ module Krane
     SYNC_DEPENDENCIES = []
 
     class << self
-      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, gvk: [])
+      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, group_kinds: [])
         validate_definition_essentials(definition)
 
         group = ::Krane::KubernetesResource.group_from_api_version(definition["apiVersion"])
@@ -65,7 +65,7 @@ module Krane
         end
 
         inst.global = GLOBAL
-        if (entry = gvk.find { |x| x["group_kind"] == group_kind })
+        if (entry = group_kinds.find { |x| x["group_kind"] == group_kind })
           inst.global = !entry["namespaced"]
         end
         inst
@@ -235,7 +235,7 @@ module Krane
     def deploy_succeeded?
       return false unless deploy_started?
       unless @success_assumption_warning_shown
-        @logger.warn("Don't know how to monitor resources of type #{group_kind}. Assuming #{id} deployed successfully.")
+        @logger.warn("Don't know how to monitor resources of type #{kind}. Assuming #{pretty_id} deployed successfully.")
         @success_assumption_warning_shown = true
       end
       true
@@ -291,18 +291,18 @@ module Krane
     def debug_message(cause = nil, info_hash = {})
       helpful_info = []
       if cause == :gave_up
-        debug_heading = ColorizedString.new("#{id}: GLOBAL WATCH TIMEOUT (#{info_hash[:timeout]} seconds)").yellow
+        debug_heading = ColorizedString.new("#{pretty_id}: GLOBAL WATCH TIMEOUT (#{info_hash[:timeout]} seconds)").yellow
         helpful_info << "If you expected it to take longer than #{info_hash[:timeout]} seconds for your deploy"\
         " to roll out, increase --global-timeout."
       elsif deploy_failed?
-        debug_heading = ColorizedString.new("#{id}: FAILED").red
+        debug_heading = ColorizedString.new("#{pretty_id}: FAILED").red
         helpful_info << failure_message if failure_message.present?
       elsif deploy_timed_out?
-        debug_heading = ColorizedString.new("#{id}: TIMED OUT (#{pretty_timeout_type})").yellow
+        debug_heading = ColorizedString.new("#{pretty_id}: TIMED OUT (#{pretty_timeout_type})").yellow
         helpful_info << timeout_message if timeout_message.present?
       else
         # Arriving in debug_message when we neither failed nor timed out is very unexpected. Dump all available info.
-        debug_heading = ColorizedString.new("#{id}: MONITORING ERROR").red
+        debug_heading = ColorizedString.new("#{pretty_id}: MONITORING ERROR").red
         helpful_info << failure_message if failure_message.present?
         helpful_info << timeout_message if timeout_message.present? && timeout_message != STANDARD_TIMEOUT_MESSAGE
       end
@@ -314,8 +314,8 @@ module Krane
 
       if @debug_events.present?
         helpful_info << "  - Events (common success events excluded):"
-        @debug_events.each do |identifier, event_hashes|
-          event_hashes.each { |event| helpful_info << "      [#{identifier}]\t#{event}" }
+        @debug_events.each do |_, event_hashes|
+          event_hashes.each { |event| helpful_info << "      #{event}" }
         end
       elsif ENV[DISABLE_FETCHING_EVENT_INFO]
         helpful_info << "  - Events: #{DISABLED_EVENT_INFO_MESSAGE}"
@@ -367,7 +367,7 @@ module Krane
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
       Event.extract_all_from_go_template_blob(out).each_with_object(event_collector) do |candidate, events|
-        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started_at - 5.seconds)
+        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started_at - 10.seconds)
       end
     end
 
@@ -383,7 +383,7 @@ module Krane
     end
 
     def pretty_status
-      padding = " " * [50 - id.length, 1].max
+      padding = " " * [50 - pretty_id.length, 1].max
       "#{pretty_id}#{padding}#{status}"
     end
 
@@ -531,7 +531,7 @@ module Krane
       end
 
       def to_s
-        "#{@reason}: #{@message} (#{@count} events)"
+        "[#{@subject_kind}/#{@subject_name}]\t#{@reason}: #{@message} (#{@count} events)"
       end
     end
 
@@ -569,6 +569,8 @@ module Krane
       end
 
       group_const.const_get(kind)
+    rescue NameError => _
+      nil
     end
 
     private

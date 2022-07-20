@@ -13,12 +13,8 @@ require 'krane/kubernetes_resource'
 require 'krane/global_deploy_task_config_validator'
 require 'krane/concerns/template_reporting'
 
-%w(
-  custom_resource
-  custom_resource_definition
-).each do |subresource|
-  require "krane/kubernetes_resource/#{subresource}"
-end
+require "krane/kubernetes_resource/custom_resource"
+require "krane/kubernetes_resource/apiextensions_k8s_io/custom_resource_definition"
 
 module Krane
   # Ship global resources to a context
@@ -153,7 +149,7 @@ module Krane
     def validate_globals(resources)
       return unless (namespaced = resources.reject(&:global?).presence)
       namespaced_names = namespaced.map do |resource|
-        "#{resource.name} (#{resource.type}) in #{File.basename(resource.file_path)}"
+        "#{resource.name} (#{resource.group_kind}) in #{File.basename(resource.file_path)}"
       end
       namespaced_names = FormattedLogger.indent_four(namespaced_names.join("\n"))
 
@@ -164,7 +160,7 @@ module Krane
     def discover_resources
       logger.info("Discovering resources:")
       resources = []
-      gvk = @task_config.gvk
+      group_kinds = @task_config.group_kinds
 
       crds_by_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
       @template_sets.with_resource_definitions do |r_def|
@@ -172,7 +168,7 @@ module Krane
         crd = crds_by_kind[::Krane::KubernetesResource.combine_group_kind(group, r_def["kind"])]&.first
 
         r = KubernetesResource.build(context: context, logger: logger, definition: r_def,
-          crd: crd, gvk: gvk, statsd_tags: statsd_tags)
+          crd: crd, group_kinds: group_kinds, statsd_tags: statsd_tags)
         resources << r
         logger.info("  - #{r.pretty_id}")
       end

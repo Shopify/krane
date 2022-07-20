@@ -22,6 +22,7 @@ module Krane
       logs = Krane::RemoteLogs.new(
         logger: @logger,
         parent_id: id,
+        parent_pretty_id: pretty_id,
         container_names: container_names,
         namespace: @namespace,
         context: @context

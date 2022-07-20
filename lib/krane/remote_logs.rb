@@ -5,14 +5,15 @@ module Krane
   class RemoteLogs
     attr_reader :container_logs
 
-    def initialize(logger:, parent_id:, container_names:, namespace:, context:)
+    def initialize(logger:, parent_id:, parent_pretty_id:, container_names:, namespace:, context:)
       @logger = logger
-      @parent_id = parent_id
+      @parent_pretty_id = parent_pretty_id
       @container_logs = container_names.map do |n|
         ContainerLogs.new(
           logger: logger,
           container_name: n,
           parent_id: parent_id,
+          parent_pretty_id: parent_pretty_id,
           namespace: namespace,
           context: context
         )
@@ -30,7 +31,7 @@ module Krane
     def print_latest
       @container_logs.each do |cl|
         unless cl.printing_started?
-          @logger.info("Streaming logs from #{@parent_id} container '#{cl.container_name}':")
+          @logger.info("Streaming logs from #{@parent_pretty_id} container '#{cl.container_name}':")
         end
         cl.print_latest(prefix: @container_logs.length > 1)
       end
@@ -40,15 +41,15 @@ module Krane
       return if @already_displayed && prevent_duplicate
 
       if @container_logs.all?(&:empty?)
-        @logger.warn("No logs found for #{@parent_id}")
+        @logger.warn("No logs found for #{@parent_pretty_id}")
         return
       end
 
       @container_logs.each do |cl|
         if cl.empty?
-          @logger.warn("No logs found for #{@parent_id} container '#{cl.container_name}'")
+          @logger.warn("No logs found for #{@parent_pretty_id} container '#{cl.container_name}'")
         else
-          @logger.info("Logs from #{@parent_id} container '#{cl.container_name}':")
+          @logger.info("Logs from #{@parent_pretty_id} container '#{cl.container_name}':")
           cl.print_all
           @logger.blank_line
         end

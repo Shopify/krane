@@ -13,14 +13,8 @@ module Krane
       @kubeconfig = kubeconfig || ENV['KUBECONFIG']
     end
 
-    def group_kind_to_kind(group_kind)
-      hashy = fetch_resources.find{ |x| ::Krane::KubernetesResource.combine_group_kind(x["apigroup"], x["kind"]) == group_kind }
-
-      hashy["kind"]
-    end
-
-    def gvk
-      @gvk ||= cluster_resource_discoverer.fetch_gvk
+    def group_kinds
+      @group_kinds ||= cluster_resource_discoverer.fetch_group_kinds
     end
 
     def kubeclient_builder

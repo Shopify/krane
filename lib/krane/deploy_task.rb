@@ -34,7 +34,6 @@ module Krane
     )
 
     def predeploy_sequence
-      default_group = { group: nil }
       before_crs = %w(
         ResourceQuota.
         NetworkPolicy.networking.k8s.io
@@ -44,14 +43,14 @@ module Krane
         Role.rbac.authorization.k8s.io
         RoleBinding.rbac.authorization.k8s.io
         Secret.
-      ).map { |r| [r, default_group] }
+      )
 
       after_crs = %w(
         Pod.
-      ).map { |r| [r, default_group] }
+      )
 
-      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, { group: cr.group }] }
-      Hash[before_crs + crs + after_crs]
+      crs = cluster_resource_discoverer.crds.select(&:predeployed?).map(&:cr_group_kind)
+      before_crs + crs + after_crs
     end
 
     def prune_whitelist
@@ -193,10 +192,7 @@ module Krane
     end
 
     def deploy_has_priority_resources?(resources)
-      resources.any? do |r|
-        next unless (pr = predeploy_sequence[r.group_kind])
-        !pr[:group] || pr[:group] == r.group
-      end
+      resources.any? { |r| predeploy_sequence.find(r.group_kind) }
     end
 
     def check_initial_status(resources)
@@ -215,14 +211,14 @@ module Krane
       @logger.info("Discovering resources:")
       resources = []
       crds_by_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
-      gvk = @task_config.gvk
+      group_kinds = @task_config.group_kinds
 
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
         group = ::Krane::KubernetesResource.group_from_api_version(r_def["apiVersion"])
 
         crd = crds_by_kind[::Krane::KubernetesResource.combine_group_kind(group, r_def["kind"])]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, gvk: gvk)
+          statsd_tags: @namespace_tags, crd: crd, group_kinds: group_kinds)
         resources << r
         @logger.info("  - #{r.pretty_id}")
       end
@@ -301,7 +297,7 @@ module Krane
     def validate_globals(resources)
       return unless (global = resources.select(&:global?).presence)
       global_names = global.map do |resource|
-        "#{resource.name} (#{resource.group_kind}) in #{File.basename(resource.file_path)}"
+        "#{resource.name} (#{resource.kind}) in #{File.basename(resource.file_path)}"
       end
       global_names = FormattedLogger.indent_four(global_names.join("\n"))
 
@@ -329,7 +325,7 @@ module Krane
       return unless ejson_keys_secret.dig("metadata", "annotations", KubernetesResource::LAST_APPLIED_ANNOTATION)
 
       @logger.error("Deploy cannot proceed because protected resource " \
-        "Secret./#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
+        "Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} would be pruned.")
       raise EjsonPrunableError
     rescue Kubectl::ResourceNotFoundError => e
       @logger.debug("Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET} does not exist: #{e}")
@@ -347,7 +343,7 @@ module Krane
 
     def ejson_keys_secret
       @ejson_keys_secret ||= begin
-        out, err, st = kubectl.run("get", "secret", EjsonSecretProvisioner::EJSON_KEYS_SECRET, output: "json",
+        out, err, st = kubectl.run("get", "secret.", EjsonSecretProvisioner::EJSON_KEYS_SECRET, output: "json",
           raise_if_not_found: true, attempts: 3, output_is_sensitive: true, log_failure: true)
         unless st.success?
           raise EjsonSecretError, "Error retrieving Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err}"

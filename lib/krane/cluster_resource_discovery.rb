@@ -13,7 +13,7 @@ module Krane
 
     def crds
       @crds ||= fetch_crds.map do |cr_def|
-        CustomResourceDefinition.new(namespace: namespace, context: context, logger: logger,
+        ::Krane::ApiextensionsK8sIo::CustomResourceDefinition.new(namespace: namespace, context: context, logger: logger,
           definition: cr_def, statsd_tags: @namespace_tags)
       end
     end
@@ -37,7 +37,7 @@ module Krane
       end.compact.uniq { |r| "#{r['apigroup']}/#{r['kind']}" }
     end
 
-    def fetch_gvk
+    def fetch_group_kinds
       output, _, _ = kubectl.run("api-resources", "--no-headers=true", attempts: 2, use_namespace: false)
       output.split("\n").map do |l|
         matches = l.scan(/\S+/)
@@ -69,7 +69,7 @@ module Krane
       raw_json, err, st = kubectl.run(*command, output: "json", attempts: 5, use_namespace: false)
       if st.success?
         JSON.parse(raw_json)["items"].map do |definition|
-          Krane::MutatingWebhookConfiguration.new(namespace: namespace, context: context, logger: logger,
+          Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration.new(namespace: namespace, context: context, logger: logger,
             definition: definition, statsd_tags: @namespace_tags)
         end
       else

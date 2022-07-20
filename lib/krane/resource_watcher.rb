@@ -94,13 +94,13 @@ module Krane
       if new_successes.present?
         new_successes.each { |r| r.report_status_to_statsd(watch_time) }
         success_string = ColorizedString.new("Successfully #{past_tense_operation} in #{watch_time}s:").green
-        logger.info("#{success_string} #{new_successes.map(&:id).join(', ')}")
+        logger.info("#{success_string} #{new_successes.map(&:pretty_id).join(', ')}")
       end
     end
 
     def report_what_is_left(resources, reminder:)
       return unless resources.present?
-      resource_list = resources.map(&:id).join(', ')
+      resource_list = resources.map(&:pretty_id).join(', ')
       msg = reminder ? "Still waiting for: #{resource_list}" : "Continuing to wait for: #{resource_list}"
       logger.info(msg)
     end
