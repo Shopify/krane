@@ -1,5 +1,5 @@
 ---
-apiVersion: "stable.example.io/v1"
+apiVersion: stable.example.io/v1
 kind: Parameterized
 metadata:
   name: with-default-params

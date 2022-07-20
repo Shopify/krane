@@ -65,12 +65,12 @@ module Krane
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
       raw_json, _, st = @kubectl.run(
         "get",
-         group_kind,
-          "--chunk-size=0",
-           attempts: 5,
-            output: "json",
-         output_is_sensitive: output_is_sensitive,
-          use_namespace: group_kind_meta ? group_kind_meta["namespaced"] : true
+        group_kind,
+        "--chunk-size=0",
+        attempts: 5,
+        output: "json",
+        output_is_sensitive: output_is_sensitive,
+        use_namespace: group_kind_meta ? group_kind_meta["namespaced"] : true
       )
       raise KubectlError unless st.success?
 

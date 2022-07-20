@@ -2,456 +2,456 @@
 require 'integration_test_helper'
 
 class KraneDeployTest < Krane::IntegrationTest
-#   def test_full_hello_cloud_set_deploy_succeeds
-#     assert_deploy_success(deploy_fixtures("hello-cloud", render_erb: true))
-#     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-#     hello_cloud.assert_all_up
+  def test_full_hello_cloud_set_deploy_succeeds
+    assert_deploy_success(deploy_fixtures("hello-cloud", render_erb: true))
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_all_up
 
-#     assert_logs_match_all([
-#       "All required parameters and files are present",
-#       "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
-#       /Deploying resources:/,
-#       %r{- Pod/unmanaged-pod-1-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
-#       %r{- Pod/unmanaged-pod-2-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
-#       "Hello from the command runner!", # unmanaged pod logs
-#       "Result: SUCCESS",
-#       /Successfully deployed 26 resources/i,
-#     ], in_order: true)
-#     refute_logs_match(/Using resource selector/)
+    assert_logs_match_all([
+      "All required parameters and files are present",
+      "Deploying ConfigMap/hello-cloud-configmap-data (timeout: 30s)",
+      /Deploying resources:/,
+      %r{- Pod/unmanaged-pod-1-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
+      %r{- Pod/unmanaged-pod-2-[-\w]+ \(timeout: 60s\)}, # annotation timeout override
+      "Hello from the command runner!", # unmanaged pod logs
+      "Result: SUCCESS",
+      /Successfully deployed 26 resources/i,
+    ], in_order: true)
+    refute_logs_match(/Using resource selector/)
 
-#     num_ds = expected_daemonset_pod_count
-#     assert_logs_match_all([
-#       %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
-#       %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
-#       %r{Service/web\s+Selects at least 1 pod},
-#       %r{DaemonSet/ds-app\s+#{num_ds} updatedNumberScheduled, #{num_ds} desiredNumberScheduled, #{num_ds} numberReady},
-#       %r{StatefulSet/stateful-busybox},
-#       %r{Service/redis-external\s+Doesn't require any endpoint},
-#       "- Job/hello-job (timeout: 600s)",
-#       %r{Job/hello-job\s+(Succeeded|Started)},
-#     ])
+    num_ds = expected_daemonset_pod_count
+    assert_logs_match_all([
+      %r{ReplicaSet/bare-replica-set\s+1 replica, 1 availableReplica, 1 readyReplica},
+      %r{Deployment/web\s+1 replica, 1 updatedReplica, 1 availableReplica},
+      %r{Service/web\s+Selects at least 1 pod},
+      %r{DaemonSet/ds-app\s+#{num_ds} updatedNumberScheduled, #{num_ds} desiredNumberScheduled, #{num_ds} numberReady},
+      %r{StatefulSet/stateful-busybox},
+      %r{Service/redis-external\s+Doesn't require any endpoint},
+      "- Job/hello-job (timeout: 600s)",
+      %r{Job/hello-job\s+(Succeeded|Started)},
+    ])
 
-#     # Verify that success section isn't duplicated for predeployed resources
-#     assert_logs_match("Successful resources", 1)
-#     assert_logs_match(%r{ConfigMap/hello-cloud-configmap-data\s+Available}, 1)
-#   end
+    # Verify that success section isn't duplicated for predeployed resources
+    assert_logs_match("Successful resources", 1)
+    assert_logs_match(%r{ConfigMap/hello-cloud-configmap-data\s+Available}, 1)
+  end
 
-#   def test_deploy_fails_with_empty_yaml
-#     assert_deploy_failure(deploy_raw_fixtures("empty-resources", subset: %w[empty1.yml empty2.yml]))
+  def test_deploy_fails_with_empty_yaml
+    assert_deploy_failure(deploy_raw_fixtures("empty-resources", subset: %w[empty1.yml empty2.yml]))
 
-#     assert_logs_match_all([
-#                             "All required parameters and files are present",
-#                             "Result: FAILURE",
-#                             "No deployable resources were found!",
-#                           ], in_order: true)
-#   end
+    assert_logs_match_all([
+                            "All required parameters and files are present",
+                            "Result: FAILURE",
+                            "No deployable resources were found!",
+                          ], in_order: true)
+  end
 
-#   def test_deploy_fails_with_empty_erb
-#     assert_deploy_failure(deploy_raw_fixtures("empty-resources", subset: %w[empty3.yml.erb empty4.yml.erb], render_erb: true))
+  def test_deploy_fails_with_empty_erb
+    assert_deploy_failure(deploy_raw_fixtures("empty-resources", subset: %w[empty3.yml.erb empty4.yml.erb], render_erb: true))
 
-#     assert_logs_match_all([
-#                             "All required parameters and files are present",
-#                             "Result: FAILURE",
-#                             "No deployable resources were found!",
-#                           ], in_order: true)
-#   end
+    assert_logs_match_all([
+                            "All required parameters and files are present",
+                            "Result: FAILURE",
+                            "No deployable resources were found!",
+                          ], in_order: true)
+  end
 
-#   def test_service_account_predeployed_before_unmanaged_pod
-#     # Add a valid service account in unmanaged pod
-#     service_account_name = "build-robot"
-#     result = deploy_fixtures("hello-cloud",
-#       subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "service-account.yml"],
-#       render_erb: true) do |fixtures|
-#       pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
-#       pod["spec"]["serviceAccountName"] = service_account_name
-#       pod["spec"]["automountServiceAccountToken"] = false
-#     end
-#     # Expect the service account is deployed before the unmanaged pod
-#     assert_deploy_success(result)
-#     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-#     hello_cloud.assert_configmap_data_present
-#     hello_cloud.assert_all_service_accounts_up
-#     hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
-#     assert_logs_match_all([
-#       %r{Successfully deployed in \d.\ds: ServiceAccount/build-robot},
-#       %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-.*},
-#     ], in_order: true)
-#   end
+  def test_service_account_predeployed_before_unmanaged_pod
+    # Add a valid service account in unmanaged pod
+    service_account_name = "build-robot"
+    result = deploy_fixtures("hello-cloud",
+      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "service-account.yml"],
+      render_erb: true) do |fixtures|
+      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
+      pod["spec"]["serviceAccountName"] = service_account_name
+      pod["spec"]["automountServiceAccountToken"] = false
+    end
+    # Expect the service account is deployed before the unmanaged pod
+    assert_deploy_success(result)
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_configmap_data_present
+    hello_cloud.assert_all_service_accounts_up
+    hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
+    assert_logs_match_all([
+      %r{Successfully deployed in \d.\ds: ServiceAccount/build-robot},
+      %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-.*},
+    ], in_order: true)
+  end
 
-#   def test_role_and_role_binding_predeployed_before_unmanaged_pod
-#     result = deploy_fixtures(
-#       "hello-cloud",
-#       subset: [
-#         "configmap-data.yml",
-#         "unmanaged-pod-1.yml.erb",
-#         "role-binding.yml",
-#         "role.yml",
-#         "service-account.yml",
-#       ],
-#       render_erb: true
-#     )
+  def test_role_and_role_binding_predeployed_before_unmanaged_pod
+    result = deploy_fixtures(
+      "hello-cloud",
+      subset: [
+        "configmap-data.yml",
+        "unmanaged-pod-1.yml.erb",
+        "role-binding.yml",
+        "role.yml",
+        "service-account.yml",
+      ],
+      render_erb: true
+    )
 
-#     # Expect that role binding account is deployed before the unmanaged pod
-#     assert_deploy_success(result)
-#     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-#     hello_cloud.assert_configmap_data_present
-#     hello_cloud.assert_all_service_accounts_up
-#     hello_cloud.assert_all_roles_up
-#     hello_cloud.assert_all_role_bindings_up
-#     hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
-#     assert_logs_match_all([
-#       %r{Successfully deployed in \d.\ds: Role/role},
-#       %r{Successfully deployed in \d.\ds: RoleBinding/role-binding},
-#       %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-1-.*},
-#     ], in_order: true)
-#   end
+    # Expect that role binding account is deployed before the unmanaged pod
+    assert_deploy_success(result)
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_configmap_data_present
+    hello_cloud.assert_all_service_accounts_up
+    hello_cloud.assert_all_roles_up
+    hello_cloud.assert_all_role_bindings_up
+    hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
+    assert_logs_match_all([
+      %r{Successfully deployed in \d.\ds: Role/role},
+      %r{Successfully deployed in \d.\ds: RoleBinding/role-binding},
+      %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-1-.*},
+    ], in_order: true)
+  end
 
-#   def test_pruning_works
-#     assert_deploy_success(deploy_fixtures("hello-cloud", render_erb: true))
-#     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-#     hello_cloud.assert_all_up
+  def test_pruning_works
+    assert_deploy_success(deploy_fixtures("hello-cloud", render_erb: true))
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_all_up
 
-#     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["redis.yml"]))
-#     hello_cloud.assert_all_redis_resources_up
-#     hello_cloud.refute_configmap_data_exists
-#     hello_cloud.refute_unmanaged_pod_exists
-#     hello_cloud.refute_web_resources_exist
-#     expected_pruned = [
-#       prune_matcher("configmap", "", "hello-cloud-configmap-data"),
-#       prune_matcher("pod", "", "unmanaged-pod-"),
-#       prune_matcher("service", "", "web"),
-#       prune_matcher("service", "", "stateful-busybox"),
-#       prune_matcher("resourcequota", "", "resource-quotas"),
-#       prune_matcher("deployment", "apps", "web"),
-#       prune_matcher("daemonset", "apps", "ds-app"),
-#       prune_matcher("statefulset", "apps", "stateful-busybox"),
-#       prune_matcher("job", "batch", "hello-job"),
-#       prune_matcher("poddisruptionbudget", "policy", "test"),
-#       prune_matcher("networkpolicy", "*", "allow-all-network-policy"),
-#       prune_matcher("secret", "", "hello-secret"),
-#       prune_matcher("replicaset", "apps", "bare-replica-set"),
-#       prune_matcher("serviceaccount", "", "build-robot"),
-#       prune_matcher("podtemplate", "", "hello-cloud-template-runner"),
-#       prune_matcher("role", "rbac.authorization.k8s.io", "role"),
-#       prune_matcher("rolebinding", "rbac.authorization.k8s.io", "role-binding"),
-#       prune_matcher("persistentvolumeclaim", "", "hello-pv-claim"),
-#       prune_matcher("ingress", %w(networking.k8s.io extensions), "web")
-#     ] # not necessarily listed in this order
-#     expected_msgs = [/Pruned 2[013] resources and successfully deployed 6 resources/]
-#     expected_pruned.map do |resource|
-#       expected_msgs << /The following resources were pruned:.*#{resource}/
-#     end
-#     assert_logs_match_all(expected_msgs)
-#   end
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["redis.yml"]))
+    hello_cloud.assert_all_redis_resources_up
+    hello_cloud.refute_configmap_data_exists
+    hello_cloud.refute_unmanaged_pod_exists
+    hello_cloud.refute_web_resources_exist
+    expected_pruned = [
+      prune_matcher("configmap", "", "hello-cloud-configmap-data"),
+      prune_matcher("pod", "", "unmanaged-pod-"),
+      prune_matcher("service", "", "web"),
+      prune_matcher("service", "", "stateful-busybox"),
+      prune_matcher("resourcequota", "", "resource-quotas"),
+      prune_matcher("deployment", "apps", "web"),
+      prune_matcher("daemonset", "apps", "ds-app"),
+      prune_matcher("statefulset", "apps", "stateful-busybox"),
+      prune_matcher("job", "batch", "hello-job"),
+      prune_matcher("poddisruptionbudget", "policy", "test"),
+      prune_matcher("networkpolicy", "*", "allow-all-network-policy"),
+      prune_matcher("secret", "", "hello-secret"),
+      prune_matcher("replicaset", "apps", "bare-replica-set"),
+      prune_matcher("serviceaccount", "", "build-robot"),
+      prune_matcher("podtemplate", "", "hello-cloud-template-runner"),
+      prune_matcher("role", "rbac.authorization.k8s.io", "role"),
+      prune_matcher("rolebinding", "rbac.authorization.k8s.io", "role-binding"),
+      prune_matcher("persistentvolumeclaim", "", "hello-pv-claim"),
+      prune_matcher("ingress", %w(networking.k8s.io extensions), "web")
+    ] # not necessarily listed in this order
+    expected_msgs = [/Pruned 2[013] resources and successfully deployed 6 resources/]
+    expected_pruned.map do |resource|
+      expected_msgs << /The following resources were pruned:.*#{resource}/
+    end
+    assert_logs_match_all(expected_msgs)
+  end
 
-#   def test_pruning_disabled
-#     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]))
-#     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-#     hello_cloud.assert_configmap_data_present
+  def test_pruning_disabled
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]))
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_configmap_data_present
 
-#     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"], prune: false))
-#     hello_cloud.assert_configmap_data_present
-#     hello_cloud.assert_poddisruptionbudget
-#   end
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"], prune: false))
+    hello_cloud.assert_configmap_data_present
+    hello_cloud.assert_poddisruptionbudget
+  end
 
-#   def test_selector
-#     # Deploy the same thing twice with a different selector
-#     assert_deploy_success(deploy_fixtures("branched", subset: ["web.yml.erb"],
-#       bindings: { "branch" => "master" },
-#       selector: Krane::LabelSelector.parse("branch=master"),
-#       render_erb: true))
-#     assert_logs_match("Using resource selector branch=master")
-#     assert_deploy_success(deploy_fixtures("branched", subset: ["web.yml.erb"],
-#       bindings: { "branch" => "staging" },
-#       selector: Krane::LabelSelector.parse("branch=staging"),
-#       render_erb: true))
-#     assert_logs_match("Using resource selector branch=staging")
-#     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
+  def test_selector
+    # Deploy the same thing twice with a different selector
+    assert_deploy_success(deploy_fixtures("branched", subset: ["web.yml.erb"],
+      bindings: { "branch" => "master" },
+      selector: Krane::LabelSelector.parse("branch=master"),
+      render_erb: true))
+    assert_logs_match("Using resource selector branch=master")
+    assert_deploy_success(deploy_fixtures("branched", subset: ["web.yml.erb"],
+      bindings: { "branch" => "staging" },
+      selector: Krane::LabelSelector.parse("branch=staging"),
+      render_erb: true))
+    assert_logs_match("Using resource selector branch=staging")
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
 
-#     assert_equal(2, deployments.size)
-#     assert_equal(%w(master staging), deployments.map { |d| d.metadata.labels.branch }.sort)
+    assert_equal(2, deployments.size)
+    assert_equal(%w(master staging), deployments.map { |d| d.metadata.labels.branch }.sort)
 
-#     # Run again without selector to verify pruning works
-#     assert_deploy_success(deploy_fixtures("branched", bindings: { "branch" => "master" }, render_erb: true))
-#     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
-#     # Filter out pruned resources pending deletion
-#     deployments.select! { |deployment| deployment.metadata.deletionTimestamp.nil? }
+    # Run again without selector to verify pruning works
+    assert_deploy_success(deploy_fixtures("branched", bindings: { "branch" => "master" }, render_erb: true))
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
+    # Filter out pruned resources pending deletion
+    deployments.select! { |deployment| deployment.metadata.deletionTimestamp.nil? }
 
-#     assert_equal(1, deployments.size)
-#     assert_equal("master", deployments.first.metadata.labels.branch)
-#   end
+    assert_equal(1, deployments.size)
+    assert_equal("master", deployments.first.metadata.labels.branch)
+  end
 
-#   def test_selector_as_filter
-#     # Deploy only the resource matching the selector without validation error
-#     assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
-#       selector: Krane::LabelSelector.parse("branch=master"),
-#       selector_as_filter: true))
-#     assert_logs_match_all([
-#       "Using resource selector branch=master",
-#       "Only deploying resources filtered by labels in selector",
-#     ], in_order: true)
-#     # Ensure only the selected resource is deployed
-#     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
-#     assert_equal(1, deployments.size)
-#     assert_equal("master", deployments.first.metadata.labels.branch)
+  def test_selector_as_filter
+    # Deploy only the resource matching the selector without validation error
+    assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
+      selector: Krane::LabelSelector.parse("branch=master"),
+      selector_as_filter: true))
+    assert_logs_match_all([
+      "Using resource selector branch=master",
+      "Only deploying resources filtered by labels in selector",
+    ], in_order: true)
+    # Ensure only the selected resource is deployed
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
+    assert_equal(1, deployments.size)
+    assert_equal("master", deployments.first.metadata.labels.branch)
 
-#     # Deploy another resource with a different selector
-#     assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
-#       selector: Krane::LabelSelector.parse("branch=staging"),
-#       selector_as_filter: true))
-#     assert_logs_match_all([
-#       "Using resource selector branch=staging",
-#       "Only deploying resources filtered by labels in selector",
-#     ], in_order: true)
-#     # Ensure the not selected resource is not pruned
-#     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
-#     assert_equal(2, deployments.size)
-#     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=master")
-#     assert_equal(1, deployments.size)
-#     assert_equal("master", deployments.first.metadata.labels.branch)
-#     # Ensure the selected resource is deployed
-#     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=staging")
-#     assert_equal(1, deployments.size)
-#     assert_equal("staging", deployments.first.metadata.labels.branch)
-#   end
+    # Deploy another resource with a different selector
+    assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
+      selector: Krane::LabelSelector.parse("branch=staging"),
+      selector_as_filter: true))
+    assert_logs_match_all([
+      "Using resource selector branch=staging",
+      "Only deploying resources filtered by labels in selector",
+    ], in_order: true)
+    # Ensure the not selected resource is not pruned
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
+    assert_equal(2, deployments.size)
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=master")
+    assert_equal(1, deployments.size)
+    assert_equal("master", deployments.first.metadata.labels.branch)
+    # Ensure the selected resource is deployed
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=staging")
+    assert_equal(1, deployments.size)
+    assert_equal("staging", deployments.first.metadata.labels.branch)
+  end
 
-#   def test_mismatched_selector
-#     assert_deploy_failure(deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml),
-#       selector: Krane::LabelSelector.parse("branch=staging")))
-#     assert_logs_match_all([
-#       /Using resource selector branch=staging/,
-#       /Template validation failed/,
-#       /Invalid template: Deployment/,
-#       /selector branch=staging does not match labels name=web,branch=master,app=slow-cloud/,
-#       /> Template content:/,
-#     ], in_order: true)
-#   end
+  def test_mismatched_selector
+    assert_deploy_failure(deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml),
+      selector: Krane::LabelSelector.parse("branch=staging")))
+    assert_logs_match_all([
+      /Using resource selector branch=staging/,
+      /Template validation failed/,
+      /Invalid template: Deployment/,
+      /selector branch=staging does not match labels name=web,branch=master,app=slow-cloud/,
+      /> Template content:/,
+    ], in_order: true)
+  end
 
-#   def test_mismatched_selector_on_replace_resource_without_labels
-#     assert_deploy_failure(deploy_fixtures("hello-cloud",
-#       subset: %w(disruption-budgets.yml),
-#       selector: Krane::LabelSelector.parse("branch=staging"),
-#       render_erb: true))
-#     assert_logs_match_all([
-#       /Using resource selector branch=staging/,
-#       /Template validation failed/,
-#       /Invalid template: PodDisruptionBudget/,
-#       /selector branch=staging passed in, but no labels were defined/,
-#       /> Template content:/,
-#     ], in_order: true)
-#   end
+  def test_mismatched_selector_on_replace_resource_without_labels
+    assert_deploy_failure(deploy_fixtures("hello-cloud",
+      subset: %w(disruption-budgets.yml),
+      selector: Krane::LabelSelector.parse("branch=staging"),
+      render_erb: true))
+    assert_logs_match_all([
+      /Using resource selector branch=staging/,
+      /Template validation failed/,
+      /Invalid template: PodDisruptionBudget/,
+      /selector branch=staging passed in, but no labels were defined/,
+      /> Template content:/,
+    ], in_order: true)
+  end
 
-#   def test_refuses_deploy_to_protected_namespace_if_pruning_enabled
-#     generated_ns = @namespace
-#     @namespace = 'default'
-#     assert_deploy_failure(deploy_fixtures("hello-cloud", prune: true))
-#     assert_logs_match_all([
-#       "Configuration invalid",
-#       "- Refusing to deploy to protected namespace 'default' with pruning enabled",
-#     ], in_order: true)
-#   ensure
-#     @namespace = generated_ns
-#   end
+  def test_refuses_deploy_to_protected_namespace_if_pruning_enabled
+    generated_ns = @namespace
+    @namespace = 'default'
+    assert_deploy_failure(deploy_fixtures("hello-cloud", prune: true))
+    assert_logs_match_all([
+      "Configuration invalid",
+      "- Refusing to deploy to protected namespace 'default' with pruning enabled",
+    ], in_order: true)
+  ensure
+    @namespace = generated_ns
+  end
 
-#   def test_deploying_to_protected_namespace_does_not_prune
-#     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml', 'disruption-budgets.yml'],
-#       protected_namespaces: [@namespace], prune: false))
-#     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-#     hello_cloud.assert_configmap_data_present
-#     hello_cloud.assert_poddisruptionbudget
-#     assert_logs_match_all([
-#       /cannot be pruned/,
-#       /Please do not deploy to #{@namespace} unless you really know what you are doing/,
-#     ])
+  def test_deploying_to_protected_namespace_does_not_prune
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ['configmap-data.yml', 'disruption-budgets.yml'],
+      protected_namespaces: [@namespace], prune: false))
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_configmap_data_present
+    hello_cloud.assert_poddisruptionbudget
+    assert_logs_match_all([
+      /cannot be pruned/,
+      /Please do not deploy to #{@namespace} unless you really know what you are doing/,
+    ])
 
-#     result = deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"],
-#       protected_namespaces: [@namespace], prune: false)
-#     assert_deploy_success(result)
-#     hello_cloud.assert_configmap_data_present # not pruned
-#     hello_cloud.assert_poddisruptionbudget
-#   end
+    result = deploy_fixtures("hello-cloud", subset: ["disruption-budgets.yml"],
+      protected_namespaces: [@namespace], prune: false)
+    assert_deploy_success(result)
+    hello_cloud.assert_configmap_data_present # not pruned
+    hello_cloud.assert_poddisruptionbudget
+  end
 
-#   def test_deploy_succeeds_with_specific_protected_namespaces
-#     generated_ns = @namespace
-#     @namespace = 'default' # this should fail if we use the default options for protected namespaces
-#     protected_namespaces = %w(kube-system kube-public)
-#     assert_deploy_success(deploy_fixtures("hello-cloud",
-#       prune: true,
-#       protected_namespaces: protected_namespaces,
-#       render_erb: true))
-#   ensure
-#     @namespace = generated_ns
-#   end
+  def test_deploy_succeeds_with_specific_protected_namespaces
+    generated_ns = @namespace
+    @namespace = 'default' # this should fail if we use the default options for protected namespaces
+    protected_namespaces = %w(kube-system kube-public)
+    assert_deploy_success(deploy_fixtures("hello-cloud",
+      prune: true,
+      protected_namespaces: protected_namespaces,
+      render_erb: true))
+  ensure
+    @namespace = generated_ns
+  end
 
-#   def test_refuses_deploy_to_protected_namespace_without_override
-#     generated_ns = @namespace
-#     @namespace = 'default'
-#     assert_deploy_failure(deploy_fixtures("hello-cloud"))
-#     assert_logs_match_all([
-#       "Configuration invalid",
-#       "- Refusing to deploy to protected namespace",
-#     ], in_order: true)
-#   ensure
-#     @namespace = generated_ns
-#   end
+  def test_refuses_deploy_to_protected_namespace_without_override
+    generated_ns = @namespace
+    @namespace = 'default'
+    assert_deploy_failure(deploy_fixtures("hello-cloud"))
+    assert_logs_match_all([
+      "Configuration invalid",
+      "- Refusing to deploy to protected namespace",
+    ], in_order: true)
+  ensure
+    @namespace = generated_ns
+  end
 
-#   def test_pvcs_are_not_pruned
-#     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["redis.yml"]))
-#     hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-#     hello_cloud.assert_all_redis_resources_up
+  def test_pvcs_are_not_pruned
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["redis.yml"]))
+    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+    hello_cloud.assert_all_redis_resources_up
 
-#     assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]))
-#     hello_cloud.assert_configmap_data_present
-#     hello_cloud.refute_redis_resources_exist(expect_pvc: true)
-#   end
+    assert_deploy_success(deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]))
+    hello_cloud.assert_configmap_data_present
+    hello_cloud.refute_redis_resources_exist(expect_pvc: true)
+  end
 
-#   def test_success_with_unrecognized_resource_type
-#     resource_kind = "ReplicationController"
-#     resource_name = "test-rc"
+  def test_success_with_unrecognized_resource_type
+    resource_kind = "ReplicationController"
+    resource_name = "test-rc"
 
-#     result = deploy_fixtures("unrecognized-type")
-#     assert_deploy_success(result)
+    result = deploy_fixtures("unrecognized-type")
+    assert_deploy_success(result)
 
-#     # This will raise an exception if the resource is missing
-#     kubeclient.get_entity(resource_kind.downcase.pluralize, resource_name, @namespace)
-#     assert_logs_match(/Don't know how to monitor resources of type #{resource_kind}/)
-#   end
+    # This will raise an exception if the resource is missing
+    kubeclient.get_entity(resource_kind.downcase.pluralize, resource_name, @namespace)
+    assert_logs_match(/Don't know how to monitor resources of type #{resource_kind}/)
+  end
 
-#   def test_invalid_yaml_fails_fast
-#     assert_deploy_failure(deploy_raw_fixtures("invalid", subset: ["yaml-error.yml"]))
-#     assert_logs_match_all([
-#       "Failed to render and parse template",
-#       "Invalid template: yaml-error.yml",
-#       "mapping values are not allowed in this context",
-#       "> Template content:",
-#       "datapoint1: value1:",
-#     ], in_order: true)
-#   end
+  def test_invalid_yaml_fails_fast
+    assert_deploy_failure(deploy_raw_fixtures("invalid", subset: ["yaml-error.yml"]))
+    assert_logs_match_all([
+      "Failed to render and parse template",
+      "Invalid template: yaml-error.yml",
+      "mapping values are not allowed in this context",
+      "> Template content:",
+      "datapoint1: value1:",
+    ], in_order: true)
+  end
 
-#   def test_invalid_yaml_in_partial_prints_helpful_error
-#     assert_deploy_failure(deploy_raw_fixtures("invalid-partials", render_erb: true))
-#     included_from = "partial included from: include-invalid-partial.yml.erb"
-#     assert_logs_match_all([
-#       "Result: FAILURE",
-#       "Failed to render and parse template",
-#       %r{Invalid template: .*/partials/invalid.yml.erb \(#{included_from}\)},
-#       "> Error message:",
-#       %r{fixtures/partials/invalid.yml.erb\)\: mapping values are not allowed in this context},
-#       "> Template content:",
-#       "containers:",
-#       "- name: invalid-container",
-#       "notField: notval:",
-#     ], in_order: true)
+  def test_invalid_yaml_in_partial_prints_helpful_error
+    assert_deploy_failure(deploy_raw_fixtures("invalid-partials", render_erb: true))
+    included_from = "partial included from: include-invalid-partial.yml.erb"
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Failed to render and parse template",
+      %r{Invalid template: .*/partials/invalid.yml.erb \(#{included_from}\)},
+      "> Error message:",
+      %r{fixtures/partials/invalid.yml.erb\)\: mapping values are not allowed in this context},
+      "> Template content:",
+      "containers:",
+      "- name: invalid-container",
+      "notField: notval:",
+    ], in_order: true)
 
-#     # make sure we're not displaying duplicate errors
-#     refute_logs_match("Template 'include-invalid-partial.yml.erb' cannot be rendered")
-#     assert_logs_match("Template content:", 1)
-#     assert_logs_match("Error message:", 1)
-#   end
+    # make sure we're not displaying duplicate errors
+    refute_logs_match("Template 'include-invalid-partial.yml.erb' cannot be rendered")
+    assert_logs_match("Template content:", 1)
+    assert_logs_match("Error message:", 1)
+  end
 
-#   def test_missing_partial_correctly_identifies_invalid_template
-#     assert_deploy_failure(deploy_raw_fixtures("missing-partials",
-#       subset: ["parent-with-missing-child.yml.erb"], render_erb: true))
+  def test_missing_partial_correctly_identifies_invalid_template
+    assert_deploy_failure(deploy_raw_fixtures("missing-partials",
+      subset: ["parent-with-missing-child.yml.erb"], render_erb: true))
 
-#     assert_logs_match_all([
-#       "Result: FAILURE",
-#       "Failed to render and parse template",
-#       "Invalid template: parent-with-missing-child.yml.erb", # the thing with the invalid `partial` call in it
-#       "> Error message:",
-#       %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
-#       "> Template content:",
-#       "<%= partial 'does-not-exist' %>",
-#     ], in_order: true)
-#   end
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Failed to render and parse template",
+      "Invalid template: parent-with-missing-child.yml.erb", # the thing with the invalid `partial` call in it
+      "> Error message:",
+      %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
+      "> Template content:",
+      "<%= partial 'does-not-exist' %>",
+    ], in_order: true)
+  end
 
-#   def test_missing_nested_partial_correctly_identifies_invalid_template_and_its_parents
-#     assert_deploy_failure(deploy_raw_fixtures("missing-partials",
-#       subset: ["parent-with-missing-grandchild.yml.erb"], render_erb: true))
+  def test_missing_nested_partial_correctly_identifies_invalid_template_and_its_parents
+    assert_deploy_failure(deploy_raw_fixtures("missing-partials",
+      subset: ["parent-with-missing-grandchild.yml.erb"], render_erb: true))
 
-#     assert_logs_match_all([
-#       "Result: FAILURE",
-#       "Failed to render and parse template",
-#       "Invalid template: parent-with-missing-child (partial included from: parent-with-missing-grandchild.yml.erb)",
-#       "> Error message:",
-#       %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
-#       "> Template content:",
-#       "<%= partial 'does-not-exist' %>",
-#     ], in_order: true)
-#   end
+    assert_logs_match_all([
+      "Result: FAILURE",
+      "Failed to render and parse template",
+      "Invalid template: parent-with-missing-child (partial included from: parent-with-missing-grandchild.yml.erb)",
+      "> Error message:",
+      %r{Could not find partial 'does-not-exist' in any of .*fixture_dir[^/]*/partials:.*/partials},
+      "> Template content:",
+      "<%= partial 'does-not-exist' %>",
+    ], in_order: true)
+  end
 
-#   def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast_and_prints_template
-#     result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
-#       configmap = fixtures["configmap-data.yml"]["ConfigMap"].first
-#       configmap["metadata"]["myKey"] = "uhOh"
-#     end
-#     assert_deploy_failure(result)
+  def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast_and_prints_template
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
+      configmap = fixtures["configmap-data.yml"]["ConfigMap"].first
+      configmap["metadata"]["myKey"] = "uhOh"
+    end
+    assert_deploy_failure(result)
 
-#     assert_logs_match_all([
-#       "Template validation failed",
-#       /Invalid template: ConfigMap.-hello-cloud-configmap-data.*yml/,
-#       "> Error message:",
-#       "error validating data: ValidationError(ConfigMap.metadata): \
-# unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
-#       "> Template content:",
-#       "      myKey: uhOh",
-#     ], in_order: true)
-#   end
+    assert_logs_match_all([
+      "Template validation failed",
+      /Invalid template: ConfigMap.-hello-cloud-configmap-data.*yml/,
+      "> Error message:",
+      "error validating data: ValidationError(ConfigMap.metadata): \
+unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
+      "> Template content:",
+      "      myKey: uhOh",
+    ], in_order: true)
+  end
 
-#   def test_dynamic_erb_collection_works
-#     assert_deploy_success(deploy_raw_fixtures("collection-with-erb",
-#       bindings: { binding_test_a: 'foo', binding_test_b: 'bar' },
-#       render_erb: true))
+  def test_dynamic_erb_collection_works
+    assert_deploy_success(deploy_raw_fixtures("collection-with-erb",
+      bindings: { binding_test_a: 'foo', binding_test_b: 'bar' },
+      render_erb: true))
 
-#     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
-#     assert_equal(3, deployments.size)
-#     assert_equal(["web-one", "web-three", "web-two"], deployments.map { |d| d.metadata.name }.sort)
-#   end
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
+    assert_equal(3, deployments.size)
+    assert_equal(["web-one", "web-three", "web-two"], deployments.map { |d| d.metadata.name }.sort)
+  end
 
-#   # The next three tests reproduce a k8s bug
-#   # The dry run should catch these problems, but it does not. Instead, apply fails.
-#   # https://github.com/kubernetes/kubernetes/issues/42057 shows how this manifested for a particular field,
-#   # and although that particular case has been fixed, other invalid specs still aren't caught until apply.
-#   def test_multiple_invalid_k8s_specs_fails_on_apply_and_prints_template
-#     result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true) do |fixtures|
-#       bad_port_name = "http_test_is_really_long_and_invalid_chars"
-#       svc = fixtures["web.yml.erb"]["Service"].first
-#       svc["spec"]["ports"].first["targetPort"] = bad_port_name
-#       deployment = fixtures["web.yml.erb"]["Deployment"].first
-#       deployment["spec"]["template"]["spec"]["containers"].first["ports"].first["name"] = bad_port_name
-#     end
+  # The next three tests reproduce a k8s bug
+  # The dry run should catch these problems, but it does not. Instead, apply fails.
+  # https://github.com/kubernetes/kubernetes/issues/42057 shows how this manifested for a particular field,
+  # and although that particular case has been fixed, other invalid specs still aren't caught until apply.
+  def test_multiple_invalid_k8s_specs_fails_on_apply_and_prints_template
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true) do |fixtures|
+      bad_port_name = "http_test_is_really_long_and_invalid_chars"
+      svc = fixtures["web.yml.erb"]["Service"].first
+      svc["spec"]["ports"].first["targetPort"] = bad_port_name
+      deployment = fixtures["web.yml.erb"]["Deployment"].first
+      deployment["spec"]["template"]["spec"]["containers"].first["ports"].first["name"] = bad_port_name
+    end
 
-#     assert_deploy_failure(result)
-#     assert_logs_match_all([
-#       "Command failed: apply -f",
-#       "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
-#       /Invalid template: Deployment.apps-web.*\.yml/,
-#       "> Error message:",
-#       /Error from server \(Invalid\): error when creating.*Deployment\.?\w* "web" is invalid/,
-#       "> Template content:",
-#       "              name: http_test_is_really_long_and_invalid_chars",
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      "Command failed: apply -f",
+      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+      /Invalid template: Deployment.apps-web.*\.yml/,
+      "> Error message:",
+      /Error from server \(Invalid\): error when creating.*Deployment\.?\w* "web" is invalid/,
+      "> Template content:",
+      "              name: http_test_is_really_long_and_invalid_chars",
 
-#       /Invalid template: Service.-web.*\.yml/,
-#       "> Error message:",
-#       /Error from server \(Invalid\): error when creating.*Service "web" is invalid/,
-#       "> Template content:",
-#       "        targetPort: http_test_is_really_long_and_invalid_chars",
-#     ], in_order: true)
-#   end
+      /Invalid template: Service.-web.*\.yml/,
+      "> Error message:",
+      /Error from server \(Invalid\): error when creating.*Service "web" is invalid/,
+      "> Template content:",
+      "        targetPort: http_test_is_really_long_and_invalid_chars",
+    ], in_order: true)
+  end
 
-#   def test_invalid_k8s_spec_that_is_valid_yaml_but_has_no_template_path_in_error_prints_helpful_message
-#     result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true) do |fixtures|
-#       svc = fixtures["web.yml.erb"]["Service"].first
-#       svc["spec"]["ports"].first["targetPort"] = "http_test_is_really_long_and_invalid_chars"
-#     end
-#     assert_deploy_failure(result)
-#     assert_logs_match_all([
-#       "Command failed: apply -f",
-#       "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
-#       "Unidentified error(s):",
-#       '    The Service "web" is invalid:',
-#       'spec.ports[0].targetPort: Invalid value: "http_test_is_really_long_and_invalid_chars"',
-#     ], in_order: true)
-#   end
+  def test_invalid_k8s_spec_that_is_valid_yaml_but_has_no_template_path_in_error_prints_helpful_message
+    result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true) do |fixtures|
+      svc = fixtures["web.yml.erb"]["Service"].first
+      svc["spec"]["ports"].first["targetPort"] = "http_test_is_really_long_and_invalid_chars"
+    end
+    assert_deploy_failure(result)
+    assert_logs_match_all([
+      "Command failed: apply -f",
+      "WARNING: Any resources not mentioned in the error(s) below were likely created/updated.",
+      "Unidentified error(s):",
+      '    The Service "web" is invalid:',
+      'spec.ports[0].targetPort: Invalid value: "http_test_is_really_long_and_invalid_chars"',
+    ], in_order: true)
+  end
 
   def test_output_of_failed_unmanaged_pod
     result = deploy_fixtures("hello-cloud",

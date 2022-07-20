@@ -368,7 +368,7 @@ module Krane
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
       Event.extract_all_from_go_template_blob(out).each_with_object(event_collector) do |candidate, events|
-        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started_at - 10.seconds)
+        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started_at - 60.seconds)
       end
     end
 

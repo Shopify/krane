@@ -64,7 +64,7 @@ module Krane
           end
         end
       else
-        raise FatalKubeAPIError, "Error retrieving mutatingwebhookconfigurations: #{err}"
+        raise FatalKubeAPIError, "Error retrieving group kinds: #{err}"
       end
     end
 

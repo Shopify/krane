@@ -192,7 +192,7 @@ module Krane
     end
 
     def deploy_has_priority_resources?(resources)
-      resources.any? { |r| predeploy_sequence.find(r.group_kind) }
+      resources.any? { |r| predeploy_sequence.include?(r.group_kind) }
     end
 
     def check_initial_status(resources)
@@ -210,7 +210,7 @@ module Krane
     def discover_resources
       @logger.info("Discovering resources:")
       resources = []
-      crds_by_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
+      crds_by_kind = cluster_resource_discoverer.crds.group_by(&:cr_group_kind)
       group_kinds = @task_config.group_kinds
 
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
