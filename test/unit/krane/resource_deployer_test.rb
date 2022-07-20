@@ -63,7 +63,6 @@ class ResourceDeployerTest < Krane::TestCase
   end
 
   def test_predeploy_priority_resources_respects_pre_deploy_list
-    kind = "MockResource"
     resource = build_mock_resource
     watcher = mock("ResourceWatcher")
     watcher.expects(:run).returns(true)
@@ -71,8 +70,7 @@ class ResourceDeployerTest < Krane::TestCase
     # are deployed. See test_predeploy_priority_resources_respects_empty_pre_deploy_list
     # for counter example
     Krane::ResourceWatcher.expects(:new).returns(watcher)
-    priority_list = { kind => { group: "core" } }
-    resource_deployer.predeploy_priority_resources([resource], priority_list)
+    resource_deployer.predeploy_priority_resources([resource], ["MockResource.core"])
   end
 
   def test_predeploy_priority_resources_respects_empty_pre_deploy_list

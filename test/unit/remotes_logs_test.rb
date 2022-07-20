@@ -86,7 +86,7 @@ class RemoteLogsTest < Krane::TestCase
   private
 
   def build_remote_logs(container_names:)
-    Krane::RemoteLogs.new(parent_id: 'pod/pod-123-456', logger: logger,
+    Krane::RemoteLogs.new(parent_id: 'pod./pod-123-456', parent_pretty_id: "pod/pod-123-456", logger: logger,
       container_names: container_names, namespace: 'test', context: KubeclientHelper::TEST_CONTEXT)
   end
 

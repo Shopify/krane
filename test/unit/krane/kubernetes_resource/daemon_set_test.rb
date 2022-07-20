@@ -75,9 +75,9 @@ class DaemonSetTest < Krane::TestCase
     ds_template = build_ds_template(filename: 'daemon_set.yml', status: node_added_status)
     pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
 
-    stub_kind_get("DaemonSet", items: [ds_template])
-    stub_kind_get("Pod", items: pod_templates)
-    stub_kind_get("Node", items: node_templates, use_namespace: false)
+    stub_group_kind_get("DaemonSet.apps", items: [ds_template])
+    stub_group_kind_get("Pod.", items: pod_templates)
+    stub_group_kind_get("Node.", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     assert_predicate(ds, :deploy_succeeded?)
   end
@@ -97,9 +97,9 @@ class DaemonSetTest < Krane::TestCase
     # node 2 Pod Ready status is False, if the node is unschedulable it should not account as blocking
     node_templates[2]['spec']['unschedulable'] = 'true'
 
-    stub_kind_get("DaemonSet", items: [ds_template])
-    stub_kind_get("Pod", items: pod_templates)
-    stub_kind_get("Node", items: node_templates, use_namespace: false)
+    stub_group_kind_get("DaemonSet.apps", items: [ds_template])
+    stub_group_kind_get("Pod.", items: pod_templates)
+    stub_group_kind_get("Node.", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     assert_predicate(ds, :deploy_succeeded?)
   end
@@ -119,9 +119,9 @@ class DaemonSetTest < Krane::TestCase
     # node 2 Pod Ready status is False, if the node is not ready it should not account as blocking
     node_templates[2]['status']['conditions'].find { |c| c['type'].downcase == 'ready' }['status'] = 'False'
 
-    stub_kind_get("DaemonSet", items: [ds_template])
-    stub_kind_get("Pod", items: pod_templates)
-    stub_kind_get("Node", items: node_templates, use_namespace: false)
+    stub_group_kind_get("DaemonSet.apps", items: [ds_template])
+    stub_group_kind_get("Pod.", items: pod_templates)
+    stub_group_kind_get("Node.", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     assert_predicate(ds, :deploy_succeeded?)
   end
@@ -145,9 +145,9 @@ class DaemonSetTest < Krane::TestCase
       "startTime": "2022-03-31T20:14:06Z"
     }
 
-    stub_kind_get("DaemonSet", items: [ds_template])
-    stub_kind_get("Pod", items: pod_templates)
-    stub_kind_get("Node", items: node_templates, use_namespace: false)
+    stub_group_kind_get("DaemonSet.apps", items: [ds_template])
+    stub_group_kind_get("Pod.", items: pod_templates)
+    stub_group_kind_get("Node.", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     assert_predicate(ds, :deploy_succeeded?)
   end
@@ -192,9 +192,9 @@ class DaemonSetTest < Krane::TestCase
 
     status[:numberReady] = 1
     ds_template = build_ds_template(filename: 'daemon_set.yml', status: status)
-    stub_kind_get("DaemonSet", items: [ds_template])
-    stub_kind_get("Pod", items: [ready_pod_template])
-    stub_kind_get("Node", items: node_templates, use_namespace: false)
+    stub_group_kind_get("DaemonSet.apps", items: [ds_template])
+    stub_group_kind_get("Pod.", items: [ready_pod_template])
+    stub_group_kind_get("Node.", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     assert_predicate(ds, :deploy_succeeded?)
   end
@@ -218,10 +218,10 @@ class DaemonSetTest < Krane::TestCase
   end
 
   def build_synced_ds(ds_template:, pod_templates: [], node_templates: [])
-    ds = Krane::DaemonSet.new(namespace: "test", context: "nope", logger: logger, definition: ds_template)
-    stub_kind_get("DaemonSet", items: [ds_template])
-    stub_kind_get("Pod", items: pod_templates)
-    stub_kind_get("Node", items: node_templates, use_namespace: false)
+    ds = Krane::Apps::DaemonSet.new(namespace: "test", context: "nope", logger: logger, definition: ds_template)
+    stub_group_kind_get("DaemonSet.apps", items: [ds_template])
+    stub_group_kind_get("Pod.", items: pod_templates)
+    stub_group_kind_get("Node.", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     ds
   end

@@ -165,7 +165,7 @@ class DeploymentTest < Krane::TestCase
     )
 
     msg = "'#{rollout_annotation_key}: bad' is invalid. " \
-      "Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
+      "Acceptable values: #{Krane::Apps::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}"
 
     assert_raises_message(Krane::FatalDeploymentError, msg) do
       deploy.deploy_succeeded?
@@ -179,7 +179,7 @@ class DeploymentTest < Krane::TestCase
 
     expected = <<~STRING.strip
       super failed
-      '#{rollout_annotation_key}: bad' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+      '#{rollout_annotation_key}: bad' is invalid. Acceptable values: #{Krane::Apps::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -198,7 +198,7 @@ class DeploymentTest < Krane::TestCase
     refute(deploy.validate_definition(kubectl: kubectl))
     expected = <<~STRING.strip
       super failed
-      '#{rollout_annotation_key}: 10' is invalid. Acceptable values: #{Krane::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
+      '#{rollout_annotation_key}: 10' is invalid. Acceptable values: #{Krane::Apps::Deployment::REQUIRED_ROLLOUT_TYPES.join(', ')}
     STRING
     assert_equal(expected, deploy.validation_error_msg)
   end
@@ -228,7 +228,7 @@ class DeploymentTest < Krane::TestCase
   end
 
   def test_deploy_succeeded_not_fooled_by_stale_status_data
-    stub_kind_get("Pod")
+    stub_group_kind_get("Pod.")
     deployment_status = {
       "replicas" => 3,
       "updatedReplicas" => 3, # stale -- hasn't been updated since deploy
@@ -256,7 +256,7 @@ class DeploymentTest < Krane::TestCase
       template: build_deployment_template(status: { "observedGeneration" => 1 }, rollout: 'full', max_unavailable: 1),
       replica_sets: [build_rs_template]
     )
-    Krane::ReplicaSet.any_instance.stubs(:pods).returns([stub(deploy_failed?: true)])
+    Krane::Apps::ReplicaSet.any_instance.stubs(:pods).returns([stub(deploy_failed?: true)])
     refute_predicate(deploy, :deploy_failed?)
   end
 
@@ -267,10 +267,10 @@ class DeploymentTest < Krane::TestCase
         replica_sets: [build_rs_template(status: { "replica" => 1 })]
       )
 
-      deploy.deploy_started_at = Time.now.utc - Krane::Deployment::TIMEOUT
+      deploy.deploy_started_at = Time.now.utc - Krane::Apps::Deployment::TIMEOUT
       refute(deploy.deploy_timed_out?)
 
-      deploy.deploy_started_at = Time.now.utc - Krane::Deployment::TIMEOUT - 1
+      deploy.deploy_started_at = Time.now.utc - Krane::Apps::Deployment::TIMEOUT - 1
       assert(deploy.deploy_timed_out?)
       assert_equal("Timeout reason: hard deadline for Deployment\nLatest ReplicaSet: web-1",
         deploy.timeout_message.strip)
@@ -402,13 +402,13 @@ class DeploymentTest < Krane::TestCase
   end
 
   def build_synced_deployment(template:, replica_sets:, expect_pod_get: nil)
-    deploy = Krane::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
-    stub_kind_get("Deployment", items: [template])
-    stub_kind_get("ReplicaSet", items: replica_sets)
+    deploy = Krane::Apps::Deployment.new(namespace: "test", context: "nope", logger: logger, definition: template)
+    stub_group_kind_get("Deployment.apps", items: [template])
+    stub_group_kind_get("ReplicaSet.apps", items: replica_sets)
 
     expect_pod_get = replica_sets.present? if expect_pod_get.nil?
     if expect_pod_get
-      stub_kind_get("Pod", items: [])
+      stub_group_kind_get("Pod.", items: [])
     end
 
     deploy.sync(build_resource_cache)
@@ -428,6 +428,6 @@ class DeploymentTest < Krane::TestCase
   end
 
   def rollout_annotation_key
-    Krane::Annotation.for(Krane::Deployment::REQUIRED_ROLLOUT_ANNOTATION)
+    Krane::Annotation.for(Krane::Apps::Deployment::REQUIRED_ROLLOUT_ANNOTATION)
   end
 end

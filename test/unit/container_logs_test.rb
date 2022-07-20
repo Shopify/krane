@@ -6,6 +6,7 @@ class ContainerLogsTest < Krane::TestCase
     super
     @logs = Krane::ContainerLogs.new(
       parent_id: 'pod/pod-123-456',
+      parent_pretty_id: 'pod/pod-123-456',
       container_name: 'A',
       logger: logger,
       namespace: 'test',

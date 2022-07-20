@@ -1,0 +1,125 @@
+bindings                                            v1                                     true         Binding
+componentstatuses                  cs               v1                                     false        ComponentStatus
+configmaps                         cm               v1                                     true         ConfigMap
+endpoints                          ep               v1                                     true         Endpoints
+events                             ev               v1                                     true         Event
+limitranges                        limits           v1                                     true         LimitRange
+namespaces                         ns               v1                                     false        Namespace
+nodes                              no               v1                                     false        Node
+persistentvolumeclaims             pvc              v1                                     true         PersistentVolumeClaim
+persistentvolumes                  pv               v1                                     false        PersistentVolume
+pods                               po               v1                                     true         Pod
+podtemplates                                        v1                                     true         PodTemplate
+replicationcontrollers             rc               v1                                     true         ReplicationController
+resourcequotas                     quota            v1                                     true         ResourceQuota
+secrets                                             v1                                     true         Secret
+serviceaccounts                    sa               v1                                     true         ServiceAccount
+services                           svc              v1                                     true         Service
+challenges                                          acme.cert-manager.io/v1                true         Challenge
+orders                                              acme.cert-manager.io/v1                true         Order
+mutatingwebhookconfigurations                       admissionregistration.k8s.io/v1        false        MutatingWebhookConfiguration
+validatingwebhookconfigurations                     admissionregistration.k8s.io/v1        false        ValidatingWebhookConfiguration
+customresourcedefinitions          crd,crds         apiextensions.k8s.io/v1                false        CustomResourceDefinition
+apiservices                                         apiregistration.k8s.io/v1              false        APIService
+controllerrevisions                                 apps/v1                                true         ControllerRevision
+daemonsets                         ds               apps/v1                                true         DaemonSet
+deployments                        deploy           apps/v1                                true         Deployment
+replicasets                        rs               apps/v1                                true         ReplicaSet
+statefulsets                       sts              apps/v1                                true         StatefulSet
+tokenreviews                                        authentication.k8s.io/v1               false        TokenReview
+localsubjectaccessreviews                           authorization.k8s.io/v1                true         LocalSubjectAccessReview
+selfsubjectaccessreviews                            authorization.k8s.io/v1                false        SelfSubjectAccessReview
+selfsubjectrulesreviews                             authorization.k8s.io/v1                false        SelfSubjectRulesReview
+subjectaccessreviews                                authorization.k8s.io/v1                false        SubjectAccessReview
+horizontalpodautoscalers           hpa              autoscaling/v1                         true         HorizontalPodAutoscaler
+verticalpodautoscalercheckpoints   vpacheckpoint    autoscaling.k8s.io/v1                  true         VerticalPodAutoscalerCheckpoint
+verticalpodautoscalers             vpa              autoscaling.k8s.io/v1                  true         VerticalPodAutoscaler
+cronjobs                           cj               batch/v1                               true         CronJob
+jobs                                                batch/v1                               true         Job
+certificaterequests                cr,crs           cert-manager.io/v1                     true         CertificateRequest
+certificates                       cert,certs       cert-manager.io/v1                     true         Certificate
+clusterissuers                                      cert-manager.io/v1                     false        ClusterIssuer
+issuers                                             cert-manager.io/v1                     true         Issuer
+certificatesigningrequests         csr              certificates.k8s.io/v1                 false        CertificateSigningRequest
+backendconfigs                     bc               cloud.google.com/v1                    true         BackendConfig
+leases                                              coordination.k8s.io/v1                 true         Lease
+bgpconfigurations                                   crd.projectcalico.org/v1               false        BGPConfiguration
+bgppeers                                            crd.projectcalico.org/v1               false        BGPPeer
+blockaffinities                                     crd.projectcalico.org/v1               false        BlockAffinity
+caliconodestatuses                                  crd.projectcalico.org/v1               false        CalicoNodeStatus
+clusterinformations                                 crd.projectcalico.org/v1               false        ClusterInformation
+felixconfigurations                                 crd.projectcalico.org/v1               false        FelixConfiguration
+globalnetworkpolicies                               crd.projectcalico.org/v1               false        GlobalNetworkPolicy
+globalnetworksets                                   crd.projectcalico.org/v1               false        GlobalNetworkSet
+hostendpoints                                       crd.projectcalico.org/v1               false        HostEndpoint
+ipamblocks                                          crd.projectcalico.org/v1               false        IPAMBlock
+ipamconfigs                                         crd.projectcalico.org/v1               false        IPAMConfig
+ipamhandles                                         crd.projectcalico.org/v1               false        IPAMHandle
+ippools                                             crd.projectcalico.org/v1               false        IPPool
+kubecontrollersconfigurations                       crd.projectcalico.org/v1               false        KubeControllersConfiguration
+networkpolicies                                     crd.projectcalico.org/v1               true         NetworkPolicy
+networksets                                         crd.projectcalico.org/v1               true         NetworkSet
+endpointslices                                      discovery.k8s.io/v1                    true         EndpointSlice
+events                             ev               events.k8s.io/v1                       true         Event
+flowschemas                                         flowcontrol.apiserver.k8s.io/v1beta1   false        FlowSchema
+prioritylevelconfigurations                         flowcontrol.apiserver.k8s.io/v1beta1   false        PriorityLevelConfiguration
+capacityrequests                   capreq           internal.autoscaling.gke.io/v1alpha1   true         CapacityRequest
+nodes                                               metrics.k8s.io/v1beta1                 false        NodeMetrics
+pods                                                metrics.k8s.io/v1beta1                 true         PodMetrics
+frontendconfigs                                     networking.gke.io/v1beta1              true         FrontendConfig
+managedcertificates                mcrt             networking.gke.io/v1                   true         ManagedCertificate
+serviceattachments                                  networking.gke.io/v1beta1              true         ServiceAttachment
+servicenetworkendpointgroups       svcneg           networking.gke.io/v1beta1              true         ServiceNetworkEndpointGroup
+ingressclasses                                      networking.k8s.io/v1                   false        IngressClass
+ingresses                          ing              networking.k8s.io/v1                   true         Ingress
+networkpolicies                    netpol           networking.k8s.io/v1                   true         NetworkPolicy
+runtimeclasses                                      node.k8s.io/v1                         false        RuntimeClass
+updateinfos                        updinf           nodemanagement.gke.io/v1alpha1         true         UpdateInfo
+poddisruptionbudgets               pdb              policy/v1                              true         PodDisruptionBudget
+podsecuritypolicies                psp              policy/v1beta1                         false        PodSecurityPolicy
+clusterrolebindings                                 rbac.authorization.k8s.io/v1           false        ClusterRoleBinding
+clusterroles                                        rbac.authorization.k8s.io/v1           false        ClusterRole
+rolebindings                                        rbac.authorization.k8s.io/v1           true         RoleBinding
+roles                                               rbac.authorization.k8s.io/v1           true         Role
+runtimeinstances                   runi             registry.shopify.io/v1alpha1           false        RuntimeInstance
+priorityclasses                    pc               scheduling.k8s.io/v1                   false        PriorityClass
+volumesnapshotclasses                               snapshot.storage.k8s.io/v1             false        VolumeSnapshotClass
+volumesnapshotcontents                              snapshot.storage.k8s.io/v1             false        VolumeSnapshotContent
+volumesnapshots                                     snapshot.storage.k8s.io/v1             true         VolumeSnapshot
+applications                       app              stable.shopify.io/v1                   true         Application
+buckets                            bkt,bkts         stable.shopify.io/v1                   true         Bucket
+certificates                       cert,certs       stable.shopify.io/v1                   true         Certificate
+cloudsqls                          sql              stable.shopify.io/v1                   true         Cloudsql
+dnsrecords                         record,records   stable.shopify.io/v1                   true         DNSRecord
+ejsonsecrets                                        stable.shopify.io/v1                   true         EjsonSecret
+elasticsearches                    es               stable.shopify.io/v1                   true         Elasticsearch
+elasticsearchinstances             esi,esinstance   stable.shopify.io/v1                   true         ElasticsearchInstance
+envoys                                              stable.shopify.io/v1                   true         Envoy
+gamedayconfigs                     gdc              stable.shopify.io/v1                   true         GamedayConfig
+identities                                          stable.shopify.io/v1                   true         Identity
+ingresspolicies                                     stable.shopify.io/v1                   true         IngressPolicy
+katesqlconnections                                  stable.shopify.io/v1                   true         KateSQLConnection
+katesqls                                            stable.shopify.io/v1                   true         KateSQL
+mails                              ml               stable.shopify.io/v1                   true         Mail
+memcacheds                                          stable.shopify.io/v1                   true         Memcached
+proxysqls                                           stable.shopify.io/v1                   true         ProxySQL
+redises                                             stable.shopify.io/v1                   true         Redis
+redisfailovers                                      stable.shopify.io/v1                   true         RedisFailover
+runtimefailovers                                    stable.shopify.io/v1                   true         RuntimeFailover
+statefulservices                                    stable.shopify.io/v1                   true         Statefulservice
+csidrivers                                          storage.k8s.io/v1                      false        CSIDriver
+csinodes                                            storage.k8s.io/v1                      false        CSINode
+csistoragecapacities                                storage.k8s.io/v1beta1                 true         CSIStorageCapacity
+storageclasses                     sc               storage.k8s.io/v1                      false        StorageClass
+volumeattachments                                   storage.k8s.io/v1                      false        VolumeAttachment
+backups                                             velero.io/v1                           true         Backup
+backupstoragelocations             bsl              velero.io/v1                           true         BackupStorageLocation
+deletebackuprequests                                velero.io/v1                           true         DeleteBackupRequest
+downloadrequests                                    velero.io/v1                           true         DownloadRequest
+podvolumebackups                                    velero.io/v1                           true         PodVolumeBackup
+podvolumerestores                                   velero.io/v1                           true         PodVolumeRestore
+resticrepositories                                  velero.io/v1                           true         ResticRepository
+restores                                            velero.io/v1                           true         Restore
+schedules                                           velero.io/v1                           true         Schedule
+serverstatusrequests               ssr              velero.io/v1                           true         ServerStatusRequest
+volumesnapshotlocations                             velero.io/v1                           true         VolumeSnapshotLocation

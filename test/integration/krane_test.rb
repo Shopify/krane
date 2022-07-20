@@ -122,7 +122,6 @@ class KraneTest < Krane::IntegrationTest
   # test_global_deploy_black_box_success and test_global_deploy_black_box_timeout
   # are in test/integration-serial/serial_deploy_test.rb because they modify
   # global state
-
   def test_global_deploy_black_box_failure
     setup_template_dir("resource-quota") do |target_dir|
       flags = "-f #{target_dir} --selector app=krane"

@@ -45,14 +45,14 @@ class JobTest < Krane::TestCase
   private
 
   def job_spec
-    { metadata: { name: 'test-job' } }
+    { apiVersion: "batch/v1", kind: "Job", metadata: { name: 'test-job' } }
   end
 
   def build_synced_job(template)
-    job = Krane::Job.new(namespace: 'test', context: 'nope', definition: template,
+    job = Krane::Batch::Job.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger)
     job.deploy_started_at = Time.now.utc
-    stub_kind_get("Job", items: [template])
+    stub_group_kind_get("Job.batch", items: [template])
     job.sync(build_resource_cache)
     job
   end

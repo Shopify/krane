@@ -23,9 +23,9 @@ class PodDisruptionBudgetTest < Krane::TestCase
   end
 
   def build_synced_pdb(template:)
-    pdb = Krane::PodDisruptionBudget.new(namespace: "test", context: "nope",
+    pdb = Krane::Policy::PodDisruptionBudget.new(namespace: "test", context: "nope",
       logger: logger, definition: template)
-    stub_kind_get("PodDisruptionBudget", items: [template])
+      stub_group_kind_get("PodDisruptionBudget.policy", items: [template])
     pdb.sync(build_resource_cache)
     pdb
   end
