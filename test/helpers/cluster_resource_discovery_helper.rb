@@ -9,9 +9,18 @@ module ClusterResourceDiscoveryHelper
     File.read(File.join(fixture_path('for_unit_tests'), "api_raw.txt"))
   end
 
+  def api_resources
+    File.read(File.join(fixture_path('for_unit_tests'), "api_resources.txt"))
+  end
+
   def apis_full_response(path)
     file = "#{path.gsub('/', '_')}.txt"
     File.read(File.join(fixture_path('for_unit_tests'), "apis", file))
+  end
+
+  def stub_api_resources
+    Krane::Kubectl.any_instance.stubs(:run).with("api-resources", "--no-headers=true", attempts: 2, use_namespace: false)
+      .returns([api_resources, "", nil])
   end
 
   def stub_raw_apis(success:)

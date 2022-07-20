@@ -16,13 +16,16 @@ MockResource = Struct.new(:id, :hits_to_complete, :status) do
   def after_sync
   end
 
-  def type
+  def kind
     "MockResource"
   end
-  alias_method(:kubectl_resource_type, :type)
 
   def group
     "core"
+  end
+
+  def group_kind
+    ::Krane::KubernetesResource.combine_group_kind(group, kind)
   end
 
   def pretty_timeout_type
@@ -67,8 +70,12 @@ MockResource = Struct.new(:id, :hits_to_complete, :status) do
     @debug_message = "Something went wrong"
   end
 
+  def pretty_id
+    id
+  end
+
   def pretty_status
-    "#{id}  #{status} (#{@hits} hits)"
+    "#{pretty_id}  #{status} (#{@hits} hits)"
   end
 
   def report_status_to_statsd(watch_time)

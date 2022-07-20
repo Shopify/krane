@@ -30,9 +30,9 @@ class ReplicaSetTest < Krane::TestCase
   end
 
   def build_synced_rs(template:)
-    stub_kind_get("Pod")
-    rs = Krane::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
-    stub_kind_get("ReplicaSet", items: [template])
+    stub_group_kind_get("Pod.")
+    rs = Krane::Apps::ReplicaSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
+    stub_group_kind_get("ReplicaSet.apps", items: [template])
     rs.sync(build_resource_cache)
     rs
   end

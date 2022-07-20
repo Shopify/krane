@@ -333,7 +333,7 @@ class PodTest < Krane::TestCase
   def build_synced_pod(template, parent: nil)
     pod = Krane::Pod.new(namespace: 'test', context: 'nope', definition: template,
       logger: @logger, deploy_started_at: Time.now.utc, parent: parent)
-    stub_kind_get("Pod", items: [template])
+    stub_group_kind_get("Pod.", items: [template])
     Krane::ContainerLogs.any_instance.stubs(:sync) unless parent.present?
     pod.sync(build_resource_cache)
     pod

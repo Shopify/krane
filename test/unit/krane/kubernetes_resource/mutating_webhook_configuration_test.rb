@@ -4,7 +4,7 @@ require 'test_helper'
 class MutatingWebhookConfigurationTest < Krane::TestCase
   def test_load_from_json
     definition = YAML.load_file(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.yaml"))
-    webhook_configuration = Krane::MutatingWebhookConfiguration.new(
+    webhook_configuration = Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
       logger: @logger, statsd_tags: nil
     )
@@ -18,8 +18,8 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     assert_equal(webhook.rules.length, 1)
     raw_rule = definition.dig('webhooks', 0, 'rules', 0)
     rule = webhook.rules.first
-    assert_equal(raw_rule.dig('apiGroups'), ['core'])
-    assert_equal(rule.groups, ['core'])
+    assert_equal(raw_rule.dig('apiGroups'), [''])
+    assert_equal(rule.groups, [''])
 
     assert_equal(raw_rule.dig('apiVersions'), ['v1'])
     assert_equal(rule.versions, ['v1'])
@@ -35,7 +35,7 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
       logger: @logger, statsd_tags: nil)
 
     definition = YAML.load_file(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.yaml"))
-    webhook_configuration = Krane::MutatingWebhookConfiguration.new(
+    webhook_configuration = Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
       logger: @logger, statsd_tags: nil
     )
@@ -55,7 +55,7 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
       logger: @logger, statsd_tags: nil)
 
     definition = YAML.load_file(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.yaml"))
-    webhook_configuration = Krane::MutatingWebhookConfiguration.new(
+    webhook_configuration = Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
       logger: @logger, statsd_tags: nil
     )
@@ -73,7 +73,7 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
       logger: @logger, statsd_tags: nil)
 
     definition = YAML.load_file(File.join(fixture_path("mutating_webhook_configurations"), "secret_hook.yaml"))
-    webhook_configuration = Krane::MutatingWebhookConfiguration.new(
+    webhook_configuration = Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration.new(
       namespace: 'test', context: 'nope', definition: definition,
       logger: @logger, statsd_tags: nil
     )
@@ -82,12 +82,9 @@ class MutatingWebhookConfigurationTest < Krane::TestCase
     # Note: We have to mock `has_side_effects?`, since this won't be possible with K8s 1.22+.
     webhook.stubs(:has_side_effects?).returns(true).at_least_once
     assert(webhook.matches_resource?(secret))
-    webhook.expects(:match_policy).returns(Krane::MutatingWebhookConfiguration::Webhook::EXACT).at_least(1)
+    webhook.expects(:match_policy).returns(Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration::Webhook::EXACT).at_least(1)
     assert(webhook.matches_resource?(secret))
     secret.expects(:group).returns('fake').once
-    refute(webhook.matches_resource?(secret))
-    secret.unstub(:group)
-    secret.expects(:type).returns('fake').once
     refute(webhook.matches_resource?(secret))
   end
 end

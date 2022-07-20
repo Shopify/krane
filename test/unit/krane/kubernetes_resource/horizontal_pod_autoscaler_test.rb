@@ -106,13 +106,13 @@ class HorizontalPodAutoscalerTest < Krane::TestCase
   end
 
   def build_synced_hpa(template)
-    hpa = Krane::HorizontalPodAutoscaler.new(
+    hpa = Krane::Autoscaling::HorizontalPodAutoscaler.new(
       namespace: 'test-ns',
       context: KubeclientHelper::TEST_CONTEXT,
       logger: logger,
       definition: template
     )
-    stub_kind_get("hpa.v2beta1.autoscaling", items: [template])
+    stub_group_kind_get("HorizontalPodAutoscaler.autoscaling", items: [template])
     hpa.sync(build_resource_cache)
     hpa
   end

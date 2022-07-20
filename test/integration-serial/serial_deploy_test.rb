@@ -63,7 +63,7 @@ class SerialDeployTest < Krane::IntegrationTest
   # to recreate such a condition
   def test_apply_failure_with_sensitive_resources_hides_template_content
     logger.level = 0
-    Krane::Deployment.any_instance.expects(:sensitive_template_content?).returns(true).at_least_once
+    Krane::Apps::Deployment.any_instance.expects(:sensitive_template_content?).returns(true).at_least_once
     result = deploy_fixtures("hello-cloud", subset: ["web.yml.erb"], render_erb: true) do |fixtures|
       bad_port_name = "http_test_is_really_long_and_invalid_chars"
       svc = fixtures["web.yml.erb"]["Service"].first
@@ -76,7 +76,7 @@ class SerialDeployTest < Krane::IntegrationTest
 
     assert_logs_match_all([
       "Command failed: apply -f",
-      /Invalid template: Deployment-web.*\.yml/,
+      /Invalid template: Deployment.apps-web.*\.yml/,
     ])
 
     refute_logs_match("kind: Deployment") # content of the sensitive template
@@ -450,7 +450,7 @@ class SerialDeployTest < Krane::IntegrationTest
       end
     end
     assert_deploy_failure(result)
-    prefixed_name = add_unique_prefix_for_test("Customized-with-customized-params")
+    prefixed_name = add_unique_prefix_for_test("Customized.stable.example.io-with-customized-params")
     assert_logs_match_all([
       /Invalid template: #{prefixed_name}/,
       /Rollout conditions are not valid JSON/,
@@ -500,7 +500,7 @@ class SerialDeployTest < Krane::IntegrationTest
       "Result: FAILURE",
       "This command cannot deploy namespaced resources",
       "Namespaced resources:",
-      "#{add_unique_prefix_for_test('my-first-mail')} (#{add_unique_prefix_for_test('Mail')})",
+      "#{add_unique_prefix_for_test('my-first-mail')} (#{add_unique_prefix_for_test('Mail.stable.example.io')})",
     ])
   end
 
@@ -552,17 +552,17 @@ class SerialDeployTest < Krane::IntegrationTest
     assert_deploy_success(result)
 
     # Note: We have to mock `has_side_effects?`, since this won't be possible with K8s 1.22+.
-    Krane::MutatingWebhookConfiguration::Webhook.any_instance.stubs(:has_side_effects?).returns(true)
+    Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration::Webhook.any_instance.stubs(:has_side_effects?).returns(true)
 
     Krane::ResourceDeployer.any_instance.expects(:dry_run).with do |params|
       # We expect the ingress to not be included in the batch run
-      params.length == 3 && (params.map(&:type).sort == ["ConfigMap", "Deployment", "Service"])
+      params.length == 3 && (params.map(&:kind).sort == ["ConfigMap", "Deployment", "Service"])
     end.returns(true)
 
-    [Krane::ConfigMap, Krane::Deployment, Krane::Service].each do |r|
+    [Krane::ConfigMap, Krane::Apps::Deployment, Krane::Service].each do |r|
       r.any_instance.expects(:validate_definition).with { |params| params[:dry_run] == false }
     end
-    Krane::Ingress.any_instance.expects(:validate_definition).with { |params| params[:dry_run] }
+    Krane::NetworkingK8sIo::Ingress.any_instance.expects(:validate_definition).with { |params| params[:dry_run] }
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb configmap-data.yml), render_erb: true)
     assert_deploy_success(result)
     assert_logs_match_all([
@@ -577,7 +577,7 @@ class SerialDeployTest < Krane::IntegrationTest
     assert_deploy_success(result)
 
     # Note: We have to mock `has_side_effects?`, since this won't be possible with K8s 1.22+.
-    Krane::MutatingWebhookConfiguration::Webhook.any_instance.stubs(:has_side_effects?).returns(true)
+    Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration::Webhook.any_instance.stubs(:has_side_effects?).returns(true)
 
     actual_dry_runs = 0
     Krane::KubernetesResource.any_instance.expects(:validate_definition).with do |params|
@@ -608,7 +608,7 @@ class SerialDeployTest < Krane::IntegrationTest
     assert_deploy_success(result)
 
     # Note: We have to mock `has_side_effects?`, since this won't be possible with K8s 1.22+.
-    Krane::MutatingWebhookConfiguration::Webhook.any_instance.stubs(:has_side_effects?).returns(true)
+    Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration::Webhook.any_instance.stubs(:has_side_effects?).returns(true)
 
     Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |p| p[:dry_run] }.times(2)
     result = deploy_fixtures('hello-cloud', subset: %w(web.yml.erb secret.yml), render_erb: true) do |fixtures|
@@ -620,12 +620,12 @@ class SerialDeployTest < Krane::IntegrationTest
   private
 
   def rollout_conditions_annotation_key
-    Krane::Annotation.for(Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
+    Krane::Annotation.for(Krane::ApiextensionsK8sIo::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
   end
 
   def mutating_webhook_fixture(path)
     JSON.parse(File.read(path))['items'].map do |definition|
-      Krane::MutatingWebhookConfiguration.new(namespace: @namespace, context: @context, logger: @logger,
+      Krane::AdmissionregistrationK8sIo::MutatingWebhookConfiguration.new(namespace: @namespace, context: @context, logger: @logger,
         definition: definition, statsd_tags: @namespace_tags)
     end
   end

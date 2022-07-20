@@ -34,9 +34,9 @@ class StatefulSetTest < Krane::TestCase
   end
 
   def build_synced_ss(template:)
-    ss = Krane::StatefulSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
-    stub_kind_get("StatefulSet", items: [template])
-    stub_kind_get("Pod", items: [])
+    ss = Krane::Apps::StatefulSet.new(namespace: "test", context: "nope", logger: logger, definition: template)
+    stub_group_kind_get("StatefulSet.apps", items: [template])
+    stub_group_kind_get("Pod.", items: [])
     ss.sync(build_resource_cache)
     ss
   end

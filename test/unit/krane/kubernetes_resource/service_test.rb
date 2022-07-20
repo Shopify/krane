@@ -8,16 +8,16 @@ class ServiceTest < Krane::TestCase
     svc_def = service_fixture('external-name')
     svc = build_service(svc_def)
 
-    stub_kind_get("Service", items: [])
-    stub_kind_get("Pod", times: 2)
-    stub_kind_get("Deployment", times: 2)
-    stub_kind_get("StatefulSet", times: 2)
+    stub_group_kind_get("Service.", items: [])
+    stub_group_kind_get("Pod.", times: 2)
+    stub_group_kind_get("Deployment.apps", times: 2)
+    stub_group_kind_get("StatefulSet.apps", times: 2)
     svc.sync(build_resource_cache)
     refute(svc.exists?)
     refute(svc.deploy_succeeded?)
     assert_equal("Not found", svc.status)
 
-    stub_kind_get("Service", items: [svc_def])
+    stub_group_kind_get("Service.", items: [svc_def])
     svc.sync(build_resource_cache)
     assert(svc.exists?)
     assert(svc.deploy_succeeded?)
@@ -28,8 +28,8 @@ class ServiceTest < Krane::TestCase
     svc_def = service_fixture('selectorless')
     svc = build_service(svc_def)
 
-    stub_kind_get("Service", items: [svc_def])
-    %w(Pod Deployment StatefulSet).each { |kind| stub_kind_get(kind) }
+    stub_group_kind_get("Service.", items: [svc_def])
+    %w(Pod. Deployment.apps StatefulSet.apps).each { |kind| stub_group_kind_get(kind) }
     svc.sync(build_resource_cache)
     assert(svc.exists?)
     assert(svc.deploy_succeeded?)
@@ -43,8 +43,8 @@ class ServiceTest < Krane::TestCase
       build_service(service_fixture('zero-replica')),
     ]
 
-    stub_kind_get("Service", items: [])
-    %w(Pod Deployment StatefulSet).each { |kind| stub_kind_get(kind) }
+    stub_group_kind_get("Service.", items: [])
+    %w(Pod. Deployment.apps StatefulSet.apps).each { |kind| stub_group_kind_get(kind) }
     cache = build_resource_cache
     all_services.each { |svc| svc.sync(cache) }
 
@@ -60,20 +60,20 @@ class ServiceTest < Krane::TestCase
     svc_def = service_fixture('standard')
     svc = build_service(svc_def)
 
-    stub_kind_get("Service", items: [svc_def])
-    stub_kind_get("Deployment", items: deployment_fixtures)
-    stub_kind_get("Pod", items: [])
-    stub_kind_get("StatefulSet", items: [])
+    stub_group_kind_get("Service.", items: [svc_def])
+    stub_group_kind_get("Deployment.apps", items: deployment_fixtures)
+    stub_group_kind_get("Pod.", items: [])
+    stub_group_kind_get("StatefulSet.apps", items: [])
     svc.sync(build_resource_cache)
 
     assert(svc.exists?)
     refute(svc.deploy_succeeded?)
     assert_equal("Selects 0 pods", svc.status)
 
-    stub_kind_get("Service", items: [svc_def])
-    stub_kind_get("Deployment", items: deployment_fixtures)
-    stub_kind_get("Pod", items: pod_fixtures)
-    stub_kind_get("StatefulSet", items: [])
+    stub_group_kind_get("Service.", items: [svc_def])
+    stub_group_kind_get("Deployment.apps", items: deployment_fixtures)
+    stub_group_kind_get("Pod.", items: pod_fixtures)
+    stub_group_kind_get("StatefulSet.apps", items: [])
     svc.sync(build_resource_cache)
 
     assert(svc.exists?)
@@ -85,10 +85,10 @@ class ServiceTest < Krane::TestCase
     svc_def = service_fixture('standard')
     svc = build_service(svc_def)
 
-    stub_kind_get("Service", items: [svc_def])
-    stub_kind_get("Deployment", items: [])
-    stub_kind_get("Pod", items: [])
-    stub_kind_get("StatefulSet", items: [])
+    stub_group_kind_get("Service.", items: [svc_def])
+    stub_group_kind_get("Deployment.apps", items: [])
+    stub_group_kind_get("Pod.", items: [])
+    stub_group_kind_get("StatefulSet.apps", items: [])
     svc.sync(build_resource_cache)
 
     assert(svc.exists?)
@@ -100,10 +100,10 @@ class ServiceTest < Krane::TestCase
     svc_def = service_fixture('zero-replica')
     svc = build_service(svc_def)
 
-    stub_kind_get("Service", items: [svc_def])
-    stub_kind_get("Deployment", items: deployment_fixtures)
-    stub_kind_get("Pod", items: [])
-    stub_kind_get("StatefulSet", items: [])
+    stub_group_kind_get("Service.", items: [svc_def])
+    stub_group_kind_get("Deployment.apps", items: deployment_fixtures)
+    stub_group_kind_get("Pod.", items: [])
+    stub_group_kind_get("StatefulSet.apps", items: [])
     svc.sync(build_resource_cache)
 
     assert(svc.exists?)
@@ -115,10 +115,10 @@ class ServiceTest < Krane::TestCase
     svc_def = service_fixture('zero-replica-multiple')
     svc = build_service(svc_def)
 
-    stub_kind_get("Service", items: [svc_def])
-    stub_kind_get("Deployment", items: deployment_fixtures)
-    stub_kind_get("Pod", items: [])
-    stub_kind_get("StatefulSet", items: [])
+    stub_group_kind_get("Service.", items: [svc_def])
+    stub_group_kind_get("Deployment.apps", items: deployment_fixtures)
+    stub_group_kind_get("Pod.", items: [])
+    stub_group_kind_get("StatefulSet.apps", items: [])
     svc.sync(build_resource_cache)
 
     assert(svc.exists?)
@@ -130,10 +130,10 @@ class ServiceTest < Krane::TestCase
     svc_def = service_fixture('zero-replica-statefulset')
     svc = build_service(svc_def)
 
-    stub_kind_get("Service", items: [svc_def])
-    stub_kind_get("Deployment", items: [])
-    stub_kind_get("Pod", items: [])
-    stub_kind_get("StatefulSet", items: stateful_set_fixtures)
+    stub_group_kind_get("Service.", items: [svc_def])
+    stub_group_kind_get("Deployment.apps", items: [])
+    stub_group_kind_get("Pod.", items: [])
+    stub_group_kind_get("StatefulSet.apps", items: stateful_set_fixtures)
     svc.sync(build_resource_cache)
 
     assert(svc.exists?)
@@ -145,10 +145,10 @@ class ServiceTest < Krane::TestCase
     svc_def = service_fixture('standard-mis-matched-lables')
     svc = build_service(svc_def)
 
-    stub_kind_get("Service", items: [svc_def])
-    stub_kind_get("Deployment", items: deployment_fixtures)
-    stub_kind_get("Pod", items: pod_fixtures)
-    stub_kind_get("StatefulSet", items: [])
+    stub_group_kind_get("Service.", items: [svc_def])
+    stub_group_kind_get("Deployment.apps", items: deployment_fixtures)
+    stub_group_kind_get("Pod.", items: pod_fixtures)
+    stub_group_kind_get("StatefulSet.apps", items: [])
     svc.sync(build_resource_cache)
 
     assert(svc.exists?)
@@ -160,10 +160,10 @@ class ServiceTest < Krane::TestCase
     svc_def = service_fixture('standard-lb')
     svc = build_service(svc_def)
 
-    stub_kind_get("Service", items: [svc_def])
-    stub_kind_get("Deployment", items: deployment_fixtures)
-    stub_kind_get("Pod", items: pod_fixtures)
-    stub_kind_get("StatefulSet", items: [])
+    stub_group_kind_get("Service.", items: [svc_def])
+    stub_group_kind_get("Deployment.apps", items: deployment_fixtures)
+    stub_group_kind_get("Pod.", items: pod_fixtures)
+    stub_group_kind_get("StatefulSet.apps", items: [])
     svc.sync(build_resource_cache)
 
     assert_includes(svc.to_yaml, 'type: LoadBalancer')
@@ -178,10 +178,10 @@ class ServiceTest < Krane::TestCase
         }],
       },
     })
-    stub_kind_get("Service", items: [svc_def])
-    stub_kind_get("Deployment", items: deployment_fixtures)
-    stub_kind_get("Pod", items: pod_fixtures)
-    stub_kind_get("StatefulSet", items: [])
+    stub_group_kind_get("Service.", items: [svc_def])
+    stub_group_kind_get("Deployment.apps", items: deployment_fixtures)
+    stub_group_kind_get("Pod.", items: pod_fixtures)
+    stub_group_kind_get("StatefulSet.apps", items: [])
     svc.sync(build_resource_cache)
 
     assert(svc.exists?)

@@ -8,7 +8,7 @@ class KubernetesResourceTest < Krane::TestCase
     attr_writer :succeeded, :deploy_failed
 
     def initialize(definition_extras: {})
-      definition = { "kind" => "DummyResource", "metadata" => { "name" => "test" } }.merge(definition_extras)
+      definition = { "apiVersion" => "v1", "kind" => "DummyResource", "metadata" => { "name" => "test" } }.merge(definition_extras)
       super(namespace: 'test', context: 'test', definition: definition, logger: ::Logger.new($stderr))
       @succeeded = false
     end
@@ -61,7 +61,7 @@ class KubernetesResourceTest < Krane::TestCase
   def test_service_and_deployment_timeouts_are_equal
     message = "Service and Deployment timeouts have to match since services are waiting to get endpoints " \
       "from their backing deployments"
-    assert_equal(Krane::Service.timeout, Krane::Deployment.timeout, message)
+    assert_equal(Krane::Service.timeout, Krane::Apps::Deployment.timeout, message)
   end
 
   def test_fetch_events_parses_tricky_events_correctly
@@ -358,7 +358,7 @@ class KubernetesResourceTest < Krane::TestCase
   def test_disappeared_is_false_if_resource_has_been_deployed_and_we_get_a_server_error
     dummy = DummyResource.new
     config = task_config(namespace: 'test', context: 'minikube')
-    config.stubs(:global_kinds).returns([])
+    config.stubs(:group_kinds).returns([])
     cache = Krane::ResourceCache.new(config)
     Krane::Kubectl.any_instance.expects(:run).returns(["", "NotFound", stub(success?: false)]).twice
 
@@ -371,7 +371,7 @@ class KubernetesResourceTest < Krane::TestCase
   end
 
   def test_lowercase_custom_resource_kind_does_not_raise
-    definition = { "kind" => "foobar", "metadata" => { "name" => "test" } }
+    definition = { "apiVersion" => "v1", "kind" => "foobar", "metadata" => { "name" => "test" } }
     Krane::KubernetesResource.build(
       namespace: 'test',
       context: 'test',
@@ -387,7 +387,7 @@ class KubernetesResourceTest < Krane::TestCase
       logger: @logger, statsd_tags: [], definition: build_crd(name: "noconfig"))
     no_config_cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: no_config_crd,
-      definition: { "kind" => "Noconfig", "metadata" => { "name" => "test" } })
+      definition: { "apiVersion" => "v1", "kind" => "Noconfig", "metadata" => { "name" => "test" } })
     assert_equal(no_config_cr.class, Krane::CustomResource)
 
     # With rollout config
@@ -395,17 +395,17 @@ class KubernetesResourceTest < Krane::TestCase
       logger: @logger, statsd_tags: [], definition: build_crd(name: "withconfig", with_config: true))
     with_config_cr = Krane::KubernetesResource.build(namespace: "test", context: "test",
       logger: @logger, statsd_tags: [], crd: with_config_crd,
-      definition: { "kind" => "Withconfig", "metadata" => { "name" => "test" } })
+      definition: { "apiVersion" => "v1", "kind" => "Withconfig", "metadata" => { "name" => "test" } })
     assert_equal(with_config_cr.class, Krane::CustomResource)
 
     # Hardcoded resource
     svc = Krane::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      statsd_tags: [], definition: { "kind" => "Service", "metadata" => { "name" => "test" } })
+      statsd_tags: [], definition: { "apiVersion" => "v1", "kind" => "Service", "metadata" => { "name" => "test" } })
     assert_equal(svc.class, Krane::Service)
 
     # Generic resource
     resource = Krane::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
-      statsd_tags: [], definition: { "kind" => "Unkonwn", "metadata" => { "name" => "test" } })
+      statsd_tags: [], definition: { "apiVersion" => "v1", "kind" => "Unkonwn", "metadata" => { "name" => "test" } })
     assert_equal(resource.class, Krane::KubernetesResource)
   end
 
@@ -443,13 +443,13 @@ class KubernetesResourceTest < Krane::TestCase
       return
     end
 
-    key = "DummyResource/test"
+    key = "DummyResource./test"
     expected = { key => [] }
-    first_event = "FailedSync: Error syncing pod, skipping: failed to \"StartContainer\" for \"test\" with " \
+    first_event = "[DummyResource/test]\tFailedSync: Error syncing pod, skipping: failed to \"StartContainer\" for \"test\" with " \
       "ErrImagePull: \"rpc error: code = 2 desc = unknown blob\" (3 events)"
     expected[key] << first_event if first
 
-    second_event = "FailedSync: Error syncing pod, skipping: failed to \"StartContainer\" for \"test\" with " \
+    second_event = "[DummyResource/test]\tFailedSync: Error syncing pod, skipping: failed to \"StartContainer\" for \"test\" with " \
       "CrashLoopBackOff: \"Back-off 1m20s restarting failed container=test pod=test-299526239-5vlj9_test" \
       "(00cfb839-4k2p-11e7-a12d-73972af001c2)\" (5 events)"
     expected[key] << second_event if second
@@ -494,6 +494,7 @@ class KubernetesResourceTest < Krane::TestCase
 
   def build_crd(name:, with_config: false)
     crd = {
+      "apiVersion" => "apiextensions.k8s.io/v1",
       "kind" => "CustomResourceDefinition",
       "metadata" => {
         "name" => "#{name}s.test.io",
@@ -516,7 +517,7 @@ class KubernetesResourceTest < Krane::TestCase
   end
 
   def rollout_conditions_annotation_key
-    Krane::Annotation.for(Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
+    Krane::Annotation.for(Krane::ApiextensionsK8sIo::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
   end
 
   def deploy_method_override_annotation_key
