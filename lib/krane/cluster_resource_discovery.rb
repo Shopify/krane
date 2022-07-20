@@ -38,29 +38,33 @@ module Krane
     end
 
     def fetch_group_kinds
-      output, _, _ = kubectl.run("api-resources", "--no-headers=true", attempts: 2, use_namespace: false)
-      output.split("\n").map do |l|
-        matches = l.scan(/\S+/)
+      output, err, st = kubectl.run("api-resources", "--no-headers=true", attempts: 2, use_namespace: false)
+      if st.success?
+        output.split("\n").map do |l|
+          matches = l.scan(/\S+/)
 
-        if matches.length == 4
-          group = ::Krane::KubernetesResource.group_from_api_version(matches[1])
-          # name, api, namespaced, kind
-          {
-            "namespaced" => matches[2] == "true",
-            "group" => group,
-            "kind" => matches[3],
-            "group_kind" => ::Krane::KubernetesResource.combine_group_kind(group, matches[3]),
-          }
-        else
-          group = ::Krane::KubernetesResource.group_from_api_version(matches[2])
-          # name, shortname, api, namespaced, kind
-          {
-            "namespaced" => matches[3] == "true",
-            "group" => group,
-            "kind" => matches[4],
-            "group_kind" => ::Krane::KubernetesResource.combine_group_kind(group, matches[4]),
-          }
+          if matches.length == 4
+            group = ::Krane::KubernetesResource.group_from_api_version(matches[1])
+            # name, api, namespaced, kind
+            {
+              "namespaced" => matches[2] == "true",
+              "group" => group,
+              "kind" => matches[3],
+              "group_kind" => ::Krane::KubernetesResource.combine_group_kind(group, matches[3]),
+            }
+          else
+            group = ::Krane::KubernetesResource.group_from_api_version(matches[2])
+            # name, shortname, api, namespaced, kind
+            {
+              "namespaced" => matches[3] == "true",
+              "group" => group,
+              "kind" => matches[4],
+              "group_kind" => ::Krane::KubernetesResource.combine_group_kind(group, matches[4]),
+            }
+          end
         end
+      else
+        raise FatalKubeAPIError, "Error retrieving mutatingwebhookconfigurations: #{err}"
       end
     end
 

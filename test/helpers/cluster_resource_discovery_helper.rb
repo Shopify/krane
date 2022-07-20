@@ -20,7 +20,7 @@ module ClusterResourceDiscoveryHelper
 
   def stub_api_resources
     Krane::Kubectl.any_instance.stubs(:run).with("api-resources", "--no-headers=true", attempts: 2, use_namespace: false)
-      .returns([api_resources, "", nil])
+      .returns([api_resources, "", stub(success?: true)])
   end
 
   def stub_raw_apis(success:)
