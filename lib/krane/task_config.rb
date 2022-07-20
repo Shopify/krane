@@ -24,9 +24,5 @@ module Krane
     def cluster_resource_discoverer
       @cluster_resource_discoverer ||= ClusterResourceDiscovery.new(task_config: self)
     end
-
-    def fetch_resources
-      @fetch_resources ||= cluster_resource_discoverer.fetch_resources(namespaced: false)
-    end
   end
 end

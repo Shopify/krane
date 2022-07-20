@@ -133,7 +133,7 @@ module Krane
     end
 
     def fetch_crds
-      raw_json, err, st = kubectl.run("get", "CustomResourceDefinition", output: "json", attempts: 5,
+      raw_json, err, st = kubectl.run("get", "CustomResourceDefinition.apiextensions.k8s.io", output: "json", attempts: 5,
         use_namespace: false)
       if st.success?
         JSON.parse(raw_json)["items"]

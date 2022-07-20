@@ -361,14 +361,14 @@ module Krane
     def fetch_events(kubectl)
       return {} unless exists?
 
-      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(group, kind, name)}",
+      out, err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(group, kind, name)}",
         log_failure: false, use_namespace: !global?)
 
-      return {} unless st.success?
+      raise FatalKubeAPIError, "Error retrieving events: #{err}" unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
       Event.extract_all_from_go_template_blob(out).each_with_object(event_collector) do |candidate, events|
-        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started_at - 60.seconds)
+        events[id] << candidate.to_s if candidate.seen_since?(@deploy_started_at - 5.seconds)
       end
     end
 
@@ -442,7 +442,8 @@ module Krane
 
       def self.go_template_for(group, kind, name)
         and_conditions = [
-          # First check that the API version is of equal lenght or longer than the group.
+          '.involvedObject.apiVersion',
+          # First check that the API version is of equal length or longer than the group.
           %[(gt (len .involvedObject.apiVersion) (len \"#{group}\"))],
           # Check that the API version starts with the group.
           %[(eq (slice .involvedObject.apiVersion 0 (len \"#{group}\")) \"#{group}\")],
@@ -455,9 +456,12 @@ module Krane
           '(ne .reason "Pulling")',
           '(ne .reason "Pulled")',
         ]
-        condition_start = "{{if and #{and_conditions.join(' ')}}}"
+
+        and_conditions_string = and_conditions.map { |c| "{{if #{c}}}" }.join("")
+        ends = "{{end}}" * and_conditions.length
+
         field_part = FIELDS.map { |f| "{{#{f}}}" }.join(%({{print "#{FIELD_SEPARATOR}"}}))
-        %({{range .items}}#{condition_start}#{field_part}{{print "#{EVENT_SEPARATOR}"}}{{end}}{{end}})
+        %({{range .items}}#{and_conditions_string}#{field_part}{{print "#{EVENT_SEPARATOR}"}}#{ends}{{end}})
       end
 
       def self.extract_all_from_go_template_blob(blob)
