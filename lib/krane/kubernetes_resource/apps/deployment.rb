@@ -72,7 +72,7 @@ module Krane
         elsif progress_condition.present?
           "Timeout reason: #{progress_condition['reason']}"
         else
-          "Timeout reason: hard deadline for #{type}"
+          "Timeout reason: hard deadline for #{kind}"
         end
         return reason_msg unless @latest_rs.present?
         "#{reason_msg}\nLatest ReplicaSet: #{@latest_rs.name}\n\n#{@latest_rs.timeout_message}"

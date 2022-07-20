@@ -76,9 +76,9 @@ module Krane
 
       if verify_result
         @logger.phase_heading("Waiting for rollout")
-        resources = build_watchables(deployments, start, Deployment)
-        resources += build_watchables(statefulsets, start, StatefulSet)
-        resources += build_watchables(daemonsets, start, DaemonSet)
+        resources = build_watchables(deployments, start, ::Krane::Apps::Deployment)
+        resources += build_watchables(statefulsets, start, ::Krane::Apps::StatefulSet)
+        resources += build_watchables(daemonsets, start, ::Krane::Apps::DaemonSet)
         verify_restart(resources)
       else
         warning = "Result verification is disabled for this task"
@@ -167,6 +167,12 @@ module Krane
         apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: selector_string)
       end
       deployments.select { |d| d.dig(:metadata, :annotations, ANNOTATION) }
+      .map do |d|
+        d["apiVersion"] = "apps/v1"
+        d["kind"] = "Deployment"
+
+        d
+      end
     end
 
     def identify_target_statefulsets(selector: nil)
@@ -177,6 +183,12 @@ module Krane
         apps_v1_kubeclient.get_stateful_sets(namespace: @namespace, label_selector: selector_string)
       end
       statefulsets.select { |ss| ss.dig(:metadata, :annotations, ANNOTATION) }
+      .map do |d|
+        d["apiVersion"] = "apps/v1"
+        d["kind"] = "StatefulSet"
+
+        d
+      end
     end
 
     def identify_target_daemonsets(selector: nil)
@@ -187,6 +199,12 @@ module Krane
         apps_v1_kubeclient.get_daemon_sets(namespace: @namespace, label_selector: selector_string)
       end
       daemonsets.select { |ds| ds.dig(:metadata, :annotations, ANNOTATION) }
+      .map do |d|
+        d["apiVersion"] = "apps/v1"
+        d["kind"] = "DaemonSet"
+
+        d
+      end
     end
 
     def build_watchables(kubeclient_resources, started, klass)

@@ -5,8 +5,9 @@ module Krane
 
     DEFAULT_LINE_LIMIT = Integer(ENV.fetch('KRANE_LOG_LINE_LIMIT', 25))
 
-    def initialize(parent_id:, container_name:, namespace:, context:, logger:)
+    def initialize(parent_id:, parent_pretty_id:, container_name:, namespace:, context:, logger:)
       @parent_id = parent_id
+      @parent_pretty_id = parent_pretty_id
       @container_name = container_name
       @namespace = namespace
       @context = context
