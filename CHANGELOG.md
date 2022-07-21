@@ -1,5 +1,11 @@
 ## next
 
+## 2.5.0
+
+- Krane is now able to distinguish between duplicate kinds. [#895](https://github.com/Shopify/krane/issues/895)
+- Dropped support for Ruby 2.7.
+- Dropped support for Kubernetes 1.19.
+
 ## 2.4.9
 
 - Fixed a Ruby 3.1 regression that caused an exception when using a `--bindings=@<file>` argument to `krane render` [#900](https://github.com/Shopify/krane/pull/900)
@@ -8,11 +14,13 @@
 
 - update googleauth gem version to 1.2
 - add the `ruby-lsp` gem to development group in the Gemfile
+
 ## 2.4.7
 
 *Bug fixes*
 
 - Fix `replace-force` deployment method override.
+
 ```
 /usr/local/bundle/gems/krane-2.4.6/lib/krane/resource_deployer.rb:119:in `block in deploy_resources': Unexpected deploy method! (:"replace-force") (ArgumentError)
 ```

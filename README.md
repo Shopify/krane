@@ -73,8 +73,8 @@ If you need the ability to render dynamic values in templates before deploying, 
 
 ## Prerequisites
 
-* Ruby 2.7+
-* Your cluster must be running Kubernetes v1.19.0 or higher<sup>1</sup>
+* Ruby 3.0+
+* Your cluster must be running Kubernetes v1.20.0 or higher<sup>1</sup>
 
 <sup>1</sup> We run integration tests against these Kubernetes versions. You can find our
 official compatibility chart below.
@@ -82,7 +82,7 @@ official compatibility chart below.
 | Kubernetes version | Currently Tested? | Last officially supported in gem version |
 |:------------------:|-------------------|:----------------------------------------:|
 |        1.18        | No                |                  2.3.7                   |
-|        1.19        | Yes               |                    --                    |
+|        1.19        | No                |                  2.4.8                   |
 |        1.20        | Yes               |                    --                    |
 |        1.21        | Yes               |                    --                    |
 |        1.22        | Yes               |                    --                    |
@@ -90,7 +90,7 @@ official compatibility chart below.
 
 ## Installation
 
-1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.19.0 or higher) and make sure it is available in your $PATH
+1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.20.0 or higher) and make sure it is available in your $PATH
 2. Set up your [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/) for access to your cluster(s).
 3. `gem install krane`
 
