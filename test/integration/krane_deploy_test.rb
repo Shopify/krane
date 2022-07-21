@@ -1826,6 +1826,14 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
     assert_deploy_success(deploy_fixtures("deploy-method-override"))
   end
 
+  def test_duplicate_kind_resource_definition
+    result = deploy_global_fixtures("crd", subset: ["deployment.yml"])
+    assert_deploy_success(result)
+
+    result = deploy_fixtures("crd", subset: ["web.yml"], global_timeout: 30)
+    assert_deploy_success(result)
+  end
+
   private
 
   def build_deploy_runner(context: KubeclientHelper::TEST_CONTEXT, ns: @namespace, global_timeout: nil)

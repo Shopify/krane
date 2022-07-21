@@ -1,0 +1,24 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: deployments.stable.example.com
+  labels:
+    app: krane
+spec:
+  group: stable.example.com
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          test:
+            type: string
+  scope: Cluster
+  names:
+    plural: deployments
+    singular: deployment
+    kind: Deployment
