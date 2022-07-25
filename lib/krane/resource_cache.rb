@@ -59,7 +59,7 @@ module Krane
     end
 
     def fetch_by_group_kind(group_kind)
-      group_kind_meta = @task_config.group_kinds.find { |g| g["group_kind"] == group_kind }
+      group_kind_meta = @task_config.group_kinds.find { |g| g.group_kind == group_kind }
       resource_class = ::Krane::KubernetesResource.group_kind_to_const(group_kind)
 
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT
@@ -70,7 +70,7 @@ module Krane
         attempts: 5,
         output: "json",
         output_is_sensitive: output_is_sensitive,
-        use_namespace: group_kind_meta ? group_kind_meta["namespaced"] : true
+        use_namespace: group_kind_meta ? group_kind_meta.namespaced : true
       )
       raise KubectlError unless st.success?
 

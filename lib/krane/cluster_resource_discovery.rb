@@ -44,23 +44,19 @@ module Krane
           matches = l.scan(/\S+/)
 
           if matches.length == 4
-            group = ::Krane::KubernetesResource.group_from_api_version(matches[1])
             # name, api, namespaced, kind
-            {
-              "namespaced" => matches[2] == "true",
-              "group" => group,
-              "kind" => matches[3],
-              "group_kind" => ::Krane::KubernetesResource.combine_group_kind(group, matches[3]),
-            }
+            ::Krane::APIResource.new(
+              ::Krane::KubernetesResource.group_from_api_version(matches[1]),
+              matches[3],
+              matches[2] == "true"
+            )
           else
-            group = ::Krane::KubernetesResource.group_from_api_version(matches[2])
             # name, shortname, api, namespaced, kind
-            {
-              "namespaced" => matches[3] == "true",
-              "group" => group,
-              "kind" => matches[4],
-              "group_kind" => ::Krane::KubernetesResource.combine_group_kind(group, matches[4]),
-            }
+            ::Krane::APIResource.new(
+              ::Krane::KubernetesResource.group_from_api_version(matches[2]),
+              matches[4],
+              matches[3] == "true"
+            )
           end
         end
       else

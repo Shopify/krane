@@ -18,6 +18,7 @@ require 'krane/formatted_logger'
 require 'krane/statsd'
 require 'krane/task_config'
 require 'krane/task_config_validator'
+require 'krane/api_resource'
 
 module Krane
   MIN_KUBE_VERSION = '1.15.0'

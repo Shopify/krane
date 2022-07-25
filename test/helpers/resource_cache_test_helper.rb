@@ -15,18 +15,16 @@ module ResourceCacheTestHelper
     task_config ||= task_config(namespace: 'test-ns').tap do |config|
       config.stubs(:group_kinds).returns(
         [
-          {
-            "namespaced" => false,
-            "group" => "",
-            "kind" => "Node",
-            "group_kind" => ::Krane::KubernetesResource.combine_group_kind("", "Node"),
-          },
-          {
-            "namespaced" => false,
-            "group" => "",
-            "kind" => "FakeNode",
-            "group_kind" => ::Krane::KubernetesResource.combine_group_kind("", "FakeNode"),
-          },
+          ::Krane::APIResource.new(
+            "",
+            "Node",
+            false
+          ),
+          ::Krane::APIResource.new(
+            "",
+            "FakeNode",
+            false
+          ),
         ]
       )
     end

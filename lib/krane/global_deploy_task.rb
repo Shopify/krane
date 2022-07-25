@@ -162,10 +162,10 @@ module Krane
       resources = []
       group_kinds = @task_config.group_kinds
 
-      crds_by_kind = cluster_resource_discoverer.crds.group_by(&:group_kind)
+      crds_grouped = cluster_resource_discoverer.crds.group_by(&:group_kind)
       @template_sets.with_resource_definitions do |r_def|
         group = ::Krane::KubernetesResource.group_from_api_version(r_def["apiVersion"])
-        crd = crds_by_kind[::Krane::KubernetesResource.combine_group_kind(group, r_def["kind"])]&.first
+        crd = crds_grouped[::Krane::KubernetesResource.combine_group_kind(group, r_def["kind"])]&.first
 
         r = KubernetesResource.build(context: context, logger: logger, definition: r_def,
           crd: crd, group_kinds: group_kinds, statsd_tags: statsd_tags)

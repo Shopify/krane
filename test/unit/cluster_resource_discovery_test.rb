@@ -61,4 +61,21 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
       assert(kinds.one? { |k| k.include?(expected_kind) })
     end
   end
+
+  def test_fetch_group_kinds
+    crd = ::Krane::ClusterResourceDiscovery.new(task_config: task_config, namespace_tags: [])
+    stub_api_resources
+
+    group_kinds = crd.fetch_group_kinds
+    assert_equal(125, group_kinds.length)
+
+    r_deployment = group_kinds.find { |gk| gk.group_kind == "Deployment.apps" }
+    assert(r_deployment.namespaced)
+
+    r_storage_class = group_kinds.find { |gk| gk.group_kind == "StorageClass.storage.k8s.io" }
+    refute(r_storage_class.namespaced)
+
+    r_pod_template = group_kinds.find { |gk| gk.group_kind == "PodTemplate." }
+    assert(r_pod_template.namespaced)
+  end
 end

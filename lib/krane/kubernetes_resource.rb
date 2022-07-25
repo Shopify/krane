@@ -65,8 +65,8 @@ module Krane
         end
 
         inst.global = GLOBAL
-        if (entry = group_kinds.find { |x| x["group_kind"] == group_kind })
-          inst.global = !entry["namespaced"]
+        if (entry = group_kinds.find { |x| x.group_kind == group_kind })
+          inst.global = !entry.namespaced
         end
         inst
       end
