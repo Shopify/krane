@@ -363,8 +363,7 @@ module Krane
 
       out, err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(group, kind, name)}",
         log_failure: false, use_namespace: !global?)
-
-      raise FatalKubeAPIError, "Error retrieving events: #{err}" unless st.success?
+      return {} unless st.success?
 
       event_collector = Hash.new { |hash, key| hash[key] = [] }
       Event.extract_all_from_go_template_blob(out).each_with_object(event_collector) do |candidate, events|
