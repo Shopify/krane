@@ -1,5 +1,9 @@
 ## next
 
+## 2.4.9
+
+- Fixed a Ruby 3.1 regression that caused an exception when using a `--bindings=@<file>` argument to `krane render` [#900](https://github.com/Shopify/krane/pull/900)
+
 ## 2.4.8
 
 - update googleauth gem version to 1.2
