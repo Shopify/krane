@@ -42,7 +42,10 @@ module Krane
       end
 
       group_kinds = (resources.map(&:group_kind) + sync_dependencies).uniq
-      Krane::Concurrency.split_across_threads(group_kinds, max_threads: group_kinds.count) { |group_kind| get_all(group_kind) }
+      Krane::Concurrency.split_across_threads(
+        group_kinds,
+         max_threads: group_kinds.count
+      ) { |group_kind| get_all(group_kind) }
     end
 
     private
@@ -59,7 +62,7 @@ module Krane
     end
 
     def fetch_by_group_kind(group_kind)
-      group_kind_meta = @task_config.group_kinds.find { |g| g.group_kind == group_kind }
+      group_kind_meta = @task_config.cluster_resource_discoverer.fetch_resources.find { |g| g.group_kind == group_kind }
       resource_class = ::Krane::KubernetesResource.group_kind_to_const(group_kind)
 
       output_is_sensitive = resource_class.nil? ? false : resource_class::SENSITIVE_TEMPLATE_CONTENT

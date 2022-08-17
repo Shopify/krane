@@ -44,7 +44,7 @@ module Krane
     SYNC_DEPENDENCIES = []
 
     class << self
-      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, group_kinds: [])
+      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, api_resources: [])
         validate_definition_essentials(definition)
 
         group = ::Krane::KubernetesResource.group_from_api_version(definition["apiVersion"])
@@ -65,7 +65,7 @@ module Krane
         end
 
         inst.global = GLOBAL
-        if (entry = group_kinds.find { |x| x.group_kind == group_kind })
+        if (entry = api_resources.find { |x| x.group_kind == group_kind })
           inst.global = !entry.namespaced
         end
         inst
@@ -97,17 +97,41 @@ module Krane
 
       def kind
         # Converts Krane::ApiextensionsK8sIo::CustomResourceDefinition to CustomResourceDefinition
-        if name.scan(/::/).length == 1
-          _, c_kind = name.split("::", 2)
-        else
-          _, _, c_kind = name.split("::", 3)
-        end
-
-        c_kind
+        name.demodulize
       end
 
       def group_kind
         ::Krane::KubernetesResource.combine_group_kind(group, kind)
+      end
+
+      def group_from_api_version(input)
+        input.include?("/") ? input.split("/").first : ""
+      end
+
+      def combine_group_kind(group, kind)
+        "#{kind}.#{group}"
+      end
+
+      def group_kind_to_const(group_kind)
+        kind, group = group_kind.split(".", 2)
+
+        group = group.split(".").map(&:capitalize).join("")
+
+        if group == ""
+          group_const = ::Krane
+        elsif ::Krane.const_defined?(group)
+          group_const = ::Krane.const_get(group)
+        else
+          return nil
+        end
+
+        unless group_const.const_defined?(kind)
+          return nil
+        end
+
+        group_const.const_get(kind)
+      rescue NameError => _
+        nil
       end
 
       private
@@ -361,7 +385,7 @@ module Krane
     def fetch_events(kubectl)
       return {} unless exists?
 
-      out, err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(group, kind, name)}",
+      out, _err, st = kubectl.run("get", "events", "--output=go-template=#{Event.go_template_for(group, kind, name)}",
         log_failure: false, use_namespace: !global?)
       return {} unless st.success?
 
@@ -545,36 +569,6 @@ module Krane
 
     def selected?(selector)
       selector.nil? || selector.to_h <= labels
-    end
-
-    def self.group_from_api_version(input)
-      input.include?("/") ? input.split("/").first : ""
-    end
-
-    def self.combine_group_kind(group, kind)
-      "#{kind}.#{group}"
-    end
-
-    def self.group_kind_to_const(group_kind)
-      kind, group = group_kind.split(".", 2)
-
-      group = group.split(".").map(&:capitalize).join("")
-
-      if group == ""
-        group_const = ::Krane
-      elsif ::Krane.const_defined?(group)
-        group_const = ::Krane.const_get(group)
-      else
-        return nil
-      end
-
-      unless group_const.const_defined?(kind)
-        return nil
-      end
-
-      group_const.const_get(kind)
-    rescue NameError => _
-      nil
     end
 
     private

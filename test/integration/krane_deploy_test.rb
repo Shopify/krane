@@ -40,20 +40,20 @@ class KraneDeployTest < Krane::IntegrationTest
     assert_deploy_failure(deploy_raw_fixtures("empty-resources", subset: %w[empty1.yml empty2.yml]))
 
     assert_logs_match_all([
-                            "All required parameters and files are present",
-                            "Result: FAILURE",
-                            "No deployable resources were found!",
-                          ], in_order: true)
+      "All required parameters and files are present",
+      "Result: FAILURE",
+      "No deployable resources were found!",
+    ], in_order: true)
   end
 
   def test_deploy_fails_with_empty_erb
     assert_deploy_failure(deploy_raw_fixtures("empty-resources", subset: %w[empty3.yml.erb empty4.yml.erb], render_erb: true))
 
     assert_logs_match_all([
-                            "All required parameters and files are present",
-                            "Result: FAILURE",
-                            "No deployable resources were found!",
-                          ], in_order: true)
+      "All required parameters and files are present",
+      "Result: FAILURE",
+      "No deployable resources were found!",
+    ], in_order: true)
   end
 
   def test_service_account_predeployed_before_unmanaged_pod
@@ -135,7 +135,7 @@ class KraneDeployTest < Krane::IntegrationTest
       prune_matcher("role", "rbac.authorization.k8s.io", "role"),
       prune_matcher("rolebinding", "rbac.authorization.k8s.io", "role-binding"),
       prune_matcher("persistentvolumeclaim", "", "hello-pv-claim"),
-      prune_matcher("ingress", %w(networking.k8s.io extensions), "web")
+      prune_matcher("ingress", %w(networking.k8s.io extensions), "web"),
     ] # not necessarily listed in this order
     expected_msgs = [/Pruned 2[013] resources and successfully deployed 6 resources/]
     expected_pruned.map do |resource|
@@ -1827,7 +1827,7 @@ unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
   end
 
   def test_duplicate_kind_resource_definition
-    result = deploy_global_fixtures("crd", subset: ["deployment.yml"])
+    result = deploy_global_fixtures("crd", subset: ["deployment.yml"], apply_scope_to_resources: false, selector: "app=krane")
     assert_deploy_success(result)
 
     result = deploy_fixtures("crd", subset: ["web.yml"], global_timeout: 30)

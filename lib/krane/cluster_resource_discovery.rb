@@ -20,47 +20,29 @@ module Krane
 
     def prunable_resources(namespaced:)
       black_list = %w(Namespace Node ControllerRevision)
-      fetch_resources(namespaced: namespaced).map do |resource|
-        next unless resource["verbs"].one? { |v| v == "delete" }
-        next if black_list.include?(resource["kind"])
-        [resource["apigroup"], resource["version"], resource["kind"]].compact.join("/")
+      fetch_resources.map do |resource|
+        next unless namespaced == resource.namespaced
+        next unless resource.verbs.one? { |v| v == "delete" }
+        next if black_list.include?(resource.kind)
+
+        [
+          resource.group,
+          resource.version,
+          resource.kind,
+        ].compact.join("/")
       end.compact
     end
 
-    def fetch_resources(namespaced: false)
-      responses = Concurrent::Hash.new
-      Krane::Concurrency.split_across_threads(api_paths) do |path|
-        responses[path] = fetch_api_path(path)["resources"] || []
-      end
-      responses.flat_map do |path, resources|
-        resources.map { |r| resource_hash(path, namespaced, r) }
-      end.compact.uniq { |r| "#{r['apigroup']}/#{r['kind']}" }
-    end
-
-    def fetch_group_kinds
-      output, err, st = kubectl.run("api-resources", "--no-headers=true", attempts: 2, use_namespace: false)
-      if st.success?
-        output.split("\n").map do |l|
-          matches = l.scan(/\S+/)
-
-          if matches.length == 4
-            # name, api, namespaced, kind
-            ::Krane::APIResource.new(
-              ::Krane::KubernetesResource.group_from_api_version(matches[1]),
-              matches[3],
-              matches[2] == "true"
-            )
-          else
-            # name, shortname, api, namespaced, kind
-            ::Krane::APIResource.new(
-              ::Krane::KubernetesResource.group_from_api_version(matches[2]),
-              matches[4],
-              matches[3] == "true"
-            )
-          end
+    def fetch_resources
+      @fetch_resources ||= begin
+        responses = Concurrent::Hash.new
+        Krane::Concurrency.split_across_threads(api_paths) do |path|
+          responses[path] = fetch_api_path(path)["resources"] || []
         end
-      else
-        raise FatalKubeAPIError, "Error retrieving group kinds: #{err}"
+
+        responses.flat_map do |path, resources|
+          resources.map { |r| resource_hash(path, r) }
+        end.compact.uniq(&:group_kind)
       end
     end
 
@@ -114,23 +96,30 @@ module Krane
       end
     end
 
-    def resource_hash(path, namespaced, blob)
-      return unless blob["namespaced"] == namespaced
+    def resource_hash(path, blob)
       # skip sub-resources
       return if blob["name"].include?("/")
+
       path_regex = %r{(/apis?/)(?<group>[^/]*)/?(?<version>v.+)}
       match = path.match(path_regex)
-      {
-        "verbs" => blob["verbs"],
-        "kind" => blob["kind"],
-        "apigroup" => match[:group],
-        "version" => match[:version],
-      }
+      ::Krane::APIResource.new(
+        match[:group],
+        blob["kind"],
+        match[:version],
+        blob["namespaced"],
+        blob["verbs"]
+      )
     end
 
     def fetch_crds
-      raw_json, err, st = kubectl.run("get", "CustomResourceDefinition.apiextensions.k8s.io", output: "json", attempts: 5,
-        use_namespace: false)
+      raw_json, err, st = kubectl.run(
+        "get",
+        "CustomResourceDefinition.apiextensions.k8s.io",
+        output: "json",
+        attempts: 5,
+        use_namespace: false
+      )
+
       if st.success?
         JSON.parse(raw_json)["items"]
       else

@@ -42,12 +42,15 @@ module FixtureDeployHelper
     success
   end
 
-  def deploy_global_fixtures(set, subset: nil, selector: nil, verify_result: true, prune: true, global_timeout: 300)
+  def deploy_global_fixtures(set, subset: nil, selector: nil, verify_result: true, prune: true, global_timeout: 300,
+    apply_scope_to_resources: true)
     fixtures = load_fixtures(set, subset)
     raise "Cannot deploy empty template set" if fixtures.empty?
 
-    selector = (selector == false ? "" : "#{selector},app=krane,test=#{@namespace}".sub(/^,/, ''))
-    apply_scope_to_resources(fixtures, labels: selector)
+    if apply_scope_to_resources
+      selector = (selector == false ? "" : "#{selector},app=krane,test=#{@namespace}".sub(/^,/, ''))
+      apply_scope_to_resources(fixtures, labels: selector)
+    end
 
     yield fixtures if block_given?
 

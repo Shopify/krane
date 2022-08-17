@@ -13,10 +13,6 @@ module Krane
       @kubeconfig = kubeconfig || ENV['KUBECONFIG']
     end
 
-    def group_kinds
-      @group_kinds ||= cluster_resource_discoverer.fetch_group_kinds
-    end
-
     def kubeclient_builder
       @kubeclient_builder ||= KubeclientBuilder.new(kubeconfig: kubeconfig)
     end

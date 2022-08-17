@@ -2,12 +2,14 @@
 
 module Krane
   class APIResource
-    attr_reader :group, :kind, :namespaced
+    attr_reader :group, :kind, :version, :namespaced, :verbs
 
-    def initialize(group, kind, namespaced)
+    def initialize(group, kind, version, namespaced, verbs)
       @group = group
       @kind = kind
+      @version = version
       @namespaced = namespaced
+      @verbs = verbs
     end
 
     def group_kind

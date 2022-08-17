@@ -85,6 +85,7 @@ module Krane
       render_erb: false, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
+
       @task_config = Krane::TaskConfig.new(context, namespace, @logger, kubeconfig)
       @bindings = bindings
       @namespace = namespace
@@ -211,14 +212,22 @@ module Krane
       @logger.info("Discovering resources:")
       resources = []
       crds_grouped = cluster_resource_discoverer.crds.group_by(&:cr_group_kind)
-      group_kinds = @task_config.group_kinds
+      api_resources = cluster_resource_discoverer.fetch_resources
 
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
         group = ::Krane::KubernetesResource.group_from_api_version(r_def["apiVersion"])
 
         crd = crds_grouped[::Krane::KubernetesResource.combine_group_kind(group, r_def["kind"])]&.first
-        r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, group_kinds: group_kinds)
+        r = KubernetesResource.build(
+          namespace: @namespace,
+          context: @context,
+          logger: @logger,
+          definition: r_def,
+          statsd_tags: @namespace_tags,
+          crd: crd,
+          api_resources: api_resources,
+        )
+
         resources << r
         @logger.info("  - #{r.pretty_id}")
       end
