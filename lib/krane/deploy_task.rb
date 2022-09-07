@@ -68,6 +68,7 @@ module Krane
         Role
         RoleBinding
         Secret
+        LimitRange
       ).map { |r| [r, default_group] }
 
       after_crs = %w(
