@@ -20,5 +20,5 @@ require 'krane/task_config'
 require 'krane/task_config_validator'
 
 module Krane
-  MIN_KUBE_VERSION = '1.15.0'
+  MIN_KUBE_VERSION = '1.22.0'
 end

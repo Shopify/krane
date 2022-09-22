@@ -1,12 +1,12 @@
 ---
 name: krane
 up:
-  - ruby: '3.0.3' # Matches gemspec
+  - ruby: '3.1.2' # Matches gemspec
   - bundler
   - podman
   - kind:
       name: krane
-      image: kindest/node:v1.22.0@sha256:b8bda84bb3a190e6e028b1760d277454a72267a5454b57db34437c34a588d047
+      image: kindest/node:v1.24.0@sha256:0866296e693efe1fed79d5e6c7af8df71fc73ae45e3679af05342239cdc5bc8e
 commands:
   test:
     run: bin/test
