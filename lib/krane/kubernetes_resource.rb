@@ -564,11 +564,7 @@ module Krane
 
     # Server side dry run is only supported on apply
     def validate_with_server_side_dry_run(kubectl)
-      command = if kubectl.client_version >= Gem::Version.new('1.18')
-        ["apply", "-f", file_path, "--dry-run=server", "--output=name"]
-      else
-        ["apply", "-f", file_path, "--server-dry-run", "--output=name"]
-      end
+      command = ["apply", "-f", file_path, "--dry-run=server", "--output=name"]
 
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
         retry_whitelist: [:client_timeout, :empty, :context_deadline], attempts: 3)
@@ -579,11 +575,7 @@ module Krane
     # If the resource template uses generateName, validating with apply will fail
     def validate_with_local_dry_run(kubectl)
       verb = deploy_method == :apply ? "apply" : "create"
-      command = if kubectl.client_version >= Gem::Version.new('1.18')
-        [verb, "-f", file_path, "--dry-run=client", "--output=name"]
-      else
-        [verb, "-f", file_path, "--dry-run", "--output=name"]
-      end
+      command = [verb, "-f", file_path, "--dry-run=client", "--output=name"]
 
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
         retry_whitelist: [:client_timeout, :empty, :context_deadline], attempts: 3, use_namespace: !global?)
