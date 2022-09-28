@@ -551,11 +551,4 @@ class SerialDeployTest < Krane::IntegrationTest
   def rollout_conditions_annotation_key
     Krane::Annotation.for(Krane::CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)
   end
-
-  def mutating_webhook_fixture(path)
-    JSON.parse(File.read(path))['items'].map do |definition|
-      Krane::MutatingWebhookConfiguration.new(namespace: @namespace, context: @context, logger: @logger,
-        definition: definition, statsd_tags: @namespace_tags)
-    end
-  end
 end
