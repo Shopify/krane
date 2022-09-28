@@ -6,7 +6,7 @@ up:
   - podman
   - kind:
       name: krane
-      image: kindest/node:v1.24.0@sha256:0866296e693efe1fed79d5e6c7af8df71fc73ae45e3679af05342239cdc5bc8e
+      image: kindest/node:v1.24.6@sha256:97e8d00bc37a7598a0b32d1fabd155a96355c49fa0d4d4790aab0f161bf31be1
 commands:
   test:
     run: bin/test
