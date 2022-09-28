@@ -13,24 +13,19 @@ jobs:
         ruby:
         # Use unique Ruby versions, or GitHub gets confused when building the rest of the matrix
         - '3.1.2' # With k8s 1.24
-        - '3.1.1' # With k8s 1.23
-        - '3.0.3' # With k8s 1.23
-        - '3.0.2' # With k8s 1.22
+        - '3.0.4' # With k8s 1.23
+        - '2.7.6' # With k8s 1.22
         include:
         # Match kind images with chosen version https://github.com/kubernetes-sigs/kind/releases
         - ruby: '3.1.2'
           kind_version: 'v0.14.0'
           kubernetes_version: '1.24.0'
           kind_image: 'kindest/node:v1.24.0@sha256:0866296e693efe1fed79d5e6c7af8df71fc73ae45e3679af05342239cdc5bc8e'
-        - ruby: '3.1.1'
-          kind_version: 'v0.11.0'
-          kubernetes_version: '1.23.0'
-          kind_image: 'kindest/node:v1.24.0@sha256:0866296e693efe1fed79d5e6c7af8df71fc73ae45e3679af05342239cdc5bc8e'
-        - ruby: '3.0.3'
+        - ruby: '3.0.4'
           kind_version: 'v0.11.1'
           kubernetes_version: '1.23.0'
           kind_image: 'kindest/node:v1.23.0@sha256:49824ab1727c04e56a21a5d8372a402fcd32ea51ac96a2706a12af38934f81ac'
-        - ruby: '3.0.2'
+        - ruby: '2.7.6'
           kind_version: 'v0.11.1'
           kubernetes_version: '1.22.0'
           kind_image: 'kindest/node:v1.22.0@sha256:b8bda84bb3a190e6e028b1760d277454a72267a5454b57db34437c34a588d047'
