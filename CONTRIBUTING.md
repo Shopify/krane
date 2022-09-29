@@ -29,9 +29,7 @@ behavior to [krane@shopify.com](mailto:krane@shopify.com).
 ## Maintainers
 
 This project is currently under the stewardship of the Production Platform group at Shopify.
-The two primary maintainers are @knverey and @dturn. Approval from at least one primary maintainer is
-required for all significant feature proposals and code architecture changes. In general,
-two people must approve all non-trivial PRs.
+In general, two people must approve all non-trivial PRs.
 
 ## What should I know before I get started?
 
