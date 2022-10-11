@@ -74,23 +74,28 @@ If you need the ability to render dynamic values in templates before deploying, 
 ## Prerequisites
 
 * Ruby 2.7+
-* Your cluster must be running Kubernetes v1.19.0 or higher<sup>1</sup>
+* Your cluster must be running Kubernetes v1.22.0 or higher<sup>1</sup>
 
-<sup>1</sup> We run integration tests against these Kubernetes versions. You can find our
-official compatibility chart below.
+## Compatibility
+
+<sup>1</sup> We run integration tests against these Kubernetes versions. You can find our official compatibility chart below.
+
+Krane provides support for official upstream supported versions [Kubernetes](https://endoflife.date/kubernetes), [Ruby](https://endoflife.date/ruby) that are part of the compatibility matrix; Nevertheless, older releases are still likely to work.
 
 | Kubernetes version | Currently Tested? | Last officially supported in gem version |
 |:------------------:|-------------------|:----------------------------------------:|
 |        1.18        | No                |                  2.3.7                   |
-|        1.19        | Yes               |                    --                    |
-|        1.20        | Yes               |                    --                    |
-|        1.21        | Yes               |                    --                    |
+|        1.19        | No                |                  2.4.9                   |
+|        1.20        | No                |                  2.4.9                   |
+|        1.21        | No                |                  2.4.9                   |
 |        1.22        | Yes               |                    --                    |
 |        1.23        | Yes               |                    --                    |
+|        1.24        | Yes               |                    --                    |
+|        1.25        | No                |                    --                    |
 
 ## Installation
 
-1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.19.0 or higher) and make sure it is available in your $PATH
+1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.22.0 or higher) and make sure it is available in your $PATH
 2. Set up your [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/) for access to your cluster(s).
 3. `gem install krane`
 
@@ -497,7 +502,7 @@ resource to restart.
 
 ## Prerequisites
 
-* You've already deployed a [`PodTemplate`](https://v1-15.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.15/#podtemplate-v1-core) object with field `template` containing a `Pod` specification that does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
+* You've already deployed a [`PodTemplate`](https://v1-22.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#podtemplate-v1-core) object with field `template` containing a `Pod` specification that does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
 * The `Pod` specification in that template has a container named `task-runner`.
 
 Based on this specification `krane run` will create a new pod with the entrypoint of the `task-runner ` container overridden with the supplied arguments.

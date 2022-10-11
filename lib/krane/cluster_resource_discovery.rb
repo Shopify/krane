@@ -37,19 +37,6 @@ module Krane
       end.compact.uniq { |r| "#{r['apigroup']}/#{r['kind']}" }
     end
 
-    def fetch_mutating_webhook_configurations
-      command = %w(get mutatingwebhookconfigurations)
-      raw_json, err, st = kubectl.run(*command, output: "json", attempts: 5, use_namespace: false)
-      if st.success?
-        JSON.parse(raw_json)["items"].map do |definition|
-          Krane::MutatingWebhookConfiguration.new(namespace: namespace, context: context, logger: logger,
-            definition: definition, statsd_tags: @namespace_tags)
-        end
-      else
-        raise FatalKubeAPIError, "Error retrieving mutatingwebhookconfigurations: #{err}"
-      end
-    end
-
     private
 
     # During discovery, the api paths may not actually be at the root, so we must programatically find it.

@@ -29,9 +29,7 @@ behavior to [krane@shopify.com](mailto:krane@shopify.com).
 ## Maintainers
 
 This project is currently under the stewardship of the Production Platform group at Shopify.
-The two primary maintainers are @knverey and @dturn. Approval from at least one primary maintainer is
-required for all significant feature proposals and code architecture changes. In general,
-two people must approve all non-trivial PRs.
+In general, two people must approve all non-trivial PRs.
 
 ## What should I know before I get started?
 
@@ -113,7 +111,7 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
 
 If you work for Shopify, just run `dev up`, but otherwise:
 
-1. [Install kubectl version 1.10.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
+1. [Install kubectl version 1.22.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
 2. [Install minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (required to run the test suite)
 3. [Install any required minikube drivers](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) (on OS X, you may need the [hyperkit driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver)
 4. Check out the repo

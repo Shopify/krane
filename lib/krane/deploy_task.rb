@@ -30,7 +30,6 @@ require 'krane/kubernetes_resource'
   custom_resource_definition
   horizontal_pod_autoscaler
   secret
-  mutating_webhook_configuration
 ).each do |subresource|
   require "krane/kubernetes_resource/#{subresource}"
 end
@@ -285,26 +284,18 @@ module Krane
     end
     measure_method(:validate_configuration)
 
-    def partition_dry_run_resources(resources)
-      individuals = []
-      mutating_webhook_configurations = cluster_resource_discoverer.fetch_mutating_webhook_configurations
-      mutating_webhook_configurations.each do |mutating_webhook_configuration|
-        mutating_webhook_configuration.webhooks.each do |webhook|
-          individuals = (individuals + resources.select { |resource| webhook.matches_resource?(resource) }).uniq
-          resources -= individuals
-        end
-      end
-      [resources, individuals]
-    end
-
     def validate_resources(resources)
       validate_globals(resources)
-      batchable_resources, individuals = partition_dry_run_resources(resources.dup)
-      batch_dry_run_success = kubectl.server_dry_run_enabled? && validate_dry_run(batchable_resources)
-      individuals += batchable_resources unless batch_dry_run_success
+      batch_dry_run_success = validate_dry_run(resources)
       resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
+
       Krane::Concurrency.split_across_threads(resources) do |r|
-        r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: individuals.include?(r))
+        # No need to pass in kubectl (and do per-resource dry run apply) if batch dry run succeeded
+        if batch_dry_run_success
+          r.validate_definition(kubectl: nil, selector: @selector, dry_run: false)
+        else
+          r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
+        end
       end
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
