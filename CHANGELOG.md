@@ -1,12 +1,17 @@
 ## next
 
+
+## 3.0.0
+
 *Enhancements*
 
 - CI test matrix now test all Krane supported Ruby and Kubernetes versions.
    Ruby: 3.1.2 , 3.0.4 , 2.7.6, Kubernetes: - 1.24.6, 1.23.12, 1.22.15.
 
 *Breaking Changes*
-- Remove unsupported Kubernetes and Ruby versions from Krane and CI [#905](https://github.com/Shopify/krane/pull/905)
+- Remove unsupported Kubernetes and Ruby versions from Krane and CI [#905](https://github.com/Shopify/krane/pull/905).
+See supported Kubernetes and Ruby versions in  [Compatibility](./CONTRIBUTING.md#compatibility).
+If you are using Kubernetes <v1.22 keep using Krane v2.4.9.
 
 ## 2.4.9
 
