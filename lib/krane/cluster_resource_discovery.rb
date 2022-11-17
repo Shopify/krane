@@ -19,7 +19,7 @@ module Krane
     end
 
     def prunable_resources(namespaced:)
-      black_list = %w(Namespace Node ControllerRevision)
+      black_list = %w(Namespace Node ControllerRevision Event)
       fetch_resources(namespaced: namespaced).map do |resource|
         next unless resource["verbs"].one? { |v| v == "delete" }
         next if black_list.include?(resource["kind"])
