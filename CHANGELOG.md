@@ -1,5 +1,6 @@
 ## next
 
+- Add `Event` to the list of resources not to be pruned on a deployment.  Kubernetes should clean these up automatically. This can cause unnessessary deployment timeouts and increased deployment time.
 
 ## 3.0.0
 
