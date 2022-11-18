@@ -45,11 +45,11 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
     crd = mocked_cluster_resource_discovery
     kinds = crd.prunable_resources(namespaced: true).map { |k| k.split('/').last }.uniq
 
-    assert_equal(24, kinds.length)
+    assert_equal(23, kinds.length)
     %w(ConfigMap CronJob Deployment).each do |expected_kind|
       assert(kinds.one? { |k| k.include?(expected_kind) })
     end
-    %w(controllerrevision).each do |black_listed_kind|
+    %w(controllerrevision event).each do |black_listed_kind|
       assert_empty(kinds.select { |k| k.downcase.include?(black_listed_kind) })
     end
   end
