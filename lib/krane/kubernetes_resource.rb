@@ -255,22 +255,6 @@ module Krane
 
     def debug_message(cause = nil, info_hash = {})
       helpful_info = []
-      if cause == :gave_up
-        debug_heading = ColorizedString.new("#{id}: GLOBAL WATCH TIMEOUT (#{info_hash[:timeout]} seconds)").yellow
-        helpful_info << "If you expected it to take longer than #{info_hash[:timeout]} seconds for your deploy"\
-        " to roll out, increase --global-timeout."
-      elsif deploy_failed?
-        debug_heading = ColorizedString.new("#{id}: FAILED").red
-        helpful_info << failure_message if failure_message.present?
-      elsif deploy_timed_out?
-        debug_heading = ColorizedString.new("#{id}: TIMED OUT (#{pretty_timeout_type})").yellow
-        helpful_info << timeout_message if timeout_message.present?
-      else
-        # Arriving in debug_message when we neither failed nor timed out is very unexpected. Dump all available info.
-        debug_heading = ColorizedString.new("#{id}: MONITORING ERROR").red
-        helpful_info << failure_message if failure_message.present?
-        helpful_info << timeout_message if timeout_message.present? && timeout_message != STANDARD_TIMEOUT_MESSAGE
-      end
 
       final_status = "  - Final status: #{status}"
       final_status = "\n#{final_status}" if helpful_info.present? && !helpful_info.last.end_with?("\n")
@@ -310,6 +294,23 @@ module Krane
             end
           end
         end
+      end
+
+      if cause == :gave_up
+        debug_heading = ColorizedString.new("#{id}: GLOBAL WATCH TIMEOUT (#{info_hash[:timeout]} seconds)").yellow
+        helpful_info << "If you expected it to take longer than #{info_hash[:timeout]} seconds for your deploy"\
+        " to roll out, increase --global-timeout."
+      elsif deploy_failed?
+        debug_heading = ColorizedString.new("#{id}: FAILED").red
+        helpful_info << failure_message if failure_message.present?
+      elsif deploy_timed_out?
+        debug_heading = ColorizedString.new("#{id}: TIMED OUT (#{pretty_timeout_type})").yellow
+        helpful_info << timeout_message if timeout_message.present?
+      else
+        # Arriving in debug_message when we neither failed nor timed out is very unexpected. Dump all available info.
+        debug_heading = ColorizedString.new("#{id}: MONITORING ERROR").red
+        helpful_info << failure_message if failure_message.present?
+        helpful_info << timeout_message if timeout_message.present? && timeout_message != STANDARD_TIMEOUT_MESSAGE
       end
 
       helpful_info.join("\n")
