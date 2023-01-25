@@ -15,10 +15,13 @@ jobs:
           - "3.0.4"
           - "2.7.6"
         kubernetes_version:
+          - "1.25.3"
           - "1.24.6"
           - "1.23.12"
           - "1.22.15"
         include:
+          - kubernetes_version: "1.25.3"
+            kind_image: "kindest/node:v1.25.3@sha256:f52781bc0d7a19fb6c405c2af83abfeb311f130707a0e219175677e366cc45d1"
           - kubernetes_version: "1.24.6"
             kind_image: "kindest/node:v1.24.6@sha256:97e8d00bc37a7598a0b32d1fabd155a96355c49fa0d4d4790aab0f161bf31be1"
           - kubernetes_version: "1.23.12"
