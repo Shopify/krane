@@ -16,7 +16,7 @@ module Krane
     end
 
     def kubectl_resource_type
-      'hpa.v2beta1.autoscaling'
+      'hpa.v2.autoscaling'
     end
 
     def status
