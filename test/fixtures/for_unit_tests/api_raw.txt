@@ -19,7 +19,7 @@
     "/apis/authorization.k8s.io",
     "/apis/authorization.k8s.io/v1",
     "/apis/autoscaling",
-    "/apis/autoscaling/v1",
+    "/apis/autoscaling/v2",
     "/apis/autoscaling/v2beta1",
     "/apis/autoscaling/v2beta2",
     "/apis/batch",
