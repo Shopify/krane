@@ -112,7 +112,7 @@ class HorizontalPodAutoscalerTest < Krane::TestCase
       logger: logger,
       definition: template
     )
-    stub_kind_get("hpa.v2beta1.autoscaling", items: [template])
+    stub_kind_get("hpa.v2.autoscaling", items: [template])
     hpa.sync(build_resource_cache)
     hpa
   end
