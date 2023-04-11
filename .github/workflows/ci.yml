@@ -39,7 +39,7 @@ jobs:
           chmod +x "${GITHUB_WORKSPACE}/bin/kubectl"
           echo "PATH=$GITHUB_WORKSPACE/bin:${PATH}" >> $GITHUB_ENV
 
-      - name: Create kind cluster
+      - name: Create kind cluster for ${{ matrix.kubernetes_version }}
         run: |
           kind create cluster --image=${{ matrix.kind_image }}
 
