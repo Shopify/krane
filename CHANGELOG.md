@@ -1,5 +1,11 @@
 ## next
 
+## 3.1.0
+
+*Enhancements*
+
+- Modify HorizontalPodAutoscaler resource class used. [#920](https://github.com/Shopify/krane/pull/920).
+
 ## 3.0.1
 
 - Add `Event` to the list of resources not to be pruned on a deployment.  Kubernetes should clean these up automatically. This can cause unnessessary deployment timeouts and increased deployment time. [#909](https://github.com/Shopify/krane/pull/909)
