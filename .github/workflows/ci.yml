@@ -17,17 +17,14 @@ jobs:
         kubernetes_version:
           - "1.24.6"
           - "1.23.12"
-          - "1.22.15"
         include:
           - kubernetes_version: "1.24.6"
             kind_image: "kindest/node:v1.24.6@sha256:97e8d00bc37a7598a0b32d1fabd155a96355c49fa0d4d4790aab0f161bf31be1"
           - kubernetes_version: "1.23.12"
             kind_image: "kindest/node:v1.23.12@sha256:9402cf1330bbd3a0d097d2033fa489b2abe40d479cc5ef47d0b6a6960613148a"
-          - kubernetes_version: "1.22.15"
-            kind_image: "kindest/node:v1.22.15@sha256:bfd5eaae36849bfb3c1e3b9442f3da17d730718248939d9d547e86bbac5da586"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup Ruby ${{ matrix.ruby }}
         uses: ruby/setup-ruby@v1
@@ -42,11 +39,9 @@ jobs:
           chmod +x "${GITHUB_WORKSPACE}/bin/kubectl"
           echo "PATH=$GITHUB_WORKSPACE/bin:${PATH}" >> $GITHUB_ENV
 
-      - name: Setup Kind v0.16.0
-        uses: engineerd/setup-kind@v0.5.0
-        with:
-          version: v0.16.0
-          image: "${{ matrix.kind_image }}"
+      - name: Create kind cluster
+        run: |
+          kind create cluster --image=${{ matrix.kind_image }}
 
       - name: Run tests
         run: |
