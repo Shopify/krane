@@ -24,7 +24,7 @@ module ClusterResourceDiscoveryHelper
     Krane::Kubectl.any_instance.stubs(:run).with("get", "--raw", "/", attempts: 5, use_namespace: false)
       .returns([api_raw_full_response, "", stub(success?: success)])
 
-    paths = JSON.parse(api_raw_full_response)['paths'].select { |p| %r{^\/api.*\/v.*$}.match(p) }
+    paths = MultiJson.load(api_raw_full_response)['paths'].select { |p| %r{^\/api.*\/v.*$}.match(p) }
     paths.each do |path|
       Krane::Kubectl.any_instance.stubs(:run).with("get", "--raw", path, attempts: 2, use_namespace: false)
         .returns([apis_full_response(path), "", stub(success?: true)])

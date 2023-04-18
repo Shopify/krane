@@ -54,7 +54,7 @@ module Krane
       @api_path_cache["/"] ||= begin
         raw_json, err, st = kubectl.run("get", "--raw", base_api_path, attempts: 5, use_namespace: false)
         paths = if st.success?
-          JSON.parse(raw_json)["paths"]
+          MultiJson.load(raw_json)["paths"]
         else
           raise FatalKubeAPIError, "Error retrieving raw path /: #{err}"
         end
@@ -66,7 +66,7 @@ module Krane
       @api_path_cache[path] ||= begin
         raw_json, err, st = kubectl.run("get", "--raw", path, attempts: 2, use_namespace: false)
         if st.success?
-          JSON.parse(raw_json)
+          MultiJson.load(raw_json)
         else
           logger.warn("Error retrieving api path: #{err}")
           {}
@@ -92,7 +92,7 @@ module Krane
       raw_json, err, st = kubectl.run("get", "CustomResourceDefinition", output: "json", attempts: 5,
         use_namespace: false)
       if st.success?
-        JSON.parse(raw_json)["items"]
+        MultiJson.load(raw_json)["items"]
       else
         raise FatalKubeAPIError, "Error retrieving CustomResourceDefinition: #{err}"
       end
