@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency("ejson", "~> 1.0")
   spec.add_dependency("colorize", "~> 0.8")
   spec.add_dependency("statsd-instrument", ['>= 2.8', "< 4"])
-  spec.add_dependency("oj", "~> 3.0")
+  spec.add_dependency("multi_json")
   spec.add_dependency("concurrent-ruby", "~> 1.1")
   spec.add_dependency("jsonpath", "~> 1.0")
   spec.add_dependency("thor", ">= 1.0", "< 2.0")
