@@ -303,7 +303,7 @@ As an example, the following is the default configuration that will be used if y
 }'
 ```
 
-The paths defined here are based on the [typical status properties](https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#typical-status-properties) as defined by the Kubernetes community. It expects the `status` subresource to contain a `conditions` array whose entries minimally specify `type`, `status`, and `message` fields.
+The paths defined here are based on the [typical status properties](https://github.com/kubernetes/community/blob/0e9fa4a1c45203527a7ce35eaff09204d6b7b331/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties) as defined by the Kubernetes community. It expects the `status` subresource to contain a `conditions` array whose entries minimally specify `type`, `status`, and `message` fields.
 
 You can see how these conditions relate to the following resource:
 
