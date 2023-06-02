@@ -3,9 +3,12 @@ kind: StatefulSet
 metadata:
   name: test-ss
   generation: 2
+  annotations:
+    krane.shopify.io/required-rollout: full
   labels:
     app: hello-cloud
     name: test-ss
+  uid: c31a9b4e-e6dd-11e9-8f47-e6322f98393a
 spec:
   selector:
     matchLabels:
@@ -30,6 +33,7 @@ status:
   replicas: 2
   readyReplicas: 2
   currentReplicas: 2
+  updatedReplicas: 2
   observedGeneration: 2
   currentRevision: 2
   updateRevision: 2
