@@ -379,24 +379,6 @@ class KraneDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
-  def test_invalid_k8s_spec_that_is_valid_yaml_fails_fast_and_prints_template
-    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml"]) do |fixtures|
-      configmap = fixtures["configmap-data.yml"]["ConfigMap"].first
-      configmap["metadata"]["myKey"] = "uhOh"
-    end
-    assert_deploy_failure(result)
-
-    assert_logs_match_all([
-      "Template validation failed",
-      /Invalid template: ConfigMap-hello-cloud-configmap-data.*yml/,
-      "> Error message:",
-      "error validating data: ValidationError(ConfigMap.metadata): \
-unknown field \"myKey\" in io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
-      "> Template content:",
-      "      myKey: uhOh",
-    ], in_order: true)
-  end
-
   def test_dynamic_erb_collection_works
     assert_deploy_success(deploy_raw_fixtures("collection-with-erb",
       bindings: { binding_test_a: 'foo', binding_test_b: 'bar' },
