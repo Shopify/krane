@@ -16,8 +16,8 @@ module KubeclientHelper
     kubeclient_builder.build_v1beta1_kubeclient(TEST_CONTEXT)
   end
 
-  def policy_v1beta1_kubeclient
-    kubeclient_builder.build_policy_v1beta1_kubeclient(TEST_CONTEXT)
+  def policy_v1_kubeclient
+    kubeclient_builder.build_policy_v1_kubeclient(TEST_CONTEXT)
   end
 
   def apps_v1_kubeclient

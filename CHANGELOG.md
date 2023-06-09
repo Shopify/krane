@@ -1,5 +1,11 @@
 ## next
 
+## 3.2.0
+
+*Enhancements*
+
+- Test against k8s 1.26
+
 ## 3.1.0
 
 *Enhancements*
@@ -207,7 +213,7 @@ It seems an issue when too many pods are referencing the same secret/configmap h
 *Enhancements*
 - Increased the number of attempts on kubectl commands during Initializing deploy phase [#749](https://github.com/Shopify/krane/pull/749)
 - Increased attempts on kubectl apply command during deploy [#751](https://github.com/Shopify/krane/pull/751)
-- Whitelist context deadline error during kubctl dry run [#754](https://github.com/Shopify/krane/pull/754)
+- whitelist context deadline error during kubctl dry run [#754](https://github.com/Shopify/krane/pull/754)
 - Allow specifying a kubeconfig per task in the internal API [#746](https://github.com/Shopify/krane/pull/746)
 
 ## 2.0.0

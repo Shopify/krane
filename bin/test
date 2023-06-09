@@ -23,7 +23,7 @@ if [[ ${PARALLELISM:=0} -lt 1 ]]; then
   if [[ $num_cpus -le 2 ]]; then
     PARALLELISM=1
   else
-    (( PARALLELISM=num_cpus/2 ))
+    (( PARALLELISM=num_cpus ))
   fi
 fi
 

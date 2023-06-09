@@ -592,7 +592,7 @@ Inside a partial, parameters can be accessed as normal variables, or via a hash 
 
 ```yaml
 ---
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cron-<%= name %>
