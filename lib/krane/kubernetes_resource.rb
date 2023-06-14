@@ -553,7 +553,6 @@ module Krane
       if err.empty? || err.match(SERVER_DRY_RUN_DISABLED_ERROR)
         _, err, st = validate_with_local_dry_run(kubectl)
       end
-
       return true if st.success?
       @validation_errors << if sensitive_template_content?
         "Validation for #{id} failed. Detailed information is unavailable as the raw error may contain sensitive data."
@@ -576,7 +575,6 @@ module Krane
     def validate_with_local_dry_run(kubectl)
       verb = deploy_method == :apply ? "apply" : "create"
       command = [verb, "-f", file_path, "--dry-run=client", "--output=name"]
-
       kubectl.run(*command, log_failure: false, output_is_sensitive: sensitive_template_content?,
         retry_whitelist: [:client_timeout, :empty, :context_deadline], attempts: 3, use_namespace: !global?)
     end

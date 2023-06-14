@@ -11,17 +11,21 @@ jobs:
       fail-fast: false
       matrix:
         ruby:
+          - "3.2.2"
           - "3.1.2"
           - "3.0.4"
           - "2.7.6"
         kubernetes_version:
-          - "1.24.6"
-          - "1.23.12"
+          - "1.26.4"
+          - "1.24.13"
+          - "1.23.17"
         include:
-          - kubernetes_version: "1.24.6"
-            kind_image: "kindest/node:v1.24.6@sha256:97e8d00bc37a7598a0b32d1fabd155a96355c49fa0d4d4790aab0f161bf31be1"
-          - kubernetes_version: "1.23.12"
-            kind_image: "kindest/node:v1.23.12@sha256:9402cf1330bbd3a0d097d2033fa489b2abe40d479cc5ef47d0b6a6960613148a"
+          - kubernetes_version: "1.26.4"
+            kind_image: "kindest/node:v1.26.4@sha256:a539833d26264444ab3b8f5e56e23fa3361436445fa23c864e6dec622458858f"
+          - kubernetes_version: "1.24.13"
+            kind_image: "kindest/node:v1.24.13@sha256:c9e00e2b228e47ba3c96eaf0309b27dc3f73e444944e4c900016fd07b1b805cb"
+          - kubernetes_version: "1.23.17"
+            kind_image: "kindest/node:v1.23.17@sha256:eb33093b461ffee7614ca65a39ac0fb57982e1407dc38df4df92811c4fbcb687"
 
     steps:
       - uses: actions/checkout@v3

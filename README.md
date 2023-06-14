@@ -92,6 +92,7 @@ Krane provides support for official upstream supported versions [Kubernetes](htt
 |        1.23        | Yes               |                    --                    |
 |        1.24        | Yes               |                    --                    |
 |        1.25        | No                |                    --                    |
+|        1.26        | Yes               |                    --                    |
 
 ## Installation
 
@@ -592,7 +593,7 @@ Inside a partial, parameters can be accessed as normal variables, or via a hash 
 
 ```yaml
 ---
-apiVersion: batch/v1beta1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cron-<%= name %>

@@ -123,7 +123,7 @@ class GlobalDeployTest < Krane::IntegrationTest
       "Discovering resources:",
       "  - StorageClass/#{storage_class_name}",
       "Result: FAILURE",
-      "Template validation failed",
+      "Invalid template",
     ])
   end
 

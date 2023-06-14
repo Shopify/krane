@@ -1,5 +1,11 @@
 ## next
 
+## 3.2.0
+
+*Enhancements*
+
+- Test against k8s 1.26
+
 ## 3.1.0
 
 *Enhancements*

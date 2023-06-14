@@ -33,7 +33,6 @@ module FixtureDeployHelper
     raise "Cannot deploy empty template set" if fixtures.empty?
 
     yield fixtures if block_given?
-
     success = false
     Dir.mktmpdir("fixture_dir") do |target_dir|
       write_fixtures_to_dir(fixtures, target_dir)
