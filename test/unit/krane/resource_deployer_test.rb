@@ -71,7 +71,7 @@ class ResourceDeployerTest < Krane::TestCase
     # are deployed. See test_predeploy_priority_resources_respects_empty_pre_deploy_list
     # for counter example
     Krane::ResourceWatcher.expects(:new).returns(watcher)
-    priority_list = { kind => { group: "core" } }
+    priority_list = { kind => { groups: ["core"], skip_groups: [] } }
     resource_deployer.predeploy_priority_resources([resource], priority_list)
   end
 

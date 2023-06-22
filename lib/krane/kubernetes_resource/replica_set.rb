@@ -4,7 +4,7 @@ require 'krane/kubernetes_resource/pod_set_base'
 module Krane
   class ReplicaSet < PodSetBase
     TIMEOUT = 5.minutes
-    SYNC_DEPENDENCIES = %w(Pod)
+    SYNC_DEPENDENCIES = %w(Pod.apps)
     attr_reader :pods
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: nil,

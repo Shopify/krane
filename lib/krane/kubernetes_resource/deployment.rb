@@ -4,7 +4,7 @@ require 'krane/kubernetes_resource/replica_set'
 module Krane
   class Deployment < KubernetesResource
     TIMEOUT = 7.minutes
-    SYNC_DEPENDENCIES = %w(Pod ReplicaSet)
+    SYNC_DEPENDENCIES = %w(Pod.apps ReplicaSet.apps)
     REQUIRED_ROLLOUT_ANNOTATION = "required-rollout"
     REQUIRED_ROLLOUT_TYPES = %w(maxUnavailable full none).freeze
     DEFAULT_REQUIRED_ROLLOUT = 'full'

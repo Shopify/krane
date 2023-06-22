@@ -90,6 +90,11 @@ module Krane
       @rollout_conditions_validated = true
     end
 
+    def sync_group_kind
+      real_group = @definition.dig("apiVersion").split("/").first
+      "#{self.class.kind}.#{real_group}"
+    end
+
     private
 
     def names_accepted_condition

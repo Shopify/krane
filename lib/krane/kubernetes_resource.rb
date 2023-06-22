@@ -48,11 +48,11 @@ module Krane
         validate_definition_essentials(definition)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
                  statsd_tags: statsd_tags }
-        if (klass = class_for_kind(definition["kind"]))
-          return klass.new(**opts)
-        end
-        if crd
+
+        if crd && definition['apiVersion'].start_with?("#{crd.group}/")
           CustomResource.new(crd: crd, **opts)
+        elsif (klass = class_for_kind(definition["kind"]))
+          klass.new(**opts)
         else
           type = definition["kind"]
           inst = new(**opts)
@@ -164,10 +164,14 @@ module Krane
     end
 
     def sync(cache)
-      @instance_data = cache.get_instance(kubectl_resource_type, name, raise_if_not_found: true)
+      @instance_data = cache.get_instance(sync_group_kind, name, raise_if_not_found: true)
     rescue Krane::Kubectl::ResourceNotFoundError
       @disappeared = true if deploy_started?
       @instance_data = {}
+    end
+
+    def sync_group_kind
+      "#{kubectl_resource_type}.#{group}"
     end
 
     def after_sync
