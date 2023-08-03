@@ -32,7 +32,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency("ejson", "~> 1.0")
   spec.add_dependency("colorize", "~> 0.8")
   spec.add_dependency("statsd-instrument", ['>= 2.8', "< 4"])
-  spec.add_dependency("oj", "~> 3.0")
+  spec.add_dependency("multi_json")
   spec.add_dependency("concurrent-ruby", "~> 1.1")
   spec.add_dependency("jsonpath", "~> 1.0")
   spec.add_dependency("thor", ">= 1.0", "< 2.0")
@@ -43,11 +43,11 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency("yard")
 
   # Test framework
-  spec.add_development_dependency("minitest", "~> 5.12")
+  spec.add_development_dependency("minitest", "~> 5.19")
   spec.add_development_dependency("minitest-stub-const", "~> 0.6")
   spec.add_development_dependency("minitest-reporters")
-  spec.add_development_dependency("mocha", "~> 1.5")
-  spec.add_development_dependency("webmock", "~> 3.0")
+  spec.add_development_dependency("mocha", "~> 2.1")
+  spec.add_development_dependency("webmock", "~> 3.18")
   spec.add_development_dependency("timecop")
 
   # Debugging and analysis
