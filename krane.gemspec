@@ -43,7 +43,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency("yard")
 
   # Test framework
-  spec.add_development_dependency("minitest", "~> 5.12")
+  spec.add_development_dependency("minitest", "5.18.1")
   spec.add_development_dependency("minitest-stub-const", "~> 0.6")
   spec.add_development_dependency("minitest-reporters")
   spec.add_development_dependency("mocha", "~> 1.5")
