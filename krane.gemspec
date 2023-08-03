@@ -43,11 +43,11 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency("yard")
 
   # Test framework
-  spec.add_development_dependency("minitest", "~> 5.12")
+  spec.add_development_dependency("minitest", "~> 5.19")
   spec.add_development_dependency("minitest-stub-const", "~> 0.6")
   spec.add_development_dependency("minitest-reporters")
-  spec.add_development_dependency("mocha", "~> 1.5")
-  spec.add_development_dependency("webmock", "~> 3.0")
+  spec.add_development_dependency("mocha", "~> 2.1")
+  spec.add_development_dependency("webmock", "~> 3.18")
   spec.add_development_dependency("timecop")
 
   # Debugging and analysis
