@@ -155,14 +155,13 @@ If you want dynamic templates, you may render ERB with `krane render` and then p
 - `krane.shopify.io/required-rollout`: Modifies how much of the rollout needs to finish
 before the deployment is considered successful.
   - _Compatibility_: Deployment
-  - `full`: The deployment is successful when all pods in the new `replicaSet` are ready.
-  - `none`: The deployment is successful as soon as the new `replicaSet` is created for the deployment.
-  - `maxUnavailable`: The deploy is successful when minimum availability is reached in the new `replicaSet`.
-  In other words, the number of new pods that must be ready is equal to `spec.replicas` - `strategy.RollingUpdate.maxUnavailable`
-  (converted from percentages by rounding up, if applicable). This option is only valid for deployments
-  that use the `RollingUpdate` strategy.
-  - Percent (e.g. 90%): The deploy is successful when the number of new pods that are ready is equal to
-  `spec.replicas` * Percent.
+    - `full`: The deployment is successful when all pods in the new `replicaSet` are ready.
+    - `none`: The deployment is successful as soon as the new `replicaSet` is created for the deployment.
+    - `maxUnavailable`: The deploy is successful when minimum availability is reached in the new `replicaSet`.
+    In other words, the number of new pods that must be ready is equal to `spec.replicas` - `strategy.RollingUpdate.maxUnavailable` (converted from percentages by rounding up, if applicable). This option is only valid for deployments that use the `RollingUpdate` strategy.
+    - Percent (e.g. 90%): The deploy is successful when the number of new pods that are ready is equal to `spec.replicas` * Percent.
+  - _Compatibility_: StatefulSet
+    - `full`: The deployment is successful when all pods are ready.
 - `krane.shopify.io/predeployed`: Causes a Custom Resource to be deployed in the pre-deploy phase.
   - _Compatibility_: Custom Resource Definition
   - _Default_: `true`
