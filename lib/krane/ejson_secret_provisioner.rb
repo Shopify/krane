@@ -117,8 +117,8 @@ module Krane
 
     def load_ejson_from_file
       return {} unless File.exist?(@ejson_file)
-      JSON.parse(File.read(@ejson_file))
-    rescue JSON::ParserError => e
+      MultiJson.load(File.read(@ejson_file))
+    rescue MultiJson::ParseError => e
       raise EjsonSecretError, "Failed to parse encrypted ejson:\n  #{e}"
     end
 
@@ -139,8 +139,8 @@ module Krane
         msg = err.presence || out
         raise EjsonSecretError, msg
       end
-      JSON.parse(out)
-    rescue JSON::ParserError
+      MultiJson.load(out)
+    rescue MultiJson::ParseError
       raise EjsonSecretError, "Failed to parse decrypted ejson"
     end
 

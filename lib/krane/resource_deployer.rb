@@ -252,7 +252,7 @@ module Krane
       # For resources that rely on a generateName attribute, we get the `name` from the result of the call to `create`
       # We must explicitly set this name value so that the `apply` step for pruning can run successfully
       if status.success? && resource.uses_generate_name?
-        resource.use_generated_name(JSON.parse(out))
+        resource.use_generated_name(MultiJson.load(out))
       end
 
       [err, status]

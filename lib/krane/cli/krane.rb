@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 require 'krane'
-require 'krane/oj'
-require 'thor'
-require 'krane/cli/version_command'
-require 'krane/cli/restart_command'
-require 'krane/cli/run_command'
-require 'krane/cli/render_command'
 require 'krane/cli/deploy_command'
 require 'krane/cli/global_deploy_command'
+require 'krane/cli/render_command'
+require 'krane/cli/restart_command'
+require 'krane/cli/run_command'
+require 'krane/cli/version_command'
+require 'multi_json'
+require 'thor'
 
 module Krane
   module CLI

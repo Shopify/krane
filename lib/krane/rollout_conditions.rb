@@ -11,7 +11,7 @@ module Krane
       def from_annotation(conditions_string)
         return new(default_conditions) if conditions_string.downcase.strip == "true"
 
-        conditions = JSON.parse(conditions_string).slice('success_conditions', 'failure_conditions')
+        conditions = MultiJson.load(conditions_string).slice('success_conditions', 'failure_conditions')
         conditions.deep_symbolize_keys!
 
         # Create JsonPath objects
@@ -26,7 +26,7 @@ module Krane
         end
 
         new(conditions)
-      rescue JSON::ParserError => e
+      rescue MultiJson::ParseError => e
         raise RolloutConditionsError, "Rollout conditions are not valid JSON: #{e}"
       rescue StandardError => e
         raise RolloutConditionsError,
