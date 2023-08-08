@@ -1,5 +1,11 @@
 ## next
 
+## 3.3.0
+
+*Enhancements*
+
+- Enable detection of successful StatefulSet deploys when the `updateStrategy` is `onDelete`, behind an annotation. [#926](https://github.com/Shopify/krane/pull/926)
+
 ## 3.2.0
 
 *Enhancements*

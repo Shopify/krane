@@ -5,6 +5,7 @@ module Krane
     TIMEOUT = 10.minutes
     ONDELETE = 'OnDelete'
     SYNC_DEPENDENCIES = %w(Pod)
+    REQUIRED_ROLLOUT_TYPES = %w(full).freeze
     attr_reader :pods
 
     def sync(cache)
@@ -19,25 +20,35 @@ module Krane
     end
 
     def deploy_succeeded?
-      success = observed_generation == current_generation &&
-        desired_replicas == status_data['readyReplicas'].to_i &&
-        status_data['currentRevision'] == status_data['updateRevision']
-      if update_strategy == ONDELETE
-        # Gem cannot monitor update since it doesn't occur until delete
+      success = observed_generation == current_generation
+
+      @pods.each do |pod|
+        success &= pod.definition["metadata"]["labels"]["controller-revision-hash"] == status_data['updateRevision']
+      end
+
+      if update_strategy == 'RollingUpdate'
+        success &= status_data['currentRevision'] == status_data['updateRevision']
+        success &= desired_replicas == status_data['readyReplicas'].to_i
+        success &= desired_replicas == status_data['currentReplicas'].to_i
+
+      elsif update_strategy == ONDELETE
         unless @success_assumption_warning_shown
           @logger.warn("WARNING: Your StatefulSet's updateStrategy is set to OnDelete, "\
-                       "which means updates will not be applied until its pods are deleted. "\
-                       "Consider switching to rollingUpdate.")
+                       "which means the deployment won't succeed until all pods are updated by deletion.")
           @success_assumption_warning_shown = true
         end
-      else
-        success &= desired_replicas == status_data['currentReplicas'].to_i
+
+        if required_rollout == 'full'
+          success &= desired_replicas == status_data['readyReplicas'].to_i
+          success &= desired_replicas == status_data['updatedReplicas'].to_i
+        end
       end
+
       success
     end
 
     def deploy_failed?
-      return false if update_strategy == ONDELETE
+      return false if update_strategy == ONDELETE && required_rollout != 'full'
       pods.present? && pods.any?(&:deploy_failed?) &&
       observed_generation == current_generation
     end
@@ -66,6 +77,10 @@ module Krane
       return false unless pod_data.dig("metadata", "ownerReferences")
       pod_data["metadata"]["ownerReferences"].any? { |ref| ref["uid"] == @instance_data["metadata"]["uid"] } &&
       @instance_data["status"]["currentRevision"] == pod_data["metadata"]["labels"]["controller-revision-hash"]
+    end
+
+    def required_rollout
+      krane_annotation_value("required-rollout") || nil
     end
   end
 end
