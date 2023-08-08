@@ -1345,7 +1345,7 @@ class KraneDeployTest < Krane::IntegrationTest
       f["missing_volumes.yml"]["Deployment"].first["spec"]["progressDeadlineSeconds"] = 30
       f["cannot_run.yml"]["Deployment"].first["spec"]["replicas"] = 1
     end
-    assert_deploy_failure(result)
+    assert_deploy_failure(result, cause = :timed_out)
 
     bad_probe_timeout = "Deployment/bad-probe: TIMED OUT"
 
