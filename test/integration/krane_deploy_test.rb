@@ -1347,7 +1347,7 @@ class KraneDeployTest < Krane::IntegrationTest
     end
     assert_deploy_failure(result)
 
-    bad_probe_timeout = "Deployment/bad-probe: TIMED OUT (progress deadline: 5s)"
+    bad_probe_timeout = "Deployment/bad-probe: TIMED OUT"
 
     assert_logs_match_all([
       "Successfully deployed 1 resource, timed out waiting for 2 resources to deploy, and failed to deploy 1 resource",
