@@ -7,7 +7,7 @@ class ResourceDeployerTest < Krane::TestCase
     whitelist_kind = "fake_kind"
     resource = build_mock_resource
     Krane::Kubectl.any_instance.expects(:run).with do |*args|
-      args.include?("--prune-whitelist=#{whitelist_kind}")
+      args.include?("--prune-allowlist=#{whitelist_kind}")
     end.returns(["", "", stub(success?: true)])
     resource_deployer(kubectl_times: 0, prune_whitelist: [whitelist_kind]).deploy!([resource], false, true)
   end
@@ -16,7 +16,7 @@ class ResourceDeployerTest < Krane::TestCase
     whitelist_kind = "fake_kind"
     resource = build_mock_resource
     Krane::Kubectl.any_instance.expects(:run).with do |*args|
-      !args.include?("--prune-whitelist=#{whitelist_kind}")
+      !args.include?("--prune-allowlist=#{whitelist_kind}")
     end.returns(["", "", stub(success?: true)])
     resource_deployer(kubectl_times: 0, prune_whitelist: [whitelist_kind]).deploy!([resource], false, false)
   end

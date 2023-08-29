@@ -154,7 +154,7 @@ module Krane
           else
             command.push("--all")
           end
-          @prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
+          @prune_whitelist.each { |type| command.push("#{kubectl.prune_allowlist_flag}=#{type}") }
         end
 
         command.push(kubectl.dry_run_flag) if dry_run
