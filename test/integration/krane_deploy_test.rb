@@ -157,10 +157,10 @@ class KraneDeployTest < Krane::IntegrationTest
   def test_selector
     # Deploy the same thing twice with a different selector
     assert_deploy_success(deploy_fixtures("branched", subset: ["web.yml.erb"],
-      bindings: { "branch" => "master" },
-      selector: Krane::LabelSelector.parse("branch=master"),
+      bindings: { "branch" => "main" },
+      selector: Krane::LabelSelector.parse("branch=main"),
       render_erb: true))
-    assert_logs_match("Using resource selector branch=master")
+    assert_logs_match("Using resource selector branch=main")
     assert_deploy_success(deploy_fixtures("branched", subset: ["web.yml.erb"],
       bindings: { "branch" => "staging" },
       selector: Krane::LabelSelector.parse("branch=staging"),
@@ -169,31 +169,31 @@ class KraneDeployTest < Krane::IntegrationTest
     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
 
     assert_equal(2, deployments.size)
-    assert_equal(%w(master staging), deployments.map { |d| d.metadata.labels.branch }.sort)
+    assert_equal(%w(main staging), deployments.map { |d| d.metadata.labels.branch }.sort)
 
     # Run again without selector to verify pruning works
-    assert_deploy_success(deploy_fixtures("branched", bindings: { "branch" => "master" }, render_erb: true))
+    assert_deploy_success(deploy_fixtures("branched", bindings: { "branch" => "main" }, render_erb: true))
     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "app=branched")
     # Filter out pruned resources pending deletion
     deployments.select! { |deployment| deployment.metadata.deletionTimestamp.nil? }
 
     assert_equal(1, deployments.size)
-    assert_equal("master", deployments.first.metadata.labels.branch)
+    assert_equal("main", deployments.first.metadata.labels.branch)
   end
 
   def test_selector_as_filter
     # Deploy only the resource matching the selector without validation error
     assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
-      selector: Krane::LabelSelector.parse("branch=master"),
+      selector: Krane::LabelSelector.parse("branch=main"),
       selector_as_filter: true))
     assert_logs_match_all([
-      "Using resource selector branch=master",
+      "Using resource selector branch=main",
       "Only deploying resources filtered by labels in selector",
     ], in_order: true)
     # Ensure only the selected resource is deployed
     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
     assert_equal(1, deployments.size)
-    assert_equal("master", deployments.first.metadata.labels.branch)
+    assert_equal("main", deployments.first.metadata.labels.branch)
 
     # Deploy another resource with a different selector
     assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'web-deploy-3.yml'],
@@ -206,9 +206,9 @@ class KraneDeployTest < Krane::IntegrationTest
     # Ensure the not selected resource is not pruned
     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
     assert_equal(2, deployments.size)
-    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=master")
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=main")
     assert_equal(1, deployments.size)
-    assert_equal("master", deployments.first.metadata.labels.branch)
+    assert_equal("main", deployments.first.metadata.labels.branch)
     # Ensure the selected resource is deployed
     deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace, label_selector: "branch=staging")
     assert_equal(1, deployments.size)
@@ -222,7 +222,7 @@ class KraneDeployTest < Krane::IntegrationTest
       /Using resource selector branch=staging/,
       /Template validation failed/,
       /Invalid template: Deployment/,
-      /selector branch=staging does not match labels name=web,branch=master,app=slow-cloud/,
+      /selector branch=staging does not match labels name=web,branch=main,app=slow-cloud/,
       /> Template content:/,
     ], in_order: true)
   end
@@ -669,7 +669,7 @@ class KraneDeployTest < Krane::IntegrationTest
   end
 
   def test_ejson_works_with_label_selectors
-    value = "master"
+    value = "main"
     selector = Krane::LabelSelector.parse("branch=#{value}")
     ejson_cloud = FixtureSetAssertions::EjsonCloud.new(@namespace)
     ejson_cloud.create_ejson_keys_secret
@@ -1475,12 +1475,12 @@ class KraneDeployTest < Krane::IntegrationTest
   end
 
   def test_validation_failure_on_sensitive_resources_does_not_print_template
-    selector = Krane::LabelSelector.parse("branch=master")
+    selector = Krane::LabelSelector.parse("branch=main")
     assert_deploy_failure(deploy_fixtures("hello-cloud", subset: %w(secret.yml), selector: selector))
     assert_logs_match_all([
       "Template validation failed",
       "Invalid template: Secret-hello-secret",
-      "selector branch=master passed in, but no labels were defined",
+      "selector branch=main passed in, but no labels were defined",
     ], in_order: true)
     refute_logs_match("password")
     refute_logs_match("YWRtaW4=")
