@@ -1,0 +1,18 @@
+name: Project automations
+on:
+  issues:
+    types:
+      - opened
+      - reopened
+env:
+  PROJECT_URL: https://github.com/orgs/Shopify/projects/2279
+
+jobs:
+  add-to-project:
+    name: Issue or PR opened
+    runs-on: shopify-ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v0.4.0 # https://github.com/actions/add-to-project/tree/v0.4.0
+        with:
+          project-url: ${{ env.PROJECT_URL }}
+          github-token: ${{ secrets.SHOPIFY_GH_ACCESS_TOKEN }}
