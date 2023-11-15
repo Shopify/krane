@@ -14,7 +14,7 @@ module Krane
     # @param current_sha [String] The SHA of the commit
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
     # @param bindings [Hash] Bindings parsed by Krane::BindingsParser
-    def initialize(logger: nil, current_sha:, filenames: [], bindings:)
+    def initialize(logger: nil, current_sha:, filenames: [], bindings:, extra_labels: {})
       @logger = logger || Krane::FormattedLogger.build
       @filenames = filenames.map { |path| File.expand_path(path) }
       @bindings = bindings

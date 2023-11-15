@@ -13,7 +13,7 @@ module Krane
     attr_reader :definition
 
     def initialize(namespace:, context:, definition:, logger:,
-      statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false)
+      statsd_tags: nil, parent: nil, deploy_started_at: nil, stream_logs: false, extra_labels: {})
       @parent = parent
       @deploy_started_at = deploy_started_at
 
@@ -25,7 +25,7 @@ module Krane
       @containers += definition["spec"].fetch("initContainers", []).map { |c| Container.new(c, init_container: true) }
       @stream_logs = stream_logs
       super(namespace: namespace, context: context, definition: definition,
-            logger: logger, statsd_tags: statsd_tags)
+            logger: logger, statsd_tags: statsd_tags, extra_labels: extra_labels)
     end
 
     def sync(_cache)

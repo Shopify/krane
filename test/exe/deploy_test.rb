@@ -164,6 +164,7 @@ class DeployTest < Krane::TestCase
         selector: nil,
         selector_as_filter: false,
         protected_namespaces: ["default", "kube-system", "kube-public"],
+        extra_labels: nil,
       }.merge(new_args),
       run_args: {
         verify_result: true,

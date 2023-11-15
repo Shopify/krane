@@ -44,10 +44,10 @@ module Krane
     SYNC_DEPENDENCIES = []
 
     class << self
-      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [])
+      def build(namespace: nil, context:, definition:, logger:, statsd_tags:, crd: nil, global_names: [], extra_labels: {})
         validate_definition_essentials(definition)
         opts = { namespace: namespace, context: context, definition: definition, logger: logger,
-                 statsd_tags: statsd_tags }
+                 statsd_tags: statsd_tags, extra_labels: extra_labels }
         if (klass = class_for_kind(definition["kind"]))
           return klass.new(**opts)
         end
@@ -115,14 +115,14 @@ module Krane
       "timeout: #{timeout}s"
     end
 
-    def initialize(namespace:, context:, definition:, logger:, statsd_tags: [])
+    def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], extra_labels: {})
       # subclasses must also set these if they define their own initializer
       @name = (definition.dig("metadata", "name") || definition.dig("metadata", "generateName")).to_s
       @optional_statsd_tags = statsd_tags
       @namespace = namespace
       @context = context
       @logger = logger
-      @definition = definition
+      @definition = set_extra_labels(definition, extra_labels)
       @statsd_report_done = false
       @disappeared = false
       @validation_errors = []
@@ -527,6 +527,14 @@ module Krane
 
     def krane_annotation_value(suffix)
       @definition.dig("metadata", "annotations", Annotation.for(suffix))
+    end
+
+    def set_extra_labels(definition, extra_labels)
+      return definition if extra_labels.nil? || extra_labels.empty?
+      definition["metadata"] ||= {}
+      definition["metadata"]["labels"] ||= {}
+      definition["metadata"]["labels"].reverse_merge!(extra_labels)
+      definition
     end
 
     def validate_selector(selector)
