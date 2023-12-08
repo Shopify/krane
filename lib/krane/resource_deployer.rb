@@ -11,9 +11,9 @@ module Krane
     delegate :logger, to: :@task_config
     attr_reader :statsd_tags
 
-    def initialize(task_config:, prune_whitelist:, global_timeout:, current_sha: nil, selector:, statsd_tags:)
+    def initialize(task_config:, prune_allowlist:, global_timeout:, current_sha: nil, selector:, statsd_tags:)
       @task_config = task_config
-      @prune_whitelist = prune_whitelist
+      @prune_allowlist = prune_allowlist
       @global_timeout = global_timeout
       @current_sha = current_sha
       @selector = selector
@@ -102,7 +102,7 @@ module Krane
       # Apply can be done in one large batch, the rest have to be done individually
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
       # Prunable resources should also applied so that they can  be pruned
-      pruneable_types = @prune_whitelist.map { |t| t.split("/").last }
+      pruneable_types = @prune_allowlist.map { |t| t.split("/").last }
       applyables += individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
 
       individuals.each do |individual_resource|
@@ -147,14 +147,14 @@ module Krane
           r.deploy_started_at = Time.now.utc unless dry_run
         end
         command.push("-f", tmp_dir)
-        if prune && @prune_whitelist.present?
+        if prune && @prune_allowlist.present?
           command.push("--prune")
           if @selector
             command.push("--selector", @selector.to_s)
           else
             command.push("--all")
           end
-          @prune_whitelist.each { |type| command.push("--prune-whitelist=#{type}") }
+          @prune_allowlist.each { |type| command.push("--prune-allowlist=#{type}") }
         end
 
         command.push(kubectl.dry_run_flag) if dry_run

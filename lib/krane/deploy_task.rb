@@ -77,7 +77,7 @@ module Krane
       Hash[before_crs + crs + after_crs]
     end
 
-    def prune_whitelist
+    def prune_allowlist
       cluster_resource_discoverer.prunable_resources(namespaced: true)
     end
 
@@ -192,7 +192,7 @@ module Krane
 
     def resource_deployer
       @resource_deployer ||= Krane::ResourceDeployer.new(task_config: @task_config,
-        prune_whitelist: prune_whitelist, global_timeout: @global_timeout,
+        prune_allowlist: prune_allowlist, global_timeout: @global_timeout,
         selector: @selector, statsd_tags: statsd_tags, current_sha: @current_sha)
     end
 
