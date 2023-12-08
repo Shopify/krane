@@ -4,21 +4,22 @@ require 'krane/resource_deployer'
 
 class ResourceDeployerTest < Krane::TestCase
   def test_deploy_prune_builds_whitelist
-    whitelist_kind = "fake_kind"
+    allowlist_kind = "fake_kind"
     resource = build_mock_resource
+    Krane::Kubectl.any_instance.expects(:client_version).returns(Gem::Version.new("1.26"))
     Krane::Kubectl.any_instance.expects(:run).with do |*args|
-      args.include?("--prune-allowlist=#{whitelist_kind}")
+      args.include?("--prune-allowlist=#{allowlist_kind}")
     end.returns(["", "", stub(success?: true)])
-    resource_deployer(kubectl_times: 0, prune_allowlist: [whitelist_kind]).deploy!([resource], false, true)
+    resource_deployer(kubectl_times: 0, prune_allowlist: [allowlist_kind]).deploy!([resource], false, true)
   end
 
   def test_deploy_no_prune_doesnt_prune
-    whitelist_kind = "fake_kind"
+    allowlist_kind = "fake_kind"
     resource = build_mock_resource
     Krane::Kubectl.any_instance.expects(:run).with do |*args|
-      !args.include?("--prune-allowlist=#{whitelist_kind}")
+      !args.include?("--prune-allowlist=#{allowlist_kind}")
     end.returns(["", "", stub(success?: true)])
-    resource_deployer(kubectl_times: 0, prune_allowlist: [whitelist_kind]).deploy!([resource], false, false)
+    resource_deployer(kubectl_times: 0, prune_allowlist: [allowlist_kind]).deploy!([resource], false, false)
   end
 
   def test_deploy_verify_false_message

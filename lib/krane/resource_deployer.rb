@@ -154,7 +154,8 @@ module Krane
           else
             command.push("--all")
           end
-          @prune_allowlist.each { |type| command.push("--prune-allowlist=#{type}") }
+          allow_list_flag = kubectl.allowlist_flag
+          @prune_allowlist.each { |type| command.push("#{allow_list_flag}=#{type}") }
         end
 
         command.push(kubectl.dry_run_flag) if dry_run
