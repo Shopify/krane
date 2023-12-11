@@ -108,7 +108,7 @@ module Krane
 
     def deploy!(resources, verify_result, prune)
       resource_deployer = ResourceDeployer.new(task_config: @task_config,
-        prune_whitelist: prune_whitelist, global_timeout: @global_timeout,
+        prune_allowlist: prune_allowlist, global_timeout: @global_timeout,
         selector: @selector, statsd_tags: statsd_tags)
       resource_deployer.deploy!(resources, verify_result, prune)
     end
@@ -194,7 +194,7 @@ module Krane
       @kubectl ||= Kubectl.new(task_config: @task_config, log_failure_by_default: true)
     end
 
-    def prune_whitelist
+    def prune_allowlist
       cluster_resource_discoverer.prunable_resources(namespaced: false)
     end
 

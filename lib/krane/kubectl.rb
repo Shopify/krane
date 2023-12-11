@@ -12,6 +12,7 @@ module Krane
     DEFAULT_TIMEOUT = 15
     MAX_RETRY_DELAY = 16
     SERVER_DRY_RUN_MIN_VERSION = "1.13"
+    ALLOW_LIST_MIN_VERSION = "1.26"
 
     class ResourceNotFoundError < StandardError; end
 
@@ -110,6 +111,14 @@ module Krane
 
     def dry_run_flag
       "--dry-run=server"
+    end
+
+    def allowlist_flag
+      if client_version >= Gem::Version.new(ALLOW_LIST_MIN_VERSION)
+        "--prune-allowlist"
+      else
+        "--prune-whitelist"
+      end
     end
 
     private
