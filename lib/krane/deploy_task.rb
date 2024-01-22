@@ -142,7 +142,6 @@ module Krane
     def run!(verify_result: true, prune: true)
       start = Time.now.utc
       @logger.reset
-
       @logger.phase_heading("Initializing deploy")
       validate_configuration(prune: prune)
       resources = discover_resources
@@ -285,10 +284,13 @@ module Krane
     measure_method(:validate_configuration)
 
     def validate_resources(resources)
-      validate_globals(resources)
-      batch_dry_run_success = validate_dry_run(resources)
       resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
-      Krane::Concurrency.split_across_threads(resources) do |r|
+      validate_globals(resources)
+      applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
+      batch_dry_run_success = validate_dry_run(applyables)
+      resources_to_validate = batch_dry_run_success ? individuals : resources
+
+      Krane::Concurrency.split_across_threads(resources_to_validate) do |r|
         # No need to pass in kubectl (and do per-resource dry run apply) if batch dry run succeeded
         if batch_dry_run_success
           r.validate_definition(kubectl: nil, selector: @selector, dry_run: false)
@@ -296,6 +298,7 @@ module Krane
           r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
         end
       end
+
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
         failed_resources.each do |r|
