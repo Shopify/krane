@@ -286,17 +286,11 @@ module Krane
     def validate_resources(resources)
       resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
       validate_globals(resources)
-      applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
+      applyables, _ = resources.partition { |r| r.deploy_method == :apply }
       batch_dry_run_success = validate_dry_run(applyables)
-      resources_to_validate = batch_dry_run_success ? individuals : resources
-
-      Krane::Concurrency.split_across_threads(resources_to_validate) do |r|
-        # No need to pass in kubectl (and do per-resource dry run apply) if batch dry run succeeded
-        if batch_dry_run_success
-          r.validate_definition(kubectl: nil, selector: @selector, dry_run: false)
-        else
-          r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
-        end
+      Krane::Concurrency.split_across_threads(resources) do |r|
+        # No need to pass in kubectl as we batch dry run server-side apply above
+        r.validate_definition(kubectl: nil, selector: @selector, dry_run: false)
       end
 
       failed_resources = resources.select(&:validation_failed?)
