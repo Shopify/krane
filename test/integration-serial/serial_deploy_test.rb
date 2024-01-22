@@ -538,7 +538,7 @@ class SerialDeployTest < Krane::IntegrationTest
 
   def test_batch_dry_run_apply_success_precludes_individual_resource_dry_run_validation
     Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |params| params[:dry_run] == false }
-    result = deploy_fixtures("hello-cloud", subset: %w(secret.yml))
+    result = deploy_fixtures("generateName", subset: %w(pod.yml))
     assert_deploy_success(result)
     assert_logs_match_all([
       "Result: SUCCESS",
