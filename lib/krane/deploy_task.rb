@@ -289,7 +289,7 @@ module Krane
       applyables, _ = resources.partition { |r| r.deploy_method == :apply }
       batch_dry_run_success = validate_dry_run(applyables)
       if batch_dry_run_success
-        applyables.map { |r| r.server_side_validated = true }
+        applyables.map { |r| r.server_dry_run_validated = true }
       end
       Krane::Concurrency.split_across_threads(resources) do |r|
         # No need to pass in kubectl as we batch dry run server-side apply above
@@ -297,7 +297,7 @@ module Krane
       end
 
       failed_resources = resources.select(&:validation_failed?)
-      if failed_resources.present?
+      if failed_resources.present? || !batch_dry_run_success
         failed_resources.each do |r|
           content = File.read(r.file_path) if File.file?(r.file_path) && !r.sensitive_template_content?
           record_invalid_template(logger: @logger, err: r.validation_error_msg,

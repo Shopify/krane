@@ -185,12 +185,29 @@ module Krane
       logger.summary.add_action("pruned #{pruned.length} #{'resource'.pluralize(pruned.length)}")
     end
 
-    def record_dry_run_apply_failure(err, resource: [])
+    def record_dry_run_apply_failure(err, resources: [])
       unidentified_errors = []
       filenames_with_sensitive_content = resources
         .select(&:sensitive_template_content?)
         .map { |r| File.basename(r.file_path) }
 
+      err.each_line do |line|
+        bad_files = find_bad_files_from_kubectl_output(line)
+        unless bad_files.present?
+          unidentified_errors << line
+          next
+        end
+
+        bad_files.each do |f|
+          err_msg = f[:err]
+          record_invalid_template(logger: logger, err: err_msg, filename: f[:filename], content: f[:content])
+        end
+      end
+      return unless unidentified_errors.any?
+
+      warn_msg = "WARNING: There was an error applying some or all resources. The raw output may be sensitive and " \
+        "so cannot be displayed."
+      logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
     end
 
     def record_apply_failure(err, resources: [])
