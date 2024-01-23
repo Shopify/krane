@@ -13,7 +13,7 @@ module Krane
     using PsychK8sCompatibility
 
     attr_reader :name, :namespace, :context
-    attr_writer :type, :deploy_started_at, :global
+    attr_writer :type, :deploy_started_at, :global, :server_dry_run_validated
 
     GLOBAL = false
     TIMEOUT = 5.minutes

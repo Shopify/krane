@@ -168,8 +168,10 @@ module Krane
         Krane::StatsD.client.distribution('apply_all.duration', Krane::StatsD.duration(start), tags: tags)
         if st.success?
           log_pruning(out) if prune
+        elsif dry_run
+          record_dry_run_apply_failure(err, resources: resources)
         else
-          record_apply_failure(err, resources: resources) unless dry_run
+          record_apply_failure(err, resources: resources)
           raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
         end
       end
@@ -181,6 +183,14 @@ module Krane
 
       logger.info("The following resources were pruned: #{pruned.join(', ')}")
       logger.summary.add_action("pruned #{pruned.length} #{'resource'.pluralize(pruned.length)}")
+    end
+
+    def record_dry_run_apply_failure(err, resource: [])
+      unidentified_errors = []
+      filenames_with_sensitive_content = resources
+        .select(&:sensitive_template_content?)
+        .map { |r| File.basename(r.file_path) }
+
     end
 
     def record_apply_failure(err, resources: [])

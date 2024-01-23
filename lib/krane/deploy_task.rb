@@ -288,6 +288,9 @@ module Krane
       validate_globals(resources)
       applyables, _ = resources.partition { |r| r.deploy_method == :apply }
       batch_dry_run_success = validate_dry_run(applyables)
+      if batch_dry_run_success
+        applyables.map { |r| r.server_side_validated = true }
+      end
       Krane::Concurrency.split_across_threads(resources) do |r|
         # No need to pass in kubectl as we batch dry run server-side apply above
         r.validate_definition(kubectl: nil, selector: @selector, dry_run: false)
