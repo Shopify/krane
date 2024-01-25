@@ -33,6 +33,7 @@ module Krane
                                   default: false },
         "verify-result" => { type: :boolean, default: true,
                              desc: "Verify workloads correctly deployed" },
+        "skip-dry-run" => { type: :boolean, desc: "Enable skipping dry run", default: false},
       }
 
       def self.from_options(namespace, context, options)
@@ -71,6 +72,7 @@ module Krane
             selector: selector,
             selector_as_filter: selector_as_filter,
             protected_namespaces: protected_namespaces,
+            skip_dry_run: options["skip-dry-run"]
           )
 
           deploy.run!(
