@@ -141,7 +141,7 @@ module Krane
     end
 
     def platform_agnostic_version(version_string)
-      if match = version_string.match(/v(?<version>\d+\.\d+\.\d+)/)
+      if (match = version_string.match(/v(?<version>\d+\.\d+\.\d+)/))
         Gem::Version.new(match[:version])
       end
     end

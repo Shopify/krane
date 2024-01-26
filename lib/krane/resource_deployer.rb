@@ -20,9 +20,13 @@ module Krane
       @statsd_tags = statsd_tags
     end
 
-    def dry_run(resources)
+    def dry_run!(resources)
       apply_all(resources, true, dry_run: true)
       true
+    end
+
+    def dry_run(resources)
+      dry_run!(resources)
     rescue FatalDeploymentError
       false
     end
@@ -170,6 +174,7 @@ module Krane
           log_pruning(out) if prune
         elsif dry_run
           record_dry_run_apply_failure(err, resources: resources)
+          raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
         else
           record_apply_failure(err, resources: resources)
           raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
@@ -200,7 +205,13 @@ module Krane
 
         bad_files.each do |f|
           err_msg = f[:err]
-          record_invalid_template(logger: logger, err: err_msg, filename: f[:filename], content: f[:content])
+          if filenames_with_sensitive_content.include?(f[:filename])
+            # Hide the error and template contents in case it has sensitive information
+            record_invalid_template(logger: logger, err: "SUPPRESSED FOR SECURITY", filename: f[:filename],
+              content: nil)
+          else
+            record_invalid_template(logger: logger, err: err_msg, filename: f[:filename], content: f[:content])
+          end
         end
       end
       return unless unidentified_errors.any?
@@ -214,7 +225,6 @@ module Krane
       warn_msg = "WARNING: Any resources not mentioned in the error(s) below were likely created/updated. " \
         "You may wish to roll back this deploy."
       logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
-
       unidentified_errors = []
       filenames_with_sensitive_content = resources
         .select(&:sensitive_template_content?)

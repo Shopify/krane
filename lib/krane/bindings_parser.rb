@@ -41,7 +41,7 @@ module Krane
         when '.json'
           bindings = parse_json(File.read(file_path))
         when '.yaml', '.yml'
-          bindings = YAML.safe_load(File.read(file_path), permitted_classes: [], permitted_symbols: [], 
+          bindings = YAML.safe_load(File.read(file_path), permitted_classes: [], permitted_symbols: [],
                                     aliases: true, filename: file_path)
         else
           raise ArgumentError, "Supplied file does not appear to be JSON or YAML"

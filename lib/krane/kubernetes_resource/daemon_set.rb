@@ -73,7 +73,7 @@ module Krane
 
       # Remove non-existent nodes
       @nodes.select do |node|
-        new_nodes.find { |n| n.name == node.name } != nil
+        !new_nodes.find { |n| n.name == node.name }
       end
     end
 
@@ -82,7 +82,7 @@ module Krane
       all_nodes.each_with_object([]) do |node_data, relevant_nodes|
         next if node_data.dig('spec', 'unschedulable').to_s.downcase == 'true'
         cond = node_data.dig('status', 'conditions').find { |c| c['type'].downcase == 'ready' }
-        next if (!cond.nil? && cond['status'].downcase != 'true')
+        next if !cond.nil? && cond['status'].downcase != 'true'
         relevant_nodes << Node.new(definition: node_data)
       end
     end

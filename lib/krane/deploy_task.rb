@@ -321,7 +321,7 @@ module Krane
     end
 
     def validate_dry_run(resources)
-      resource_deployer.dry_run(resources)
+      resource_deployer.dry_run!(resources)
     end
 
     def namespace_definition
