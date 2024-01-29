@@ -303,8 +303,10 @@ module Krane
           record_invalid_template(logger: @logger, err: r.validation_error_msg,
             filename: File.basename(r.file_path), content: content)
         end
-        raise FatalDeploymentError, "Template validation failed"
+        raise FatalDeploymentError
       end
+    rescue FatalDeploymentError
+      raise FatalDeploymentError, "Template validation failed"
     end
     measure_method(:validate_resources)
 

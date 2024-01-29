@@ -167,7 +167,6 @@ module Krane
         global_mode = resources.all?(&:global?)
         out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
           attempts: 2, use_namespace: !global_mode)
-
         tags = statsd_tags + (dry_run ? ['dry_run:true'] : ['dry_run:false'])
         Krane::StatsD.client.distribution('apply_all.duration', Krane::StatsD.duration(start), tags: tags)
         if st.success?
@@ -191,6 +190,12 @@ module Krane
     end
 
     def record_dry_run_apply_failure(err, resources: [])
+      if err == "error: no objects passed to apply"
+        heading = ColorizedString.new(err).red
+        msg = FormattedLogger.indent_four("No resources could be applied: please ensure your label selectors select at least one resource")
+        logger.summary.add_paragraph("#{heading}\n#{msg}")
+        return
+      end
       unidentified_errors = []
       filenames_with_sensitive_content = resources
         .select(&:sensitive_template_content?)
@@ -216,9 +221,14 @@ module Krane
       end
       return unless unidentified_errors.any?
 
-      warn_msg = "WARNING: There was an error applying some or all resources. The raw output may be sensitive and " \
-        "so cannot be displayed."
-      logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
+      if resources.none?(&:sensitive_template_content?)
+        template_contents = resources.map(&:file_path).map { |path| File.read(path) }
+        record_invalid_template(logger: logger, err: unidentified_errors.join("\n"), filename: "", content: template_contents.join("\n"))
+      else
+        warn_msg = "WARNING: There was an error applying some or all resources. The raw output may be sensitive and " \
+          "so cannot be displayed."
+        logger.summary.add_paragraph(ColorizedString.new(warn_msg).yellow)
+      end
     end
 
     def record_apply_failure(err, resources: [])
