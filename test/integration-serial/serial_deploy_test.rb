@@ -546,6 +546,17 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  def test_skip_dry_run_apply_success
+    Krane::KubernetesResource.any_instance.expects(:validate_definition).with { |params| params[:dry_run] == false }
+    Krane::ResourceDeployer.any_instance.expects(:dry_run).never
+    result = deploy_fixtures("hello-cloud", subset: %w(secret.yml), skip_dry_run: true)
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Result: SUCCESS",
+      "Successfully deployed 1 resource",
+    ], in_order: true)
+  end
+
   private
 
   def rollout_conditions_annotation_key
