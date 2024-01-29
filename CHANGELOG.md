@@ -1,5 +1,9 @@
 ## next
 
+# 3.4.1
+
+- Added flag `--skip-dry-run` to completely opt out of dry run validation. 
+
 # 3.4.0
 
 - Use `prune-allowlist` instead of `prune-whitelist` for 1.26+ clusters. Clusters running 1.25 or less will continue to use `--prune-whitelist`. [#940](https://github.com/Shopify/krane/pull/940)
