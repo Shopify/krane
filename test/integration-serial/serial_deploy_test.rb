@@ -75,7 +75,7 @@ class SerialDeployTest < Krane::IntegrationTest
     refute_logs_match(%r{Kubectl err:.*something/invalid})
 
     assert_logs_match_all([
-      "Command failed: apply -f",
+      "Template validation failed",
       /Invalid template: Deployment-web.*\.yml/,
     ])
     refute_logs_match("kind: Deployment") # content of the sensitive template
