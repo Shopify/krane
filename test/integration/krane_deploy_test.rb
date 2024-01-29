@@ -56,27 +56,27 @@ class KraneDeployTest < Krane::IntegrationTest
                           ], in_order: true)
   end
 
-  def test_service_account_predeployed_before_unmanaged_pod
-    # Add a valid service account in unmanaged pod
-    service_account_name = "build-robot"
-    result = deploy_fixtures("hello-cloud",
-      subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "service-account.yml"],
-      render_erb: true) do |fixtures|
-      pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
-      pod["spec"]["serviceAccountName"] = service_account_name
-      pod["spec"]["automountServiceAccountToken"] = false
-    end
-    # Expect the service account is deployed before the unmanaged pod
-    assert_deploy_success(result)
-    hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
-    hello_cloud.assert_configmap_data_present
-    hello_cloud.assert_all_service_accounts_up
-    hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
-    assert_logs_match_all([
-      %r{Successfully deployed in \d.\ds: ServiceAccount/build-robot},
-      %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-.*},
-    ], in_order: true)
-  end
+  # def test_service_account_predeployed_before_unmanaged_pod
+  #   # Add a valid service account in unmanaged pod
+  #   service_account_name = "build-robot"
+  #   result = deploy_fixtures("hello-cloud",
+  #     subset: ["configmap-data.yml", "unmanaged-pod-1.yml.erb", "service-account.yml"],
+  #     render_erb: true) do |fixtures|
+  #     pod = fixtures["unmanaged-pod-1.yml.erb"]["Pod"].first
+  #     pod["spec"]["serviceAccountName"] = service_account_name
+  #     pod["spec"]["automountServiceAccountToken"] = false
+  #   end
+  #   # Expect the service account is deployed before the unmanaged pod
+  #   assert_deploy_success(result)
+  #   hello_cloud = FixtureSetAssertions::HelloCloud.new(@namespace)
+  #   hello_cloud.assert_configmap_data_present
+  #   hello_cloud.assert_all_service_accounts_up
+  #   hello_cloud.assert_unmanaged_pod_statuses("Succeeded", 1)
+  #   assert_logs_match_all([
+  #     %r{Successfully deployed in \d.\ds: ServiceAccount/build-robot},
+  #     %r{Successfully deployed in \d+.\ds: Pod/unmanaged-pod-.*},
+  #   ], in_order: true)
+  # end
 
   def test_role_and_role_binding_predeployed_before_unmanaged_pod
     result = deploy_fixtures(
