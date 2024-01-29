@@ -789,7 +789,7 @@ class KraneDeployTest < Krane::IntegrationTest
     assert_deploy_failure(result)
 
     assert_logs_match_all([
-      "Command failed: apply -f",
+      "Template validation failed",
       /The Deployment "web" is invalid.*`selector` does not match template `labels`/,
     ], in_order: true)
   end

@@ -305,7 +305,7 @@ module Krane
         end
         raise FatalDeploymentError
       end
-    rescue FatalDeploymentError
+    rescue FatalDeploymentError => err
       raise FatalDeploymentError, "Template validation failed"
     end
     measure_method(:validate_resources)
@@ -317,9 +317,11 @@ module Krane
       end
       global_names = FormattedLogger.indent_four(global_names.join("\n"))
 
+      message = "This command is namespaced and cannot be used to deploy global resources. "\
+      "Use GlobalDeployTask instead."
+      @logger.summary.add_paragraph(ColorizedString.new(message).yellow)
       @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
-      raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources. "\
-        "Use GlobalDeployTask instead."
+      raise FatalDeploymentError
     end
 
     def validate_dry_run(resources)
