@@ -73,7 +73,7 @@ module Krane
 
       # Remove non-existent nodes
       @nodes.select do |node|
-        !new_nodes.find { |n| n.name == node.name }
+        new_nodes.find { |n| n.name == node.name } != nil
       end
     end
 
