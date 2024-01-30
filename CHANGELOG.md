@@ -1,8 +1,13 @@
 ## next
 
+# 3.4.2
+
+- Remove flag `--skip-dry-run` (see [#946](https://github.com/Shopify/krane/pull/946))
+- Remove support for batched server-side dry-run ([#946](https://github.com/Shopify/krane/pull/946))
+
 # 3.4.1
 
-- Added flag `--skip-dry-run` to completely opt out of dry run validation. 
+- Added flag `--skip-dry-run` to completely opt out of dry run validation.
 
 # 3.4.0
 
