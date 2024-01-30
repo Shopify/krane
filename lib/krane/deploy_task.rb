@@ -106,7 +106,7 @@ module Krane
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha: nil, logger: nil, kubectl_instance: nil, bindings: {},
       global_timeout: nil, selector: nil, selector_as_filter: false, filenames: [], protected_namespaces: nil,
-      render_erb: false, kubeconfig: nil, skip_dry_run: false)
+      render_erb: false, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
       @task_config = Krane::TaskConfig.new(context, namespace, @logger, kubeconfig)
@@ -121,7 +121,6 @@ module Krane
       @selector_as_filter = selector_as_filter
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
       @render_erb = render_erb
-      @skip_dry_run = skip_dry_run
     end
 
     # Runs the task, returning a boolean representing success or failure
