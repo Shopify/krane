@@ -6,7 +6,7 @@ jobs:
   ruby-tests:
     runs-on: ubuntu-latest
 
-    name: "Tests - Ruby ${{ matrix.ruby }} with Kubernetes ${{ matrix.kubernetes_version }}"
+    name: "Tests (${{matrix.test_suite}}) - Ruby ${{ matrix.ruby }} with Kubernetes ${{ matrix.kubernetes_version }}"
     strategy:
       fail-fast: false
       matrix:
@@ -20,6 +20,11 @@ jobs:
           - "1.26.4"
           - "1.24.13"
           - "1.23.17"
+        test_suite:
+          - "unit_test"
+          - "cli_test"
+          - "serial_integration_test"
+          - "integration_test"
         include:
           - kubernetes_version: "1.27.3"
             kind_image: "kindest/node:v1.27.3@sha256:9dd3392d79af1b084671b05bcf65b21de476256ad1dcc853d9f3b10b4ac52dde"
@@ -52,4 +57,4 @@ jobs:
 
       - name: Run tests
         run: |
-          bin/test
+          bin/test ${{matrix.test_suite}}

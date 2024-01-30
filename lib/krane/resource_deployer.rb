@@ -20,13 +20,6 @@ module Krane
       @statsd_tags = statsd_tags
     end
 
-    def dry_run(resources)
-      apply_all(resources, true, dry_run: true)
-      true
-    rescue FatalDeploymentError
-      false
-    end
-
     def deploy!(resources, verify_result, prune)
       if verify_result
         deploy_all_resources(resources, prune: prune, verify: true)

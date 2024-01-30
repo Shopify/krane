@@ -33,16 +33,23 @@ if [[ "${CI:-0}" != "0" ]]; then
   PARALLELISM=2
 fi
 
-print_header "Run CLI Tests"
-bundle exec rake cli_test
+test_type=$1
 
-print_header "Run Unit Tests"
-bundle exec rake unit_test
 
-print_header "Run Non-Parallel Integration Tests"
-bundle exec rake serial_integration_test
+case $test_type in
+  cli_test | unit_test | serial_integration_test)
+    print_header $test_type
+    bundle exec rake $test_type
+    ;;
 
-print_header "Run Parallel Integration Tests (MT_CPU=$PARALLELISM)"
-PARALLELIZE_ME=1 MT_CPU=$PARALLELISM bundle exec rake integration_test
+  integration_test)
+    print_header "Run Parallel Integration Tests (MT_CPU=$PARALLELISM)"
+    PARALLELIZE_ME=1 MT_CPU=$PARALLELISM bundle exec rake integration_test
+    ;;
+
+  *)
+    echo "Argument must be one of: unit_test, cli_test, serial_integration_test, integration_test"
+    ;;
+esac
 
 test $err -eq 0

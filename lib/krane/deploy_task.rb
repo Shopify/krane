@@ -106,7 +106,7 @@ module Krane
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha: nil, logger: nil, kubectl_instance: nil, bindings: {},
       global_timeout: nil, selector: nil, selector_as_filter: false, filenames: [], protected_namespaces: nil,
-      render_erb: false, kubeconfig: nil, skip_dry_run: false)
+      render_erb: false, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
       @task_config = Krane::TaskConfig.new(context, namespace, @logger, kubeconfig)
@@ -121,7 +121,6 @@ module Krane
       @selector_as_filter = selector_as_filter
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
       @render_erb = render_erb
-      @skip_dry_run = skip_dry_run
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -287,15 +286,9 @@ module Krane
 
     def validate_resources(resources)
       validate_globals(resources)
-      batch_dry_run_success = @skip_dry_run || validate_dry_run(resources)
       resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
       Krane::Concurrency.split_across_threads(resources) do |r|
-        # No need to pass in kubectl (and do per-resource dry run apply) if batch dry run succeeded
-        if batch_dry_run_success
-          r.validate_definition(kubectl: nil, selector: @selector, dry_run: false)
-        else
-          r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
-        end
+        r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
       end
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
@@ -319,10 +312,6 @@ module Krane
       @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
       raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources. "\
         "Use GlobalDeployTask instead."
-    end
-
-    def validate_dry_run(resources)
-      resource_deployer.dry_run(resources)
     end
 
     def namespace_definition
