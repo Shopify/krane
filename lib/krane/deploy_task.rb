@@ -289,8 +289,7 @@ module Krane
       validate_globals(resources)
       resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
       Krane::Concurrency.split_across_threads(resources) do |r|
-          r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
-        end
+        r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
       end
       failed_resources = resources.select(&:validation_failed?)
       if failed_resources.present?
