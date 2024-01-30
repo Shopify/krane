@@ -287,13 +287,8 @@ module Krane
 
     def validate_resources(resources)
       validate_globals(resources)
-      batch_dry_run_success = @skip_dry_run || validate_dry_run(resources)
       resources.select! { |r| r.selected?(@selector) } if @selector_as_filter
       Krane::Concurrency.split_across_threads(resources) do |r|
-        # No need to pass in kubectl (and do per-resource dry run apply) if batch dry run succeeded
-        if batch_dry_run_success
-          r.validate_definition(kubectl: nil, selector: @selector, dry_run: false)
-        else
           r.validate_definition(kubectl: kubectl, selector: @selector, dry_run: true)
         end
       end
@@ -319,10 +314,6 @@ module Krane
       @logger.summary.add_paragraph(ColorizedString.new("Global resources:\n#{global_names}").yellow)
       raise FatalDeploymentError, "This command is namespaced and cannot be used to deploy global resources. "\
         "Use GlobalDeployTask instead."
-    end
-
-    def validate_dry_run(resources)
-      resource_deployer.dry_run(resources)
     end
 
     def namespace_definition
