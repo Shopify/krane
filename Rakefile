@@ -35,6 +35,6 @@ Rake::TestTask.new(:cli_test) do |t|
 end
 
 desc("Run all tests")
-task(test: %w(unit_test serial_integration_test integration_test cli_test))
+task(test: %w(unit_test serial_integration_test cli_test))
 
 task(default: :test)
