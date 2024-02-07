@@ -74,7 +74,7 @@ If you need the ability to render dynamic values in templates before deploying, 
 ## Prerequisites
 
 * Ruby 2.7+
-* Your cluster must be running Kubernetes v1.22.0 or higher<sup>1</sup>
+* Your cluster must be running Kubernetes v1.24.0 or higher<sup>1</sup>
 
 ## Compatibility
 
@@ -89,11 +89,12 @@ Krane provides support for official upstream supported versions [Kubernetes](htt
 |        1.20        | No                |                  2.4.9                   |
 |        1.21        | No                |                  2.4.9                   |
 |        1.22        | No                |                  3.0.1                   |
-|        1.23        | Yes               |                    --                    |
+|        1.23        | No                |                  3.4.2                   |
 |        1.24        | Yes               |                    --                    |
 |        1.25        | No                |                    --                    |
 |        1.26        | Yes               |                    --                    |
 |        1.27        | Yes               |                    --                    |
+|        1.28        | Yes               |                    --                    |
 
 ## Installation
 

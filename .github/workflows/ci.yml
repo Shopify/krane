@@ -18,24 +18,24 @@ jobs:
           - "3.0.4"
           - "2.7.6"
         kubernetes_version:
+          - "1.28.0"
           - "1.27.3"
           - "1.26.4"
           - "1.24.13"
-          - "1.23.17"
         test_suite:
           - "unit_test"
           - "cli_test"
           - "serial_integration_test"
           - "integration_test"
         include:
+          - kubernetes_version: "1.28.0"
+            kind_image: "kindest/node:v1.28.0@sha256:dad5a6238c5e41d7cac405fae3b5eda2ad1de6f1190fa8bfc64ff5bb86173213"
           - kubernetes_version: "1.27.3"
             kind_image: "kindest/node:v1.27.3@sha256:9dd3392d79af1b084671b05bcf65b21de476256ad1dcc853d9f3b10b4ac52dde"
           - kubernetes_version: "1.26.4"
             kind_image: "kindest/node:v1.26.4@sha256:a539833d26264444ab3b8f5e56e23fa3361436445fa23c864e6dec622458858f"
           - kubernetes_version: "1.24.13"
             kind_image: "kindest/node:v1.24.13@sha256:c9e00e2b228e47ba3c96eaf0309b27dc3f73e444944e4c900016fd07b1b805cb"
-          - kubernetes_version: "1.23.17"
-            kind_image: "kindest/node:v1.23.17@sha256:eb33093b461ffee7614ca65a39ac0fb57982e1407dc38df4df92811c4fbcb687"
 
     steps:
       - uses: actions/checkout@v3

@@ -1,5 +1,10 @@
 ## next
 
+# 3.5.0
+
+- Test against k8s 1.28
+- Drop support for k8s 1.23
+
 # 3.4.2
 
 - Remove flag `--skip-dry-run` (see [#946](https://github.com/Shopify/krane/pull/946))
