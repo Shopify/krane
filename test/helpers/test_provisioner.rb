@@ -56,6 +56,7 @@ class TestProvisioner
       ns = Kubeclient::Resource.new(kind: 'Namespace')
       ns.metadata = { name: namespace }
       kubeclient.create_namespace(ns)
+      sleep(5) # wait for the serviceaccount 'default' to be created; https://github.com/kubernetes/kubernetes/issues/66689
     end
   end
 end

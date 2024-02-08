@@ -1,5 +1,10 @@
 ## next
 
+# 3.5.1
+
+- Fix local run for integration tests
+
+
 # 3.5.0
 
 - Test against k8s 1.28
