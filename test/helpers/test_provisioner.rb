@@ -52,11 +52,25 @@ class TestProvisioner
 
     private
 
+    def wait_for_default_service_account(kubeclient, namespace)
+      30.times do
+        begin
+          sa = kubeclient.get_service_account('default', namespace)
+          return if sa
+        rescue Kubeclient::ResourceNotFoundError
+          # If the service account is not found, sleep for a second and then retry
+          sleep(1)
+        end
+      end
+      raise "Default service account in #{namespace} not ready after 30 seconds"
+    end
+
     def create_namespace(namespace)
       ns = Kubeclient::Resource.new(kind: 'Namespace')
       ns.metadata = { name: namespace }
       kubeclient.create_namespace(ns)
-      sleep(5) # wait for the serviceaccount 'default' to be created; https://github.com/kubernetes/kubernetes/issues/66689
+      # wait for the serviceaccount 'default' to be created; https://github.com/kubernetes/kubernetes/issues/66689
+      wait_for_default_service_account(kubeclient, namespace)
     end
   end
 end

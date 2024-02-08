@@ -3,6 +3,7 @@
 # 3.5.1
 
 - Fix local run for integration tests
+- Wait for creation of serviceaccount 'default' in newly created namespace to avoid race conditions with pod creation failures
 
 
 # 3.5.0
