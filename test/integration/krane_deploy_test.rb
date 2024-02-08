@@ -1355,7 +1355,7 @@ class KraneDeployTest < Krane::IntegrationTest
     bad_probe_timeout = "Deployment/bad-probe: TIMED OUT (progress deadline: 5s)"
 
     assert_logs_match_all([
-      /Successfully deployed 1 resource, timed out waiting for/,
+      /Successfully deployed 1 resource(,| and) timed out waiting for/,
       "Successful resources",
       "ConfigMap/test",
       "Deployment/cannot-run: FAILED",
