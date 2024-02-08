@@ -724,7 +724,7 @@ class KraneDeployTest < Krane::IntegrationTest
       "Timeout reason: ProgressDeadlineExceeded",
       /Latest ReplicaSet: missing-volumes-\w+/,
       "Final status: 1 replica, 1 updatedReplica, 1 unavailableReplica",
-      *(%r{/FailedMount.*secret "catphotoscom" not found/} if ENV['CI'] == 'true'), #event
+      *(%r{.*FailedMount.*secret "catphotoscom" not found.*} if ENV['CI'] == 'true'), #event
     ], in_order: true)
 
     # Debug info for failure
