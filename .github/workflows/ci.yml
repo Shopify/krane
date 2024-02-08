@@ -5,6 +5,8 @@ on: [push]
 jobs:
   ruby-tests:
     runs-on: ubuntu-latest
+    env:
+      CI: true
 
     name: "Tests (${{matrix.test_suite}}) - Ruby ${{ matrix.ruby }} with Kubernetes ${{ matrix.kubernetes_version }}"
     strategy:

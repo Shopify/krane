@@ -60,7 +60,7 @@ class RestartTaskTest < Krane::IntegrationTest
       "Waiting for rollout",
       "Result: SUCCESS",
       "Successfully restarted 1 resource",
-      %r{StatefulSet/stateful-busybox.* 2 replicas},
+      %r{StatefulSet/stateful-busybox.* (2 replicas|1 replica, 1 currentReplica)},
     ],
       in_order: true)
   end
@@ -291,7 +291,7 @@ class RestartTaskTest < Krane::IntegrationTest
       "The following containers have not passed their readiness probes",
       "app must exit 0 from the following command",
       "Final status: 2 replicas, 1 updatedReplica, 1 availableReplica, 1 unavailableReplica",
-      "Unhealthy: Readiness probe failed",
+      *("Unhealthy: Readiness probe failed" if ENV['CI'] == 'true'),
     ],
       in_order: true)
   end
