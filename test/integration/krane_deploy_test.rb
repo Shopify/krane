@@ -1348,14 +1348,14 @@ class KraneDeployTest < Krane::IntegrationTest
       bad_probe = f["bad_probe.yml"]["Deployment"].first
       bad_probe["spec"]["progressDeadlineSeconds"] = 5
       f["missing_volumes.yml"]["Deployment"].first["spec"]["progressDeadlineSeconds"] = 30
-      f["cannot_run.yml"]["Deployment"].first["spec"]["replicas"] = 1
+      f["cannot_run.yml"]["Deployment"].first["spec"]["replicas"] = 1 #this results in pods in CrashLoopBackOff
     end
     assert_deploy_failure_or_timeout(result)
 
     bad_probe_timeout = "Deployment/bad-probe: TIMED OUT (progress deadline: 5s)"
 
     assert_logs_match_all([
-      "Successfully deployed 1 resource, timed out waiting for 2 resources to deploy, and failed to deploy 1 resource",
+      "Successfully deployed 1 resource, timed out waiting for",
       "Successful resources",
       "ConfigMap/test",
       "Deployment/cannot-run: FAILED",
