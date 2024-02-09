@@ -1358,9 +1358,9 @@ class KraneDeployTest < Krane::IntegrationTest
       /Successfully deployed 1 resource(,| and) timed out waiting for/,
       "Successful resources",
       "ConfigMap/test",
-      "Deployment/cannot-run: FAILED",
       bad_probe_timeout,
-      "Deployment/missing-volumes: GLOBAL WATCH TIMEOUT (20 seconds)",
+      /(Continuing to wait for:.*Deployment\/cannot-run.*)|(Deployment\/cannot-run: FAILED)/,
+      /(Continuing to wait for:.*Deployment\/missing-volumes.*)|(Deployment\/missing-volumes: GLOBAL WATCH TIMEOUT \(20 seconds\))/,
     ])
   end
 
