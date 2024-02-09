@@ -116,6 +116,14 @@ module Krane
     alias_method :assert_restart_failure, :assert_deploy_failure
     alias_method :assert_task_run_failure, :assert_deploy_failure
 
+    def assert_deploy_failure_or_timeout(result)
+      assert_equal(false, result, "Deploy succeeded when it was expected to fail.#{logs_message_if_captured}")
+      logging_assertion do |logs|
+        assert(logs.include?("Result: FAILURE") || logs.include?("Result: TIMED OUT"),
+          "'Result: FAILURE' or 'Result: TIMED OUT' not found in the following logs:\n#{logs}")
+      end
+    end
+
     def assert_deploy_success(result)
       assert_equal(true, result, "Deploy failed when it was expected to succeed.#{logs_message_if_captured}")
       logging_assertion do |logs|
