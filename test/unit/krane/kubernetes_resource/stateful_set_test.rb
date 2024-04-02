@@ -4,14 +4,21 @@ require 'test_helper'
 class StatefulSetTest < Krane::TestCase
   include ResourceCacheTestHelper
 
-  def test_deploy_succeeded_when_revision_matches_for_rollingupdate_strategy
-    ss_template = build_ss_template(updateStrategy: "RollingUpdate", rollout: nil)
+  def test_deploy_succeeded_true_with_rolling_update_strategy
+    ss = build_synced_ss(ss_template: build_ss_template)
+    assert_predicate(ss, :deploy_succeeded?)
+  end
+
+  def test_deploy_succeeded_true_with_on_delete_strategy_and_no_rollout_annotation
+    # OnDelete strategy without rollout annotation should always succeed.
+    # Change the updateRevision to ensure it's not being used to determine success.
+    ss_template = build_ss_template(status: { "updateRevision": 3 }, updateStrategy: "OnDelete", rollout: nil)
     ss = build_synced_ss(ss_template: ss_template)
     assert_predicate(ss, :deploy_succeeded?)
   end
 
-  def test_deploy_succeeded_when_revision_matches_for_ondelete_strategy_without_annotation
-    ss_template = build_ss_template(updateStrategy: "OnDelete", rollout: nil)
+  def test_deploy_succeeded_true_with_on_delete_strategy_and_full_rollout_annotation
+    ss_template = build_ss_template(status: { "updateRevision": 3 }, updateStrategy: "OnDelete", rollout: nil)
     ss = build_synced_ss(ss_template: ss_template)
     assert_predicate(ss, :deploy_succeeded?)
   end
@@ -34,19 +41,13 @@ class StatefulSetTest < Krane::TestCase
     refute_predicate(ss, :deploy_succeeded?)
   end
 
-  def test_deploy_succeeded_when_replica_counts_match_for_rollingupdate_strategy
-    ss_template = build_ss_template(updateStrategy: "RollingUpdate", rollout: nil)
-    ss = build_synced_ss(ss_template: ss_template)
-    assert_predicate(ss, :deploy_succeeded?)
-  end
-
   def test_deploy_does_not_succeed_when_replica_counts_do_not_match_for_rollingupdate_strategy
-    ss_template = build_ss_template(status: { "currentReplicas": 1 }, updateStrategy: "RollingUpdate", rollout: nil)
+    ss_template = build_ss_template(status: { "updatedReplicas": 1 }, updateStrategy: "RollingUpdate", rollout: nil)
     ss = build_synced_ss(ss_template: ss_template)
     refute_predicate(ss, :deploy_succeeded?)
   end
 
-  def test_deploy_fails_when_current_and_observed_generations_do_not_match
+  def test_deploy_does_not_succeed_when_current_and_observed_generations_do_not_match
     ss_template = build_ss_template(status: { "observedGeneration": 1 })
     ss = build_synced_ss(ss_template: ss_template)
     refute_predicate(ss, :deploy_succeeded?)
@@ -80,7 +81,7 @@ class StatefulSetTest < Krane::TestCase
     ss_fixture.dup.deep_merge(
       "status" => status,
       "spec" => {"updateStrategy" => {"type" => updateStrategy}},
-      "metadata" => {"annotations" => {"krane.shopify.io/rollout" => rollout}}
+      "metadata" => {"annotations" => {"krane.shopify.io/required-rollout" => rollout}}
     )
   end
 

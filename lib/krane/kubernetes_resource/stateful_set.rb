@@ -22,26 +22,16 @@ module Krane
     def deploy_succeeded?
       success = observed_generation == current_generation
 
-      @pods.each do |pod|
-        success &= pod.definition["metadata"]["labels"]["controller-revision-hash"] == status_data['updateRevision']
-      end
-
-      if update_strategy == 'RollingUpdate'
-        success &= status_data['currentRevision'] == status_data['updateRevision']
-        success &= desired_replicas == status_data['readyReplicas'].to_i
-        success &= desired_replicas == status_data['currentReplicas'].to_i
-
-      elsif update_strategy == ONDELETE
+      if update_strategy == ONDELETE && required_rollout != "full"
         unless @success_assumption_warning_shown
-          @logger.warn("WARNING: Your StatefulSet's updateStrategy is set to OnDelete, "\
-                       "which means the deployment won't succeed until all pods are updated by deletion.")
+          @logger.warn("WARNING: Your StatefulSet's updateStrategy is set to #{update_strategy}, "\
+                       "which means updates will not be applied until its pods are deleted.")
           @success_assumption_warning_shown = true
         end
-
-        if required_rollout == 'full'
-          success &= desired_replicas == status_data['readyReplicas'].to_i
-          success &= desired_replicas == status_data['updatedReplicas'].to_i
-        end
+      else
+        success &= status_data['currentRevision'] == status_data['updateRevision']
+        success &= desired_replicas == status_data['readyReplicas'].to_i
+        success &= desired_replicas == status_data['updatedReplicas'].to_i
       end
 
       success
