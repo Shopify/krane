@@ -11,38 +11,26 @@ class StatefulSetTest < Krane::TestCase
 
   def test_deploy_succeeded_true_with_on_delete_strategy_and_no_rollout_annotation
     # OnDelete strategy without rollout annotation should always succeed.
-    # Change the updateRevision to ensure it's not being used to determine success.
-    ss_template = build_ss_template(status: { "updateRevision": 3 }, updateStrategy: "OnDelete", rollout: nil)
+    # Change updatedReplicas to ensure it's not being used to determine success.
+    ss_template = build_ss_template(status: { "updatedReplicas": 0 }, updateStrategy: "OnDelete", rollout: nil)
     ss = build_synced_ss(ss_template: ss_template)
     assert_predicate(ss, :deploy_succeeded?)
   end
 
   def test_deploy_succeeded_true_with_on_delete_strategy_and_full_rollout_annotation
-    ss_template = build_ss_template(status: { "updateRevision": 3 }, updateStrategy: "OnDelete", rollout: nil)
-    ss = build_synced_ss(ss_template: ss_template)
-    assert_predicate(ss, :deploy_succeeded?)
-  end
-
-  def test_deploy_does_not_succeed_when_revision_does_not_match_without_annotation
-    ss_template = build_ss_template(status: { "updateRevision": 1 }, rollout: nil)
-    ss = build_synced_ss(ss_template: ss_template)
-    refute_predicate(ss, :deploy_succeeded?)
-  end
-
-  def test_deploy_succeeded_when_replica_counts_match_for_ondelete_strategy_with_full_annotation
     ss_template = build_ss_template(updateStrategy: "OnDelete", rollout: "full")
     ss = build_synced_ss(ss_template: ss_template)
     assert_predicate(ss, :deploy_succeeded?)
   end
 
-  def test_deploy_does_not_succeed_when_replica_counts_do_not_match_for_ondelete_strategy_with_full_annotation
-    ss_template = build_ss_template(status: { "readyReplicas": 1 }, updateStrategy: "OnDelete", rollout: "full")
+  def test_deploy_succeeded_false_when_updated_replicas_dont_match_desired
+    ss_template = build_ss_template(status: { "updatedReplicas": 1 })
     ss = build_synced_ss(ss_template: ss_template)
     refute_predicate(ss, :deploy_succeeded?)
   end
 
-  def test_deploy_does_not_succeed_when_replica_counts_do_not_match_for_rollingupdate_strategy
-    ss_template = build_ss_template(status: { "updatedReplicas": 1 }, updateStrategy: "RollingUpdate", rollout: nil)
+  def test_deploy_does_not_succeed_when_replica_counts_do_not_match_for_ondelete_strategy_with_full_annotation
+    ss_template = build_ss_template(status: { "updatedReplicas": 1 }, updateStrategy: "OnDelete", rollout: "full")
     ss = build_synced_ss(ss_template: ss_template)
     refute_predicate(ss, :deploy_succeeded?)
   end

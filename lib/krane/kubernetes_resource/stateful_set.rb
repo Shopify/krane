@@ -29,7 +29,6 @@ module Krane
           @success_assumption_warning_shown = true
         end
       else
-        success &= status_data['currentRevision'] == status_data['updateRevision']
         success &= desired_replicas == status_data['readyReplicas'].to_i
         success &= desired_replicas == status_data['updatedReplicas'].to_i
       end
