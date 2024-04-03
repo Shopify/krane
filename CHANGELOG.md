@@ -1,20 +1,24 @@
 ## next
 
-# 3.5.0
+## 3.5.1
+
+- Fixed successful deployment check for StatefulSets introduced in v3.3.0.
+
+## 3.5.0
 
 - Test against k8s 1.28
 - Drop support for k8s 1.23
 
-# 3.4.2
+## 3.4.2
 
 - Remove flag `--skip-dry-run` (see [#946](https://github.com/Shopify/krane/pull/946))
 - Remove support for batched server-side dry-run ([#946](https://github.com/Shopify/krane/pull/946))
 
-# 3.4.1
+## 3.4.1
 
 - Added flag `--skip-dry-run` to completely opt out of dry run validation.
 
-# 3.4.0
+## 3.4.0
 
 - Use `prune-allowlist` instead of `prune-whitelist` for 1.26+ clusters. Clusters running 1.25 or less will continue to use `--prune-whitelist`. [#940](https://github.com/Shopify/krane/pull/940)
 
