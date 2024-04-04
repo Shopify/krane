@@ -46,7 +46,7 @@ require 'krane/concerns/template_reporting'
 
 module Krane
   # Ship resources to a namespace
-  class DeployTask
+  class DeployAllTask
     extend Krane::StatsD::MeasureMethods
     include Krane::TemplateReporting
 

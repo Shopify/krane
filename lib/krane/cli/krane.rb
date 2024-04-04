@@ -67,6 +67,14 @@ module Krane
         end
       end
 
+      desc("deploy-all NAMESPACE CONTEXT", "Ship all resources namespaced and global to a cluster")
+      expand_options(DeployAllCommand::OPTIONS)
+      def deploy_all(context)
+        rescue_and_exit do
+          DeployAllCommand.from_options(context, options)
+        end
+      end
+
       def self.exit_on_failure?
         true
       end
