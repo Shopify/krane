@@ -3,6 +3,3 @@ inherit_gem:
 
 Style/DateTime:
   Enabled: false
-
-AllCops:
-  TargetRubyVersion: 2.4
