@@ -1,5 +1,9 @@
 ## next
 
+## 3.5.2
+
+- Fixed an issue where deploying StatefulSets monitored the health of the previous revision's pods instead of the updated one.
+
 ## 3.5.1
 
 - Fixed successful deployment check for StatefulSets introduced in v3.3.0.

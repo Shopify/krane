@@ -65,7 +65,7 @@ module Krane
     def parent_of_pod?(pod_data)
       return false unless pod_data.dig("metadata", "ownerReferences")
       pod_data["metadata"]["ownerReferences"].any? { |ref| ref["uid"] == @instance_data["metadata"]["uid"] } &&
-      @instance_data["status"]["currentRevision"] == pod_data["metadata"]["labels"]["controller-revision-hash"]
+      @instance_data["status"]["updateRevision"] == pod_data["metadata"]["labels"]["controller-revision-hash"]
     end
 
     def required_rollout

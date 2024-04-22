@@ -41,26 +41,57 @@ class StatefulSetTest < Krane::TestCase
     refute_predicate(ss, :deploy_succeeded?)
   end
 
-  def test_deploy_failed_not_fooled_by_stale_status_for_rollingupdate_strategy
+  def test_deploy_failed_not_fooled_by_stale_status
     status = {
       "observedGeneration": 1,
       "readyReplicas": 0,
     }
-    ss_template = build_ss_template(status: status, updateStrategy: "RollingUpdate")
+    ss_template = build_ss_template(status: status)
     ss = build_synced_ss(ss_template: ss_template)
     ss.stubs(:pods).returns([stub(deploy_failed?: true)])
     refute_predicate(ss, :deploy_failed?)
   end
 
-  def test_deploy_failed_not_fooled_by_stale_status_for_ondelete_strategy
-    status = {
-      "observedGeneration": 1,
-      "readyReplicas": 0,
+  def test_deploy_failed_ignores_current_pods
+    current_pod = pod_fixture.deep_merge(
+      "metadata" => {
+        "labels" => {
+          "controller-revision-hash" => "current",
+        },
+      },
+      "status" => {
+        "phase" => "Failed",
+      },
+    )
+
+    ss_status = {
+      "observedGeneration" => 2,
+      "currentRevision" => "current",
+      "updateRevision" => "updated",
     }
-    ss_template = build_ss_template(status: status, updateStrategy: "OnDelete")
-    ss = build_synced_ss(ss_template: ss_template)
-    ss.stubs(:pods).returns([stub(deploy_failed?: true)])
+    ss = build_synced_ss(ss_template: build_ss_template(status: ss_status), pod_template: current_pod)
     refute_predicate(ss, :deploy_failed?)
+  end
+
+  def test_deploy_failed_considers_updated_pods
+    updated_pod = pod_fixture.deep_merge(
+      "metadata" => {
+        "labels" => {
+          "controller-revision-hash" => "updated",
+        },
+      },
+      "status" => {
+        "phase" => "Failed",
+      },
+    )
+
+    ss_status = {
+      "observedGeneration" => 2,
+      "currentRevision" => "current",
+      "updateRevision" => "updated",
+    }
+    ss = build_synced_ss(ss_template: build_ss_template(status: ss_status), pod_template: updated_pod)
+    assert_predicate(ss, :deploy_failed?)
   end
 
   private
