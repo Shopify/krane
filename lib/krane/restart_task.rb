@@ -12,10 +12,9 @@ module Krane
     class FatalRestartError < FatalDeploymentError; end
 
     class RestartAPIError < FatalRestartError
-      def initialize(deployment_name, response)
+      def initialize(deployment_name, message)
         super("Failed to restart #{deployment_name}. " \
-            "API returned non-200 response code (#{response.code})\n" \
-            "Response:\n#{response.body}")
+            "Error:\n#{message}")
       end
     end
 
