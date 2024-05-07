@@ -1,5 +1,9 @@
 ## next
 
+## 3.5.3
+
+- Fix a minor bug in the RestartAPIError class (https://github.com/Shopify/krane/pull/953)
+
 ## 3.5.2
 
 - Fixed an issue where deploying StatefulSets monitored the health of the previous revision's pods instead of the updated one.
