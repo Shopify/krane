@@ -1,7 +1,7 @@
 ---
 name: krane
 up:
-  - ruby: '3.2.2' # Matches gemspec
+  - ruby
   - bundler
   - podman
   - kind:
