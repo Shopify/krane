@@ -1,0 +1,22 @@
+version: 2
+registries:
+  ruby-shopify:
+    type: rubygems-server
+    url: https://pkgs.shopify.io/basic/gems/ruby
+    username: ${{secrets.RUBYGEMS_SERVER_PKGS_SHOPIFY_IO_USERNAME}}
+    password: ${{secrets.RUBYGEMS_SERVER_PKGS_SHOPIFY_IO_PASSWORD}}
+  github-com:
+    type: git
+    url: https://github.com
+    username: ${{secrets.DEPENDENCIES_GITHUB_USER}}
+    password: ${{secrets.DEPENDENCIES_GITHUB_TOKEN}}
+updates:
+- package-ecosystem: bundler
+  directory: "/"
+  schedule:
+    interval: "weekly"
+    time: "10:00"
+    timezone: "America/Toronto"
+  open-pull-requests-limit: 100
+  insecure-external-code-execution: allow
+  registries: "*"
