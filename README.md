@@ -90,15 +90,17 @@ Krane provides support for official upstream supported versions [Kubernetes](htt
 |        1.21        | No                |                  2.4.9                   |
 |        1.22        | No                |                  3.0.1                   |
 |        1.23        | No                |                  3.4.2                   |
-|        1.24        | Yes               |                    --                    |
+|        1.24        | No                |                  3.5.3                   |
 |        1.25        | No                |                    --                    |
 |        1.26        | Yes               |                    --                    |
 |        1.27        | Yes               |                    --                    |
 |        1.28        | Yes               |                    --                    |
+|        1.29        | Yes               |                    --                    |
+|        1.30        | Yes               |                    --                    |
 
 ## Installation
 
-1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.22.0 or higher) and make sure it is available in your $PATH
+1. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl) (requires v1.28.0 or higher) and make sure it is available in your $PATH
 2. Set up your [kubeconfig file](https://kubernetes.io/docs/tasks/access-application-cluster/authenticate-across-clusters-kubeconfig/) for access to your cluster(s).
 3. `gem install krane`
 
