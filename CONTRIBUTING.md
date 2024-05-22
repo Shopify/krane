@@ -111,7 +111,7 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
 
 If you work for Shopify, just run `dev up`, but otherwise:
 
-1. [Install kubectl version 1.22.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
+1. [Install kubectl version 1.28.0 or higher](https://kubernetes.io/docs/user-guide/prereqs/) and make sure it is in your path
 2. [Install minikube](https://kubernetes.io/docs/getting-started-guides/minikube/#installation) (required to run the test suite)
 3. [Install any required minikube drivers](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) (on OS X, you may need the [hyperkit driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md#hyperkit-driver)
 4. Check out the repo

@@ -1,5 +1,10 @@
 ## next
 
+## 3.6.0
+
+- Test against k8s 1.29, 1.30
+- Drop support for k8s 1.24
+
 ## 3.5.3
 
 - Fix a minor bug in the RestartAPIError class (https://github.com/Shopify/krane/pull/953)
