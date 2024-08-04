@@ -215,3 +215,13 @@ spec:
   type: LoadBalancer
   selector:
     type: standard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: standard-with-skip-endpoint-validation-annotation
+  annotations:
+    krane.shopify.io/skip-endpoint-validation: 'true'
+spec:
+  selector:
+    type: standard

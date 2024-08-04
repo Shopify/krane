@@ -189,6 +189,21 @@ class ServiceTest < Krane::TestCase
     assert_equal("Selects at least 1 pod", svc.status)
   end
 
+  def test_service_with_skip_endpoint_validation_annotation_does_not_require_endpoints
+    svc_def = service_fixture('standard-with-skip-endpoint-validation-annotation')
+    svc = build_service(svc_def)
+
+    stub_kind_get("Service", items: [svc_def])
+    stub_kind_get("Deployment", items: deployment_fixtures)
+    stub_kind_get("Pod", items: [])
+    stub_kind_get("StatefulSet", items: [])
+    svc.sync(build_resource_cache)
+
+    assert(svc.exists?)
+    assert(svc.deploy_succeeded?)
+    assert_equal("Doesn't require any endpoints", svc.status)
+  end
+
   private
 
   def build_service(definition)
