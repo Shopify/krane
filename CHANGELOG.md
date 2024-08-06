@@ -1,5 +1,7 @@
 ## next
 
+## 3.6.1
+
 *Features*
 
 - Enable the option to bypass endpoint validation for a service by using the annotation `krane.shopify.io/skip-endpoint-validation: true`. 
