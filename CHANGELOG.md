@@ -1,5 +1,9 @@
 ## next
 
+*Features*
+
+- Enable the option to bypass endpoint validation for a service by using the annotation `krane.shopify.io/skip-endpoint-validation: true`. 
+
 ## 3.6.0
 
 - Test against k8s 1.29, 1.30

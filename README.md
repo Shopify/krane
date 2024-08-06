@@ -176,6 +176,10 @@ before the deployment is considered successful.
   - _Accepted values_: `create`, `replace`, and `replace-force`
   - _Warning_: Resources whose deploy method is overridden are no longer subject to pruning on deploy.
   - This feature is _experimental_ and may be removed at any time.
+- `krane.shopify.io/skip-endpoint-validation`: Skip endpoint validation for the service.
+  - _Compatibility_: Service
+  - _Default_: `false`
+  - `true`: Endpoint validation is not performed during the deployment of the service.
 
 
 ### Running tasks at the beginning of a deploy

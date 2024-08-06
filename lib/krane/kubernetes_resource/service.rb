@@ -5,6 +5,7 @@ module Krane
   class Service < KubernetesResource
     TIMEOUT = 7.minutes
     SYNC_DEPENDENCIES = %w(Pod Deployment StatefulSet)
+    SKIP_ENDPOINT_VALIDATION_ANNOTATION = 'skip-endpoint-validation'
 
     def sync(cache)
       super
@@ -59,6 +60,9 @@ module Krane
     end
 
     def requires_endpoints?
+      # skip validation if the annotation is present
+      return false if skip_endpoint_validation
+
       # services of type External don't have endpoints
       return false if external_name_svc?
 
@@ -95,6 +99,10 @@ module Krane
 
     def published?
       @instance_data.dig('status', 'loadBalancer', 'ingress').present?
+    end
+
+    def skip_endpoint_validation
+      krane_annotation_value(SKIP_ENDPOINT_VALIDATION_ANNOTATION) == 'true'
     end
   end
 end
