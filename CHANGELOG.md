@@ -1,5 +1,7 @@
 ## next
 
+- Pinning `stats-instrument` to < 3.9 to avoid breaking changes.
+
 ## 3.6.1
 
 *Features*
