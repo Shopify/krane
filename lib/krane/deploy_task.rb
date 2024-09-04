@@ -100,12 +100,13 @@ module Krane
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector
     # @param selector_as_filter [Boolean] Allow selecting a subset of Kubernetes resource templates to deploy
+    # @param extra_labels [Hash] labels to set on resources that don't have them
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
     # @param protected_namespaces [Array<String>] Array of protected Kubernetes namespaces (defaults
     #   to Krane::DeployTask::PROTECTED_NAMESPACES)
     # @param render_erb [Boolean] Enable ERB rendering
     def initialize(namespace:, context:, current_sha: nil, logger: nil, kubectl_instance: nil, bindings: {},
-      global_timeout: nil, selector: nil, selector_as_filter: false, filenames: [], protected_namespaces: nil,
+      global_timeout: nil, selector: nil, selector_as_filter: false, extra_labels: {}, filenames: [], protected_namespaces: nil,
       render_erb: false, kubeconfig: nil)
       @logger = logger || Krane::FormattedLogger.build(namespace, context)
       @template_sets = TemplateSets.from_dirs_and_files(paths: filenames, logger: @logger, render_erb: render_erb)
@@ -119,6 +120,7 @@ module Krane
       @global_timeout = global_timeout
       @selector = selector
       @selector_as_filter = selector_as_filter
+      @extra_labels = extra_labels
       @protected_namespaces = protected_namespaces || PROTECTED_NAMESPACES
       @render_erb = render_erb
     end
@@ -211,6 +213,7 @@ module Krane
           ejson_file: ejson_secret_file,
           statsd_tags: @namespace_tags,
           selector: @selector,
+          extra_labels: @extra_labels,
         )
       end
     end
@@ -241,7 +244,7 @@ module Krane
       @template_sets.with_resource_definitions(current_sha: @current_sha, bindings: @bindings) do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
-          statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
+          statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds, extra_labels: @extra_labels)
         resources << r
         @logger.info("  - #{r.id}")
       end

@@ -8,12 +8,12 @@ module Krane
     attr_reader :pods
 
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: nil,
-      parent: nil, deploy_started_at: nil)
+      parent: nil, deploy_started_at: nil, extra_labels: {})
       @parent = parent
       @deploy_started_at = deploy_started_at
       @pods = []
       super(namespace: namespace, context: context, definition: definition,
-            logger: logger, statsd_tags: statsd_tags)
+            logger: logger, statsd_tags: statsd_tags, extra_labels: extra_labels)
     end
 
     def sync(cache)
