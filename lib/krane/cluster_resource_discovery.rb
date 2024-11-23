@@ -18,6 +18,27 @@ module Krane
       end
     end
 
+    def services
+      @services ||= fetch_services.map do |svc|
+        Service.new(namespace: namespace, context: context, logger: logger,
+          definition: svc, statsd_tags: @namespace_tags)
+      end
+    end
+
+    def deployments
+      @deployments ||= fetch_deployments.map do |deployment|
+        Deployment.new(namespace: namespace, context: context, logger: logger,
+          definition: deployment, statsd_tags: @namespace_tags)
+      end
+    end
+
+    def jobs
+      @jobs ||= fetch_jobs.map do |job|
+        Job.new(namespace: namespace, context: context, logger: logger,
+          definition: job, statsd_tags: @namespace_tags)
+      end
+    end
+
     def prunable_resources(namespaced:)
       black_list = %w(Namespace Node ControllerRevision Event)
       fetch_resources(namespaced: namespaced).map do |resource|
@@ -95,6 +116,36 @@ module Krane
         MultiJson.load(raw_json)["items"]
       else
         raise FatalKubeAPIError, "Error retrieving CustomResourceDefinition: #{err}"
+      end
+    end
+
+    def fetch_services
+      raw_json, err, st = kubectl.run("get", "Service", output: "json", attempts: 5,
+        use_namespace: false)
+      if st.success?
+        MultiJson.load(raw_json)["items"]
+      else
+        raise FatalKubeAPIError, "Error retrieving Service: #{err}"
+      end
+    end
+
+    def fetch_deployments
+      raw_json, err, st = kubectl.run("get", "Deployment", output: "json", attempts: 5,
+        use_namespace: false)
+      if st.success?
+        MultiJson.load(raw_json)["items"]
+      else
+        raise FatalKubeAPIError, "Error retrieving Deployment: #{err}"
+      end
+    end
+
+    def fetch_jobs
+      raw_json, err, st = kubectl.run("get", "Job", output: "json", attempts: 5,
+        use_namespace: false)
+      if st.success?
+        MultiJson.load(raw_json)["items"]
+      else
+        raise FatalKubeAPIError, "Error retrieving Job: #{err}"
       end
     end
 

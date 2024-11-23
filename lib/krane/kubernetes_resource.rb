@@ -381,6 +381,11 @@ module Krane
       @file = create_definition_tempfile
     end
 
+    def predeployed?
+      predeployed = krane_annotation_value("predeployed")
+      predeployed.nil? || predeployed == "false"
+    end
+
     class Event
       EVENT_SEPARATOR = "ENDEVENT--BEGINEVENT"
       FIELD_SEPARATOR = "ENDFIELD--BEGINFIELD"
