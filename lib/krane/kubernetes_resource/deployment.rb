@@ -111,6 +111,14 @@ module Krane
       @validation_errors.empty?
     end
 
+    def predeployed?
+      krane_annotation_value("predeployed") == "true"
+    end
+
+    def kind
+      @definition["kind"]
+    end
+
     private
 
     def current_generation
