@@ -344,8 +344,7 @@ class SerialDeployTest < Krane::IntegrationTest
 
     assert_deploy_success(deploy_fixtures("crd", subset: %w(web.yml)))
 
-    refute_logs_match(/Predeploying priority resources/)
-    assert_logs_match_all([/Phase 3: Deploying all resources/])
+    assert_logs_match_all([/Phase 4: Deploying all resources/])
   ensure
     build_kubectl.run("delete", "-f", filepath, use_namespace: false, log_failure: false)
   end
