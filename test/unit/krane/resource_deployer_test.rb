@@ -66,6 +66,14 @@ class ResourceDeployerTest < Krane::TestCase
   def test_predeploy_priority_resources_respects_pre_deploy_list
     kind = "MockResource"
     resource = build_mock_resource
+    priority_list = { kind => { group: "not-#{resource.group}" } }
+    resource_deployer(kubectl_times: 0).predeploy_priority_resources([resource], priority_list)
+  end
+
+  def test_predeploy_priority_resources_respects_pre_deploy_list_and_predeployed_true_annotation
+    kind = "MockResource"
+    resource = build_mock_resource
+    resource.expects(:predeployed?).returns(true)
     watcher = mock("ResourceWatcher")
     watcher.expects(:run).returns(true)
     # ResourceDeployer only creates a ResourceWatcher if one or more resources
@@ -74,6 +82,18 @@ class ResourceDeployerTest < Krane::TestCase
     Krane::ResourceWatcher.expects(:new).returns(watcher)
     priority_list = { kind => { group: "core" } }
     resource_deployer.predeploy_priority_resources([resource], priority_list)
+  end
+
+  def test_predeploy_priority_resources_respects_pre_deploy_list_and_predeployed_false_annotation
+    kind = "MockResource"
+    resource = build_mock_resource
+    resource.expects(:predeployed?).returns(false)
+    # ResourceDeployer only creates a ResourceWatcher if one or more resources
+    # are deployed. See test_predeploy_priority_resources_respects_empty_pre_deploy_list
+    # for counter example
+    Krane::ResourceWatcher.expects(:new).never
+    priority_list = { kind => { group: "core" } }
+    resource_deployer(kubectl_times: 0).predeploy_priority_resources([resource], priority_list)
   end
 
   def test_predeploy_priority_resources_respects_empty_pre_deploy_list
