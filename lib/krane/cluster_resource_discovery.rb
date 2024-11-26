@@ -39,6 +39,13 @@ module Krane
       end
     end
 
+    def ingresses
+      @ingresses ||= fetch_ingresses.map do |ingress|
+        Ingress.new(namespace: namespace, context: context, logger: logger,
+          definition: ingress, statsd_tags: @namespace_tags)
+      end
+    end
+
     def prunable_resources(namespaced:)
       black_list = %w(Namespace Node ControllerRevision Event)
       fetch_resources(namespaced: namespaced).map do |resource|
@@ -146,6 +153,16 @@ module Krane
         MultiJson.load(raw_json)["items"]
       else
         raise FatalKubeAPIError, "Error retrieving Job: #{err}"
+      end
+    end
+
+    def fetch_ingresses
+      raw_json, err, st = kubectl.run("get", "Ingress", output: "json", attempts: 5,
+        use_namespace: false)
+      if st.success?
+        MultiJson.load(raw_json)["items"]
+      else
+        raise FatalKubeAPIError, "Error retrieving Ingress: #{err}"
       end
     end
 

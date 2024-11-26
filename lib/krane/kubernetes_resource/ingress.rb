@@ -14,5 +14,13 @@ module Krane
     def deploy_failed?
       false
     end
+    
+    def predeployed?
+      krane_annotation_value("predeployed") == "true"
+    end
+
+    def kind
+      @definition["kind"]
+    end
   end
 end

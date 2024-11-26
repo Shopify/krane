@@ -72,6 +72,7 @@ module Krane
       after_crs = %w(
         Deployment
         Service
+        Ingress
         Pod
         Job
       ).map { |r| [r, default_group] }

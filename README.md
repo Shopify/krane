@@ -166,11 +166,11 @@ before the deployment is considered successful.
     - Percent (e.g. 90%): The deploy is successful when the number of new pods that are ready is equal to `spec.replicas` * Percent.
   - _Compatibility_: StatefulSet
     - `full`: The deployment is successful when all pods are ready.
-- `krane.shopify.io/predeployed`: Causes a Custom Resource, Deployment, Service, or Job to be deployed in the pre-deploy phase.
-  - _Compatibility_: Custom Resource Definition, Deployment, Service, Job
+- `krane.shopify.io/predeployed`: Causes a Custom Resource, Deployment, Service, Job, or Ingress to be deployed in the pre-deploy phase.
+  - _Compatibility_: Custom Resource Definition, Deployment, Service, Job, Ingress
   - _Default_: `true`
-  - `true`: The custom resource, deployment, service, or job will be deployed in the pre-deploy phase.
-  - All other values: The custom resource, deployment, service, or job will be deployed in the main deployment phase.
+  - `true`: The custom resource, deployment, service, job, or ingress will be deployed in the pre-deploy phase.
+  - All other values: The custom resource, deployment, service, job, or ingress will be deployed in the main deployment phase.
 - `krane.shopify.io/deploy-method-override`: Cause a resource to be deployed by the specified `kubectl` command, instead of the default `apply`.
   - _Compatibility_: Cannot be used for `PodDisruptionBudget`, since it always uses `create/replace-force`
   - _Accepted values_: `create`, `replace`, and `replace-force`
