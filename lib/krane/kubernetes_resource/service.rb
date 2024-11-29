@@ -48,10 +48,6 @@ module Krane
       krane_annotation_value("predeployed") == "true"
     end
 
-    def kind
-      @definition["kind"]
-    end
-
     private
 
     def fetch_related_workloads(cache)
