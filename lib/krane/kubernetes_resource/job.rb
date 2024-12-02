@@ -37,10 +37,6 @@ module Krane
       end
     end
 
-    def predeployed?
-      krane_annotation_value("predeployed") == "true"
-    end
-
     private
 
     def failed_status_condition

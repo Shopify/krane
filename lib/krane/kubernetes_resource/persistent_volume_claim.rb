@@ -3,6 +3,10 @@ module Krane
   class PersistentVolumeClaim < KubernetesResource
     TIMEOUT = 5.minutes
 
+    def default_to_predeployed?
+      true
+    end
+
     def sync(cache)
       super
       @storage_classes = cache.get_all("StorageClass").map { |sc| StorageClass.new(sc) }

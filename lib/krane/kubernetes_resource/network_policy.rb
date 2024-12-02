@@ -3,6 +3,10 @@ module Krane
   class NetworkPolicy < KubernetesResource
     TIMEOUT = 30.seconds
 
+    def default_to_predeployed?
+      true
+    end
+
     def status
       exists? ? "Created" : "Not Found"
     end

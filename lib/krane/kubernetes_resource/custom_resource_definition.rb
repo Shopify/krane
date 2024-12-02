@@ -90,6 +90,10 @@ module Krane
       @rollout_conditions_validated = true
     end
 
+    def default_to_predeployed?
+      true
+    end
+
     private
 
     def names_accepted_condition

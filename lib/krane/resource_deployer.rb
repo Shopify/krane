@@ -93,40 +93,42 @@ module Krane
         logger.info("Deploying #{resource.id} (#{resource.pretty_timeout_type})")
       end
 
-      # Apply can be done in one large batch, the rest have to be done individually
-      applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
-      # Prunable resources should also applied so that they can  be pruned
-      pruneable_types = @prune_allowlist.map { |t| t.split("/").last }
-      applyables += individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
+      StatsD.client.measure('sync.duration', tags: statsd_tags) do
+        # Apply can be done in one large batch, the rest have to be done individually
+        applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
+        # Prunable resources should also applied so that they can  be pruned
+        pruneable_types = @prune_allowlist.map { |t| t.split("/").last }
+        applyables += individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
 
-      individuals.each do |individual_resource|
-        individual_resource.deploy_started_at = Time.now.utc
-        case individual_resource.deploy_method
-        when :create
-          err, status = create_resource(individual_resource)
-        when :replace
-          err, status = replace_or_create_resource(individual_resource)
-        when :replace_force
-          err, status = replace_or_create_resource(individual_resource, force: true)
-        else
-          # Fail Fast! This is a programmer mistake.
-          raise ArgumentError, "Unexpected deploy method! (#{individual_resource.deploy_method.inspect})"
+        individuals.each do |individual_resource|
+          individual_resource.deploy_started_at = Time.now.utc
+          case individual_resource.deploy_method
+          when :create
+            err, status = create_resource(individual_resource)
+          when :replace
+            err, status = replace_or_create_resource(individual_resource)
+          when :replace_force
+            err, status = replace_or_create_resource(individual_resource, force: true)
+          else
+            # Fail Fast! This is a programmer mistake.
+            raise ArgumentError, "Unexpected deploy method! (#{individual_resource.deploy_method.inspect})"
+          end
+
+          next if status.success?
+
+          raise FatalDeploymentError, <<~MSG
+            Failed to replace or create resource: #{individual_resource.id}
+            #{individual_resource.sensitive_template_content? ? '<suppressed sensitive output>' : err}
+          MSG
         end
 
-        next if status.success?
+        apply_all(applyables, prune)
 
-        raise FatalDeploymentError, <<~MSG
-          Failed to replace or create resource: #{individual_resource.id}
-          #{individual_resource.sensitive_template_content? ? '<suppressed sensitive output>' : err}
-        MSG
-      end
-
-      apply_all(applyables, prune)
-
-      if verify
-        watcher = Krane::ResourceWatcher.new(resources: resources, deploy_started_at: deploy_started_at,
-          timeout: @global_timeout, task_config: @task_config, sha: @current_sha)
-        watcher.run(record_summary: record_summary)
+        if verify
+          watcher = Krane::ResourceWatcher.new(resources: resources, deploy_started_at: deploy_started_at,
+            timeout: @global_timeout, task_config: @task_config, sha: @current_sha)
+          watcher.run(record_summary: record_summary)
+        end
       end
     end
 

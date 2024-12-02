@@ -3,6 +3,10 @@ module Krane
   class ResourceQuota < KubernetesResource
     TIMEOUT = 30.seconds
 
+    def default_to_predeployed?
+      true
+    end
+
     def status
       exists? ? "In effect" : "Not Found"
     end

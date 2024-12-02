@@ -44,10 +44,6 @@ module Krane
       "Please confirm the spec.selector is correct and the targeted workload is healthy."
     end
 
-    def predeployed?
-      krane_annotation_value("predeployed") == "true"
-    end
-
     private
 
     def fetch_related_workloads(cache)

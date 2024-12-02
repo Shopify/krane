@@ -383,7 +383,11 @@ module Krane
 
     def predeployed?
       predeployed = krane_annotation_value("predeployed")
-      predeployed.nil? || predeployed == "false"
+      default_to_predeployed? ? (predeployed != "false") : (predeployed == "true")
+    end
+
+    def default_to_predeployed?
+      false
     end
 
     class Event

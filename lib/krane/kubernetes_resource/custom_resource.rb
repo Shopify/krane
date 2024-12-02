@@ -74,6 +74,11 @@ module Krane
       "Validation failed with: #{e}"
     end
 
+    def default_to_predeployed?
+      # Inherit predeployed behavior from the CRD
+      @crd&.default_to_predeployed? || false
+    end
+
     private
 
     def kind
