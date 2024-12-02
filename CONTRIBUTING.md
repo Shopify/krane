@@ -91,6 +91,7 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
 1. Create a file for your type in `lib/krane/kubernetes_resource/`
 2. Create a new class that inherits from `KubernetesResource`. Minimally, it should implement the following methods:
     * `sync` -- Gather the data you'll need to determine `deploy_succeeded?` and `deploy_failed?`. The superclass's implementation fetches the corresponding resource, parses it and stores it in `@instance_data`. You can define your own implementation if you need something else.
+    * `predeployed?` -- Whether the resource should be [predeployed](README.md#phase-3-predeploying-priority-resources) by default.
     * `deploy_succeeded?`
     * `deploy_failed?`
 3. Adjust the `TIMEOUT` constant to an appropriate value for this type.
