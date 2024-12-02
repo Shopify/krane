@@ -383,11 +383,7 @@ module Krane
 
     def predeployed?
       predeployed = krane_annotation_value("predeployed")
-      if type == "Role" || type == "RoleBinding"
-        true
-      else
-        default_to_predeployed? ? (predeployed != "false") : (predeployed == "true")
-      end
+      default_to_predeployed? ? (predeployed != "false") : (predeployed == "true")
     end
 
     def default_to_predeployed?
