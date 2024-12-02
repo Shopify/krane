@@ -14,10 +14,6 @@ module Krane
     def deploy_failed?
       false
     end
-    
-    def predeployed?
-      krane_annotation_value("predeployed") == "true"
-    end
 
   end
 end
