@@ -75,8 +75,7 @@ module Krane
     end
 
     def default_to_predeployed?
-      # Inherit predeployed behavior from the CRD
-      @crd&.default_to_predeployed? || false
+      true
     end
 
     private
