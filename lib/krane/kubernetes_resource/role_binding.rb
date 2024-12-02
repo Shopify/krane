@@ -3,7 +3,7 @@ module Krane
   class RoleBinding < KubernetesResource
     TIMEOUT = 30.seconds
 
-    def default_to_predeployed?
+    def predeployed?
       true
     end
 

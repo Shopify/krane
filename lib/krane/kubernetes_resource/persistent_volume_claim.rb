@@ -3,7 +3,7 @@ module Krane
   class PersistentVolumeClaim < KubernetesResource
     TIMEOUT = 5.minutes
 
-    def default_to_predeployed?
+    def predeployed?
       true
     end
 

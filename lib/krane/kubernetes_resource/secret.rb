@@ -5,7 +5,7 @@ module Krane
     SENSITIVE_TEMPLATE_CONTENT = true
     SERVER_DRY_RUNNABLE = true
 
-    def default_to_predeployed?
+    def predeployed?
       true
     end
 

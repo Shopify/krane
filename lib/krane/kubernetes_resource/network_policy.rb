@@ -3,7 +3,7 @@ module Krane
   class NetworkPolicy < KubernetesResource
     TIMEOUT = 30.seconds
 
-    def default_to_predeployed?
+    def predeployed?
       true
     end
 

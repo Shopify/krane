@@ -57,24 +57,25 @@ module Krane
     )
 
     def predeploy_sequence
-      before_crs = [
-        ["ResourceQuota", { group: nil }],
-        ["NetworkPolicy", { group: "networking.k8s.io" }],
-        ["ConfigMap", { group: nil }],
-        ["PersistentVolumeClaim", { group: nil }],
-        ["ServiceAccount", { group: nil }],
-        ["Role", { group: "rbac.authorization.k8s.io" }],
-        ["RoleBinding", { group: "rbac.authorization.k8s.io" }],
-        ["Secret", { group: nil }]
-      ]
+      default_group = { group: nil }
+      before_crs = %w(
+        ResourceQuota
+        NetworkPolicy
+        ConfigMap
+        PersistentVolumeClaim
+        ServiceAccount
+        Role
+        RoleBinding
+        Secret
+      ).map { |r| [r, default_group] }
 
-      after_crs = [
-        ["Deployment", { group: "apps" }],
-        ["Service", { group: nil }],
-        ["Ingress", { group: "networking.k8s.io" }],
-        ["Pod", { group: nil }],
-        ["Job", { group: "batch" }]
-      ]
+      after_crs = %w(
+        Deployment
+        Service
+        Ingress
+        Pod
+        Job
+      ).map { |r| [r, default_group] }
 
       crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, { group: cr.group }] }
       Hash[before_crs + crs + after_crs]
