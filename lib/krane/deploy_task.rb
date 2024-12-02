@@ -75,6 +75,14 @@ module Krane
         Ingress
         Pod
         Job
+        CronJob
+        DaemonSet
+        HorizontalPodAutoscaler
+        PodDisruptionBudget
+        PodSetBase
+        PodTemplate
+        ReplicaSet
+        StatefulSet
       ).map { |r| [r, default_group] }
 
       crs = cluster_resource_discoverer.crds.select(&:predeployed?).map { |cr| [cr.kind, { group: cr.group }] }
