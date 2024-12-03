@@ -1,5 +1,9 @@
 ## next
 
+## 3.6.3
+
+- Test against k8s 1.31
+
 ## 3.6.2
 
 - Pinning `stats-instrument` to < 3.9 to avoid breaking changes.
