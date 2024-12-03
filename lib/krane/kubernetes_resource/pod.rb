@@ -9,10 +9,6 @@ module Krane
       Preempting
     )
 
-    def default_to_predeployed?
-      true
-    end
-
     attr_accessor :stream_logs
     attr_reader :definition
 

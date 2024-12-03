@@ -389,7 +389,8 @@ module Krane
       "ServiceAccount",
       "Role",
       "RoleBinding",
-      "Secret"
+      "Secret",
+      "Pod"
     ]
 
     def predeployed?
