@@ -525,6 +525,26 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  def test_deployment_with_predeploy_annotation_is_predeployed
+    # Deploy the fixtures with a modified deployment that has the predeploy annotation
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"], render_erb: true) do |fixtures|
+      deployment = fixtures["web.yml.erb"]["Deployment"].first
+      deployment["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true"
+      }
+    end
+
+    assert_deploy_success(result)
+
+    # Verify the deployment was predeployed before other resources by checking log order
+    assert_logs_match_all([
+      "Phase 3: Predeploying priority resources",
+      %r{Successfully deployed in \d+.\ds: Deployment/web},
+      "Phase 4: Deploying all resources",
+      /Successfully deployed in \d+.\ds: ConfigMap\/hello-cloud-configmap-data, Deployment\/web, Ingress\/web, Service\/web/,
+    ], in_order: true)
+  end
+
   private
 
   def rollout_conditions_annotation_key
