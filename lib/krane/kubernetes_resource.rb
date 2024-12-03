@@ -381,9 +381,20 @@ module Krane
       @file = create_definition_tempfile
     end
 
+    PREDEPLOYED_RESOURCE_TYPES = [
+      "ResourceQuota",
+      "NetworkPolicy",
+      "ConfigMap",
+      "PersistentVolumeClaim",
+      "ServiceAccount",
+      "Role",
+      "RoleBinding",
+      "Secret"
+    ]
+
     def predeployed?
       predeployed = krane_annotation_value("predeployed")
-      if type == "Role" || type == "RoleBinding"
+      if PREDEPLOYED_RESOURCE_TYPES.include?(type)
         true
       else
         default_to_predeployed? ? (predeployed != "false") : (predeployed == "true")

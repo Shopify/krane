@@ -5,10 +5,6 @@ module Krane
     SENSITIVE_TEMPLATE_CONTENT = true
     SERVER_DRY_RUNNABLE = true
 
-    def predeployed?
-      true
-    end
-
     def status
       exists? ? "Available" : "Not Found"
     end

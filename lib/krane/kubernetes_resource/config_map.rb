@@ -3,10 +3,6 @@ module Krane
   class ConfigMap < KubernetesResource
     TIMEOUT = 30.seconds
 
-    def predeployed?
-      true
-    end
-
     def deploy_succeeded?
       exists?
     end

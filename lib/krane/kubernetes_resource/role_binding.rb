@@ -3,10 +3,6 @@ module Krane
   class RoleBinding < KubernetesResource
     TIMEOUT = 30.seconds
 
-    def predeployed?
-      true
-    end
-
     def status
       exists? ? "Created" : "Not Found"
     end
