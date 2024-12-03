@@ -62,6 +62,11 @@ module Krane
       kind
     end
 
+    def predeployed?
+      predeployed = krane_annotation_value("predeployed")
+      predeployed.nil? || predeployed == "true"
+    end
+
     def validate_definition(*, **)
       super
 
@@ -72,10 +77,6 @@ module Krane
       "Rollout conditions can be found on the CRD that defines this resource (#{@crd.name}), " \
       "under the annotation #{Annotation.for(CustomResourceDefinition::ROLLOUT_CONDITIONS_ANNOTATION)}.\n" \
       "Validation failed with: #{e}"
-    end
-
-    def default_to_predeployed?
-      true
     end
 
     private

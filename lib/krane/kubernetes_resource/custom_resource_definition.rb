@@ -57,8 +57,9 @@ module Krane
       prunable == "true"
     end
 
-    def default_to_predeployed?
-      true
+    def predeployed?
+      predeployed = krane_annotation_value("predeployed")
+      predeployed.nil? || predeployed == "true"
     end
 
     def rollout_conditions
@@ -87,10 +88,6 @@ module Krane
       end
 
       @rollout_conditions_validated = true
-    end
-
-    def default_to_predeployed?
-      true
     end
 
     private

@@ -395,15 +395,7 @@ module Krane
 
     def predeployed?
       predeployed = krane_annotation_value("predeployed")
-      if PREDEPLOYED_RESOURCE_TYPES.include?(type)
-        true
-      else
-        default_to_predeployed? ? (predeployed != "false") : (predeployed == "true")
-      end
-    end
-
-    def default_to_predeployed?
-      false
+      PREDEPLOYED_RESOURCE_TYPES.include?(type) || predeployed == "true"
     end
 
     class Event
