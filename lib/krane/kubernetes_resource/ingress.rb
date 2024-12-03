@@ -14,6 +14,5 @@ module Krane
     def deploy_failed?
       false
     end
-
   end
 end
