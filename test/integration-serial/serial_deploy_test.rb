@@ -545,6 +545,143 @@ class SerialDeployTest < Krane::IntegrationTest
     ], in_order: true)
   end
 
+  def test_service_with_predeploy_annotation_is_predeployed
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"], render_erb: true) do |fixtures|
+      service = fixtures["web.yml.erb"]["Service"].first
+      service["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true",
+        "krane.shopify.io/skip-endpoint-validation" => "true"
+      }
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Phase 3: Predeploying priority resources",
+      %r{Successfully deployed in \d+.\ds: Service/web},
+      "Phase 4: Deploying all resources",
+      /Successfully deployed in \d+.\ds: ConfigMap\/hello-cloud-configmap-data, Deployment\/web, Ingress\/web, Service\/web/,
+    ], in_order: true)
+  end
+
+  def test_ingress_with_predeploy_annotation_is_predeployed
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "web.yml.erb"], render_erb: true) do |fixtures|
+      ingress = fixtures["web.yml.erb"]["Ingress"].first
+      ingress["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true"
+      }
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Phase 3: Predeploying priority resources",
+      %r{Successfully deployed in \d+.\ds: Ingress/web},
+      "Phase 4: Deploying all resources",
+      /Successfully deployed in \d+.\ds: ConfigMap\/hello-cloud-configmap-data, Deployment\/web, Ingress\/web, Service\/web/,
+    ], in_order: true)
+  end
+
+  def test_job_with_predeploy_annotation_is_predeployed
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "job.yml"]) do |fixtures|
+      job = fixtures["job.yml"]["Job"].first
+      job["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true"
+      }
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Phase 3: Predeploying priority resources",
+      %r{Successfully deployed in \d+.\ds: Job/hello-job},
+      "Phase 4: Deploying all resources",
+      /Successfully deployed in \d+.\ds: ConfigMap\/hello-cloud-configmap-data, Job\/hello-job/,
+    ], in_order: true)
+  end
+
+  def test_daemonset_with_predeploy_annotation_is_predeployed
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "daemon_set.yml"]) do |fixtures|
+      daemon_set = fixtures["daemon_set.yml"]["DaemonSet"].first
+      daemon_set["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true"
+      }
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Phase 3: Predeploying priority resources",
+      %r{Successfully deployed in \d+.\ds: DaemonSet/ds-app},
+      "Phase 4: Deploying all resources",
+      /Successfully deployed in \d+.\ds: ConfigMap\/hello-cloud-configmap-data, DaemonSet\/ds-app/,
+    ], in_order: true)
+  end
+
+  def test_pod_disruption_budget_with_predeploy_annotation_is_predeployed
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "disruption-budgets.yml"]) do |fixtures|
+      pdb = fixtures["disruption-budgets.yml"]["PodDisruptionBudget"].first
+      pdb["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true"
+      }
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Phase 3: Predeploying priority resources",
+      %r{Successfully deployed in \d+.\ds: PodDisruptionBudget/test},
+      "Phase 4: Deploying all resources",
+      /Successfully deployed in \d+.\ds: ConfigMap\/hello-cloud-configmap-data, PodDisruptionBudget\/test/,
+    ], in_order: true)
+  end
+
+  def test_pod_template_with_predeploy_annotation_is_predeployed
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "template-runner.yml"]) do |fixtures|
+      template = fixtures["template-runner.yml"]["PodTemplate"].first
+      template["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true"
+      }
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Phase 3: Predeploying priority resources",
+      %r{Successfully deployed in \d+.\ds: PodTemplate/hello-cloud-template-runner},
+      "Phase 4: Deploying all resources",
+      /Successfully deployed in \d+.\ds: ConfigMap\/hello-cloud-configmap-data, PodTemplate\/hello-cloud-template-runner/,
+    ], in_order: true)
+  end
+
+  def test_replica_set_with_predeploy_annotation_is_predeployed
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "bare_replica_set.yml"]) do |fixtures|
+      rs = fixtures["bare_replica_set.yml"]["ReplicaSet"].first
+      rs["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true"
+      }
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Phase 3: Predeploying priority resources",
+      %r{Successfully deployed in \d+.\ds: ReplicaSet/bare-replica-set},
+      "Phase 4: Deploying all resources",
+      /Successfully deployed in \d+.\ds: ConfigMap\/hello-cloud-configmap-data, ReplicaSet\/bare-replica-set/,
+    ], in_order: true)
+  end
+
+  def test_stateful_set_with_predeploy_annotation_is_predeployed
+    result = deploy_fixtures("hello-cloud", subset: ["configmap-data.yml", "stateful_set.yml"]) do |fixtures|
+      stateful_set = fixtures["stateful_set.yml"]["StatefulSet"].first
+      stateful_set["metadata"]["annotations"] = {
+        "krane.shopify.io/predeployed" => "true"
+      }
+    end
+
+    assert_deploy_success(result)
+    assert_logs_match_all([
+      "Phase 3: Predeploying priority resources",
+      %r{Successfully deployed in \d+.\ds: StatefulSet/stateful-busybox},
+      "Phase 4: Deploying all resources",
+      /Successfully deployed in \d+.\ds: ConfigMap\/hello-cloud-configmap-data, Service\/stateful-busybox, StatefulSet\/stateful-busybox/,
+    ], in_order: true)
+  end
+
   private
 
   def rollout_conditions_annotation_key
