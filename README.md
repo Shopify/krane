@@ -167,7 +167,7 @@ before the deployment is considered successful.
     - Percent (e.g. 90%): The deploy is successful when the number of new pods that are ready is equal to `spec.replicas` * Percent.
   - _Compatibility_: StatefulSet
     - `full`: The deployment is successful when all pods are ready.
-- `krane.shopify.io/predeployed`: Causes a Custom Resource or [other resources](https://github.com/powerhome/krane/tree/main/lib/krane/kubernetes_resource) to be deployed in the pre-deploy phase.
+- `krane.shopify.io/predeployed`: Causes a Custom Resource or [other resources](https://github.com/shopify/krane/tree/main/lib/krane/kubernetes_resource) to be deployed in the pre-deploy phase.
   - _Compatibility_: CronJob, CustomResource, CustomResourceDefinition, DaemonSet, Deployment, HorizontalPodAutoscaler, Ingress, Job, Pod, PodDisruptionBudget, PodSetBase, PodTemplate, ReplicaSet, Service, StatefulSet
   - _Default_: `false`
   - `true`: The custom resource or other resource will be deployed in the pre-deploy phase.
