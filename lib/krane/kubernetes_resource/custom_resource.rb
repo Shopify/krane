@@ -8,9 +8,9 @@ module Krane
       (.metadata.generation != .status.observedGeneration).
     MSG
 
-    def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], crd:)
+    def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], crd:, extra_labels: {})
       super(namespace: namespace, context: context, definition: definition,
-            logger: logger, statsd_tags: statsd_tags)
+            logger: logger, statsd_tags: statsd_tags, extra_labels: extra_labels)
       @crd = crd
     end
 

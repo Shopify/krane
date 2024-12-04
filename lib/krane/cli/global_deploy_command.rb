@@ -20,6 +20,8 @@ module Krane
                                   desc: "Use --selector as a label filter to deploy only a subset "\
                                     "of the provided resources",
                                   default: false },
+        "extra-labels" => { type: :string, banner: "'label=value,foo=bar'",
+                            desc: "Labels to set on resources that don't have them" },
         "prune" => { type: :boolean, desc: "Enable deletion of resources that match"\
                      " the provided selector and do not appear in the provided templates",
                      default: true },
@@ -29,6 +31,7 @@ module Krane
         require 'krane/global_deploy_task'
         require 'krane/options_helper'
         require 'krane/label_selector'
+        require 'krane/extra_labels'
         require 'krane/duration_parser'
 
         selector = ::Krane::LabelSelector.parse(options[:selector])
@@ -37,6 +40,8 @@ module Krane
         if selector_as_filter && !selector
           raise(Thor::RequiredArgumentMissingError, '--selector must be set when --selector-as-filter is set')
         end
+
+        extra_labels = ::Krane::ExtraLabels.parse(options['extra-labels']) if options['extra-labels']
 
         filenames = options[:filenames].dup
         filenames << "-" if options[:stdin]
@@ -51,6 +56,7 @@ module Krane
             global_timeout: ::Krane::DurationParser.new(options["global-timeout"]).parse!.to_i,
             selector: selector,
             selector_as_filter: selector_as_filter,
+            extra_labels: extra_labels,
           )
 
           deploy.run!(

@@ -34,9 +34,10 @@ module Krane
     # @param global_timeout [Integer] Timeout in seconds
     # @param selector [Hash] Selector(s) parsed by Krane::LabelSelector (*required*)
     # @param selector_as_filter [Boolean] Allow selecting a subset of Kubernetes resource templates to deploy
+    # @param extra_labels [Hash] labels to set on resources that don't have them
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
     def initialize(context:, global_timeout: nil, selector: nil, selector_as_filter: false,
-      filenames: [], logger: nil, kubeconfig: nil)
+      extra_labels: {}, filenames: [], logger: nil, kubeconfig: nil)
       template_paths = filenames.map { |path| File.expand_path(path) }
 
       @task_config = TaskConfig.new(context, nil, logger, kubeconfig)
@@ -45,6 +46,7 @@ module Krane
       @global_timeout = global_timeout
       @selector = selector
       @selector_as_filter = selector_as_filter
+      @extra_labels = extra_labels
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -168,7 +170,7 @@ module Krane
       @template_sets.with_resource_definitions do |r_def|
         crd = crds_by_kind[r_def["kind"]]&.first
         r = KubernetesResource.build(context: context, logger: logger, definition: r_def,
-          crd: crd, global_names: global_kinds, statsd_tags: statsd_tags)
+          crd: crd, global_names: global_kinds, statsd_tags: statsd_tags, extra_labels: @extra_labels)
         resources << r
         logger.info("  - #{r.id}")
       end

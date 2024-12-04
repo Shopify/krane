@@ -18,11 +18,12 @@ module Krane
 
     delegate :namespace, :context, :logger, to: :@task_config
 
-    def initialize(task_config:, ejson_keys_secret:, ejson_file:, statsd_tags:, selector: nil)
+    def initialize(task_config:, ejson_keys_secret:, ejson_file:, statsd_tags:, selector: nil, extra_labels: {})
       @ejson_keys_secret = ejson_keys_secret
       @ejson_file = ejson_file
       @statsd_tags = statsd_tags
       @selector = selector
+      @extra_labels = extra_labels
       @task_config = task_config
       @kubectl = Kubectl.new(
         task_config: @task_config,
@@ -97,6 +98,7 @@ module Krane
 
       labels = { "name" => secret_name }
       labels.reverse_merge!(@selector.to_h) if @selector
+      labels.reverse_merge!(@extra_labels)
 
       secret = {
         'kind' => 'Secret',
