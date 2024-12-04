@@ -62,6 +62,11 @@ module Krane
       kind
     end
 
+    def predeployed?
+      predeployed = krane_annotation_value("predeployed")
+      predeployed.nil? || predeployed == "true"
+    end
+
     def validate_definition(*, **)
       super
 

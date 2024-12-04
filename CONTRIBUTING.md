@@ -91,14 +91,16 @@ This gem uses subclasses of `KubernetesResource` to implement custom success/fai
 1. Create a file for your type in `lib/krane/kubernetes_resource/`
 2. Create a new class that inherits from `KubernetesResource`. Minimally, it should implement the following methods:
     * `sync` -- Gather the data you'll need to determine `deploy_succeeded?` and `deploy_failed?`. The superclass's implementation fetches the corresponding resource, parses it and stores it in `@instance_data`. You can define your own implementation if you need something else.
+    * `predeployed?` -- Whether the resource should be [predeployed](README.md#phase-3-predeploying-priority-resources) by default.
     * `deploy_succeeded?`
     * `deploy_failed?`
 3. Adjust the `TIMEOUT` constant to an appropriate value for this type.
 4. Add the new class to list of resources in
-   [`deploy_task.rb`](https://github.com/Shopify/krane/blob/main/lib/krane/deploy_task.rb#L8)
-5. Add the new resource to the [prune whitelist](https://github.com/Shopify/krane/blob/main/lib/krane/deploy_task.rb#L81)
-6. Add a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/krane/tree/main/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/krane/blob/main/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
-7. Add tests for any edge cases you foresee.
+   [`deploy_task.rb`](https://github.com/Shopify/krane/blob/main/lib/krane/deploy_task.rb#L12)
+5. Add the new resource to the "after_crs" array in [`deploy_task.rb`](https://github.com/Shopify/krane/blob/main/lib/krane/deploy_task.rb#L72)
+6. Add the new resource to the [prune whitelist](https://github.com/Shopify/krane/blob/main/lib/krane/deploy_task.rb#L93)
+7. Add a basic example of the type to the hello-cloud [fixture set](https://github.com/Shopify/krane/tree/main/test/fixtures/hello-cloud) and appropriate assertions to `#assert_all_up` in [`hello_cloud.rb`](https://github.com/Shopify/krane/blob/main/test/helpers/fixture_sets/hello_cloud.rb). This will get you coverage in several existing tests, such as `test_full_hello_cloud_set_deploy_succeeds`.
+8. Add tests for any edge cases you foresee.
 
 ### Contributor License Agreement
 

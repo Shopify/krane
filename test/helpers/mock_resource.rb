@@ -25,6 +25,10 @@ MockResource = Struct.new(:id, :hits_to_complete, :status) do
     "core"
   end
 
+  def predeployed?
+    false
+  end
+
   def pretty_timeout_type
   end
 

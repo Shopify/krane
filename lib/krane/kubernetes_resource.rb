@@ -381,6 +381,23 @@ module Krane
       @file = create_definition_tempfile
     end
 
+    PREDEPLOYED_RESOURCE_TYPES = [
+      "ResourceQuota",
+      "NetworkPolicy",
+      "ConfigMap",
+      "PersistentVolumeClaim",
+      "ServiceAccount",
+      "Role",
+      "RoleBinding",
+      "Secret",
+      "Pod"
+    ]
+
+    def predeployed?
+      predeployed = krane_annotation_value("predeployed")
+      PREDEPLOYED_RESOURCE_TYPES.include?(type) || predeployed == "true"
+    end
+
     class Event
       EVENT_SEPARATOR = "ENDEVENT--BEGINEVENT"
       FIELD_SEPARATOR = "ENDFIELD--BEGINFIELD"
