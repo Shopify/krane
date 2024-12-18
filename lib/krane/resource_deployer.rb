@@ -98,29 +98,29 @@ module Krane
       pruneable_types = @prune_allowlist.map { |t| t.split("/").last }
       applyables += individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
 
-      individuals.each do |individual_resource|
-        individual_resource.deploy_started_at = Time.now.utc
-        case individual_resource.deploy_method
-        when :create
-          err, status = create_resource(individual_resource)
-        when :replace
-          err, status = replace_or_create_resource(individual_resource)
-        when :replace_force
-          err, status = replace_or_create_resource(individual_resource, force: true)
-        else
-          # Fail Fast! This is a programmer mistake.
-          raise ArgumentError, "Unexpected deploy method! (#{individual_resource.deploy_method.inspect})"
-        end
+      # individuals.each do |individual_resource|
+      #   individual_resource.deploy_started_at = Time.now.utc
+      #   # case individual_resource.deploy_method
+      #   # when :create
+      #   #   err, status = create_resource(individual_resource)
+      #   # when :replace
+      #   #   err, status = replace_or_create_resource(individual_resource)
+      #   # when :replace_force
+      #   #   err, status = replace_or_create_resource(individual_resource, force: true)
+      #   # else
+      #   #   # Fail Fast! This is a programmer mistake.
+      #   #   raise ArgumentError, "Unexpected deploy method! (#{individual_resource.deploy_method.inspect})"
+      #   # end
+      #
+      #   next
+      #
+      #   raise FatalDeploymentError, <<~MSG
+      #     Failed to replace or create resource: #{individual_resource.id}
+      #     #{individual_resource.sensitive_template_content? ? '<suppressed sensitive output>' : err}
+      #   MSG
+      # end
 
-        next if status.success?
-
-        raise FatalDeploymentError, <<~MSG
-          Failed to replace or create resource: #{individual_resource.id}
-          #{individual_resource.sensitive_template_content? ? '<suppressed sensitive output>' : err}
-        MSG
-      end
-
-      apply_all(applyables, prune)
+      #apply_all(applyables, prune)
 
       if verify
         watcher = Krane::ResourceWatcher.new(resources: resources, deploy_started_at: deploy_started_at,
@@ -129,44 +129,44 @@ module Krane
       end
     end
 
-    def apply_all(resources, prune, dry_run: false)
-      return unless resources.present?
-      start = Time.now.utc
-
-      command = %w(apply)
-      Dir.mktmpdir do |tmp_dir|
-        resources.each do |r|
-          FileUtils.symlink(r.file_path, tmp_dir)
-          r.deploy_started_at = Time.now.utc unless dry_run
-        end
-        command.push("-f", tmp_dir)
-        if prune && @prune_allowlist.present?
-          command.push("--prune")
-          if @selector
-            command.push("--selector", @selector.to_s)
-          else
-            command.push("--all")
-          end
-          allow_list_flag = kubectl.allowlist_flag
-          @prune_allowlist.each { |type| command.push("#{allow_list_flag}=#{type}") }
-        end
-
-        command.push(kubectl.dry_run_flag) if dry_run
-        output_is_sensitive = resources.any?(&:sensitive_template_content?)
-        global_mode = resources.all?(&:global?)
-        out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
-          attempts: 2, use_namespace: !global_mode)
-
-        tags = statsd_tags + (dry_run ? ['dry_run:true'] : ['dry_run:false'])
-        Krane::StatsD.client.distribution('apply_all.duration', Krane::StatsD.duration(start), tags: tags)
-        if st.success?
-          log_pruning(out) if prune
-        else
-          record_apply_failure(err, resources: resources) unless dry_run
-          raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
-        end
-      end
-    end
+    # def apply_all(resources, prune, dry_run: false)
+    #   return unless resources.present?
+    #   start = Time.now.utc
+    #
+    #   command = %w(apply)
+    #   Dir.mktmpdir do |tmp_dir|
+    #     resources.each do |r|
+    #       FileUtils.symlink(r.file_path, tmp_dir)
+    #       r.deploy_started_at = Time.now.utc unless dry_run
+    #     end
+    #     command.push("-f", tmp_dir)
+    #     if prune && @prune_allowlist.present?
+    #       command.push("--prune")
+    #       if @selector
+    #         command.push("--selector", @selector.to_s)
+    #       else
+    #         command.push("--all")
+    #       end
+    #       allow_list_flag = kubectl.allowlist_flag
+    #       @prune_allowlist.each { |type| command.push("#{allow_list_flag}=#{type}") }
+    #     end
+    #
+    #     command.push(kubectl.dry_run_flag) if dry_run
+    #     output_is_sensitive = resources.any?(&:sensitive_template_content?)
+    #     global_mode = resources.all?(&:global?)
+    #     out, err, st = kubectl.run(*command, log_failure: false, output_is_sensitive: output_is_sensitive,
+    #       attempts: 2, use_namespace: !global_mode)
+    #
+    #     tags = statsd_tags + (dry_run ? ['dry_run:true'] : ['dry_run:false'])
+    #     Krane::StatsD.client.distribution('apply_all.duration', Krane::StatsD.duration(start), tags: tags)
+    #     if st.success?
+    #       log_pruning(out) if prune
+    #     else
+    #       record_apply_failure(err, resources: resources) unless dry_run
+    #       raise FatalDeploymentError, "Command failed: #{Shellwords.join(command)}"
+    #     end
+    #   end
+    # end
 
     def log_pruning(kubectl_output)
       pruned = kubectl_output.scan(/^(.*) pruned$/)
@@ -222,35 +222,35 @@ module Krane
       end
     end
 
-    def replace_or_create_resource(resource, force: false)
-      args = if force
-        ["replace", "--force", "--cascade", "-f", resource.file_path]
-      else
-        ["replace", "-f", resource.file_path]
-      end
+    # def replace_or_create_resource(resource, force: false)
+    #   args = if force
+    #     ["replace", "--force", "--cascade", "-f", resource.file_path]
+    #   else
+    #     ["replace", "-f", resource.file_path]
+    #   end
+    #
+    #   _, err, status = kubectl.run(*args, log_failure: false, output_is_sensitive: resource.sensitive_template_content?,
+    #     raise_if_not_found: true, use_namespace: !resource.global?)
+    #
+    #   [err, status]
+    # rescue Krane::Kubectl::ResourceNotFoundError
+    #   # it doesn't exist so we can't replace it, we try to create it
+    #   create_resource(resource)
+    # end
 
-      _, err, status = kubectl.run(*args, log_failure: false, output_is_sensitive: resource.sensitive_template_content?,
-        raise_if_not_found: true, use_namespace: !resource.global?)
-
-      [err, status]
-    rescue Krane::Kubectl::ResourceNotFoundError
-      # it doesn't exist so we can't replace it, we try to create it
-      create_resource(resource)
-    end
-
-    def create_resource(resource)
-      out, err, status = kubectl.run("create", "-f", resource.file_path, log_failure: false,
-        output: 'json', output_is_sensitive: resource.sensitive_template_content?,
-        use_namespace: !resource.global?)
-
-      # For resources that rely on a generateName attribute, we get the `name` from the result of the call to `create`
-      # We must explicitly set this name value so that the `apply` step for pruning can run successfully
-      if status.success? && resource.uses_generate_name?
-        resource.use_generated_name(MultiJson.load(out))
-      end
-
-      [err, status]
-    end
+    # def create_resource(resource)
+    #   out, err, status = kubectl.run("create", "-f", resource.file_path, log_failure: false,
+    #     output: 'json', output_is_sensitive: resource.sensitive_template_content?,
+    #     use_namespace: !resource.global?)
+    #
+    #   # For resources that rely on a generateName attribute, we get the `name` from the result of the call to `create`
+    #   # We must explicitly set this name value so that the `apply` step for pruning can run successfully
+    #   if status.success? && resource.uses_generate_name?
+    #     resource.use_generated_name(MultiJson.load(out))
+    #   end
+    #
+    #   [err, status]
+    # end
 
     # Inspect the file referenced in the kubectl stderr
     # to make it easier for developer to understand what's going on
