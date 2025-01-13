@@ -96,21 +96,27 @@ module Krane
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
       # Prunable resources should also applied so that they can  be pruned
       pruneable_types = @prune_allowlist.map { |t| t.split("/").last }
-      applyables += individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
 
+      # Admission hooks can mutate resources, so we need to track those changes, otherwise the subsquent pruning
+      # may fail if we present a document that no longer matches the resource in the cluster.
+      updated_individuals = []
       individuals.each do |individual_resource|
         individual_resource.deploy_started_at = Time.now.utc
         case individual_resource.deploy_method
         when :create
-          err, status = create_resource(individual_resource)
+          updated_resource, err, status = create_resource(individual_resource)
+          updated_individuals << updated_resource if status.success?
         when :replace
-          err, status = replace_or_create_resource(individual_resource)
+          updated_resource, err, status = replace_or_create_resource(individual_resource)
+          updated_individuals << updated_resource if status.success?
         when :replace_force
-          err, status = replace_or_create_resource(individual_resource, force: true)
+          updated_resource, err, status = replace_or_create_resource(individual_resource, force: true)
+          updated_individuals << updated_resource if status.success?
         else
           # Fail Fast! This is a programmer mistake.
           raise ArgumentError, "Unexpected deploy method! (#{individual_resource.deploy_method.inspect})"
         end
+        applyables += possibly_mutated_resources.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
 
         next if status.success?
 
@@ -229,27 +235,45 @@ module Krane
         ["replace", "-f", resource.file_path]
       end
 
-      _, err, status = kubectl.run(*args, log_failure: false, output_is_sensitive: resource.sensitive_template_content?,
-        raise_if_not_found: true, use_namespace: !resource.global?)
+      updated_resource_definition, err, status = kubectl.run(*args, log_failure: false, output_is_sensitive: resource.sensitive_template_content?,
+        raise_if_not_found: true, output: 'json', use_namespace: !resource.global?)
 
-      [err, status]
+      updated_resources = KubernetesResource.build(
+        namespace: @task_config.namespace,
+        context: @task_config.context,
+        definition: updated_resource_definition,
+        logger:,
+        statsd_tags:,
+        crd: resource.is_a?(CustomResource) ? resource.crd : nil,
+        global_names: []
+      )
+      [updated_resource, err, status]
     rescue Krane::Kubectl::ResourceNotFoundError
       # it doesn't exist so we can't replace it, we try to create it
       create_resource(resource)
     end
 
     def create_resource(resource)
-      out, err, status = kubectl.run("create", "-f", resource.file_path, log_failure: false,
+      updated_resource_definition, err, status = kubectl.run("create", "-f", resource.file_path, log_failure: false,
         output: 'json', output_is_sensitive: resource.sensitive_template_content?,
         use_namespace: !resource.global?)
 
       # For resources that rely on a generateName attribute, we get the `name` from the result of the call to `create`
       # We must explicitly set this name value so that the `apply` step for pruning can run successfully
       if status.success? && resource.uses_generate_name?
-        resource.use_generated_name(MultiJson.load(out))
+        resource.use_generated_name(MultiJson.load(updated_resource_definition))
       end
 
-      [err, status]
+      updated_resources = KubernetesResource.build(
+        namespace: @task_config.namespace,
+        context: @task_config.context,
+        definition: updated_resource_definition,
+        logger:,
+        statsd_tags:,
+        crd: resource.is_a?(CustomResource) ? resource.crd : nil,
+        global_names: []
+      )
+      [updated_resource, err, status]
     end
 
     # Inspect the file referenced in the kubectl stderr
