@@ -12,7 +12,7 @@ module Krane
   class KubernetesResource
     using PsychK8sCompatibility
 
-    attr_reader :name, :namespace, :context
+    attr_reader :name, :namespace, :context, :definition
     attr_writer :type, :deploy_started_at, :global
 
     GLOBAL = false
@@ -385,14 +385,12 @@ module Krane
     # local definition (for example, pruning a Pod), it will fail because the server has already modified the object.
     # To work around this, we update the local definition with the server's modified version.
     def update_definition!(definition)
-      @definition = sanitized_definition(definition)
+      @definition = sanitize_definition(definition)
       @file = create_definition_tempfile
     end
 
-    def sanitized_definition(definition)
-      definition.delete("status")
-      definition["metadata"].delete("resourceVersion")
-      definition
+    def sanitize_definition(definition)
+      @definition = safe_deep_copy(@definition, definition)
     end
 
     class Event
@@ -625,6 +623,33 @@ module Krane
       end
       tags = %W(context:#{context} namespace:#{namespace} type:#{type} status:#{status})
       tags | @optional_statsd_tags
+    end
+
+    # Recursively construct a new definition from an updated document
+    def safe_deep_copy(current, incoming, acc={})
+      current.keys.each do |key|
+        case key
+        when Hash
+          acc[key] = _safe_deep_copy(current[key], incoming[key])
+        when Array
+          acc[key] = incoming[key].map { |v| _safe_deep_copy(v, incoming) }
+        else
+          acc[key] = incoming[key]
+        end
+      end
+      acc
+    end
+
+    def _safe_deep_copy(current, incoming, acc={})
+      case current
+      when Hash
+        acc[key] = _safe_deep_copy(current[key], incoming[key])
+      when Array
+        acc = incoming.map { |v| _safe_deep_copy(v, incoming)}
+      else
+        acc = incoming
+      end
+      acc
     end
   end
 end

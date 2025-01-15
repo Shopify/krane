@@ -367,6 +367,52 @@ class KubernetesResourceTest < Krane::TestCase
     assert_equal(resource.class, Krane::KubernetesResource)
   end
 
+  def test_sanitized_definition_copy
+    definition = {
+      "kind" => "Unknown",
+      "metadata" => {
+        "annotations" => {
+          "one" => "val1",
+          "two" => "val2",
+        },
+        "name" => "test",
+      },
+      "spec" => {
+        "containers" => [
+          "fake" => "key"
+        ]
+      }
+    }
+
+    incoming = {
+      "kind" => "Unknown",
+      "metadata" => {
+        "annotations" => {
+          "one" => "val1",
+          "two" => "val2",
+          "three" => "val3"
+        },
+        "name" => "test",
+      },
+      "spec" => {
+        "containers" => [
+          "fake" => "key",
+          "new" => "value",
+          "nested" => {
+            "key" => "value"
+          }
+        ],
+        "should-not" => "appear"
+      }
+    }
+
+    resource = Krane::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+                                               statsd_tags: [], definition: definition)
+    resource.sanitize_definition(incoming)
+    incoming["spec"].delete("should-not")
+    assert_equal(resource.definition, incoming)
+  end
+
   private
 
   def kubectl

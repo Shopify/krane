@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-require 'pry'
+# require 'pry'
 
 if ENV["COVERAGE"]
   require 'simplecov'
@@ -34,24 +34,24 @@ Mocha.configure do |c|
   c.stubbing_non_public_method = :prevent
 end
 
-if ENV["PARALLELIZE_ME"]
-  Minitest::Reporters.use!([
-    Minitest::Reporters::ParallelizableReporter.new(
-      fast_fail: ENV['VERBOSE'] == '1',
-      slow_count: 10,
-      detailed_skip: false,
-      verbose: ENV['VERBOSE'] == '1'
-    ),
-  ])
-else
-  Minitest::Reporters.use!([
-    Minitest::Reporters::DefaultReporter.new(
-      slow_count: 10,
-      detailed_skip: false,
-      verbose: ENV['VERBOSE'] == '1'
-    ),
-  ])
-end
+# if ENV["PARALLELIZE_ME"]
+#   Minitest::Reporters.use!([
+#     Minitest::Reporters::ParallelizableReporter.new(
+#       fast_fail: ENV['VERBOSE'] == '1',
+#       slow_count: 10,
+#       detailed_skip: false,
+#       verbose: ENV['VERBOSE'] == '1'
+#     ),
+#   ])
+# else
+#   Minitest::Reporters.use!([
+#     Minitest::Reporters::DefaultReporter.new(
+#       slow_count: 10,
+#       detailed_skip: false,
+#       verbose: ENV['VERBOSE'] == '1'
+#     ),
+#   ])
+# end
 
 module Krane
   class TestCase < ::Minitest::Test
