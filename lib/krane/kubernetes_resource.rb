@@ -381,6 +381,20 @@ module Krane
       @file = create_definition_tempfile
     end
 
+    # In the presence of admission controllers, an object may be modified by the server. If Krane tries to reapply its
+    # local definition (for example, pruning a Pod), it will fail because the server has already modified the object.
+    # To work around this, we update the local definition with the server's modified version.
+    def update_definition!(definition)
+      @definition = sanitized_definition(definition)
+      @file = create_definition_tempfile
+    end
+
+    def sanitized_definition(definition)
+      definition.delete("status")
+      definition["metadata"].delete("resourceVersion")
+      definition
+    end
+
     class Event
       EVENT_SEPARATOR = "ENDEVENT--BEGINEVENT"
       FIELD_SEPARATOR = "ENDFIELD--BEGINFIELD"

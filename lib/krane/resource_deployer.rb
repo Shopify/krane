@@ -99,19 +99,15 @@ module Krane
 
       # Admission hooks can mutate resources, so we need to track those changes, otherwise the subsquent pruning
       # may fail if we present a document that no longer matches the resource in the cluster.
-      updated_individuals = []
       individuals.each do |individual_resource|
         individual_resource.deploy_started_at = Time.now.utc
         case individual_resource.deploy_method
         when :create
-          updated_resource, err, status = create_resource(individual_resource)
-          updated_individuals << updated_resource if status.success?
+          err, status = create_resource(individual_resource)
         when :replace
-          updated_resource, err, status = replace_or_create_resource(individual_resource)
-          updated_individuals << updated_resource if status.success?
+          err, status = replace_or_create_resource(individual_resource)
         when :replace_force
           updated_resource, err, status = replace_or_create_resource(individual_resource, force: true)
-          updated_individuals << updated_resource if status.success?
         else
           # Fail Fast! This is a programmer mistake.
           raise ArgumentError, "Unexpected deploy method! (#{individual_resource.deploy_method.inspect})"
@@ -124,11 +120,10 @@ module Krane
         MSG
       end
 
-      applyables += updated_individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
+      applyables += individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
       apply_all(applyables, prune)
-      watchables = ((applyables + updated_individuals)).uniq
       if verify
-        watcher = Krane::ResourceWatcher.new(resources: watchables, deploy_started_at: deploy_started_at,
+        watcher = Krane::ResourceWatcher.new(resources: resources, deploy_started_at: deploy_started_at,
           timeout: @global_timeout, task_config: @task_config, sha: @current_sha)
         watcher.run(record_summary: record_summary)
       end
@@ -234,44 +229,39 @@ module Krane
         ["replace", "-f", resource.file_path]
       end
 
-      updated_resource_definition, err, status = kubectl.run(*args, log_failure: false, output_is_sensitive: resource.sensitive_template_content?,
+      out, err, status = kubectl.run(*args, log_failure: false, output_is_sensitive: resource.sensitive_template_content?,
         raise_if_not_found: true, output: 'json', use_namespace: !resource.global?)
 
-      updated_resources = KubernetesResource.build(
-        namespace: @task_config.namespace,
-        context: @task_config.context,
-        definition: updated_resource_definition,
-        logger:,
-        statsd_tags:,
-        crd: resource.is_a?(CustomResource) ? resource.crd : nil,
-        global_names: []
-      )
-      [updated_resource, err, status]
+      updated_resource_definition = MultiJson.load(out)
+      # For resources that rely on a generateName attribute, we get the `name` from the result of the call to `create`
+      # We must explicitly set this name value so that the `apply` step for pruning can run successfully
+      if status.success? && resource.uses_generate_name?
+        resource.use_generated_name(updated_resource_definition)
+      end
+
+      resource.update_definition!(updated_resource_definition)
+
+      [err, status]
     rescue Krane::Kubectl::ResourceNotFoundError
       # it doesn't exist so we can't replace it, we try to create it
       create_resource(resource)
     end
 
     def create_resource(resource)
-      updated_resource_definition, err, status = kubectl.run("create", "-f", resource.file_path, log_failure: false,
+      out, err, status = kubectl.run("create", "-f", resource.file_path, log_failure: false,
         output: 'json', output_is_sensitive: resource.sensitive_template_content?,
         use_namespace: !resource.global?)
 
-      updated_resource_hash = JSON.parse(updated_resource_definition)
-      updated_resource_hash.delete("status")
-      updated_resource_hash["metadata"].delete("resourceVersion")
-      updated_resource_hash["metadata"].delete("generateName")
+      updated_resource_definition = MultiJson.load(out)
+      # For resources that rely on a generateName attribute, we get the `name` from the result of the call to `create`
+      # We must explicitly set this name value so that the `apply` step for pruning can run successfully
+      if status.success? && resource.uses_generate_name?
+        resource.use_generated_name(updated_resource_definition)
+      end
 
-      updated_resource = KubernetesResource.build(
-        namespace: @task_config.namespace,
-        context: @task_config.context,
-        definition: updated_resource_hash,
-        logger:,
-        statsd_tags:,
-        crd: resource.is_a?(CustomResource) ? resource.crd : nil,
-        global_names: []
-      )
-      [updated_resource, err, status]
+      resource.update_definition!(updated_resource_definition)
+
+      [err, status]
     end
 
     # Inspect the file referenced in the kubectl stderr
