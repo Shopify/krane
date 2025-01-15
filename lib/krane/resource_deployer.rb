@@ -97,8 +97,6 @@ module Krane
       # Prunable resources should also applied so that they can  be pruned
       pruneable_types = @prune_allowlist.map { |t| t.split("/").last }
 
-      # Admission hooks can mutate resources, so we need to track those changes, otherwise the subsquent pruning
-      # may fail if we present a document that no longer matches the resource in the cluster.
       individuals.each do |individual_resource|
         individual_resource.deploy_started_at = Time.now.utc
         case individual_resource.deploy_method

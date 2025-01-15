@@ -8,8 +8,6 @@ module Krane
       (.metadata.generation != .status.observedGeneration).
     MSG
 
-    attr_reader :crd
-
     def initialize(namespace:, context:, definition:, logger:, statsd_tags: [], crd:)
       super(namespace: namespace, context: context, definition: definition,
             logger: logger, statsd_tags: statsd_tags)
