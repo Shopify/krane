@@ -116,20 +116,19 @@ module Krane
           # Fail Fast! This is a programmer mistake.
           raise ArgumentError, "Unexpected deploy method! (#{individual_resource.deploy_method.inspect})"
         end
-        applyables += updated_individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
-
         next if status.success?
 
         raise FatalDeploymentError, <<~MSG
-          Failed to replace or create resource: #{individual_resource.id}
-          #{individual_resource.sensitive_template_content? ? '<suppressed sensitive output>' : err}
+        Failed to replace or create resource: #{individual_resource.id}
+        #{individual_resource.sensitive_template_content? ? '<suppressed sensitive output>' : err}
         MSG
       end
 
+      applyables += updated_individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
       apply_all(applyables, prune)
-
+      watchables = ((applyables + updated_individuals)).uniq
       if verify
-        watcher = Krane::ResourceWatcher.new(resources: resources, deploy_started_at: deploy_started_at,
+        watcher = Krane::ResourceWatcher.new(resources: watchables, deploy_started_at: deploy_started_at,
           timeout: @global_timeout, task_config: @task_config, sha: @current_sha)
         watcher.run(record_summary: record_summary)
       end
@@ -258,10 +257,15 @@ module Krane
         output: 'json', output_is_sensitive: resource.sensitive_template_content?,
         use_namespace: !resource.global?)
 
+      updated_resource_hash = JSON.parse(updated_resource_definition)
+      updated_resource_hash.delete("status")
+      updated_resource_hash["metadata"].delete("resourceVersion")
+      updated_resource_hash["metadata"].delete("generateName")
+
       updated_resource = KubernetesResource.build(
         namespace: @task_config.namespace,
         context: @task_config.context,
-        definition: updated_resource_definition,
+        definition: updated_resource_hash,
         logger:,
         statsd_tags:,
         crd: resource.is_a?(CustomResource) ? resource.crd : nil,

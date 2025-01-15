@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: pod-using-generate-name-
+  # name: pod
+  annotations:
+    krane.shopify.io/timeout-override: 60s
+    # container.apparmor.security.beta.kubernetes.io/command-runner: runtime/default
+  labels:
+    type: pod-using-generate-name
+    name: pod-using-generate-name
+spec:
+  activeDeadlineSeconds: 60
+  restartPolicy: Never
+  containers:
+  - name: busybox-container
+    image: busybox
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "echo 'Hello from the command runner!' && test 1 -eq 1"]
+    resources:
+      requests:
+        memory: 100Mi
+        cpu: 100m

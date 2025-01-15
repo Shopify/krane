@@ -235,7 +235,7 @@ module Krane
           # to too many pods referencing the same secret/configmap: https://github.com/kubernetes/kubernetes/pull/74755
           # Error message format source: https://github.com/kubernetes/kubernetes/pull/75260
         elsif limbo_reason == "CreateContainerConfigError" && !limbo_message.match("failed to sync (.*?) cache")
-          "Failed to generate container configuration: #{limbo_message}"
+ container configuration: #{limbo_message}"
         elsif @status.dig("lastState", "terminated", "reason") == "ContainerCannotRun"
           # ref: https://github.com/kubernetes/kubernetes/blob/562e721ece8a16e05c7e7d6bdd6334c910733ab2/pkg/kubelet/dockershim/docker_container.go#L353
           exit_code = @status.dig('lastState', 'terminated', 'exitCode')
