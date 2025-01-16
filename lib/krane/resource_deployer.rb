@@ -73,8 +73,9 @@ module Krane
 
     private
 
-    def deploy_all_resources(resources, prune: false, verify:, record_summary: true)
-      deploy_resources(resources, prune: prune, verify: verify, record_summary: record_summary)
+    def deploy_all_resources(resources, prune: false, verify:, record_summary: true, annotate_individuals: false)
+      deploy_resources(resources, prune: prune, verify: verify, record_summary: record_summary,
+      annotate_individuals: annotate_individuals)
     end
     measure_method(:deploy_all_resources, 'normal_resources.duration')
 
