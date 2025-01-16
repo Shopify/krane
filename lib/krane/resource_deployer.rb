@@ -30,7 +30,7 @@ module Krane
         end
         raise FatalDeploymentError unless success
       else
-        deploy_all_resources(resources, prune: prune, verify: false)
+        deploy_all_resources(resources, prune: prune, verify: false, annotate_individuals: true)
         logger.summary.add_action("deployed #{resources.length} #{'resource'.pluralize(resources.length)}")
         warning = <<~MSG
           Deploy result verification is disabled for this deploy.
@@ -78,7 +78,7 @@ module Krane
     end
     measure_method(:deploy_all_resources, 'normal_resources.duration')
 
-    def deploy_resources(resources, prune: false, verify:, record_summary: true)
+    def deploy_resources(resources, prune: false, verify:, record_summary: true, annotate_individuals: false)
       return if resources.empty?
       deploy_started_at = Time.now.utc
 
@@ -96,7 +96,6 @@ module Krane
       applyables, individuals = resources.partition { |r| r.deploy_method == :apply }
       # Prunable resources should also applied so that they can  be pruned
       pruneable_types = @prune_allowlist.map { |t| t.split("/").last }
-      applyables += individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
 
       individuals.each do |individual_resource|
         individual_resource.deploy_started_at = Time.now.utc
@@ -121,6 +120,10 @@ module Krane
       end
 
       apply_all(applyables, prune)
+
+      if annotate_individuals
+        update_last_applied_annotations(individuals)
+      end
 
       if verify
         watcher = Krane::ResourceWatcher.new(resources: resources, deploy_started_at: deploy_started_at,
@@ -249,6 +252,19 @@ module Krane
         resource.use_generated_name(MultiJson.load(out))
       end
 
+      [err, status]
+    end
+
+    def update_last_applied_annotations(resources)
+      resources.each do |resource|
+        err, status = set_last_applied_annotation(resource)
+        raise FatalDeploymentError, "Failed to set last applied annotation: #{err}" unless status.success?
+      end
+    end
+
+    def set_last_applied_annotation(resource)
+      _, err, status = kubectl.run("kubectl", "apply", "set-last-applied", "-f", resource.file_path, log_failure: false,
+        output_is_sensitive: resource.sensitive_template_content?, use_namespace: !resource.global?)
       [err, status]
     end
 
