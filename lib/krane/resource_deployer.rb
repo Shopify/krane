@@ -257,7 +257,8 @@ module Krane
     end
 
     def update_last_applied_annotations(resources)
-      resources.each do |resource|
+      resources.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
+        .each do |resource|
         err, status = set_last_applied_annotation(resource)
         raise FatalDeploymentError, "Failed to set last applied annotation: #{err}" unless status.success?
       end
