@@ -22,7 +22,7 @@ module Krane
 
     def deploy!(resources, verify_result, prune)
       if verify_result
-        deploy_all_resources(resources, prune: prune, verify: true)
+        deploy_all_resources(resources, prune: prune, verify: true, annotate_individuals: true)
         failed_resources = resources.reject(&:deploy_succeeded?)
         success = failed_resources.empty?
         if !success && failed_resources.all?(&:deploy_timed_out?)
@@ -123,7 +123,8 @@ module Krane
       apply_all(applyables, prune)
 
       if annotate_individuals
-        update_last_applied_annotations(individuals)
+        to_annotate = individuals.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
+        update_last_applied_annotations(to_annotate)
       end
 
       if verify
@@ -257,15 +258,14 @@ module Krane
     end
 
     def update_last_applied_annotations(resources)
-      resources.select { |r| pruneable_types.include?(r.type) && !r.deploy_method_override }
-        .each do |resource|
+      resources.each do |resource|
         err, status = set_last_applied_annotation(resource)
         raise FatalDeploymentError, "Failed to set last applied annotation: #{err}" unless status.success?
       end
     end
 
     def set_last_applied_annotation(resource)
-      _, err, status = kubectl.run("kubectl", "apply", "set-last-applied", "-f", resource.file_path, log_failure: false,
+      _, err, status = kubectl.run("apply", "set-last-applied", "--create-annotation", "-f", resource.file_path, log_failure: false,
         output_is_sensitive: resource.sensitive_template_content?, use_namespace: !resource.global?)
       [err, status]
     end
