@@ -29,6 +29,8 @@ module Krane
                                   desc: "Use --selector as a label filter to deploy only a subset "\
                                     "of the provided resources",
                                   default: false },
+        "extra-labels" => { type: :string, banner: "'label=value,foo=bar'",
+                            desc: "Labels to set on resources that don't have them" },
         "verbose-log-prefix" => { type: :boolean, desc: "Add [context][namespace] to the log prefix",
                                   default: false },
         "verify-result" => { type: :boolean, default: true,
@@ -39,6 +41,7 @@ module Krane
         require 'krane/deploy_task'
         require 'krane/options_helper'
         require 'krane/label_selector'
+        require 'krane/extra_labels'
 
         selector = ::Krane::LabelSelector.parse(options[:selector]) if options[:selector]
         selector_as_filter = options['selector-as-filter']
@@ -46,6 +49,8 @@ module Krane
         if selector_as_filter && !selector
           raise(Thor::RequiredArgumentMissingError, '--selector must be set when --selector-as-filter is set')
         end
+
+        extra_labels = ::Krane::ExtraLabels.parse(options['extra-labels']) if options['extra-labels']
 
         logger = ::Krane::FormattedLogger.build(namespace, context,
           verbose_prefix: options['verbose-log-prefix'])
@@ -71,6 +76,7 @@ module Krane
             selector: selector,
             selector_as_filter: selector_as_filter,
             protected_namespaces: protected_namespaces,
+            extra_labels: extra_labels,
           )
 
           deploy.run!(
