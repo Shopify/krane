@@ -16,11 +16,14 @@ module Krane
     end
     class PartialNotFound < InvalidTemplateError; end
 
-    def initialize(current_sha:, template_dir:, logger:, bindings: {})
+    def initialize(current_sha:, template_dir:, logger:, bindings: {}, partials_dir: nil)
       @current_sha = current_sha
       @template_dir = template_dir
       @partials_dirs =
         %w(partials ../partials).map { |d| File.expand_path(File.join(@template_dir, d)) }
+      # Prepend the partial_dir to the list of partials_dirs so that the user-provided
+      # directory is used first.
+      @partials_dirs.unshift(File.expand_path(partials_dir)) if partials_dir
       @logger = logger
       @bindings = bindings
       # Max length of podname is only 63chars so try to save some room by truncating sha to 8 chars

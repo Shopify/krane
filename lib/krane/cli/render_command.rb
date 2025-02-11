@@ -11,6 +11,8 @@ module Krane
                      desc: "[DEPRECATED] Read resources from stdin" },
         "current-sha" => { type: :string, banner: "SHA", desc: "Expose SHA `current_sha` in ERB bindings",
                            lazy_default: '' },
+        "partials-dir" => { type: :string, banner: "partials", required:false, default: nil,
+                            desc: "First directory to look for partials, before checking `./partials` and `../partials`" },
       }
 
       def self.from_options(options)
@@ -32,6 +34,7 @@ module Krane
             current_sha: options['current-sha'],
             filenames: paths,
             bindings: bindings_parser.parse,
+            partials_dir: options['partials-dir'],
           )
           renderer.run!(stream: STDOUT)
         end

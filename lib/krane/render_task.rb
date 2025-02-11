@@ -14,11 +14,13 @@ module Krane
     # @param current_sha [String] The SHA of the commit
     # @param filenames [Array<String>] An array of filenames and/or directories containing templates (*required*)
     # @param bindings [Hash] Bindings parsed by Krane::BindingsParser
-    def initialize(logger: nil, current_sha:, filenames: [], bindings:)
+    # @params partials_dir [String] A directory to look for partials, before checking `./partials` and `../partials`
+    def initialize(logger: nil, current_sha:, filenames: [], bindings:, partials_dir: nil)
       @logger = logger || Krane::FormattedLogger.build
       @filenames = filenames.map { |path| File.expand_path(path) }
       @bindings = bindings
       @current_sha = current_sha
+      @partials_dir = partials_dir
     end
 
     # Runs the task, returning a boolean representing success or failure
@@ -58,7 +60,7 @@ module Krane
       @logger.phase_heading("Rendering template(s)")
       count = 0
       template_sets.with_resource_definitions_and_filename(current_sha: @current_sha,
-        bindings: @bindings, raw: true) do |rendered_content, filename|
+        bindings: @bindings, raw: true, partials_dir: @partials_dir) do |rendered_content, filename|
         write_to_stream(rendered_content, filename, stream)
         count += 1
       end
