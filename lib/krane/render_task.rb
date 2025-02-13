@@ -93,7 +93,7 @@ module Krane
       end
 
       if !@current_sha.nil? && @current_sha.empty?
-        errors << "current-sha is optional but can not be blank"
+        errors << "`current-sha is optional but can not be blank"
       end
       errors += template_sets.validate
 

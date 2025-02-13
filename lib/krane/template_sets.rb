@@ -96,7 +96,7 @@ module Krane
     private_constant :TemplateSet
 
     class << self
-      def from_dirs_and_files(paths:, logger:, render_erb: true)
+      def from_dirs_and_files(paths:, logger:, render_erb: true, partition: false)
         resource_templates = {}
         dir_paths, file_paths = paths.partition { |path| File.directory?(path) }
 

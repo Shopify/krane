@@ -2,6 +2,7 @@
 require 'krane'
 require 'krane/cli/deploy_command'
 require 'krane/cli/global_deploy_command'
+require 'krane/cli/full_deploy_command'
 require 'krane/cli/render_command'
 require 'krane/cli/restart_command'
 require 'krane/cli/run_command'
