@@ -67,6 +67,15 @@ module Krane
         end
       end
 
+      desc("full-deploy CONTEXT [NAMESPACE]", "Ship all resources from a manifest set, including" \
+        " both cluster-scoped and namespace-scoped resources")
+      expand_options(FullDeployCommand::OPTIONS)
+      def full_deploy(context, namespace)
+        rescue_and_exit do
+          FullDeployCommand.from_options(context, namespace, options)
+        end
+      end
+
       def self.exit_on_failure?
         true
       end
