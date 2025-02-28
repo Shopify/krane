@@ -50,6 +50,51 @@ module Krane
     def run!(global_verify_result: true, global_prune: true, verify_result: true, prune: true)
       start = Time.now.utc
       logger.reset
+
+      # TODO: Partition all resources in cluster-scoped and namespaced resources
+      @logger.phase_heading("Initializing deploy")
+      resources = discover_resources
+      global_resources, namespaced_resources = resources.partition(&:global?)
+
+      # Call Global Deploy task with appropriate template sets
+      @logger.phase_heading("Deploying cluster-scoped resources")
+      #GlobalDeployTask.new(filenames: global_resources.map(&:file_path).run!
+
+      # Call Deploy task with appropriate template sets
+      #DeployTask.new(filenames: namespaced_resources.map(&:file_path)).run!
     end
+
+    private
+
+    def discover_resources
+      @logger.info("Discovering resources:")
+      resources = []
+      crds_by_kind = cluster_resource_discoverer.crds.group_by(&:kind)
+      @template_sets.with_resource_definitions do |r_def|
+        crd = crds_by_kind[r_def["kind"]]&.first
+        r = KubernetesResource.build(namespace: @namespace, context: @context, logger: @logger, definition: r_def,
+                                     statsd_tags: @namespace_tags, crd: crd, global_names: @task_config.global_kinds)
+        resources << r
+        @logger.info("  - #{r.id}")
+      end
+
+      secrets_from_ejson.each do |secret|
+        resources << secret
+        @logger.info("  - #{secret.id} (from ejson)")
+      end
+
+      StatsD.client.gauge('discover_resources.count', resources.size, tags: statsd_tags)
+
+      if resources.empty?
+        raise FatalDeploymentError, "No deployable resources were found!"
+      end
+
+      resources.sort
+    rescue InvalidTemplateError => e
+      record_invalid_template(logger: @logger, err: e.message, filename: e.filename,
+                              content: e.content)
+      raise FatalDeploymentError, "Failed to render and parse template"
+    end
+    measure_method(:discover_resources)
   end
 end
