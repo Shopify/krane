@@ -17,13 +17,14 @@ module Krane
         @render_erb = render_erb
       end
 
-      def with_resource_definitions_and_filename(current_sha: nil, bindings: nil, raw: false)
+      def with_resource_definitions_and_filename(current_sha: nil, bindings: nil, raw: false, partials_dir: nil)
         if @render_erb
           @renderer = Renderer.new(
             template_dir: @template_dir,
             logger: @logger,
             current_sha: current_sha,
             bindings: bindings,
+            partials_dir: partials_dir,
           )
         end
         with_delayed_exceptions(@files, Krane::InvalidTemplateError) do |filename|
@@ -123,20 +124,21 @@ module Krane
       end
     end
 
-    def with_resource_definitions_and_filename(current_sha: nil, bindings: nil, raw: false)
+    def with_resource_definitions_and_filename(current_sha: nil, bindings: nil, raw: false, partials_dir: nil)
       with_delayed_exceptions(@template_sets, Krane::InvalidTemplateError) do |template_set|
         template_set.with_resource_definitions_and_filename(
           current_sha: current_sha,
           bindings: bindings,
-          raw: raw
+          raw: raw,
+          partials_dir: partials_dir,
         ) do |r_def, filename|
           yield r_def, filename
         end
       end
     end
 
-    def with_resource_definitions(current_sha: nil, bindings: nil, raw: false)
-      with_resource_definitions_and_filename(current_sha: current_sha, bindings: bindings, raw: raw) do |r_def, _|
+    def with_resource_definitions(current_sha: nil, bindings: nil, raw: false, partials_dir: nil)
+      with_resource_definitions_and_filename(current_sha: current_sha, bindings: bindings, raw: raw, partials_dir: partials_dir) do |r_def, _|
         yield r_def
       end
     end

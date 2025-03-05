@@ -11,6 +11,13 @@ class RendererTest < Krane::TestCase
       logger: logger,
       bindings: { "a" => "1", "b" => "2" }
     )
+    @renderer_with_dir = Krane::Renderer.new(
+      current_sha: "12345678",
+      template_dir: fixture_path('for_unit_tests'),
+      logger: logger,
+      bindings: { "a" => "1", "b" => "2" },
+      partials_dir: fixture_path('for_unit_tests/custom_partials_dir')
+    )
   end
 
   def test_can_render_template_with_correct_indentation
@@ -63,6 +70,17 @@ class RendererTest < Krane::TestCase
     assert_equal("---\n<%= partial 'foobarbaz' %>\n", err.content)
   end
 
+  def test_non_existent_partial_with_custom_dir_raises
+    err = assert_raises(Krane::InvalidTemplateError) do
+      render('including-non-existent-partial.yaml.erb', use_custom_dir: true)
+    end
+    base = "Could not find partial 'foobarbaz' in any of"
+    assert_match(%r{#{base} [^:]*/fixtures/for_unit_tests/custom_partials_dir.*}, err.message)
+    assert_match(%r{#{base} .*/fixtures/for_unit_tests/partials:.*/fixtures/partials}, err.message)
+    assert_equal("including-non-existent-partial.yaml.erb", err.filename)
+    assert_equal("---\n<%= partial 'foobarbaz' %>\n", err.content)
+  end
+
   def test_nesting_fields
     expected = <<~EOY
       ---
@@ -74,6 +92,20 @@ class RendererTest < Krane::TestCase
     actual = YAML.dump(YAML.safe_load(render("nest-as-rhs.yaml.erb")))
     assert_equal(expected, actual)
     actual = YAML.dump(YAML.safe_load(render("nest-indented.yaml.erb")))
+    assert_equal(expected, actual)
+  end
+
+  def test_nesting_fields_with_custom_partials_dir
+    expected = <<~EOY
+      ---
+      x:
+        c: c6
+        d: d7
+        foo: bar
+    EOY
+    actual = YAML.dump(YAML.safe_load(render("nest-as-rhs.yaml.erb", use_custom_dir: true)))
+    assert_equal(expected, actual)
+    actual = YAML.dump(YAML.safe_load(render("nest-indented.yaml.erb", use_custom_dir: true)))
     assert_equal(expected, actual)
   end
 
@@ -117,8 +149,12 @@ class RendererTest < Krane::TestCase
 
   private
 
-  def render(filename)
+  def render(filename, use_custom_dir: false)
     raw_template = File.read(File.join(fixture_path('for_unit_tests'), filename))
-    @renderer.render_template(filename, raw_template)
+    if use_custom_dir
+      @renderer_with_dir.render_template(filename, raw_template)
+    else
+      @renderer.render_template(filename, raw_template)
+    end
   end
 end

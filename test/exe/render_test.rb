@@ -80,6 +80,11 @@ class RenderTest < Krane::TestCase
     krane_render!("--current-sha #{test_sha}")
   end
 
+  def test_render_uses_partials_dir
+    install_krane_render_expectations(partials_dir: "/dev/null")
+    krane_render!("--partials-dir /dev/null")
+  end
+
   private
 
   def install_krane_render_expectations(new_args = {})
@@ -103,6 +108,7 @@ class RenderTest < Krane::TestCase
       current_sha: nil,
       filenames: ["/dev/null"],
       bindings: {},
+      partials_dir: nil,
     }.merge(new_args)
   end
 end

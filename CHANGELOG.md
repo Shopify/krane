@@ -1,5 +1,7 @@
 ## next
 
+- Add a `--partials-dir` parameter. When provided, this path will be check for partials first, prior to both `./partials` and `../partials` being checked.
+
 ## 3.7.0
 
 - Annotate individual resources with `last-applied-configuration` when using `krane deploy` with `--annotate-individuals`. Previously, eligible resources that were made with `create` or `replace` were applied along with the rest of the resources. However, this causes issues when a mutating admission controller modifies otherwise immutable fields.
