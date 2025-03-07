@@ -1,5 +1,7 @@
 ## next
 
+## 3.7.1
+
 - Add a `--partials-dir` parameter. When provided, this path will be check for partials first, prior to both `./partials` and `../partials` being checked.
 
 ## 3.7.0
