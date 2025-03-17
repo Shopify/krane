@@ -204,13 +204,13 @@ module Krane
 
     def current_generation
       return -1 unless exists? # must be different default than observed_generation
-      @instance_data.dig("metadata", "generation").to_i
+      @instance_data.dig("metadata", "generation")&.to_i
     end
 
     def observed_generation
       return -2 unless exists?
       # populating this is a best practice, but not all controllers actually do it
-      @instance_data.dig('status', 'observedGeneration').to_i
+      @instance_data.dig('status', 'observedGeneration')&.to_i
     end
 
     def status
