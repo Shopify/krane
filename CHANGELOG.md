@@ -1,5 +1,9 @@
 ## next
 
+## 3.7.2
+
+- Explicitly convert `current_generation` and `observed_generation` values to integers using `.to_i` to ensure consistentency during comparison
+
 ## 3.7.1
 
 - Add a `--partials-dir` parameter. When provided, this path will be check for partials first, prior to both `./partials` and `../partials` being checked.
