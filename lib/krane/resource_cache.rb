@@ -8,8 +8,13 @@ module Krane
 
     def initialize(task_config)
       @task_config = task_config
-
-      @kind_fetcher_locks = Concurrent::Hash.new { |hash, key| hash[key] = Mutex.new }
+      @mutex = Mutex.new
+      @kind_fetcher_locks = Concurrent::Hash.new do |hash, key|
+        @mutex.synchronize do
+          break hash[key] if hash.key?(key)
+          hash[key] = Mutex.new
+        end
+      end
       @data = Concurrent::Hash.new
       @kubectl = Kubectl.new(task_config: @task_config, log_failure_by_default: false)
     end
