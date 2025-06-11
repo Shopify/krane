@@ -1,5 +1,9 @@
 ## next
 
+## 3.7.3
+
+- Test against k8s 1.32 and 1.33
+
 ## 3.7.2
 
 - Explicitly convert `current_generation` and `observed_generation` values to integers using `.to_i` to ensure consistentency during comparison
