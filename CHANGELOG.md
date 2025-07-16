@@ -1,5 +1,9 @@
 ## next
 
+## 3.7.4
+
+- Handle bad encoding in container log output
+
 ## 3.7.3
 
 - Test against k8s 1.32 and 1.33
