@@ -300,6 +300,25 @@ class RunnerTaskTest < Krane::IntegrationTest
     assert_equal('busybox:latest', container.image, "Container image should have been upadted")
   end
 
+  def test_run_with_verify_result_succeeds_with_bad_output_encoding
+    deploy_task_template
+
+    task_runner = build_task_runner
+    assert_nil(task_runner.pod_name)
+    result = task_runner.run(
+      template: 'hello-cloud-template-runner',
+      command: ['/bin/sh', '-c'],
+      arguments: ['printf \'\xFF\xFE\x00\x01\''],
+      verify_result: true,
+    )
+
+    assert_task_run_success(result)
+
+    pods = kubeclient.get_pods(namespace: @namespace)
+    assert_equal(1, pods.length, "Expected 1 pod to exist, found #{pods.length}")
+    assert_equal(task_runner.pod_name, pods.first.metadata.name, "Pod name should be available after run")
+  end
+
   private
 
   def deploy_unschedulable_template

@@ -55,7 +55,7 @@ module Krane
         "--tail=#{DEFAULT_LINE_LIMIT}"
       end
       out, _err, _st = kubectl.run(*cmd, log_failure: false)
-      out.split("\n")
+      out.encode('UTF-8', invalid: :replace, replace: '').split("\n")
     end
 
     def kubectl
