@@ -2,6 +2,7 @@
 require 'krane'
 require 'krane/cli/deploy_command'
 require 'krane/cli/global_deploy_command'
+require 'krane/cli/full_deploy_command'
 require 'krane/cli/render_command'
 require 'krane/cli/restart_command'
 require 'krane/cli/run_command'
@@ -64,6 +65,15 @@ module Krane
       def global_deploy(context)
         rescue_and_exit do
           GlobalDeployCommand.from_options(context, options)
+        end
+      end
+
+      desc("full-deploy CONTEXT [NAMESPACE]", "Ship all resources from a manifest set, including" \
+        " both cluster-scoped and namespace-scoped resources")
+      expand_options(FullDeployCommand::OPTIONS)
+      def full_deploy(context, namespace)
+        rescue_and_exit do
+          FullDeployCommand.from_options(context, namespace, options)
         end
       end
 
