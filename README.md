@@ -169,6 +169,12 @@ before the deployment is considered successful.
     - Percent (e.g. 90%): The deploy is successful when the number of new pods that are ready is equal to `spec.replicas` * Percent.
   - _Compatibility_: StatefulSet
     - `full`: The deployment is successful when all pods are ready.
+  - _Compatibility_: DaemonSet
+    - `full`: The deployment is successful when all pods are updated and ready.
+    - `none`: The deployment is successful as soon as the DaemonSet update is observed.
+    - `maxUnavailable`: The deploy is successful when minimum availability is reached.
+    In other words, the number of pods that must be ready is equal to `status.desiredNumberScheduled` - `spec.updateStrategy.rollingUpdate.maxUnavailable` (converted from percentages by rounding up, if applicable). This option is only valid for DaemonSets that use the `RollingUpdate` strategy.
+    - Percent (e.g. 90%): The deploy is successful when the number of pods that are ready is equal to `status.desiredNumberScheduled` * Percent.
 - `krane.shopify.io/predeployed`: Causes a Custom Resource to be deployed in the pre-deploy phase.
   - _Compatibility_: Custom Resource Definition
   - _Default_: `true`
