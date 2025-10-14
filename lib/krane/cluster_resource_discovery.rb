@@ -19,9 +19,12 @@ module Krane
     end
 
     def prunable_resources(namespaced:)
-      black_list = %w(Namespace Node ControllerRevision Event)
+      black_list = %w(Namespace Node ControllerRevision Event Elasticsearch)
       fetch_resources(namespaced: namespaced).map do |resource|
         next unless resource["verbs"].one? { |v| v == "delete" }
+        if resource["kind"] == "Elasticsearch"
+          StatsD.client.increment('elasticsearch_resource_deletion_attempt.increment', tags: %W(context:#{context} namespace:#{namespace}))
+        end
         next if black_list.include?(resource["kind"])
         [resource["apigroup"], resource["version"], resource["kind"]].compact.join("/")
       end.compact
