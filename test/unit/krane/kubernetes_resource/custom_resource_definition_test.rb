@@ -159,11 +159,20 @@ class CustomResourceDefinitionTest < Krane::TestCase
   end
 
   def test_instance_timeout_messages_with_rollout_conditions
+    rollout_conditions = {
+      success_conditions: [
+        {
+          path: "$.status.conditions[?(@.type == 'Ready')].status",
+          value: "True",
+        },
+      ],
+    }.to_json
+
     crd = build_crd(crd_spec.merge(
       "metadata" => {
         "name" => "unittests.stable.example.io",
         "annotations" => {
-          rollout_conditions_annotation_key => "true",
+          rollout_conditions_annotation_key => rollout_conditions,
         },
       },
     ))
@@ -176,12 +185,12 @@ class CustomResourceDefinitionTest < Krane::TestCase
         },
       })
 
-    cr.expects(:current_generation).returns(1)
-    cr.expects(:observed_generation).returns(1)
+    cr.expects(:current_generation).at_least_once.returns(1)
+    cr.expects(:observed_generation).at_least_once.returns(1)
     assert_equal(cr.timeout_message, Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE)
 
-    cr.expects(:current_generation).returns(1)
-    cr.expects(:observed_generation).returns(2)
+    cr.expects(:current_generation).at_least_once.returns(1)
+    cr.expects(:observed_generation).at_least_once.returns(2)
     assert_equal(cr.timeout_message, Krane::CustomResource::TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS)
   end
 
