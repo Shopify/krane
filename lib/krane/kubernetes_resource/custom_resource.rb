@@ -39,7 +39,7 @@ module Krane
     end
 
     def timeout_message
-      if rollout_conditions && current_generation != observed_generation
+      if observed_generation.present? && rollout_conditions && current_generation != observed_generation
         TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS
       else
         super

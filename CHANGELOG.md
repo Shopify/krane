@@ -1,5 +1,9 @@
 ## next
 
+## 3.8.1
+
+- check if observedGeneration is present before comparing with generation for custom resources
+
 ## 3.8.0
 
 - Add Elasticsearch resource to the black list so it is not marked for deletion
