@@ -1,5 +1,9 @@
 ## next
 
+## 3.8.0
+
+- Add Elasticsearch resource to the black list so it is not marked for deletion
+
 ## 3.7.4
 
 - Handle bad encoding in container log output
