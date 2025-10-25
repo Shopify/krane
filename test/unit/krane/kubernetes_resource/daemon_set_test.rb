@@ -199,11 +199,161 @@ class DaemonSetTest < Krane::TestCase
     assert_predicate(ds, :deploy_succeeded?)
   end
 
+  def test_deploy_succeeded_with_none_annotation
+    status = {
+      "desiredNumberScheduled": 3,
+      "updatedNumberScheduled": 1,
+      "numberReady": 0,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status, rollout: 'none')
+    pod_templates = load_fixtures(filenames: ['daemon_set_pod_not_ready.yml'])
+    node_templates = load_fixtures(filenames: ['node.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    assert_predicate(ds, :deploy_succeeded?)
+  end
+
+  def test_deploy_succeeded_with_max_unavailable
+    status = {
+      "desiredNumberScheduled": 3,
+      "updatedNumberScheduled": 3,
+      "numberReady": 2,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status, 
+      rollout: 'maxUnavailable', max_unavailable: 1)
+    pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
+    node_templates = load_fixtures(filenames: ['nodes.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    assert_predicate(ds, :deploy_succeeded?)
+  end
+
+  def test_deploy_not_succeeded_with_max_unavailable_when_below_threshold
+    status = {
+      "desiredNumberScheduled": 3,
+      "updatedNumberScheduled": 3,
+      "numberReady": 1,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status,
+      rollout: 'maxUnavailable', max_unavailable: 1)
+    pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
+    node_templates = load_fixtures(filenames: ['nodes.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    refute_predicate(ds, :deploy_succeeded?)
+  end
+
+  def test_deploy_succeeded_with_percentage_rollout
+    status = {
+      "desiredNumberScheduled": 3,
+      "updatedNumberScheduled": 3,
+      "numberReady": 2,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status, rollout: '66%')
+    pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
+    node_templates = load_fixtures(filenames: ['nodes.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    assert_predicate(ds, :deploy_succeeded?)
+  end
+
+  def test_deploy_not_succeeded_with_percentage_rollout_when_below_threshold
+    status = {
+      "desiredNumberScheduled": 3,
+      "updatedNumberScheduled": 3,
+      "numberReady": 1,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status, rollout: '67%')
+    pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
+    node_templates = load_fixtures(filenames: ['nodes.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+    refute_predicate(ds, :deploy_succeeded?)
+  end
+
+  def test_deploy_succeeded_raises_with_invalid_rollout_annotation
+    status = {
+      "desiredNumberScheduled": 3,
+      "updatedNumberScheduled": 3,
+      "numberReady": 3,
+    }
+    ds_template = build_ds_template(filename: 'daemon_set.yml', status: status, rollout: 'bad')
+    pod_templates = load_fixtures(filenames: ['daemon_set_pods.yml'])
+    node_templates = load_fixtures(filenames: ['nodes.yml'])
+    ds = build_synced_ds(ds_template: ds_template, pod_templates: pod_templates, node_templates: node_templates)
+
+    msg = "'#{rollout_annotation_key}: bad' is invalid. " \
+      "Acceptable values: #{Krane::DaemonSet::REQUIRED_ROLLOUT_TYPES.join(', ')}, or a percentage (e.g. 90%)"
+
+    assert_raises_message(Krane::FatalDeploymentError, msg) do
+      ds.deploy_succeeded?
+    end
+  end
+
+  def test_validation_fails_with_invalid_rollout_annotation
+    ds_template = build_ds_template(filename: 'daemon_set.yml', rollout: 'bad')
+    ds = build_synced_ds(ds_template: ds_template)
+    
+    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
+    
+    refute(ds.validate_definition(kubectl: kubectl))
+
+    expected = <<~STRING.strip
+      super failed
+      '#{rollout_annotation_key}: bad' is invalid. Acceptable values: #{Krane::DaemonSet::REQUIRED_ROLLOUT_TYPES.join(', ')}, or a percentage (e.g. 90%)
+    STRING
+    assert_equal(expected, ds.validation_error_msg)
+  end
+
+  def test_validation_with_percent_rollout_annotation
+    ds_template = build_ds_template(filename: 'daemon_set.yml', rollout: '90%')
+    ds = build_synced_ds(ds_template: ds_template)
+    
+    stub_validation_dry_run
+    
+    assert(ds.validate_definition(kubectl: kubectl))
+    assert_empty(ds.validation_error_msg)
+  end
+
+  def test_validation_fails_with_invalid_mix_of_annotation
+    ds_template = build_ds_template(filename: 'daemon_set.yml', rollout: 'maxUnavailable', 
+      update_strategy: 'OnDelete')
+    ds = build_synced_ds(ds_template: ds_template)
+    
+    stub_validation_dry_run(err: "super failed", status: SystemExit.new(1))
+    
+    refute(ds.validate_definition(kubectl: kubectl))
+
+    expected = <<~STRING.strip
+      super failed
+      '#{rollout_annotation_key}: maxUnavailable' is incompatible with updateStrategy 'OnDelete'
+    STRING
+    assert_equal(expected, ds.validation_error_msg)
+  end
+
   private
 
-  def build_ds_template(filename:, status: {})
+  def stub_validation_dry_run(out: "", err: "", status: SystemExit.new(0))
+    kubectl.expects(:run)
+      .with('apply', '-f', anything, '--dry-run=client', '--output=name', anything)
+      .returns([out, err, status])
+  end
+
+  def build_ds_template(filename:, status: {}, rollout: nil, max_unavailable: nil, update_strategy: nil)
     base_ds_manifest = YAML.load_stream(File.read(File.join(fixture_path('for_unit_tests'), filename))).first
-    base_ds_manifest.deep_merge("status" => status)
+    result = base_ds_manifest.deep_merge("status" => status)
+    
+    if rollout
+      result["metadata"] ||= {}
+      result["metadata"]["annotations"] ||= {}
+      result["metadata"]["annotations"][rollout_annotation_key] = rollout
+    end
+
+    if max_unavailable
+      result["spec"]["updateStrategy"] ||= { "type" => "RollingUpdate" }
+      result["spec"]["updateStrategy"]["rollingUpdate"] = { "maxUnavailable" => max_unavailable }
+    end
+
+    if update_strategy
+      result["spec"]["updateStrategy"] = { "type" => update_strategy }
+    end
+
+    result
   end
 
   def load_fixtures(filenames:)
@@ -224,5 +374,13 @@ class DaemonSetTest < Krane::TestCase
     stub_kind_get("Node", items: node_templates, use_namespace: false)
     ds.sync(build_resource_cache)
     ds
+  end
+
+  def kubectl
+    @kubectl ||= build_runless_kubectl
+  end
+
+  def rollout_annotation_key
+    Krane::Annotation.for(Krane::DaemonSet::REQUIRED_ROLLOUT_ANNOTATION)
   end
 end
