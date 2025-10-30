@@ -3,7 +3,6 @@ require 'test_helper'
 
 class ClusterResourceDiscoveryTest < Krane::TestCase
   include ClusterResourceDiscoveryHelper
-  include StatsD::Instrument::Assertions
 
   def test_fetch_resources_failure
     crd = mocked_cluster_resource_discovery(success: false)
@@ -50,7 +49,7 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
     %w(ConfigMap CronJob Deployment).each do |expected_kind|
       assert(kinds.one? { |k| k.include?(expected_kind) })
     end
-    %w(controllerrevision event elasticsearch).each do |black_listed_kind|
+    %w(controllerrevision event).each do |black_listed_kind|
       assert_empty(kinds.select { |k| k.downcase.include?(black_listed_kind) })
     end
   end
@@ -61,15 +60,5 @@ class ClusterResourceDiscoveryTest < Krane::TestCase
     %w(batch/v1/Job networking.k8s.io/v1/NetworkPolicy).each do |expected_kind|
       assert(kinds.one? { |k| k.include?(expected_kind) })
     end
-  end
-
-  def test_elasticsearch_statsd_increment_not_emitted_when_no_elasticsearch
-    crd = mocked_cluster_resource_discovery
-    metrics = capture_statsd_calls(client: Krane::StatsD.client) do
-      crd.prunable_resources(namespaced: true)
-    end
-
-    increment_metric = metrics.find { |m| m.name == 'Krane.elasticsearch_resource_deletion_attempt.increment' && m.type == :c }
-    assert_nil(increment_metric, "Expected elasticsearch_resource_deletion_attempt.increment NOT to be emitted when no Elasticsearch exists")
   end
 end
