@@ -1,5 +1,10 @@
 ## next
 
+## 3.9.0
+
+- Remove Elasticsearch specific logic that was introduced in 3.8.0
+- Remove check for observedGeneration.present? introduced in 3.8.1 because it was redundant
+
 ## 3.8.1
 
 - check if observedGeneration is present before comparing with generation for custom resources
