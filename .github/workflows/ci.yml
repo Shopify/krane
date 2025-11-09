@@ -18,6 +18,8 @@ jobs:
           - "3.0.4"
           - "2.7.6"
         kubernetes_version:
+          - "1.33.1"
+          - "1.32.5"
           - "1.31.2"
           - "1.30.0"
           - "1.29.4"
@@ -30,6 +32,10 @@ jobs:
           - "serial_integration_test"
           - "integration_test"
         include:
+          - kubernetes_version: "1.33.1"
+            kind_image: "kindest/node:v1.33.1@sha256:050072256b9a903bd914c0b2866828150cb229cea0efe5892e2b644d5dd3b34f"
+          - kubernetes_version: "1.32.5"
+            kind_image: "kindest/node:v1.32.5@sha256:e3b2327e3a5ab8c76f5ece68936e4cafaa82edf58486b769727ab0b3b97a5b0d"
           - kubernetes_version: "1.31.2"
             kind_image: "kindest/node:v1.31.2@sha256:18fbefc20a7113353c7b75b5c869d7145a6abd6269154825872dc59c1329912e"
           - kubernetes_version: "1.30.0"

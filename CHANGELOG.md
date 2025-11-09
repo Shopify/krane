@@ -1,5 +1,26 @@
 ## next
 
+## 3.9.0
+
+- Remove Elasticsearch specific logic that was introduced in 3.8.0
+- Remove check for observedGeneration.present? introduced in 3.8.1 because it was redundant
+
+## 3.8.1
+
+- check if observedGeneration is present before comparing with generation for custom resources
+
+## 3.8.0
+
+- Add Elasticsearch resource to the black list so it is not marked for deletion
+
+## 3.7.4
+
+- Handle bad encoding in container log output
+
+## 3.7.3
+
+- Test against k8s 1.32 and 1.33
+
 ## 3.7.2
 
 - Explicitly convert `current_generation` and `observed_generation` values to integers using `.to_i` to ensure consistentency during comparison
