@@ -6,7 +6,10 @@
 - Pod log retrieval now uses the task's `kubeconfig` instead of falling back to `ENV['KUBECONFIG']`
 - Reject namespaces, contexts and kinds that `kubectl` would parse as flags rather than as positional arguments
 
+- Skip kubeconfig files with no contexts defined instead of crashing when building the Kubernetes client
+
 ## 3.9.1
+
 - Test against k8s 1.34
 
 ## 3.9.0

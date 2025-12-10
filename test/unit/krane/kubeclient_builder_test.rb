@@ -64,4 +64,16 @@ class KubeClientBuilderTest < Krane::TestCase
     assert(!client.nil?, "Expected Kubeclient is built for context " \
       "#{context_name} with success.")
   end
+
+  def test_empty_contexts_kubeconfig_file
+    # Should ignore kubeconfig files with no contexts defined
+    Kubeclient::Client.any_instance.stubs(:discover)
+    empty_config = File.join(__dir__, '../../fixtures/kube-config/empty_config.yml')
+    dummy_config = File.join(__dir__, '../../fixtures/kube-config/dummy_config.yml')
+
+    # When combined with a valid config, the empty one is silently ignored
+    kubeclient_builder = Krane::KubeclientBuilder.new(kubeconfig: "#{empty_config}:#{dummy_config}")
+    client = kubeclient_builder.build_v1_kubeclient("docker-for-desktop")
+    assert(!client.nil?, "Expected Kubeclient to be built successfully, ignoring empty config")
+  end
 end
