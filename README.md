@@ -90,7 +90,6 @@ Krane provides support for official upstream supported versions [Kubernetes](htt
 |        1.32        | Yes               |                    --                    |
 |        1.33        | Yes               |                    --                    |
 |        1.34        | Yes               |                    --                    |
-|        1.35        | Yes               |                    --                    |
 
 ## Installation
 

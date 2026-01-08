@@ -1,7 +1,7 @@
 ## next
 
 ## 3.9.1
-- Test against k8s 1.34 and 1.35
+- Test against k8s 1.34
 
 ## 3.9.0
 
