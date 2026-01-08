@@ -9,15 +9,15 @@ Why not just use the standard `kubectl apply` mechanism to deploy? It is indeed 
 
 Especially in a CI/CD environment, we need a clear, actionable pass/fail result for each deploy. Providing this was the foundational goal of `krane`, which has grown to support the following core features:
 
-​:eyes:  Watches the changes you requested to make sure they roll out successfully.
+​👀 Watches the changes you requested to make sure they roll out successfully.
 
-:interrobang: Provides debug information for changes that failed.
+⁉️ Provides debug information for changes that failed.
 
-:1234:  Predeploys certain types of resources (e.g. ConfigMap, PersistentVolumeClaim) to make sure the latest version will be available when resources that might consume them (e.g. Deployment) are deployed.
+🔢 Predeploys certain types of resources (e.g. ConfigMap, PersistentVolumeClaim) to make sure the latest version will be available when resources that might consume them (e.g. Deployment) are deployed.
 
-:closed_lock_with_key:  [Creates Kubernetes secrets from encrypted EJSON](#deploying-kubernetes-secrets-from-ejson), which you can safely commit to your repository
+🔐 [Creates Kubernetes secrets from encrypted EJSON](#deploying-kubernetes-secrets-from-ejson), which you can safely commit to your repository
 
-​:running: [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy) using bare pods (example use case: Rails migrations)
+​🏃 [Running tasks at the beginning of a deploy](#running-tasks-at-the-beginning-of-a-deploy) using bare pods (example use case: Rails migrations)
 
 If you need the ability to render dynamic values in templates before deploying, you can use [krane render](#krane-render). Alongside that, this repo also includes tools for [running tasks](#krane-run) and [restarting deployments](#krane-restart).
 
