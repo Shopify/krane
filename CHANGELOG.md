@@ -1,5 +1,8 @@
 ## next
 
+## 3.9.1
+- Test against k8s 1.34
+
 ## 3.9.0
 
 - Remove Elasticsearch specific logic that was introduced in 3.8.0

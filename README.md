@@ -84,22 +84,12 @@ Krane provides support for official upstream supported versions [Kubernetes](htt
 
 | Kubernetes version | Currently Tested? | Last officially supported in gem version |
 |:------------------:|-------------------|:----------------------------------------:|
-|        1.18        | No                |                  2.3.7                   |
-|        1.19        | No                |                  2.4.9                   |
-|        1.20        | No                |                  2.4.9                   |
-|        1.21        | No                |                  2.4.9                   |
-|        1.22        | No                |                  3.0.1                   |
-|        1.23        | No                |                  3.4.2                   |
-|        1.24        | No                |                  3.5.3                   |
-|        1.25        | No                |                    --                    |
-|        1.26        | Yes               |                    --                    |
-|        1.27        | Yes               |                    --                    |
-|        1.28        | Yes               |                    --                    |
 |        1.29        | Yes               |                    --                    |
 |        1.30        | Yes               |                    --                    |
 |        1.31        | Yes               |                    --                    |
 |        1.32        | Yes               |                    --                    |
 |        1.33        | Yes               |                    --                    |
+|        1.34        | Yes               |                    --                    |
 
 ## Installation
 
