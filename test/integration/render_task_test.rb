@@ -234,6 +234,19 @@ class RenderTaskTest < Krane::TestCase
     ], in_order: true)
   end
 
+  def test_render_runtime_error_when_rendering_secrets
+    render = build_render_task(
+      File.join(fixture_path('invalid'), 'secret.yaml.erb')
+    )
+    assert_render_failure(render.run(stream: mock_output_stream))
+    assert_logs_match_all([
+      /Invalid template: secret.yaml.erb/,
+      "> Error message:",
+      /\(<rendered> secret.yaml.erb\): could not find expected ':' while scanning a simple key at line \d+ column \d+/,
+      "> Template content: Suppressed because it may contain a Secret",
+    ], in_order: true)
+  end
+
   def test_render_empty_template_dir
     tmp_dir = Dir.mktmpdir
     render = build_render_task(tmp_dir)
