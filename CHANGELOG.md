@@ -1,6 +1,9 @@
 ## next
 
+- Skip kubeconfig files with no contexts defined instead of crashing when building the Kubernetes client
+
 ## 3.9.1
+
 - Test against k8s 1.34
 
 ## 3.9.0
