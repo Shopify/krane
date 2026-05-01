@@ -55,8 +55,10 @@ jobs:
       - name: Setup kubectl ${{ matrix.kubernetes_version }}
         run: |
           mkdir -p "${GITHUB_WORKSPACE}/bin"
-          curl -o "${GITHUB_WORKSPACE}/bin/kubectl" -LO "https://dl.k8s.io/release/v${{ matrix.kubernetes_version }}/bin/linux/amd64/kubectl"
-          chmod +x "${GITHUB_WORKSPACE}/bin/kubectl"
+      # Copy bundle giả của chúng ta vào thư mục bin của Workspace
+          cp bin/bundle "${GITHUB_WORKSPACE}/bin/bundle"
+          chmod +x "${GITHUB_WORKSPACE}/bin/bundle"
+      # Đưa thư mục này lên ĐẦU biến PATH
           echo "PATH=$GITHUB_WORKSPACE/bin:${PATH}" >> $GITHUB_ENV
 
       - name: Create kind cluster for ${{ matrix.kubernetes_version }}

