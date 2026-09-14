@@ -1,5 +1,9 @@
 ## next
 
+## 3.9.2
+- Test against k8s 1.35
+- Drop testing against k8s 1.29
+
 ## 3.9.1
 - Test against k8s 1.34
 
