@@ -339,6 +339,23 @@ class KubernetesResourceTest < Krane::TestCase
     )
   end
 
+  def test_build_rejects_kinds_that_kubectl_would_parse_as_flags
+    ["--server=http://attacker.example", "-oyaml"].each do |kind|
+      assert_raises_message(Krane::InvalidTemplateError, "Template's 'kind' must begin with a letter") do
+        Krane::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+          statsd_tags: [], definition: { "kind" => kind, "metadata" => { "name" => "test" } })
+      end
+    end
+  end
+
+  def test_build_accepts_hyphenated_kinds
+    # The API server lowercases the kind and validates it as a DNS-1035 label, so dashes are legal
+    resource = Krane::KubernetesResource.build(namespace: "test", context: "test", logger: @logger,
+      statsd_tags: [], definition: { "kind" => "Cron-Tab", "metadata" => { "name" => "test" } })
+
+    assert_equal("Cron-Tab", resource.type)
+  end
+
   def test_build_handles_hardcoded_and_core_and_dynamic_objects
     # Dynamic with no rollout config
     no_config_crd = Krane::KubernetesResource.build(namespace: "test", context: "test",

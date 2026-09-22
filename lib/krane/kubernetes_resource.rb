@@ -35,6 +35,11 @@ module Krane
       If you have reason to believe it will succeed, retry the deploy to continue to monitor the rollout.
       MSG
 
+    # Kubernetes kinds begin with a letter, and may contain dashes after that (the API server
+    # lowercases the kind and validates it as a DNS-1035 label). Only the first character matters
+    # here: a leading dash would make kubectl parse the kind as a flag rather than a resource kind.
+    KIND_FORMAT = /\A[A-Za-z]/
+
     ALLOWED_DEPLOY_METHOD_OVERRIDES = %w(create replace replace-force)
     DEPLOY_METHOD_OVERRIDE_ANNOTATION = "deploy-method-override"
     TIMEOUT_OVERRIDE_ANNOTATION = "timeout-override"
@@ -89,6 +94,10 @@ module Krane
         STRING
         if definition["kind"].blank?
           raise InvalidTemplateError.new("Template is missing required field 'kind'", content: debug_content)
+        end
+
+        unless definition["kind"].match?(KIND_FORMAT)
+          raise InvalidTemplateError.new("Template's 'kind' must begin with a letter", content: debug_content)
         end
 
         if definition.dig('metadata', 'name').blank? && definition.dig('metadata', 'generateName').blank?
@@ -250,7 +259,7 @@ module Krane
 
     def sync_debug_info(kubectl)
       @debug_events = fetch_events(kubectl) unless ENV[DISABLE_FETCHING_EVENT_INFO]
-      @debug_logs = fetch_debug_logs if print_debug_logs? && !ENV[DISABLE_FETCHING_LOG_INFO]
+      @debug_logs = fetch_debug_logs(kubectl) if print_debug_logs? && !ENV[DISABLE_FETCHING_LOG_INFO]
     end
 
     def debug_message(cause = nil, info_hash = {})

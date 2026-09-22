@@ -28,12 +28,12 @@ module Krane
             logger: logger, statsd_tags: statsd_tags)
     end
 
-    def sync(_cache)
+    def sync(cache)
       super
       raise_predates_deploy_error if exists? && unmanaged? && !deploy_started?
 
       if exists?
-        logs.sync if unmanaged?
+        logs.sync(cache.kubectl) if unmanaged?
         update_container_statuses(@instance_data["status"])
       else # reset
         @containers.each(&:reset_status)
@@ -93,8 +93,8 @@ module Krane
       "#{phase_failure_message} #{container_problems}".strip.presence
     end
 
-    def fetch_debug_logs
-      logs.sync
+    def fetch_debug_logs(kubectl)
+      logs.sync(kubectl)
       logs
     end
 

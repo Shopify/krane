@@ -18,7 +18,7 @@ module Krane
       own_events.merge(most_useful_pod.fetch_events(kubectl))
     end
 
-    def fetch_debug_logs
+    def fetch_debug_logs(kubectl)
       logs = Krane::RemoteLogs.new(
         logger: @logger,
         parent_id: id,
@@ -26,7 +26,7 @@ module Krane
         namespace: @namespace,
         context: @context
       )
-      logs.sync
+      logs.sync(kubectl)
       logs
     end
 

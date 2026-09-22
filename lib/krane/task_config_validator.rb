@@ -9,6 +9,10 @@ module Krane
       validate_namespace_exists
     ).freeze
 
+    # Kubernetes namespaces are DNS-1123 labels. Anything else, in particular a value starting with
+    # a dash, would be parsed by kubectl as a flag rather than as a resource name.
+    NAMESPACE_FORMAT = /\A[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?\z/
+
     delegate :context, :namespace, :logger, to: :@task_config
 
     def initialize(task_config, kubectl, kubeclient_builder, only: nil)
@@ -44,6 +48,12 @@ module Krane
         return @errors << "Context can not be blank"
       end
 
+      # A context is passed to kubectl as a bare positional argument; a leading dash would make
+      # kubectl parse it as a flag. Context names are otherwise too varied to constrain further.
+      if context.start_with?("-")
+        return @errors << "Context can not start with a dash"
+      end
+
       _, err, st = @kubectl.run("config", "get-contexts", context, "-o", "name",
         use_namespace: false, use_context: false, log_failure: false, attempts: 2)
 
@@ -68,6 +78,10 @@ module Krane
     def validate_namespace_exists
       unless namespace.present?
         return @errors << "Namespace can not be blank"
+      end
+
+      unless namespace.match?(NAMESPACE_FORMAT)
+        return @errors << "Namespace is not a valid Kubernetes namespace name"
       end
 
       _, err, st = @kubectl.run("get", "namespace", "-o", "name", namespace,
