@@ -29,8 +29,8 @@ module Krane
       @latest_rs.present?
     end
 
-    def fetch_debug_logs
-      @latest_rs.fetch_debug_logs
+    def fetch_debug_logs(kubectl)
+      @latest_rs.fetch_debug_logs(kubectl)
     end
 
     def deploy_succeeded?

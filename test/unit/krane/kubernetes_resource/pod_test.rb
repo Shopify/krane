@@ -324,6 +324,18 @@ class PodTest < Krane::TestCase
     assert_nil(pod.failure_message)
   end
 
+  def test_debug_logs_are_fetched_with_the_kubectl_the_caller_supplies
+    # The caller's kubectl carries the task's kubeconfig; building a fresh one here
+    # would silently fall back to ENV['KUBECONFIG'].
+    pod = Krane::Pod.new(namespace: 'test', context: 'nope', definition: build_pod_template,
+      logger: @logger, deploy_started_at: Time.now.utc)
+    Krane::Kubectl.expects(:new).never
+    given_kubectl = mock('kubectl')
+    given_kubectl.expects(:run).with { |*args, **| args.first == 'logs' }.returns(["", "", ""])
+
+    pod.fetch_debug_logs(given_kubectl)
+  end
+
   private
 
   def pod_spec

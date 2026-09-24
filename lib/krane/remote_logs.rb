@@ -23,8 +23,8 @@ module Krane
       @container_logs.all?(&:empty?)
     end
 
-    def sync
-      @container_logs.each(&:sync)
+    def sync(kubectl)
+      @container_logs.each { |cl| cl.sync(kubectl) }
     end
 
     def print_latest
