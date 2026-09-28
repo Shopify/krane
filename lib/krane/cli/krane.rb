@@ -6,7 +6,7 @@ require 'krane/cli/render_command'
 require 'krane/cli/restart_command'
 require 'krane/cli/run_command'
 require 'krane/cli/version_command'
-require 'multi_json'
+require 'json'
 require 'thor'
 
 module Krane

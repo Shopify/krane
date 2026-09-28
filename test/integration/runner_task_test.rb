@@ -51,7 +51,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
     assert_logs_match_all([
       "Streaming logs",
-      "/bin/sh: /not/a/command: not found",
+      %r{/bin/sh: (line 0: )?/not/a/command: not found},
       %r{Pod/task-runner-\w+ failed to run after \d+.\ds},
       "Result: FAILURE",
       "Pod status: Failed",
@@ -166,7 +166,7 @@ class RunnerTaskTest < Krane::IntegrationTest
 
     assert_logs_match_all([
       "Streaming logs",
-      "/bin/sh: /not/a/command: not found",
+      %r{/bin/sh: (line 0: )?/not/a/command: not found},
       %r{Pod/task-runner-\w+ failed to run after \d+.\ds},
       "Result: FAILURE",
       "Pod status: Failed",

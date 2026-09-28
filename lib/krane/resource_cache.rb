@@ -64,7 +64,7 @@ module Krane
       raise KubectlError unless st.success?
 
       instances = {}
-      MultiJson.load(raw_json)["items"].each do |resource|
+      JSON.parse(raw_json)["items"].each do |resource|
         resource_name = resource.dig("metadata", "name")
         instances[resource_name] = resource
       end

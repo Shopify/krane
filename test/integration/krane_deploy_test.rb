@@ -775,7 +775,7 @@ class KraneDeployTest < Krane::IntegrationTest
       "Failed to deploy 1 priority resource",
       %r{Pod\/unmanaged-pod-1-\w+-\w+: FAILED},
       "Logs from container 'hello-cloud'",
-      "sh: /some/bad/path: not found", # logs from failed pod printed in summary
+      %r{sh: (line 0: )?/some/bad/path: not found}, # logs from failed pod printed in summary
     ], in_order: true)
     refute_logs_match(%r{some/bad/path.*Result\: FAILURE}m) # failed pod logs not also displayed before summary
 

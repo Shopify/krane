@@ -86,7 +86,7 @@ module Krane
           response, _, status = run("version", output: "json", use_namespace: false, log_failure: true, attempts: 2)
           raise KubectlError, "Could not retrieve kubectl version info" unless status.success?
 
-          version_data = MultiJson.load(response)
+          version_data = JSON.parse(response)
           client_version = platform_agnostic_version(version_data.dig("clientVersion", "gitVersion").to_s)
           server_version = platform_agnostic_version(version_data.dig("serverVersion", "gitVersion").to_s)
           unless client_version && server_version

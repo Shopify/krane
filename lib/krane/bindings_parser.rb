@@ -54,14 +54,14 @@ module Krane
     end
 
     def parse_json(string)
-      bindings = MultiJson.load(string)
+      bindings = JSON.parse(string)
 
       unless bindings.is_a?(Hash)
         raise ArgumentError, "Expected JSON data to be a hash."
       end
 
       bindings
-    rescue MultiJson::ParseError
+    rescue JSON::ParserError
       nil
     end
 
