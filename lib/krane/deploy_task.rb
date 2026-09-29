@@ -318,7 +318,7 @@ module Krane
       @namespace_definition ||= begin
         definition, _err, st = kubectl.run("get", "namespace", @namespace, use_namespace: false,
           log_failure: true, raise_if_not_found: true, attempts: 3, output: 'json')
-        st.success? ? MultiJson.load(definition, symbolize_names: true) : nil
+        st.success? ? JSON.parse(definition, symbolize_names: true) : nil
       end
     rescue Kubectl::ResourceNotFoundError
       nil
@@ -352,7 +352,7 @@ module Krane
         unless st.success?
           raise EjsonSecretError, "Error retrieving Secret/#{EjsonSecretProvisioner::EJSON_KEYS_SECRET}: #{err}"
         end
-        MultiJson.load(out)
+        JSON.parse(out)
       end
     end
 

@@ -195,7 +195,7 @@ module Krane
     def stub_kubectl_response(*args, kwargs: {}, resp:, err: "", success: true, json: true, times: 1)
       if json
         kwargs[:output] = "json"
-        resp = resp.to_json
+        resp = resp.deep_stringify_keys.to_json
       end
       response = [resp, err, stub(success?: success)]
       Krane::Kubectl.any_instance.expects(:run).with(*args, kwargs.presence).returns(response).times(times)
