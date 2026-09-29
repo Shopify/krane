@@ -1,6 +1,9 @@
 ## next
 
+## 3.9.2
 - Parse JSON with `JSON.parse` instead of `MultiJson.load`, and drop the `multi_json` dependency. On Ruby 3.0 and 3.1, `multi_json` 1.19.1 (the newest those versions can install) crashes with `json` 3.x
+- Pod log retrieval now uses the task's `kubeconfig` instead of falling back to `ENV['KUBECONFIG']`
+- Reject namespaces, contexts and kinds that `kubectl` would parse as flags rather than as positional arguments
 
 ## 3.9.1
 - Test against k8s 1.34

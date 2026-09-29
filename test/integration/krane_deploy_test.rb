@@ -1324,7 +1324,6 @@ class KraneDeployTest < Krane::IntegrationTest
   def test_jobs_can_fail
     fixtures = deploy_fixtures("hello-cloud", subset: ["job.yml"]) do |f|
       spec = f["job.yml"]["Job"].first["spec"]
-      spec["backoffLimit"] = 1
       spec["activeDeadlineSeconds"] = 1
       spec["template"]["spec"]["containers"].first["command"] = %w(/not/a/command)
     end
@@ -1334,8 +1333,8 @@ class KraneDeployTest < Krane::IntegrationTest
       "Deploying Job/hello-job (timeout: 600s)",
       "Result: FAILURE",
       "Job/hello-job: FAILED",
+      "DeadlineExceeded (Job was active longer than specified deadline)",
       "Final status: Failed",
-      *(%r{\[Job/hello-job\]\tDeadlineExceeded: Job was active longer than specified deadline \(\d+ events\)} if ENV['CI'] == 'true'),
     ])
   end
 

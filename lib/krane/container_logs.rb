@@ -16,8 +16,8 @@ module Krane
       @printed_latest = false
     end
 
-    def sync
-      new_logs = fetch_latest
+    def sync(kubectl)
+      new_logs = fetch_latest(kubectl)
       return unless new_logs.present?
       @lines += sort_and_deduplicate(new_logs)
     end
@@ -47,7 +47,7 @@ module Krane
 
     private
 
-    def fetch_latest
+    def fetch_latest(kubectl)
       cmd = ["logs", @parent_id, "--container=#{container_name}", "--timestamps"]
       cmd << if @last_timestamp.present?
         "--since-time=#{rfc3339_timestamp(@last_timestamp)}"
@@ -56,11 +56,6 @@ module Krane
       end
       out, _err, _st = kubectl.run(*cmd, log_failure: false)
       out.encode('UTF-8', invalid: :replace, replace: '').split("\n")
-    end
-
-    def kubectl
-      task_config = TaskConfig.new(@context, @namespace, @logger)
-      @kubectl ||= Kubectl.new(task_config: task_config, log_failure_by_default: false)
     end
 
     def rfc3339_timestamp(time)

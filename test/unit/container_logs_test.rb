@@ -13,14 +13,27 @@ class ContainerLogsTest < Krane::TestCase
     )
   end
 
+  def test_sync_uses_the_kubectl_it_is_given_and_builds_no_client_of_its_own
+    # Building its own Kubectl is what made log reads fall back to ENV['KUBECONFIG']
+    # instead of the credentials the task was configured with.
+    Krane::Kubectl.expects(:new).never
+    given_kubectl = mock('kubectl')
+    given_kubectl.expects(:run).with('logs', 'pod/pod-123-456', '--container=A', '--timestamps',
+      '--tail=25', log_failure: false).returns([logs_response_1, "", ""])
+
+    @logs.sync(given_kubectl)
+
+    assert_equal(generate_log_messages(1..3), @logs.lines)
+  end
+
   def test_sync_deduplicates_logs_emitted_fractional_seconds_apart
     Krane::Kubectl.any_instance.stubs(:run)
       .returns([logs_response_1, "", ""])
       .then.returns([logs_response_2, "", ""])
       .then.returns([logs_response_3, "", ""])
-    @logs.sync
-    @logs.sync
-    @logs.sync
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
 
     assert_equal(generate_log_messages(1..15), @logs.lines)
   end
@@ -30,9 +43,9 @@ class ContainerLogsTest < Krane::TestCase
       .returns([logs_response_1, "", ""])
       .then.returns(["", "", ""])
       .then.returns([logs_response_2, "", ""])
-    @logs.sync
-    @logs.sync
-    @logs.sync
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
 
     assert_equal(generate_log_messages(1..10), @logs.lines)
   end
@@ -40,7 +53,7 @@ class ContainerLogsTest < Krane::TestCase
   def test_empty_delegated_to_lines
     Krane::Kubectl.any_instance.stubs(:run).returns([logs_response_1, "", ""])
     assert_predicate(@logs, :empty?)
-    @logs.sync
+    @logs.sync(kubectl)
     refute_predicate(@logs, :empty?)
   end
 
@@ -49,7 +62,7 @@ class ContainerLogsTest < Krane::TestCase
       .returns([logs_response_1, "", ""])
       .then.returns([logs_response_2, "", ""])
 
-    @logs.sync
+    @logs.sync(kubectl)
     @logs.print_latest
     assert_logs_match_all(generate_log_messages(1..3), in_order: true)
 
@@ -58,7 +71,7 @@ class ContainerLogsTest < Krane::TestCase
     assert_logs_match_all(generate_log_messages(1..3), in_order: true)
 
     reset_logger
-    @logs.sync
+    @logs.sync(kubectl)
     @logs.print_latest
     assert_logs_match_all(generate_log_messages(4..10), in_order: true)
     refute_logs_match("Line 3")
@@ -70,7 +83,7 @@ class ContainerLogsTest < Krane::TestCase
 
   def test_print_latest_supports_prefixing
     Krane::Kubectl.any_instance.stubs(:run).returns([logs_response_1, "", ""])
-    @logs.sync
+    @logs.sync(kubectl)
     expected = [
       "[A]  Line 1",
       "[A]  Line 2",
@@ -87,8 +100,8 @@ class ContainerLogsTest < Krane::TestCase
       .returns([logs_response_1_with_anomaly, "", ""])
       .then.returns([logs_response_2_with_anomaly, "", ""])
 
-    @logs.sync
-    @logs.sync
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
     @logs.print_all
     assert_logs_match_all([
       "No timestamp", # moved to start of batch 1
@@ -106,9 +119,9 @@ class ContainerLogsTest < Krane::TestCase
       .then.returns([logs_response_1, "", ""])
       .then.returns([logs_response_2, "", ""])
 
-    @logs.sync
-    @logs.sync
-    @logs.sync
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
+    @logs.sync(kubectl)
 
     @logs.print_all
     assert_logs_match_all(generate_log_messages(1..10), in_order: true)
@@ -140,7 +153,7 @@ class ContainerLogsTest < Krane::TestCase
       .returns([regression_data, "", ""]).times(12)
 
     12.times do
-      @logs.sync
+      @logs.sync(kubectl)
       @logs.print_latest
     end
 
@@ -153,6 +166,10 @@ class ContainerLogsTest < Krane::TestCase
   end
 
   private
+
+  def kubectl
+    @kubectl ||= Krane::Kubectl.new(task_config: task_config, log_failure_by_default: false)
+  end
 
   def generate_log_messages(range)
     range.map { |i| "Line #{i}" }

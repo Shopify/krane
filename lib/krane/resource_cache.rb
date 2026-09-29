@@ -4,6 +4,8 @@ require 'concurrent/hash'
 
 module Krane
   class ResourceCache
+    attr_reader :kubectl
+
     delegate :namespace, :context, :logger, to: :@task_config
 
     def initialize(task_config)
