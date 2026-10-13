@@ -8,6 +8,8 @@ require 'krane/template_sets'
 module Krane
   # Render templates
   class RenderTask
+    include Krane::TemplateReporting
+
     # Initializes the render task
     #
     # @param logger [Object] Logger object (defaults to an instance of Krane::FormattedLogger)
@@ -67,7 +69,12 @@ module Krane
 
       count
     rescue Krane::InvalidTemplateError => exception
-      log_invalid_template(exception)
+      record_invalid_template(
+        logger: @logger,
+        err: exception.to_s,
+        filename: exception.filename,
+        content: exception.content
+      )
       raise
     end
 
@@ -104,17 +111,6 @@ module Krane
         @logger.summary.add_paragraph(errors.map { |err| "- #{err}" }.join("\n"))
         raise Krane::TaskConfigurationError, "Configuration invalid: #{errors.join(', ')}"
       end
-    end
-
-    def log_invalid_template(exception)
-      @logger.error("Failed to render #{exception.filename}")
-
-      debug_msg = ColorizedString.new("Invalid template: #{exception.filename}\n").red
-      debug_msg += "> Error message:\n#{FormattedLogger.indent_four(exception.to_s)}"
-      if exception.content
-        debug_msg += "\n> Template content:\n#{FormattedLogger.indent_four(exception.content)}"
-      end
-      @logger.summary.add_paragraph(debug_msg)
     end
   end
 end
