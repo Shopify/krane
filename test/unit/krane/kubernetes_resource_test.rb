@@ -269,8 +269,8 @@ class KubernetesResourceTest < Krane::TestCase
     expected_message = <<~STRING
       DummyResource/test: FAILED
         - Final status: Exists
-        - Events: None found. Please check your usual logging service (e.g. Splunk).
-        - Logs: None found. Please check your usual logging service (e.g. Splunk).
+        - Events: None found. Please check your usual logging service (e.g. Observe).
+        - Logs: None found. Please check your usual logging service (e.g. Observe).
     STRING
     assert_equal(expected_message.strip, dummy.debug_message)
 
@@ -281,8 +281,8 @@ class KubernetesResourceTest < Krane::TestCase
       Something went wrong I guess
 
         - Final status: Exists
-        - Events: None found. Please check your usual logging service (e.g. Splunk).
-        - Logs: None found. Please check your usual logging service (e.g. Splunk).
+        - Events: None found. Please check your usual logging service (e.g. Observe).
+        - Logs: None found. Please check your usual logging service (e.g. Observe).
     STRING
     assert_equal(expected_message.strip, dummy.debug_message)
 
@@ -294,8 +294,8 @@ class KubernetesResourceTest < Krane::TestCase
       > Some container: boom!
 
         - Final status: Exists
-        - Events: None found. Please check your usual logging service (e.g. Splunk).
-        - Logs: None found. Please check your usual logging service (e.g. Splunk).
+        - Events: None found. Please check your usual logging service (e.g. Observe).
+        - Logs: None found. Please check your usual logging service (e.g. Observe).
     STRING
     assert_equal(expected_message.strip, dummy.debug_message)
   end
