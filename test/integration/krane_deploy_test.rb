@@ -215,6 +215,17 @@ class KraneDeployTest < Krane::IntegrationTest
     assert_equal("staging", deployments.first.metadata.labels.branch)
   end
 
+  def test_selector_as_filter_skips_resources_without_labels
+    assert_deploy_success(deploy_fixtures("slow-cloud", subset: ['web-deploy-1.yml', 'configmap-without-labels.yml'],
+      selector: Krane::LabelSelector.parse("branch=main"),
+      selector_as_filter: true))
+
+    deployments = apps_v1_kubeclient.get_deployments(namespace: @namespace)
+    assert_equal(["web"], deployments.map { |d| d.metadata.name })
+    config_maps = kubeclient.get_config_maps(namespace: @namespace).map { |cm| cm.metadata.name }
+    refute_includes(config_maps, "configmap-without-labels")
+  end
+
   def test_mismatched_selector
     assert_deploy_failure(deploy_fixtures("slow-cloud", subset: %w(web-deploy-1.yml),
       selector: Krane::LabelSelector.parse("branch=staging")))

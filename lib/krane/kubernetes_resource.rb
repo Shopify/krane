@@ -504,7 +504,7 @@ module Krane
     end
 
     def selected?(selector)
-      selector.nil? || selector.to_h <= labels
+      selector.nil? || selector.to_h <= (labels || {})
     end
 
     private
