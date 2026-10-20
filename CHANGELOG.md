@@ -1,4 +1,5 @@
 ## next
+- `--selector-as-filter` no longer crashes with `TypeError: no implicit conversion of nil into Hash` when a template has no labels. Such templates are skipped, like any other template that doesn't match the selector.
 
 ## 3.9.2
 - Parse JSON with `JSON.parse` instead of `MultiJson.load`, and drop the `multi_json` dependency. On Ruby 3.0 and 3.1, `multi_json` 1.19.1 (the newest those versions can install) crashes with `json` 3.x
