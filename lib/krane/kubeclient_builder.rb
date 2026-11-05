@@ -135,7 +135,9 @@ module Krane
 
     def build_kubeclient(api_version:, context:, endpoint_path: nil)
       validate_config_files!
-      @kubeclient_configs ||= @kubeconfig_files.map { |f| Kubeclient::Config.read(f) }
+      @kubeclient_configs ||= @kubeconfig_files
+        .select { |f| config_has_contexts?(f) }
+        .map { |f| Kubeclient::Config.read(f) }
       # Find a context defined in kube conf files that matches the input context by name
       config = @kubeclient_configs.find { |c| c.contexts.include?(context) }
       raise ContextMissingError.new(context, @kubeconfig_files) unless config
@@ -153,6 +155,11 @@ module Krane
       )
       client.discover
       client
+    end
+
+    def config_has_contexts?(file_path)
+      config = YAML.safe_load(File.read(file_path))
+      config["contexts"].is_a?(Array) && config["contexts"].any?
     end
   end
 end
