@@ -6,7 +6,7 @@ up:
   - podman
   - kind:
       name: krane
-      image: kindest/node:v1.34.3@sha256:08497ee19eace7b4b5348db5c6a1591d7752b164530a36f855cb0f2bdcbadd48
+      image: kindest/node:v1.35.8@sha256:07b2536e30b803ed61d1677a79df6115f798ce64c80f9e22f6ed45afd09323c0
 commands:
   test:
     run: bin/test unit_test && bin/test cli_test && bin/test serial_integration_test && bin/test integration_test
