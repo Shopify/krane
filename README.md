@@ -503,7 +503,7 @@ resource to restart.
 
 ## Prerequisites
 
-* You've already deployed a [`PodTemplate`](https://v1-22.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#podtemplate-v1-core) object with field `template` containing a `Pod` specification that does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
+* You've already deployed a [`PodTemplate`](https://kubernetes.io/docs/reference/kubernetes-api/core/pod-template-v1/) object with field `template` containing a `Pod` specification that does not include the `apiVersion` or `kind` parameters. An example is provided in this repo in `test/fixtures/hello-cloud/template-runner.yml`.
 * The `Pod` specification in that template has a container named `task-runner`.
 
 Based on this specification `krane run` will create a new pod with the entrypoint of the `task-runner ` container overridden with the supplied arguments.
