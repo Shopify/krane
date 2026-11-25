@@ -99,10 +99,107 @@ class HorizontalPodAutoscalerTest < Krane::TestCase
     assert_equal("the HPA controller was unable to update the target scale", hpa.timeout_message)
   end
 
+  def test_hpa_succeeds_when_observed_generation_matches_current_generation
+    conditions = [{
+      "lastTransitionTime" => 5.seconds.ago,
+      "message" => "the HPA was able to successfully calculate a replica count from cpu "\
+        "resource utilization (percentage of request)",
+      "reason" => "ValidMetricFound",
+      "status" => "True",
+      "type" => "ScalingActive",
+    }]
+    hpa = build_synced_hpa(build_hpa_template(conditions: conditions, generation: 2, observed_generation: 2))
+    assert(hpa.deploy_succeeded?)
+    refute(hpa.deploy_failed?)
+    assert_equal("Configured", hpa.status)
+  end
+
+  def test_hpa_succeeds_when_observed_generation_is_absent
+    conditions = [{
+      "lastTransitionTime" => 5.seconds.ago,
+      "message" => "the HPA was able to successfully calculate a replica count from cpu "\
+        "resource utilization (percentage of request)",
+      "reason" => "ValidMetricFound",
+      "status" => "True",
+      "type" => "ScalingActive",
+    }]
+    hpa = build_synced_hpa(build_hpa_template(conditions: conditions, generation: 2))
+    assert(hpa.deploy_succeeded?)
+    refute(hpa.deploy_failed?)
+    assert_equal("Configured", hpa.status)
+  end
+
+  def test_hpa_not_fooled_by_stale_success_status
+    conditions = [{
+      "lastTransitionTime" => 5.seconds.ago,
+      "message" => "the HPA was able to successfully calculate a replica count from cpu "\
+        "resource utilization (percentage of request)",
+      "reason" => "ValidMetricFound",
+      "status" => "True",
+      "type" => "ScalingActive",
+    }]
+    hpa = build_synced_hpa(build_hpa_template(conditions: conditions, generation: 2, observed_generation: 1))
+    hpa.deploy_started_at = (hpa.timeout + 5).seconds.ago
+    refute(hpa.deploy_succeeded?)
+    refute(hpa.deploy_failed?)
+    assert(hpa.deploy_timed_out?)
+    assert_equal("Unknown", hpa.status)
+    assert_nil(hpa.failure_message)
+    assert_equal(Krane::HorizontalPodAutoscaler::TIMEOUT_MESSAGE_DIFFERENT_GENERATIONS, hpa.timeout_message)
+  end
+
+  def test_hpa_not_fooled_by_stale_scaling_disabled_status
+    conditions = [{
+      "lastTransitionTime" => 5.seconds.ago,
+      "message" => "scaling is disabled since the replica count of the target is zero",
+      "reason" => "ScalingDisabled",
+      "status" => "False",
+      "type" => "ScalingActive",
+    }]
+    hpa = build_synced_hpa(build_hpa_template(conditions: conditions, generation: 2, observed_generation: 1))
+    refute(hpa.deploy_succeeded?)
+    refute(hpa.deploy_failed?)
+    assert_equal("Unknown", hpa.status)
+  end
+
+  def test_hpa_not_fooled_by_stale_failure_status
+    conditions = [{
+      "lastTransitionTime" => 5.seconds.ago,
+      "message" => "the HPA target's scale is missing a selector",
+      "reason" => "InvalidSelector",
+      "status" => "False",
+      "type" => "ScalingActive",
+    }]
+    hpa = build_synced_hpa(build_hpa_template(conditions: conditions, generation: 2, observed_generation: 1))
+    refute(hpa.deploy_succeeded?)
+    refute(hpa.deploy_failed?)
+    assert_equal("Unknown", hpa.status)
+    assert_nil(hpa.failure_message)
+  end
+
+  def test_hpa_not_found_does_not_use_stale_generation_timeout_message
+    hpa = Krane::HorizontalPodAutoscaler.new(
+      namespace: 'test-ns',
+      context: KubeclientHelper::TEST_CONTEXT,
+      logger: logger,
+      definition: build_hpa_template(conditions: [])
+    )
+    hpa.deploy_started_at = (hpa.timeout + 5).seconds.ago
+    refute(hpa.deploy_succeeded?)
+    refute(hpa.deploy_failed?)
+    assert(hpa.deploy_timed_out?)
+    assert_equal("Not Found", hpa.status)
+    assert_nil(hpa.failure_message)
+    assert_equal(Krane::KubernetesResource::STANDARD_TIMEOUT_MESSAGE, hpa.timeout_message)
+  end
+
   private
 
-  def build_hpa_template(conditions: [])
-    hpa_fixture.dup.tap { |hpa| hpa["status"]["conditions"] = conditions }
+  def build_hpa_template(conditions: [], generation: nil, observed_generation: nil)
+    metadata = generation.nil? ? {} : { "generation" => generation }
+    status = { "conditions" => conditions }
+    status["observedGeneration"] = observed_generation unless observed_generation.nil?
+    hpa_fixture.deep_merge("metadata" => metadata, "status" => status)
   end
 
   def build_synced_hpa(template)
